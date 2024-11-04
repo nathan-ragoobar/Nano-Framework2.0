@@ -18,7 +18,7 @@
 #define PROFILE_TRACE_FN(prefix)
 #endif
 
-namespace nn {
+namespace gpt {
 
 struct CausalSelfAttention {
   using Type = floatX;
