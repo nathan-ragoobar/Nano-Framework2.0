@@ -7,7 +7,7 @@
 #include "nanolib/tensor/tensor_util.hpp"
 #include "abseil-cpp/absl/log/check.h"
 #include "abseil-cpp/absl/types/span.h"
-//#include "Parameter.hpp"  // Include the Parameter header
+#include "nano/nn/Parameter.hpp"  // Include the Parameter header
 #include "nanolib/nn/nn.hpp"
 #include "nanolib/nn/Linear.hpp"
 
