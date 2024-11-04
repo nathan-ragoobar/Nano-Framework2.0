@@ -13,6 +13,7 @@
 struct MLP {
   using T = floatX;
 
+  //I think this is the structure for the class/structure?
   explicit MLP(int n_embed) : n_embed_(n_embed) {
     c_fc_ = std::make_unique<nn::Linear>(n_embed, 4 * n_embed);
     c_proj_ = std::make_unique<nn::Linear>(4 * n_embed, n_embed);
@@ -23,6 +24,7 @@ struct MLP {
     fch_gelu_ = std::make_unique<nn::Activation>(dtype);
   }
 
+  //This is the forward pass for the MLP
   void Forward(typename TTypes<T>::ConstMatrix x,
                typename TTypes<T>::Matrix y) {
     PROFILE_TRACE_FN("MLP");
@@ -47,6 +49,7 @@ struct MLP {
     c_proj_->Forward(fch_gelu_const, y);
   }
 
+  //Backward pass for the MLP
   void Backward(typename TTypes<T>::ConstMatrix x,
                 typename TTypes<T>::ConstMatrix y_grad,
                 typename TTypes<T>::Matrix x_grad) {

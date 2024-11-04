@@ -7,8 +7,9 @@
 #include <memory>
 #include <random>
 
-#include "llmc/rand.h"
-#include "tensor_util.hpp"
+#include "nanolib/utils/rand.h"
+#include "nanolib/tensor/tensor_util.hpp"
+#include "eigen/unsupported/Eigen/CXX11/Tensor"
 
 /* #include "absl/algorithm/container.h"
 #include "absl/log/check.h"
@@ -377,57 +378,6 @@ struct Parameter {
 
 using Activation = Parameter;
 
-struct MatMul {
-  using T = floatX;
-
-  static void Forward(typename TTypes<T>::ConstMatrix x1,
-                      typename TTypes<T>::ConstMatrix x2,
-                      typename TTypes<T>::Matrix y, T scale = 1.0f) {
-    // x: [M, N], x2: [N, K], y: [M, K]
-    CHECK_EQ(x1.dimension(0), y.dimension(0));
-    CHECK_EQ(x1.dimension(1), x2.dimension(0));
-    CHECK_EQ(x2.dimension(1), y.dimension(1));
-
-    // y = x1 * x2
-    //    y.noalias() = x1 * x2;
-    Eigen::array<Eigen::IndexPair<int>, 1> product_dims = {
-        Eigen::IndexPair<int>(1, 0)};
-    y.device(g_device) = x1.contract(x2, product_dims) * scale;
-  }
-
-  static void Backward(typename TTypes<T>::ConstMatrix x1,
-                       typename TTypes<T>::ConstMatrix x2,
-                       typename TTypes<T>::ConstMatrix y_grad,
-                       typename TTypes<T>::Matrix x1_grad,
-                       typename TTypes<T>::Matrix x2_grad, T scale = 1.0) {
-    // input:
-    // x1: [M, N], x2:[N, K]
-    // y_grad: [M, K]
-    //
-    // output:
-    // x1_grad: [M, N], x2_grad: [N, K]
-    int M = x1.dimension(0), N = x1.dimension(1), K = x2.dimension(1);
-    CHECK(M == y_grad.dimension(0) && M == x1_grad.dimension(0));
-    CHECK(N == x2.dimension(0) && N == x1_grad.dimension(1) &&
-          N == x2_grad.dimension(0));
-    CHECK(K == y_grad.dimension(1) && K == x2_grad.dimension(1));
-
-    // x1_grad = dL/dy * dy/dx1
-    //        = y_grad(M, K) * x2^T (K, N)
-    //        = [M, N]
-    Eigen::array<Eigen::IndexPair<int>, 1> product_dims = {
-        Eigen::IndexPair<int>(1, 1)};
-    x1_grad.device(g_device) += y_grad.contract(x2, product_dims) * scale;
-
-    // x2_grad = dL/dy * dy/dx2
-    //        = x1^T(N, M) * y_grad(M, K)
-    //        = [N, K]
-
-    Eigen::array<Eigen::IndexPair<int>, 1> product_dims2 = {
-        Eigen::IndexPair<int>(0, 0)};
-    x2_grad.device(g_device) += x1.contract(y_grad, product_dims2) * scale;
-  }
-};
 
 struct Residual {
   using T = floatX;
@@ -455,52 +405,7 @@ struct Residual {
 
 
 
-struct Embedding {
-  Embedding(int num_embeddings, int embedding_dim)
-      : num_embeddings_(num_embeddings), embedding_dim_(embedding_dim) {
-    weight_ =
-        std::make_unique<Parameter>(DT_FLOAT, num_embeddings * embedding_dim);
-    NormalFill(weight_->span<float>());
-  }
 
-  void Forward(absl::Span<const int> idx, absl::Span<float> embedding) const {
-    CHECK_EQ(embedding.size(), idx.size() * embedding_dim_);
-    for (size_t i = 0; i < idx.size(); ++i) {
-      CHECK_LT(idx[i], num_embeddings_);
-      void* dst = embedding.data() + i * embedding_dim_;
-      void* src = weight_->data<float>() + idx[i] * embedding_dim_;
-      g_device.memcpy(dst, src, sizeof(float) * embedding_dim_);
-    }
-  }
-
-  void Backward(absl::Span<const int> idx,
-                absl::Span<const float> grad_embedding) {
-    CHECK_EQ(grad_embedding.size(), idx.size() * embedding_dim_);
-
-    // Lazily allocate the memory for gradients
-    weight_->LazyAllocateGradient();
-    for (size_t i = 0; i < idx.size(); ++i) {
-      CHECK_LT(idx[i], num_embeddings_);
-      const float* g = grad_embedding.data() + i * embedding_dim_;
-      float* grad = weight_->grad<float>() + idx[i] * embedding_dim_;
-      auto g_1d = TTypes<float>::UnalignedConstFlat(g, embedding_dim_);
-      auto grad_1d = TTypes<float>::UnalignedFlat(grad, embedding_dim_);
-      grad_1d.device(g_device) += g_1d;
-    }
-  }
-
-  size_t NumParameters() const { return num_embeddings_ * embedding_dim_; }
-
-  size_t NumActivations() const { return 0; }
-
-  void Parameters(std::vector<Parameter*>* parameters) const {
-    parameters->push_back(weight_.get());
-  }
-
-  int num_embeddings_;
-  int embedding_dim_;
-  std::unique_ptr<Parameter> weight_;
-};
 
 
 // Careful there are a few versions of GeLU, this one is the exact one used by
@@ -547,49 +452,7 @@ struct NewGELU {
 
 
 
-struct CrossEntropy {
-  using T = floatX;
-  enum Reduction { MEAN, SUM };
 
-  CrossEntropy(Reduction reduction = Reduction::MEAN) : reduction_(reduction) {}
-
-  void Forward(typename TTypes<T>::ConstMatrix probs,
-               absl::Span<const int> targets, float* loss) {
-    // probs:[B, C], targets: [B,] loss: scalar
-    int B = probs.dimension(0), C = probs.dimension(1);
-    CHECK_EQ(B, targets.size());
-
-    // targets: [B,]
-    for (int i = 0; i < targets.size(); ++i) {
-      int ix = targets[i];
-      *loss += -std::log(probs(i, ix));
-    }
-
-    if (reduction_ == Reduction::MEAN) {
-      *loss /= static_cast<float>(B);
-    }
-  }
-
-  void Backward(typename TTypes<T>::ConstMatrix probs,
-                absl::Span<const int> targets,
-                typename TTypes<T>::Matrix probs_grad) {
-    // probs: [B, C], targets: [B,]
-    // probs_grad: [B, C]
-    int B = probs.dimension(0), C = probs.dimension(1);
-    CHECK(B == targets.size() && B == probs_grad.dimension(0));
-    CHECK_EQ(C, probs_grad.dimension(1));
-
-    float factor =
-        reduction_ == Reduction::MEAN ? 1.0f / static_cast<float>(B) : 1.0f;
-
-    for (int b = 0; b < B; ++b) {
-      int ix = targets[b];
-      probs_grad(b, ix) += -1.0f / probs(b, ix) * factor;
-    }
-  }
-
-  Reduction reduction_;
-};
 
 }  // namespace nn
 

@@ -22,6 +22,8 @@
 #include "abseil-cpp/absl/types/span.h"
 
 
+namespace nn {
+
 struct LayerNorm {
   using T = floatX;
 
@@ -185,3 +187,8 @@ struct LayerNorm {
   std::unique_ptr<Parameter> dnorm_mean_;       // [B,]
   std::unique_ptr<Parameter> dnorm_norm_mean_;  // [B,]
 };
+
+
+}  // namespace nn
+
+#endif  // LLM_CPP__NN_HPP_

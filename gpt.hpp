@@ -419,6 +419,51 @@ struct Block {
     mlp_y_ = std::make_unique<nn::Activation>(dtype);      // [B, T, C]
   }
 
+  /*
+### Attributes
+- **Layer Normalization**:
+  - `std::unique_ptr<nn::LayerNorm> ln1_`: First layer normalization.
+  - `std::unique_ptr<nn::LayerNorm> ln2_`: Second layer normalization.
+
+- **Attention**:
+  - `std::unique_ptr<CausalSelfAttention> attn_`: Causal self-attention mechanism.
+
+- **MLP**:
+  - `std::unique_ptr<MLP> mlp_`: Multi-layer perceptron.
+
+- **Activation Tensors**:
+  - `std::unique_ptr<nn::Activation> ln1_y_`: Activation tensor for the first layer normalization output.
+  - `std::unique_ptr<nn::Activation> ln1_mean_`: Mean tensor for the first layer normalization.
+  - `std::unique_ptr<nn::Activation> ln1_rstd_`: RSTD tensor for the first layer normalization.
+  - `std::unique_ptr<nn::Activation> att_y_`: Activation tensor for the attention output.
+  - `std::unique_ptr<nn::Activation> residual1_`: Activation tensor for the first residual connection.
+  - `std::unique_ptr<nn::Activation> ln2_y_`: Activation tensor for the second layer normalization output.
+  - `std::unique_ptr<nn::Activation> ln2_mean_`: Mean tensor for the second layer normalization.
+  - `std::unique_ptr<nn::Activation> ln2_rstd_`: RSTD tensor for the second layer normalization.
+  - `std::unique_ptr<nn::Activation> mlp_y_`: Activation tensor for the MLP output.
+
+### Constructor
+- [`Block(int block_size, int n_head, int n_embed)`](command:_github.copilot.openSymbolFromReferences?%5B%22%22%2C%5B%7B%22uri%22%3A%7B%22scheme%22%3A%22file%22%2C%22authority%22%3A%22%22%2C%22path%22%3A%22%2FC%3A%2FCode3020%2FNano-Framework2.0%2Fgpt.hpp%22%2C%22query%22%3A%22%22%2C%22fragment%22%3A%22%22%7D%2C%22pos%22%3A%7B%22line%22%3A399%2C%22character%22%3A7%7D%7D%5D%2C%222e61b7d5-839e-428e-94e6-c14c1d091738%22%5D "Go to definition"): Initializes the block with the given parameters, creating instances of layer normalization, attention, and MLP, as well as initializing activation tensors.
+
+### Methods
+- `void Forward(typename TTypes<Type, 3>::ConstTensor x, typename TTypes<Type, 3>::Tensor y)`: Performs the forward pass through the block.
+  - **Layer Normalization 1**: Applies the first layer normalization to the input.
+  - **Attention**: Applies the causal self-attention mechanism.
+  - **Residual Connection 1**: Adds the attention output to the input.
+  - **Layer Normalization 2**: Applies the second layer normalization to the residual output.
+  - **MLP**: Applies the multi-layer perceptron.
+  - **Residual Connection 2**: Adds the MLP output to the residual output.
+
+- `void Backward(typename TTypes<Type, 3>::ConstTensor x, typename TTypes<Type, 3>::ConstTensor y_grad, typename TTypes<Type, 3>::Tensor x_grad)`: Performs the backward pass through the block, computing gradients for each component.
+
+- `size_t NumParameters() const`: Returns the total number of parameters in the block.
+- `size_t NumActivations() const`: Returns the total number of activations in the block.
+- `void Parameters(std::vector<nn::Parameter*>* parameters) const`: Collects all parameters of the block into a provided vector.
+
+### Summary
+The [`Block`] struct represents a single transformer block in a GPT model. It includes components for layer normalization, causal self-attention, and a multi-layer perceptron, along with activation tensors for intermediate results. The block performs forward and backward passes, computes the number of parameters and activations, and collects parameters for optimization.
+   */
+
   void Forward(typename TTypes<Type, 3>::ConstTensor x,
                typename TTypes<Type, 3>::Tensor y) {
     PROFILE_TRACE_FN("Block");

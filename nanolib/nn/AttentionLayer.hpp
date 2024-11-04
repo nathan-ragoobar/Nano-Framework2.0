@@ -1,7 +1,9 @@
 #ifndef LLM_CPP__GPT_HPP_
 #define LLM_CPP__GPT_HPP_
 
-#include "nn.hpp"
+#include "nanolib/nn/nn.hpp"
+#include "nanolib/nn/Linear.hpp"
+
 
 #ifdef EIGEN_USE_GPU
 #include "cuda_profile_util.hpp"
@@ -9,6 +11,8 @@
 #else
 #define PROFILE_TRACE_FN(prefix)
 #endif
+
+namespace nn {
 
 struct CausalSelfAttention {
   using Type = floatX;
@@ -300,3 +304,8 @@ struct CausalSelfAttention {
   //  Eigen::MatrixXi bias_;
   std::unique_ptr<nn::Activation> bias_;  // [block_size, block_size]
 };
+
+
+}  // namespace nn
+
+#endif  // LLM_CPP__NN_HPP_

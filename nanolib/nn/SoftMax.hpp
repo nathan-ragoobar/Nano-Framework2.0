@@ -99,6 +99,7 @@ struct Softmax {
   }
 };
 
+//From what I could see, this only uses the Eigen library ~NR
 struct SoftmaxCrossEntropy {
   using T = floatX;
   enum Reduction { MEAN, SUM };

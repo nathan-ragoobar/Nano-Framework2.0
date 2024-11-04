@@ -7,8 +7,9 @@
 #include <memory>
 #include <random>
 
-#include "llmc/rand.h"
-#include "tensor_util.hpp"
+#include "nanolib/utils/rand.h"
+#include "nanolib/tensor/tensor_util.hpp"
+#include "nanolib/nn/nn.hpp"
 
 /* #include "absl/algorithm/container.h"
 #include "absl/log/check.h"
@@ -20,6 +21,9 @@
 #include "abseil-cpp/absl/log/log.h"
 #include "abseil-cpp/absl/strings/string_view.h"
 #include "abseil-cpp/absl/types/span.h"
+
+
+namespace nn {
 
 struct Linear {
   using T = floatX;
@@ -125,3 +129,8 @@ struct Linear {
   std::unique_ptr<Parameter> weight_;  // out_features x in_features
   std::unique_ptr<Parameter> bias_;    // out_features
 };
+
+
+}  // namespace nn
+
+#endif  // LLM_CPP__NN_HPP_
