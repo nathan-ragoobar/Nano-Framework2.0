@@ -10,7 +10,7 @@
 #define PROFILE_TRACE_FN(prefix)
 #endif
 
-namespace nn {
+namespace gpt {
 
 struct MLP {
   using T = floatX;

@@ -6,6 +6,7 @@
 #include "abseil-cpp/absl/log/check.h"
 #include "abseil-cpp/absl/types/span.h"
 #include "nanolib/nn/nn.hpp"  // Include the Parameter header
+#include "nanolib/nn/Parameter.hpp"
 
 
 namespace nn {
