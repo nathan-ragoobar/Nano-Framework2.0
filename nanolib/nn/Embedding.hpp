@@ -1,10 +1,11 @@
-#ifndef LLM_CPP__NN_HPP_
-#define LLM_CPP__NN_HPP_
+#ifndef LLM_CPP__EMBEDDING_HPP_
+#define LLM_CPP__EMBEDDING_HPP_
 
 #include <memory>
-#include "nn.hpp"  // Includes necessary headers for nn::Parameter, etc.
-#include "abseil-cpp/absl/types/span.h"
+#include "tensor_util.hpp"
 #include "abseil-cpp/absl/log/check.h"
+#include "abseil-cpp/absl/types/span.h"
+#include "nanolib/nn/nn.hpp"  // Include the Parameter header
 
 
 namespace nn {

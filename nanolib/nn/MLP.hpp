@@ -10,6 +10,8 @@
 #define PROFILE_TRACE_FN(prefix)
 #endif
 
+namespace nn {
+
 struct MLP {
   using T = floatX;
 
@@ -106,3 +108,7 @@ struct MLP {
   std::unique_ptr<nn::Activation> fch_;       // [B*T, 4*C]
   std::unique_ptr<nn::Activation> fch_gelu_;  // [B*T, 4*C]
 };
+
+}  // namespace nn
+
+#endif  // LLM_CPP__NN_HPP_

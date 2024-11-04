@@ -1,10 +1,13 @@
-#ifndef LLM_CPP__NN_HPP_
-#define LLM_CPP__NN_HPP_
+#ifndef LLM_CPP__MATMUL_HPP_
+#define LLM_CPP__MATMUL_HPP_
 
-#include "nn.hpp"  // Includes necessary headers for nn::Parameter, etc.
+#include <Eigen/Core>
+#include <unsupported/Eigen/CXX11/Tensor>
+#include "abseil-cpp/absl/log/check.h"
+#include "tensor_util.hpp"
 
 
-
+namespace nn {
 
 struct MatMul {
   using T = floatX;
@@ -58,5 +61,6 @@ struct MatMul {
   }
 };
 
+}  // namespace nn
 
 #endif  // LLM_CPP__NN_HPP_

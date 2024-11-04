@@ -1,27 +1,12 @@
-#ifndef LLM_CPP__NN_HPP_
-#define LLM_CPP__NN_HPP_
+#ifndef LLM_CPP__LINEAR_HPP_
+#define LLM_CPP__LINEAR_HPP_
 
-#include <unistd.h>
-#include <iomanip>
-#include <iostream>
 #include <memory>
-#include <random>
-
-#include "nanolib/utils/rand.h"
-#include "nanolib/tensor/tensor_util.hpp"
-#include "nanolib/nn/nn.hpp"
-
-/* #include "absl/algorithm/container.h"
-#include "absl/log/check.h"
-#include "absl/log/log.h"
-#include "absl/strings/string_view.h"
-#include "absl/types/span.h" */
-#include "abseil-cpp/absl/algorithm/container.h"
+#include <cmath>
+#include "tensor_util.hpp"
 #include "abseil-cpp/absl/log/check.h"
-#include "abseil-cpp/absl/log/log.h"
-#include "abseil-cpp/absl/strings/string_view.h"
 #include "abseil-cpp/absl/types/span.h"
-
+#include "nanolib/nn/nn.hpp"  // Include the Parameter header
 
 namespace nn {
 

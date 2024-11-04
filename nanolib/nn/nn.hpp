@@ -22,6 +22,15 @@
 #include "abseil-cpp/absl/strings/string_view.h"
 #include "abseil-cpp/absl/types/span.h"
 
+#include "nanolib/nn/AttentionLayer.hpp"
+#include "nanolib/nn/Dropout.hpp"
+#include "nanolib/nn/Embedding.hpp"
+#include "nanolib/nn/LayerNorm.hpp"
+#include "nanolib/nn/Linear.hpp"
+#include "nanolib/nn/Loss.hpp"
+#include "nanolib/nn/MatMul.hpp"
+#include "nanolib/nn/SoftMax.hpp"
+
 
 
 namespace nn {

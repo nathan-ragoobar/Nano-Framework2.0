@@ -1,5 +1,5 @@
-#ifndef LLM_CPP__NN_HPP_
-#define LLM_CPP__NN_HPP_
+#ifndef LLM_CPP__LOSS_HPP_
+#define LLM_CPP__LOSS_HPP_
 
 #include <cmath>
 #include "nanolib/nn/nn.hpp"  // Includes necessary headers for nn::Parameter, etc.
@@ -7,7 +7,7 @@
 #include "abseil-cpp/absl/log/check.h"
 #include "nanolib/tensor/tensor_util.hpp"
 
-
+namespace nn {
 
 struct CrossEntropy {
   using T = floatX;
@@ -52,5 +52,8 @@ struct CrossEntropy {
 
   Reduction reduction_;
 };
+
+
+}  // namespace nn
 
 #endif  // LLM_CPP__NN_HPP_

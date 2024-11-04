@@ -1,9 +1,15 @@
-#ifndef LLM_CPP__GPT_HPP_
-#define LLM_CPP__GPT_HPP_
+#ifndef LLM_CPP__ATTENTION_HPP_
+#define LLM_CPP__ATTENTION_HPP_
 
+#include <cmath>
+#include <memory>
+#include <vector>
+#include "nanolib/tensor/tensor_util.hpp"
+#include "abseil-cpp/absl/log/check.h"
+#include "abseil-cpp/absl/types/span.h"
+//#include "Parameter.hpp"  // Include the Parameter header
 #include "nanolib/nn/nn.hpp"
 #include "nanolib/nn/Linear.hpp"
-
 
 #ifdef EIGEN_USE_GPU
 #include "cuda_profile_util.hpp"
