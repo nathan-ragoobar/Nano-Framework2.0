@@ -32,6 +32,8 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 # Add libraries and executables
 add_subdirectory(nn)
 
+add_subdirectory(optimizer)
+
 add_library(nano nano.hpp)
 target_link_libraries(nano nn)
 
@@ -41,8 +43,8 @@ target_link_libraries(gpt nn)
 add_library(gpt2 gpt2.hpp)
 target_link_libraries(gpt2 gpt)
 
-add_library(optim optim.hpp)
-target_link_libraries(optim nn)
+#add_library(optim optim.hpp)
+#target_link_libraries(optim nn)
 
 add_executable(train_gpt2_cpu train_gpt2.cpp)
 target_link_libraries(train_gpt2_cpu gpt2 optim profiler)
