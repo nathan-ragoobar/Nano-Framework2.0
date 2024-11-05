@@ -14,7 +14,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/abseil-cpp
 )
 
-include_directories("/home/nathan/Desktop/llm.cpp-master/llmc")
+include_directories("/llmc")
 include_directories("/eigen")
 
 include_directories(.)

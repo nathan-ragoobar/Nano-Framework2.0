@@ -1,7 +1,7 @@
 #ifndef LLM_CPP__OPTIM_HPP_
 #define LLM_CPP__OPTIM_HPP_
 
-#include "../nn/nn.hpp"
+#include "../nn/nnhead.hpp"
 
 namespace optim {
 

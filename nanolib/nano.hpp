@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include "nanolib/nn/nn.hpp"
+#include "nanolib/nn/nnhead.hpp"
 #include "nanolib/nn/gpt.hpp"
 #include "nanolib/optim/optim.hpp"
 #include "nanolib/tensor/tensor_util.hpp"

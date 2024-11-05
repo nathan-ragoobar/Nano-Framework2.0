@@ -7,9 +7,9 @@
 #include "nanolib/tensor/tensor_util.hpp"
 #include "../abseil-cpp/absl/log/check.h"
 #include "../abseil-cpp/absl/types/span.h"
-#include "Parameter.hpp"  // Include the Parameter header
-#include "nn.hpp"
-#include "Linear.hpp"
+//#include "Parameter.hpp"  // Include the Parameter header
+#include "nnhead.hpp"
+//#include "Linear.hpp"
 
 #ifdef EIGEN_USE_GPU
 #include "cuda_profile_util.hpp"

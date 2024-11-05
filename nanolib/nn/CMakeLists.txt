@@ -1,4 +1,5 @@
 add_library(nanolib_nn STATIC
+    nnhead.hpp
     AttentionLayer.hpp
     Block.hpp
     DropOut.hpp
