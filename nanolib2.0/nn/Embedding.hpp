@@ -2,7 +2,7 @@
 #define LLM_CPP__EMBEDDING_HPP_
 
 #include <memory>
-#include "../tensor_util.hpp"
+#include "tensor/tensor_util.hpp"
 #include "absl/log/check.h"
 #include "absl/types/span.h"
 #include "Parameter.hpp"

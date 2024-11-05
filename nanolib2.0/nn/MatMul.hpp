@@ -4,7 +4,7 @@
 #include "eigen/Eigen/Core"//<Eigen/Core>
 #include "eigen/unsupported/Eigen/CXX11/Tensor"//<unsupported/Eigen/CXX11/Tensor>
 #include "absl/log/check.h"
-#include "../tensor_util.hpp"
+#include "tensor/tensor_util.hpp"
 #include "Parameter.hpp"
 
 

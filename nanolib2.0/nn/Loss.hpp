@@ -5,7 +5,7 @@
 #include "Parameter.hpp"  // Includes necessary headers for nn::Parameter, etc.
 #include "absl/types/span.h"
 #include "absl/log/check.h"
-#include "../tensor_util.hpp"
+#include "tensor/tensor_util.hpp"
 
 namespace nn {
 

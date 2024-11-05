@@ -16,6 +16,7 @@ include_directories(
 
 include_directories("/llmc")
 include_directories("/eigen")
+include_directories("/tensor")
 
 include_directories(.)
 

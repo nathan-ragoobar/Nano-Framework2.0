@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <cmath>
-#include "../tensor_util.hpp"
+#include "tensor/tensor_util.hpp"
 #include "absl/log/check.h"
 #include "absl/types/span.h"
 #include "Parameter.hpp"  // Include the Parameter header

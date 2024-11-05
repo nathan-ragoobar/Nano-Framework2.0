@@ -8,7 +8,7 @@
 #include <random>
 
 #include "llmc/rand.h"
-#include "tensor_util.hpp"
+#include "tensor/tensor_util.hpp"
 
 
 /* #include "absl/algorithm/container.h"

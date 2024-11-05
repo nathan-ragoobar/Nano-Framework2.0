@@ -4,7 +4,7 @@
 #include <cmath>
 #include <memory>
 #include <vector>
-#include "../tensor_util.hpp"
+#include "tensor/tensor_util.hpp"
 #include "absl/log/check.h"
 #include "absl/types/span.h"
 #include "nn.hpp"  // Include the Parameter header
