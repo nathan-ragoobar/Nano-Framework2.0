@@ -11,6 +11,5 @@ target_include_directories(nanolib_tensor
 
 target_link_libraries(nanolib_tensor
     PUBLIC
-        Eigen3::Eigen
         absl::base
 )

@@ -9,21 +9,21 @@
 
 #include "nanolib/utils/rand.h"
 #include "nanolib/tensor/tensor_util.hpp"
-#include "eigen/unsupported/Eigen/CXX11/Tensor"
+#include "../eigen/unsupported/Eigen/CXX11/Tensor"
 
 /* #include "absl/algorithm/container.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h" */
-#include "abseil-cpp/absl/algorithm/container.h"
-#include "abseil-cpp/absl/log/check.h"
-#include "abseil-cpp/absl/log/log.h"
-#include "abseil-cpp/absl/strings/string_view.h"
-#include "abseil-cpp/absl/types/span.h"
+#include "../abseil-cpp/absl/algorithm/container.h"
+#include "../abseil-cpp/absl/log/check.h"
+#include "../abseil-cpp/absl/log/log.h"
+#include "../abseil-cpp/absl/strings/string_view.h"
+#include "../abseil-cpp/absl/types/span.h"
 
 #include "nanolib/nn/AttentionLayer.hpp"
-#include "nanolib/nn/Dropout.hpp"
+//#include "nanolib/nn/Dropout.hpp"
 #include "nanolib/nn/Embedding.hpp"
 #include "nanolib/nn/LayerNorm.hpp"
 #include "nanolib/nn/Linear.hpp"

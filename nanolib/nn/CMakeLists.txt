@@ -23,5 +23,5 @@ target_include_directories(nanolib_nn
 target_link_libraries(nanolib_nn
     PUBLIC
         nanolib_tensor
-        Eigen3::Eigen
+        
 )

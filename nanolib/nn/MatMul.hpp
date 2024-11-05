@@ -1,10 +1,11 @@
 #ifndef LLM_CPP__MATMUL_HPP_
 #define LLM_CPP__MATMUL_HPP_
 
-#include <Eigen/Core>
-#include <unsupported/Eigen/CXX11/Tensor>
-#include "abseil-cpp/absl/log/check.h"
-#include "tensor_util.hpp"
+#include "../eigen/Eigen/Core"//<Eigen/Core>
+#include "../eigen/unsupported/Eigen/CXX11/Tensor"//<unsupported/Eigen/CXX11/Tensor>
+#include "../abseil-cpp/absl/log/check.h"
+#include "../tensor/tensor_util.hpp"
+#include "nn.hpp"
 
 
 namespace nn {

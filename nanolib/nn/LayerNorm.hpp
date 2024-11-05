@@ -4,11 +4,11 @@
 #include <unistd.h>
 #include <memory>
 #include <cmath>
-#include "tensor_util.hpp"
-#include "abseil-cpp/absl/log/check.h"
-#include "abseil-cpp/absl/types/span.h"
+#include "../tensor/tensor_util.hpp"
+#include "../abseil-cpp/absl/log/check.h"
+#include "../abseil-cpp/absl/types/span.h"
 #include "Parameter.hpp"  // Include the Parameter header
-#include "nanolib/nn/nn.hpp"
+#include "nn.hpp"
 
 
 namespace nn {

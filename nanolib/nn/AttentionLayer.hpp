@@ -5,11 +5,11 @@
 #include <memory>
 #include <vector>
 #include "nanolib/tensor/tensor_util.hpp"
-#include "abseil-cpp/absl/log/check.h"
-#include "abseil-cpp/absl/types/span.h"
-#include "nano/nn/Parameter.hpp"  // Include the Parameter header
-#include "nanolib/nn/nn.hpp"
-#include "nanolib/nn/Linear.hpp"
+#include "../abseil-cpp/absl/log/check.h"
+#include "../abseil-cpp/absl/types/span.h"
+#include "Parameter.hpp"  // Include the Parameter header
+#include "nn.hpp"
+#include "Linear.hpp"
 
 #ifdef EIGEN_USE_GPU
 #include "cuda_profile_util.hpp"

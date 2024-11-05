@@ -3,8 +3,8 @@
 
 #include <cmath>
 #include "nanolib/nn/nn.hpp"  // Includes necessary headers for nn::Parameter, etc.
-#include "abseil-cpp/absl/types/span.h"
-#include "abseil-cpp/absl/log/check.h"
+#include "../abseil-cpp/absl/types/span.h"
+#include "../abseil-cpp/absl/log/check.h"
 #include "nanolib/tensor/tensor_util.hpp"
 
 namespace nn {

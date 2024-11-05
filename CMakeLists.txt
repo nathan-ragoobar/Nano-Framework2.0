@@ -11,14 +11,14 @@ add_subdirectory("./nanolib")
 
 include_directories(.)
 
+include_directories(${CMAKE_SOURCE_DIR}/nanolib/abseil-cpp)
 
 # Source files
 
 # Add libraries and executables
 
-add_library(gpt2 gpt2.hpp)
-target_link_libraries(gpt2 gpt)
-
+add_library(gpt2 INTERFACE)
+target_include_directories(gpt2 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(train_gpt2_cpu train_gpt2.cpp)
 target_link_libraries(train_gpt2_cpu gpt2 optim profiler)

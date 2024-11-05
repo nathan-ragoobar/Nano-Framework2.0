@@ -3,10 +3,10 @@
 
 #include <memory>
 #include <cmath>
-#include "tensor_util.hpp"
-#include "abseil-cpp/absl/log/check.h"
-#include "abseil-cpp/absl/types/span.h"
-#include "nanolib/nn/nn.hpp"  // Include the Parameter header
+#include "../tensor/tensor_util.hpp"
+#include "../abseil-cpp/absl/log/check.h"
+#include "../abseil-cpp/absl/types/span.h"
+#include "nn.hpp"  // Include the Parameter header
 
 namespace nn {
 

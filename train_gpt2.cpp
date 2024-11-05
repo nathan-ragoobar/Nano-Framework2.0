@@ -2,7 +2,8 @@
 #include <iostream>
 #include <memory>
 
-#include "gpt2.hpp"
+#include "./gpt2.hpp"
+#include "nanolib/nano.hpp"
 //#include "llmc/dataloader.h"
 //#include "llmc/tokenizer.h"
 //#include "optim.hpp"

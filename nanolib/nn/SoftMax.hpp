@@ -2,9 +2,10 @@
 #define LLM_CPP__SOFTMAX_HPP_
 
 #include <cmath>
-#include "tensor_util.hpp"
-#include "abseil-cpp/absl/log/check.h"
-#include "abseil-cpp/absl/types/span.h"
+#include "../tensor/tensor_util.hpp"
+#include "../abseil-cpp/absl/log/check.h"
+#include "../abseil-cpp/absl/types/span.h"
+#include "nn.hpp"
 
 
 namespace nn {

@@ -1,8 +1,8 @@
 #ifndef LLM_CPP_LLMCPP_TENSOR_TYPES_HPP_
 #define LLM_CPP_LLMCPP_TENSOR_TYPES_HPP_
 
-#include "eigen/Eigen/Dense" //"Eigen/Dense"
-#include "eigen/unsupported/Eigen/CXX11/Tensor" //"unsupported/Eigen/CXX11/Tensor"
+#include "../eigen/Eigen/Dense" //"Eigen/Dense"
+#include "../eigen/unsupported/Eigen/CXX11/Tensor" //"unsupported/Eigen/CXX11/Tensor"
 
 // Helper to define Tensor types given that the scalar is of type T.
 template <typename T, int NDIMS = 1, typename IndexType = Eigen::DenseIndex>

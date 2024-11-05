@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Add Eigen
-add_subdirectory(eigen)
+include_directories("/eigen")
+include_directories("/abseil-cpp")
 
 # Add Abseil
 set(ABSL_PROPAGATE_CXX_STD ON)
@@ -30,7 +31,6 @@ target_link_libraries(nanolib
         nanolib_nn
         nanolib_optim
         nanolib_utils
-        Eigen3::Eigen
         absl::base
         absl::strings
         absl::flat_hash_map

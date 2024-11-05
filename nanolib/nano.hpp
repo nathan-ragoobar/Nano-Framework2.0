@@ -7,7 +7,7 @@
 #include "nanolib/nn/gpt.hpp"
 #include "nanolib/optim/optim.hpp"
 #include "nanolib/tensor/tensor_util.hpp"
-#include "nanolib/tenso/tensor_types.hpp"
+#include "nanolib/tensor/tensor_types.hpp"
 #include "nanolib/utils/rand.h"
 #include "nanolib/utils/utils.h"
 #include "nanolib/utils/dataloader.h"

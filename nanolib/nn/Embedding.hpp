@@ -2,9 +2,9 @@
 #define LLM_CPP__EMBEDDING_HPP_
 
 #include <memory>
-#include "tensor_util.hpp"
-#include "abseil-cpp/absl/log/check.h"
-#include "abseil-cpp/absl/types/span.h"
+#include "../tensor/tensor_util.hpp"
+#include "../abseil-cpp/absl/log/check.h"
+#include "../abseil-cpp/absl/types/span.h"
 #include "nanolib/nn/nn.hpp"  // Include the Parameter header
 #include "nanolib/nn/Parameter.hpp"
 

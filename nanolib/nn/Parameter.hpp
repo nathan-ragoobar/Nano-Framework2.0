@@ -4,10 +4,10 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include "abseil-cpp/absl/log/check.h"
-#include "abseil-cpp/absl/types/span.h"
+#include "../abseil-cpp/absl/log/check.h"
+#include "../abseil-cpp/absl/types/span.h"
 #include "nanolib/tensor/tensor_util.hpp"
-#include "nanolib/nn/nn.hpp"
+//#include "nanolib/nn/nn.hpp"
 #include "nn.hpp"
 
 namespace nn {
