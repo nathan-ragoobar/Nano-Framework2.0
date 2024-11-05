@@ -1,7 +1,7 @@
 #ifndef LLM_CPP__GPT_HPP_
 #define LLM_CPP__GPT_HPP_
 
-#include "nano.hpp"
+#include "nn.hpp"
 
 #ifdef EIGEN_USE_GPU
 #include "cuda_profile_util.hpp"

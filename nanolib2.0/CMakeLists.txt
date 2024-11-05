@@ -37,8 +37,8 @@ add_subdirectory(optimizer)
 add_library(nano nano.hpp)
 target_link_libraries(nano nn)
 
-add_library(gpt gpt.hpp)
-target_link_libraries(gpt nn)
+#add_library(gpt gpt.hpp)
+#target_link_libraries(gpt nn)
 
 add_library(gpt2 gpt2.hpp)
 target_link_libraries(gpt2 gpt)
