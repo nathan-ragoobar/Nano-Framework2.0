@@ -6,6 +6,9 @@ If we wanted to later prompt the model, we'd have to add decoding.
 Which could be tricky in C because of the regex involved, to look into later.
 */
 
+#ifndef TOKENIZER_H
+#define TOKENIZER_H
+
 #include <stdint.h>
 #include <ctype.h>
 #include <assert.h>
@@ -103,3 +106,6 @@ void tokenizer_free(Tokenizer *tokenizer) {
         free(tokenizer->token_table);
     }
 }
+
+
+#endif

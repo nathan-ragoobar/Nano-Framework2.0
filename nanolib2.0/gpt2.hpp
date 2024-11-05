@@ -1,9 +1,9 @@
 #ifndef LLM_CPP__GPT2_HPP_
 #define LLM_CPP__GPT2_HPP_
 
-#include "abseil-cpp/absl/strings/string_view.h" //"absl/strings/string_view.h" This was the orginal way it was setup but I just copied the folder. Would like to find the file needed alone
-#include "nn/gpt.hpp"
-#include "llmc/utils.h"
+//#include "absl/strings/string_view.h" //"absl/strings/string_view.h" This was the orginal way it was setup but I just copied the folder. Would like to find the file needed alone
+#include "nano.hpp"
+//#include "llmc/utils.h"
 
 namespace gpt2 {
 struct GPT2Config {

@@ -3,8 +3,8 @@
 #include <memory>
 
 #include "gpt2.hpp"
-#include "llmc/dataloader.h"
-#include "llmc/tokenizer.h"
+//#include "llmc/dataloader.h"
+//#include "llmc/tokenizer.h"
 #include "nano.hpp"
 
 // sampler
