@@ -2,3 +2,4 @@
 #include "Parameter.hpp"
 #include "Loss.hpp"
 #include "SoftMax.hpp"
+#include "Embedding.hpp"
