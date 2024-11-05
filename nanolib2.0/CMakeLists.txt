@@ -30,9 +30,7 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 # Source files
 
 # Add libraries and executables
-add_library(nn nn/nnhead.hpp)
-target_link_libraries(nn
-    absl::strings absl::log absl::check pthread)
+add_subdirectory(nn)
 
 add_library(gpt gpt.hpp)
 target_link_libraries(gpt nn)

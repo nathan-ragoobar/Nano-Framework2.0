@@ -2,7 +2,7 @@
 #define LLM_CPP__LAYERNORM_HPP_
 
 
-#include "nn.hpp"
+#include "Parameter.hpp"
 
 #include <unistd.h>
 #include <memory>
