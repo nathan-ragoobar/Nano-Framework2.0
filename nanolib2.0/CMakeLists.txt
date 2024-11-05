@@ -32,6 +32,9 @@ include_directories(${EIGEN3_INCLUDE_DIR})
 # Add libraries and executables
 add_subdirectory(nn)
 
+add_library(nano nano.hpp)
+target_link_libraries(nano nn)
+
 add_library(gpt gpt.hpp)
 target_link_libraries(gpt nn)
 
