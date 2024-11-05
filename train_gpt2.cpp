@@ -3,9 +3,9 @@
 #include <memory>
 
 #include "gpt2.hpp"
-#include "llmc/dataloader.h"
-#include "llmc/tokenizer.h"
-#include "optim.hpp"
+//#include "llmc/dataloader.h"
+//#include "llmc/tokenizer.h"
+//#include "optim.hpp"
 
 // sampler
 
