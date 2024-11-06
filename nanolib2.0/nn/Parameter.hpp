@@ -41,8 +41,8 @@ inline void ManualSeed(unsigned int seed) {
   manual_seed(&g_mt19937_state, seed);
 }
 
-
-inline void ConstantFill(absl::Span<float> weight, float C) {
+template <typename T>
+inline void ConstantFill(absl::Span<T> weight, T C) {
 #ifdef EIGEN_USE_GPU
   std::vector<float> w(weight.size(), C);
   g_device.memcpyHostToDevice(weight.data(), w.data(),

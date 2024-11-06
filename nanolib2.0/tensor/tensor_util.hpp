@@ -3,8 +3,9 @@
 
 #include "absl/container/inlined_vector.h"
 #include "tensor_types.hpp"
+#include "eigen/Eigen/Core"
 
-using floatX = int;
+using floatX = float;
 
 // Raw pointer -> Flat
 template <typename T>
