@@ -2,11 +2,10 @@
 #include <iostream>
 #include <memory>
 
-#include "./gpt2.hpp"
-#include "nanolib/nano.hpp"
+#include "gpt2.hpp"
 //#include "llmc/dataloader.h"
 //#include "llmc/tokenizer.h"
-//#include "optim.hpp"
+#include "nano.hpp"
 
 // sampler
 

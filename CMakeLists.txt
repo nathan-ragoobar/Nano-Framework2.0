@@ -5,20 +5,47 @@ project(nano LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add the path to where nanolib was built
-add_subdirectory("./nanolib")
+# Add the Abseil library
+add_subdirectory(abseil-cpp)
 
+# Include directories
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/abseil-cpp
+)
+
+include_directories("/llmc")
+include_directories("/eigen")
+include_directories("/tensor")
 
 include_directories(.)
 
-include_directories(${CMAKE_SOURCE_DIR}/nanolib/abseil-cpp)
+# Eigen
+set(EIGEN3_INCLUDE_DIR /eigen)
+add_definitions(-DEIGEN_DONT_PARALLELIZE)
+#add_definitions(-DEIGEN_DONT_VECTORIZE)
+add_definitions(-DEIGEN_USE_THREADS)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
 
 # Source files
 
 # Add libraries and executables
+add_subdirectory(nn)
 
-add_library(gpt2 INTERFACE)
-target_include_directories(gpt2 INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+add_subdirectory(optimizer)
+
+add_library(nano nano.hpp)
+target_link_libraries(nano nn)
+
+#add_library(gpt gpt.hpp)
+#target_link_libraries(gpt nn)
+
+add_library(gpt2 gpt2.hpp)
+target_link_libraries(gpt2 gpt)
+
+#add_library(optim optim.hpp)
+#target_link_libraries(optim nn)
 
 add_executable(train_gpt2_cpu train_gpt2.cpp)
 target_link_libraries(train_gpt2_cpu gpt2 optim profiler)
