@@ -1,6 +1,7 @@
 #ifndef LLM_CPP_LLMCPP_TENSOR_TYPES_HPP_
 #define LLM_CPP_LLMCPP_TENSOR_TYPES_HPP_
 
+#include "fixed_point.hpp"
 #include "eigen/Eigen/Dense" //"Eigen/Dense"
 #include "eigen/unsupported/Eigen/CXX11/Tensor" //"unsupported/Eigen/CXX11/Tensor"
 
@@ -85,5 +86,31 @@ struct TTypes {
       Eigen::Tensor<const T, 2, Eigen::RowMajor, IndexType> >
       UnalignedConstMatrix;
 };
+
+template <typename T>
+struct TTypes {
+    using Flat = Eigen::TensorMap<Eigen::Tensor<T, 1>>;
+    using ConstFlat = Eigen::TensorMap<Eigen::Tensor<const T, 1>>;
+    using Matrix = Eigen::TensorMap<Eigen::Tensor<T, 2>>;
+    using ConstMatrix = Eigen::TensorMap<Eigen::Tensor<const T, 2>>;
+    template <int NDIMS>
+    using Tensor = Eigen::TensorMap<Eigen::Tensor<T, NDIMS>>;
+    template <int NDIMS>
+    using ConstTensor = Eigen::TensorMap<Eigen::Tensor<const T, NDIMS>>;
+};
+
+// Specialize for fixed-point type
+template <int FractionalBits>
+struct TTypes<fixed_point::FixedPoint<FractionalBits>> {
+    using Flat = Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 1>>;
+    using ConstFlat = Eigen::TensorMap<Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 1>>;
+    using Matrix = Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 2>>;
+    using ConstMatrix = Eigen::TensorMap<Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 2>>;
+    template <int NDIMS>
+    using Tensor = Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, NDIMS>>;
+    template <int NDIMS>
+    using ConstTensor = Eigen::TensorMap<Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, NDIMS>>;
+};
+
 
 #endif  // LLM_CPP_LLMCPP_TENSOR_TYPES_HPP_

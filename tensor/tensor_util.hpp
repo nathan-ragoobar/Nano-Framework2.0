@@ -5,7 +5,7 @@
 #include "tensor_types.hpp"
 #include "eigen/Eigen/Core"
 
-using floatX = float;
+using floatX = fixed_point::fp16_16;
 
 // Raw pointer -> Flat
 template <typename T>

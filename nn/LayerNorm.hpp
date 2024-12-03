@@ -23,10 +23,10 @@ struct LayerNorm {
     auto dtype = DataTypeToEnum<T>::value;
     weight_ = std::make_unique<Parameter>(dtype, normalized_shape);
     auto w = weight_->span<T>();
-    ConstantFill(w, 1.0f);
+    ConstantFill(w, 1);//.0f);
     bias_ = std::make_unique<Parameter>(dtype, normalized_shape);
     auto b = bias_->span<T>();
-    ConstantFill(b, 0.0f);
+    ConstantFill(b, 0);//.0f);
 
     // activation gradient tensor
     norm_ = std::make_unique<Parameter>(dtype);             // [B, D]
