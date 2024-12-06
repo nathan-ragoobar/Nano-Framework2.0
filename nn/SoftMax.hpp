@@ -6,7 +6,7 @@
 #include "absl/log/check.h"
 #include "absl/types/span.h"
 #include "Parameter.hpp"
-
+#include "tensor/fixed_point.hpp"
 
 namespace nn {
 
@@ -111,7 +111,7 @@ struct SoftmaxCrossEntropy {
     *loss = 0.0f;
     for (int i = 0; i < targets.size(); ++i) {
       int ix = targets[i];
-      *loss += -std::log(probs(i, ix));
+      *loss += -fixed_point::log(probs(i, ix));
     }
 
     if (reduction_ == Reduction::MEAN) {

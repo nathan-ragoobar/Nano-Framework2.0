@@ -124,7 +124,12 @@ inline std::pair<int, int> SplitRange(int total, int idx, int n) {
   }
 }
 
-enum DataType : int { DT_FLOAT = 1, DT_HALF = 2, DT_INT32 = 3 };
+enum DataType : int { 
+    DT_FLOAT = 1, 
+    DT_HALF = 2, 
+    DT_INT32 = 3,
+    DT_FIXED_POINT = 4  // Add FixedPoint type
+};
 
 // Validates type T for whether it is a supported DataType.
 template <class T>
@@ -408,6 +413,7 @@ struct Residual {
 
 // Careful there are a few versions of GeLU, this one is the exact one used by
 // OpenAI
+/*
 struct NewGELU {
   using T = floatX;
 
@@ -445,6 +451,35 @@ struct NewGELU {
                 0.5f * x * (1.0f - tanh_out * tanh_out) *
                     (sqrt_2_over_pi * (1.0f + 3.0f * coeff * x * x));
     x_grad.device(g_device) += y_grad * dydx;
+  }
+};
+*/
+struct NewGELU {
+  using T = fixed_point::FixedPoint<16>;
+
+  static void Forward(typename TTypes<T>::ConstFlat x,
+                      typename TTypes<T>::Flat y) {
+    // Constants as FixedPoint
+    T half(0.5);
+    T one(1.0);
+    T sqrt_2_over_pi(0.7978845608); // sqrt(2/pi)
+    T coeff(0.044715);
+
+    y.device(g_device) = half * x * (one + ((sqrt_2_over_pi * (x + coeff * x * x * x)).tanh()));
+  }
+
+  static void Backward(typename TTypes<T>::ConstFlat x,
+                       typename TTypes<T>::ConstFlat y_grad,
+                       typename TTypes<T>::Flat x_grad) {
+    // Constants as FixedPoint
+    T half(0.5);
+    T one(1.0);
+    T sqrt_2_over_pi(0.7978845608); // sqrt(2/pi)
+    T coeff(0.134145); // 3 * 0.044715
+
+    auto tanh_term = (sqrt_2_over_pi * (x + coeff * x * x * x)).tanh();
+    auto sech2_term = one - tanh_term * tanh_term;
+    x_grad.device(g_device) = y_grad * (half * (one + tanh_term + x * sech2_term * sqrt_2_over_pi * (one + 3 * coeff * x * x)));
   }
 };
 

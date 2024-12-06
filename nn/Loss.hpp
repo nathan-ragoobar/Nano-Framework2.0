@@ -46,7 +46,7 @@ struct CrossEntropy {
 
     for (int b = 0; b < B; ++b) {
       int ix = targets[b];
-      probs_grad(b, ix) += -1.0f / probs(b, ix) * factor;
+      probs_grad(b, ix) += -1.0 / probs(b, ix) * factor;
     }
   }
 

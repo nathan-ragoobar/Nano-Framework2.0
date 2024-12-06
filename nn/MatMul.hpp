@@ -5,6 +5,7 @@
 #include "eigen/unsupported/Eigen/CXX11/Tensor"//<unsupported/Eigen/CXX11/Tensor>
 #include "absl/log/check.h"
 #include "tensor/tensor_util.hpp"
+#include "tensor/fixed_point.hpp"
 #include "Parameter.hpp"
 
 
@@ -15,7 +16,7 @@ struct MatMul {
 
   static void Forward(typename TTypes<T>::ConstMatrix x1,
                       typename TTypes<T>::ConstMatrix x2,
-                      typename TTypes<T>::Matrix y, T scale = 1.0f) {
+                      typename TTypes<T>::Matrix y, T scale = T(1.0f)) {
     // x: [M, N], x2: [N, K], y: [M, K]
     CHECK_EQ(x1.dimension(0), y.dimension(0));
     CHECK_EQ(x1.dimension(1), x2.dimension(0));

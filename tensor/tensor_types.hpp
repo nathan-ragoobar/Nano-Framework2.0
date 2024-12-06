@@ -2,8 +2,8 @@
 #define LLM_CPP_LLMCPP_TENSOR_TYPES_HPP_
 
 #include "fixed_point.hpp"
-#include "eigen/Eigen/Dense" //"Eigen/Dense"
-#include "eigen/unsupported/Eigen/CXX11/Tensor" //"unsupported/Eigen/CXX11/Tensor"
+#include "./../eigen/Eigen/Dense" //"Eigen/Dense"
+#include "./../eigen/unsupported/Eigen/CXX11/Tensor" //"unsupported/Eigen/CXX11/Tensor"
 
 // Helper to define Tensor types given that the scalar is of type T.
 template <typename T, int NDIMS = 1, typename IndexType = Eigen::DenseIndex>
@@ -87,29 +87,86 @@ struct TTypes {
       UnalignedConstMatrix;
 };
 
-template <typename T>
-struct TTypes {
-    using Flat = Eigen::TensorMap<Eigen::Tensor<T, 1>>;
-    using ConstFlat = Eigen::TensorMap<Eigen::Tensor<const T, 1>>;
-    using Matrix = Eigen::TensorMap<Eigen::Tensor<T, 2>>;
-    using ConstMatrix = Eigen::TensorMap<Eigen::Tensor<const T, 2>>;
-    template <int NDIMS>
-    using Tensor = Eigen::TensorMap<Eigen::Tensor<T, NDIMS>>;
-    template <int NDIMS>
-    using ConstTensor = Eigen::TensorMap<Eigen::Tensor<const T, NDIMS>>;
-};
-
 // Specialize for fixed-point type
-template <int FractionalBits>
-struct TTypes<fixed_point::FixedPoint<FractionalBits>> {
-    using Flat = Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 1>>;
-    using ConstFlat = Eigen::TensorMap<Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 1>>;
-    using Matrix = Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 2>>;
-    using ConstMatrix = Eigen::TensorMap<Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 2>>;
-    template <int NDIMS>
-    using Tensor = Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, NDIMS>>;
-    template <int NDIMS>
-    using ConstTensor = Eigen::TensorMap<Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, NDIMS>>;
+template <int FractionalBits, int NDIMS, typename IndexType>
+struct TTypes<fixed_point::FixedPoint<FractionalBits>, NDIMS, IndexType> {
+  // Rank-<NDIMS> tensor of scalar type T.
+  typedef Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, NDIMS, Eigen::RowMajor, IndexType>,
+                           Eigen::Aligned>
+      Tensor;
+  typedef Eigen::TensorMap<
+      Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, NDIMS, Eigen::RowMajor, IndexType>, Eigen::Aligned>
+      ConstTensor;
+
+  // Unaligned Rank-<NDIMS> tensor of scalar type T.
+  typedef Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, NDIMS, Eigen::RowMajor, IndexType> >
+      UnalignedTensor;
+  typedef Eigen::TensorMap<
+      Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, NDIMS, Eigen::RowMajor, IndexType> >
+      UnalignedConstTensor;
+
+  typedef Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, NDIMS, Eigen::RowMajor, int>,
+                           Eigen::Aligned>
+      Tensor32Bit;
+
+  // Scalar tensor (implemented as a rank-0 tensor) of scalar type T.
+  typedef Eigen::TensorMap<
+      Eigen::TensorFixedSize<fixed_point::FixedPoint<FractionalBits>, Eigen::Sizes<>, Eigen::RowMajor, IndexType>,
+      Eigen::Aligned>
+      Scalar;
+  typedef Eigen::TensorMap<Eigen::TensorFixedSize<const fixed_point::FixedPoint<FractionalBits>, Eigen::Sizes<>,
+                                                  Eigen::RowMajor, IndexType>,
+                           Eigen::Aligned>
+      ConstScalar;
+
+  // Unaligned Scalar tensor of scalar type T.
+  typedef Eigen::TensorMap<
+      Eigen::TensorFixedSize<fixed_point::FixedPoint<FractionalBits>, Eigen::Sizes<>, Eigen::RowMajor, IndexType> >
+      UnalignedScalar;
+  typedef Eigen::TensorMap<Eigen::TensorFixedSize<const fixed_point::FixedPoint<FractionalBits>, Eigen::Sizes<>,
+                                                  Eigen::RowMajor, IndexType> >
+      UnalignedConstScalar;
+
+  // Rank-1 tensor (vector) of scalar type T.
+  typedef Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 1, Eigen::RowMajor, IndexType>,
+                           Eigen::Aligned>
+      Flat;
+  typedef Eigen::TensorMap<
+      Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 1, Eigen::RowMajor, IndexType>, Eigen::Aligned>
+      ConstFlat;
+  typedef Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 1, Eigen::RowMajor, IndexType>,
+                           Eigen::Aligned>
+      Vec;
+  typedef Eigen::TensorMap<
+      Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 1, Eigen::RowMajor, IndexType>, Eigen::Aligned>
+      ConstVec;
+
+  // Unaligned Rank-1 tensor (vector) of scalar type T.
+  typedef Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 1, Eigen::RowMajor, IndexType> >
+      UnalignedFlat;
+  typedef Eigen::TensorMap<
+      Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 1, Eigen::RowMajor, IndexType> >
+      UnalignedConstFlat;
+  typedef Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 1, Eigen::RowMajor, IndexType> >
+      UnalignedVec;
+  typedef Eigen::TensorMap<
+      Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 1, Eigen::RowMajor, IndexType> >
+      UnalignedConstVec;
+
+  // Rank-2 tensor (matrix) of scalar type T.
+  typedef Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 2, Eigen::RowMajor, IndexType>,
+                           Eigen::Aligned>
+      Matrix;
+  typedef Eigen::TensorMap<
+      Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 2, Eigen::RowMajor, IndexType>, Eigen::Aligned>
+      ConstMatrix;
+
+  // Unaligned Rank-2 tensor (matrix) of scalar type T.
+  typedef Eigen::TensorMap<Eigen::Tensor<fixed_point::FixedPoint<FractionalBits>, 2, Eigen::RowMajor, IndexType> >
+      UnalignedMatrix;
+  typedef Eigen::TensorMap<
+      Eigen::Tensor<const fixed_point::FixedPoint<FractionalBits>, 2, Eigen::RowMajor, IndexType> >
+      UnalignedConstMatrix;
 };
 
 
