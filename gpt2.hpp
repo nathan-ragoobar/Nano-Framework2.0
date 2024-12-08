@@ -1,9 +1,8 @@
 #ifndef LLM_CPP__GPT2_HPP_
 #define LLM_CPP__GPT2_HPP_
 
-//#include "absl/strings/string_view.h" //"absl/strings/string_view.h" This was the orginal way it was setup but I just copied the folder. Would like to find the file needed alone
 #include "nano.hpp"
-//#include "llmc/utils.h"
+
 
 namespace gpt2 {
 struct GPT2Config {
@@ -15,12 +14,15 @@ struct GPT2Config {
   int channels;           // number of channels, e.g. 768
 };
 
+//Eventually I would like to move all the functions from here into a more general location. 
+//I want to be able to apply these functions to any model, not just GPT-2. -NR
+
 struct GPT2 {
   using Type = floatX;
 
   void BuildFromCheckpoint(absl::string_view checkpoint_path) {
     // read in model from a checkpoint file
-    FILE* model_file = fopenCheck(checkpoint_path.data(), "rb");
+    FILE* model_file = fopenCheck(checkpoint_path.data(), "rb"); //"rb" opens the binary file in read mode only. To open in read and write you need to do "rb+"
     if (model_file == nullptr) {
       printf("Error opening model file\n");
       exit(1);
@@ -72,7 +74,58 @@ struct GPT2 {
       freadCheck(p->data<Type>(), sizeof(Type), p->size(), model_file);
 #endif
     };
+
+    
     ApplyFn(restore_fn, L);
+    fcloseCheck(model_file);
+  } //end BuildFromCheckpoint()
+
+
+
+
+  //SAVE MODEL
+  void SaveModel(absl::string_view model_path) {
+    //Opens model file for writing
+    FILE* model_file = fopenCheck(model_path.data(), "wb"); //"wb" opens the binary file for writing. If the file already exists, the file is overwritten. If the file does not exist, it is created.
+    if (model_file == nullptr) {
+      printf("Error opening model file\n");
+      exit(1);
+    }
+
+    int model_header[256];
+    // Save hyperparameters to header
+    int maxT, V, Vp, L, NH, C;
+
+
+    maxT = model_header[2] = gpt2_->block_size_;
+    V = model_header[3] = gpt2_->vocab_size_;
+    L = model_header[4] = gpt2_->n_layer_;
+    NH = model_header[5] = gpt2_->n_head_;
+    C = model_header[6] = gpt2_->n_embed_;
+    Vp = model_header[7] = gpt2_->padded_vocab_size_;
+
+    model_header[0] = 20240326; //Magic number. Basically a unique number that is used to identify the file type. It is used to differentiate between different file formats or to identify the file type.
+    //Also this magic number was something zhangpiu had created. Idk if I want to keep it or not -NR
+
+    model_header[1] = 3;
+
+    fwriteCheck(model_header, sizeof(int), 256, model_file);
+    
+
+
+    // Define the save function
+    auto save_fn = [&](nn::Parameter* p, const std::string& name) {
+#ifdef EIGEN_USE_GPU
+  std::vector<Type> cpu_data(p->size());
+  nn::g_device.memcpyDeviceToHost(cpu_data.data(), p->data<Type>(), sizeof(Type) * p->size());
+  fwriteCheck(cpu_data.data(), sizeof(Type), p->size(), model_file);
+#else
+  fwriteCheck(p->data<Type>(), sizeof(Type), p->size(), model_file);
+#endif
+    };
+
+    // Apply the save function to the model parameters
+    ApplyFn(save_fn, L);
     fcloseCheck(model_file);
   }
 
@@ -94,6 +147,44 @@ struct GPT2 {
   void ApplyFn(
       const std::function<void(nn::Parameter*, const std::string&)>& apply_fn,
       int L) const {
+/*
+The provided code defines a method `ApplyFn` that applies a given function to various parameters of a GPT-2 model. The method takes two arguments: a function 
+
+apply_fn
+
+ that operates on `nn::Parameter*` objects and their associated names, and an integer 
+
+L
+
+ representing the number of layers in the model.
+
+The method starts by applying the function to the weights of the word and position embeddings (`wte` and `wpe`). It then defines a lambda function 
+
+name_with_layer
+
+ to generate names for parameters that include the layer index.
+
+The method proceeds to iterate over each layer 
+
+l
+
+ from 0 to 
+
+L-1
+
+, applying the function to various parameters within each layer. These parameters include:
+- `ln1w` and `ln1b`: weights and biases of the first layer normalization.
+- `qkvw` and `qkvb`: weights and biases of the query, key, and value projections in the attention mechanism.
+- `attprojw` and `attprojb`: weights and biases of the attention projection.
+- `ln2w` and `ln2b`: weights and biases of the second layer normalization.
+- `fcw` and `fcb`: weights and biases of the fully connected layer.
+- `fcprojw` and `fcprojb`: weights and biases of the projection layer in the multi-layer perceptron (MLP).
+
+Finally, the method applies the function to the weights and biases of the final layer normalization (`lnfw` and `lnfb`).
+
+This method is useful for tasks such as initializing, updating, or saving model parameters, as it provides a systematic way to apply operations to all relevant parameters of the GPT-2 model.
+*/
+
     apply_fn(gpt2_->wte_->weight_.get(), "wte");
     apply_fn(gpt2_->wpe_->weight_.get(), "wpe");
 

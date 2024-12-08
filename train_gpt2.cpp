@@ -37,7 +37,7 @@ bool USE_FAST_SOFTMAX = true;
 
 int main(int argc, char** argv) {
   gpt2::GPT2 model;
-  model.BuildFromCheckpoint("./gpt2_124M.bin");
+  model.BuildFromCheckpoint("./gpt2_124Mtest.bin"); //Loads model
 
   // build the DataLoaders from tokens files. for now use tiny_shakespeare if
   // available, else tiny_stories
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
                // trained on)
   int T = 64;  // sequence length 64 (i.e. each sequence is 64 tokens long).
                // must be <= maxT, which is 1024 for GPT-2
-  DataLoader train_loader, val_loader;
+  DataLoader train_loader, val_loader; //Create DataLoader for training and validation
   dataloader_init(&train_loader, train_tokens, B, T, 0, 1, 0);
   dataloader_init(&val_loader, val_tokens, B, T, 0, 1, 0);
   printf("train dataset num_batches: %zu\n", train_loader.num_tokens / (B * T));
@@ -82,9 +82,9 @@ int main(int argc, char** argv) {
   nn::Softmax softmax;
   std::vector<nn::Parameter*> parameters;
   model.Parameters(&parameters);
-  optim::AdamW optimizer(parameters, 1e-4f, 0.9f, 0.999f, 1e-8f, 0.0f);
+  optim::AdamW optimizer(parameters, 1e-4f, 0.9f, 0.999f, 1e-8f, 0.0f); //defines the AdamW optimizer optimizer to be used
   std::vector<double> timings;
-  for (int step = 0; step <= 100; step++) {
+  for (int step = 0; step <= 20; step++) {
     // once in a while estimate the validation loss
     if (step % 10 == 0) {
       float val_loss = 0.0f;
@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
     if (USE_FAST_SOFTMAX) {
       auto target = TTypes<int>::ConstMatrix(train_loader.targets, B, T);
       auto logit_3d = Make3DTensor(logit.get(), B, T, V);
-      model.gpt2_->ForwardCPU(idx, target, logit_3d, &loss);
+      model.gpt2_->ForwardCPU(idx, target, logit_3d, &loss);  //This calls the forward pass on the model.gpt2_ object 
       optimizer.ZeroGrad();
       model.gpt2_->BackwardCPU(idx, target);
     } else {
@@ -196,6 +196,9 @@ int main(int argc, char** argv) {
     printf("final %zu iters avg: %.3f ms\n", timings.size(),
            1000 * sum / timings.size());
   }
+
+  //Save model
+  model.SaveModel("gpt2_124Mtest1.bin");
 
   // free
   dataloader_free(&train_loader);

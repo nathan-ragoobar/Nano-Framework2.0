@@ -26,6 +26,7 @@ struct GPT {
         vocab_size_(vocab_size),
         padded_vocab_size_(padded_vocab_size),
         n_layer_(n_layer),
+        n_head_(n_head),
         n_embed_(n_embed),
         lm_head_(nullptr),
         lm_head_grad_(nullptr) {
@@ -402,6 +403,7 @@ struct GPT {
   int padded_vocab_size_;
   int n_layer_;
   int n_embed_;
+  int n_head_;
 
   // transformer
   std::unique_ptr<nn::Embedding> wte_;
