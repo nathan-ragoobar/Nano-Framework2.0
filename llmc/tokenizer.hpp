@@ -1,11 +1,13 @@
-#ifndef TOKENIZER_H
-#define TOKENIZER_H
+#ifndef TOKENIZER_HPP
+#define TOKENIZER_HPP
 
 #include <string>
 #include <vector>
 #include <unordered_map>
 #include <cstdint>
 #include "utils.h"
+
+namespace nano {
 
 class Tokenizer {
 private:
@@ -36,7 +38,7 @@ private:
 public:
     Tokenizer() : init_ok_(false) {}
 
-    void init(const std::string& dict_file) {
+    void init(const std::string& dict_file="./llmc/gpt2.txt") {
         FILE* file = fopen(dict_file.c_str(), "r");
         if (!file) {
             fprintf(stderr, "Failed to open dictionary file: %s\n", dict_file.c_str());
@@ -109,6 +111,16 @@ public:
         return result;
     }
 
+    std::string decode_string(const int* gen_tokens, size_t length) const {
+        std::string result;
+        for (size_t i = 0; i < length; ++i) {
+            uint32_t id = gen_tokens[i];
+            if (id < vocab_size_) {
+                result += tokens_[id];
+            }
+        }
+        return result;
+    }
 
     uint32_t encode(const std::string& token) const {
         auto it = token_to_id_.find(token);
@@ -135,5 +147,7 @@ public:
     uint32_t get_eot_token() const { return eot_token_; }
     bool is_initialized() const { return init_ok_; }
 };
+
+} // namespace nano
 
 #endif

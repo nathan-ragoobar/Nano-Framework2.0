@@ -6,6 +6,7 @@
 #include "llmc/rand.h"
 #include "llmc/dataloader.h"
 #include "llmc/tokenizer.h"
+#include "llmc/tokenizer.hpp"
 #include "llmc/utils.h"
 #include "optimizer/optim.hpp"
 #include "nn/gpt.hpp"

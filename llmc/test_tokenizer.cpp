@@ -22,7 +22,7 @@ protected:
         remove("test_dict.txt");
     }
 
-    Tokenizer tokenizer;
+    nano::Tokenizer tokenizer;
 };
 
 TEST_F(TokenizerTest, EncodeString) {
