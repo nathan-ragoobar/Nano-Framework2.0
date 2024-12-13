@@ -1,0 +1,11 @@
+var searchData=
+[
+  ['data_5fsource_0',['data_source',['../namespaceEigen_1_1TensorSycl_1_1internal.html#a53853470d5aa77f5b514e787c9869b6d',1,'Eigen::TensorSycl::internal::data_source'],['../namespaceEigen_1_1TensorSycl_1_1internal.html#a53853470d5aa77f5b514e787c9869b6d',1,'Eigen::TensorSycl::internal::data_source']]],
+  ['datatype_1',['DataType',['../namespacenn.html#afadc7a301a4a916a264a59541a7cbfcf',1,'nn::DataType'],['../namespacenn.html#afadc7a301a4a916a264a59541a7cbfcf',1,'nn::DataType']]],
+  ['dateformat_2',['DateFormat',['../structabsl_1_1time__internal_1_1cctz_1_1PosixTransition.html#a735206cd2fcf4adb1c433d0bf7d21e01',1,'absl::time_internal::cctz::PosixTransition::DateFormat'],['../structabsl_1_1time__internal_1_1cctz_1_1PosixTransition.html#a735206cd2fcf4adb1c433d0bf7d21e01',1,'absl::time_internal::cctz::PosixTransition::DateFormat']]],
+  ['decompositionoptions_3',['DecompositionOptions',['../group__enums.html#gae3e239fb70022eb8747994cf5d68b4a9',1,'Eigen::DecompositionOptions'],['../group__enums.html#gae3e239fb70022eb8747994cf5d68b4a9',1,'Eigen::DecompositionOptions']]],
+  ['default_5ft_4',['Default_t',['../namespaceEigen.html#a644c9489710c76e32bd3a9b15d83ca43',1,'Eigen::Default_t'],['../namespaceEigen.html#a644c9489710c76e32bd3a9b15d83ca43',1,'Eigen::Default_t']]],
+  ['defaultinittype_5',['DefaultInitType',['../classabsl_1_1cord__internal_1_1InlineData.html#a2d86f5757238698385413327e3b78d96',1,'absl::cord_internal::InlineData::DefaultInitType'],['../classabsl_1_1cord__internal_1_1InlineData.html#a2d86f5757238698385413327e3b78d96',1,'absl::cord_internal::InlineData::DefaultInitType']]],
+  ['destinationbufferkind_6',['DestinationBufferKind',['../classEigen_1_1internal_1_1TensorBlockDescriptor_1_1DestinationBuffer.html#a3184ea8e5d6744cd03dc1bae419feeea',1,'Eigen::internal::TensorBlockDescriptor::DestinationBuffer::DestinationBufferKind'],['../classEigen_1_1internal_1_1TensorBlockDescriptor_1_1DestinationBuffer.html#a3184ea8e5d6744cd03dc1bae419feeea',1,'Eigen::internal::TensorBlockDescriptor::DestinationBuffer::DestinationBufferKind']]],
+  ['directiontype_7',['DirectionType',['../group__enums.html#gad49a7b3738e273eb00932271b36127f7',1,'Eigen::DirectionType'],['../group__enums.html#gad49a7b3738e273eb00932271b36127f7',1,'Eigen::DirectionType']]]
+];

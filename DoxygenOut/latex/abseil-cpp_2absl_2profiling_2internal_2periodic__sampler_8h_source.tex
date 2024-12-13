@@ -1,0 +1,217 @@
+\doxysection{periodic\+\_\+sampler.\+h}
+\hypertarget{abseil-cpp_2absl_2profiling_2internal_2periodic__sampler_8h_source}{}\label{abseil-cpp_2absl_2profiling_2internal_2periodic__sampler_8h_source}\index{abseil-\/cpp/absl/profiling/internal/periodic\_sampler.h@{abseil-\/cpp/absl/profiling/internal/periodic\_sampler.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2profiling_2internal_2periodic__sampler_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2019\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_PROFILING\_INTERNAL\_PERIODIC\_SAMPLER\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_PROFILING\_INTERNAL\_PERIODIC\_SAMPLER\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/profiling/internal/exponential\_biased.h"{}}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00026\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00027\ \textcolor{keyword}{namespace\ }profiling\_internal\ \{}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ PeriodicSamplerBase\ provides\ the\ basic\ period\ sampler\ implementation.}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ This\ is\ the\ base\ class\ for\ the\ templated\ PeriodicSampler\ class,\ which\ holds}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ a\ global\ std::atomic\ value\ identified\ by\ a\ user\ defined\ tag,\ such\ that}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ each\ specific\ PeriodSampler\ implementation\ holds\ its\ own\ global\ period.}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ PeriodicSamplerBase\ is\ thread-\/compatible\ except\ where\ stated\ otherwise.}}
+\DoxyCodeLine{00036\ \textcolor{keyword}{class\ }PeriodicSamplerBase\ \{}
+\DoxyCodeLine{00037\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00038\ \ \ \textcolor{comment}{//\ PeriodicSamplerBase\ is\ trivial\ /\ copyable\ /\ movable\ /\ destructible.}}
+\DoxyCodeLine{00039\ \ \ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_af5c14c6819f34083ea487444e13142f0}{PeriodicSamplerBase}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00040\ \ \ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_acdbb61aad4622fea9d5e2d00f4c375e3}{PeriodicSamplerBase}}(\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase}{PeriodicSamplerBase}}\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00041\ \ \ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_afe16f6528555f9445c43aa047d74023a}{PeriodicSamplerBase}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase}{PeriodicSamplerBase}}\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \ \ \textcolor{comment}{//\ Returns\ true\ roughly\ once\ every\ \`{}period`\ calls.\ This\ is\ established\ by\ a}}
+\DoxyCodeLine{00044\ \ \ \textcolor{comment}{//\ randomly\ picked\ \`{}stride`\ that\ is\ counted\ down\ on\ each\ call\ to\ \`{}Sample`.}}
+\DoxyCodeLine{00045\ \ \ \textcolor{comment}{//\ This\ stride\ is\ picked\ such\ that\ the\ probability\ of\ \`{}Sample()`\ returning}}
+\DoxyCodeLine{00046\ \ \ \textcolor{comment}{//\ true\ is\ 1\ in\ \`{}period`.}}
+\DoxyCodeLine{00047\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_a2f153caf2b54a16fc3d5ef071e0e15f5}{Sample}}()\ noexcept;}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \ \ \textcolor{comment}{//\ The\ below\ methods\ are\ intended\ for\ optimized\ use\ cases\ where\ the}}
+\DoxyCodeLine{00050\ \ \ \textcolor{comment}{//\ size\ of\ the\ inlined\ fast\ path\ code\ is\ highly\ important.\ Applications}}
+\DoxyCodeLine{00051\ \ \ \textcolor{comment}{//\ should\ use\ the\ \`{}Sample()`\ method\ unless\ they\ have\ proof\ that\ their}}
+\DoxyCodeLine{00052\ \ \ \textcolor{comment}{//\ specific\ use\ case\ requires\ the\ optimizations\ offered\ by\ these\ methods.}}
+\DoxyCodeLine{00053\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00054\ \ \ \textcolor{comment}{//\ An\ example\ of\ such\ a\ use\ case\ is\ SwissTable\ sampling.\ All\ sampling\ checks}}
+\DoxyCodeLine{00055\ \ \ \textcolor{comment}{//\ are\ in\ inlined\ SwissTable\ methods,\ and\ the\ number\ of\ call\ sites\ is\ huge.}}
+\DoxyCodeLine{00056\ \ \ \textcolor{comment}{//\ In\ this\ case,\ the\ inlined\ code\ size\ added\ to\ each\ translation\ unit\ calling}}
+\DoxyCodeLine{00057\ \ \ \textcolor{comment}{//\ SwissTable\ methods\ is\ non-\/trivial.}}
+\DoxyCodeLine{00058\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00059\ \ \ \textcolor{comment}{//\ The\ \`{}SubtleMaybeSample()`\ function\ spuriously\ returns\ true\ even\ if\ the}}
+\DoxyCodeLine{00060\ \ \ \textcolor{comment}{//\ function\ should\ not\ be\ sampled,\ applications\ MUST\ match\ each\ call\ to}}
+\DoxyCodeLine{00061\ \ \ \textcolor{comment}{//\ 'SubtleMaybeSample()'\ returning\ true\ with\ a\ \`{}SubtleConfirmSample()`\ call,}}
+\DoxyCodeLine{00062\ \ \ \textcolor{comment}{//\ and\ use\ the\ result\ of\ the\ latter\ as\ the\ sampling\ decision.}}
+\DoxyCodeLine{00063\ \ \ \textcolor{comment}{//\ In\ other\ words:\ the\ code\ should\ logically\ be\ equivalent\ to:}}
+\DoxyCodeLine{00064\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00065\ \ \ \textcolor{comment}{//\ \ \ \ if\ (SubtleMaybeSample()\ \&\&\ SubtleConfirmSample())\ \{}}
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ \ \ \ \ \ //\ Sample\ this\ call}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ \ \ \ \}}}
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ In\ the\ 'inline-\/size'\ optimized\ case,\ the\ \`{}SubtleConfirmSample()`\ call\ can}}
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//\ be\ placed\ out\ of\ line,\ for\ example,\ the\ typical\ use\ case\ looks\ as\ follows:}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ \ \ //\ -\/-\/-\/\ frobber.h\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ \ \ void\ FrobberSampled();}}
+\DoxyCodeLine{00074\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00075\ \ \ \textcolor{comment}{//\ \ \ inline\ void\ FrobberImpl()\ \{}}
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ \ \ \ \ //\ ...}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00079\ \ \ \textcolor{comment}{//\ \ \ inline\ void\ Frobber()\ \{}}
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ \ \ \ \ if\ (ABSL\_PREDICT\_FALSE(sampler.SubtleMaybeSample()))\ \{}}
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ FrobberSampled();}}
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{//\ \ \ \ \ \}\ else\ \{}}
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ FrobberImpl();}}
+\DoxyCodeLine{00084\ \ \ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00085\ \ \ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00087\ \ \ \textcolor{comment}{//\ \ \ //\ -\/-\/-\/\ frobber.cc\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ \ \ void\ FrobberSampled()\ \{}}
+\DoxyCodeLine{00089\ \ \ \textcolor{comment}{//\ \ \ \ \ if\ (!sampler.SubtleConfirmSample()))\ \{}}
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ //\ Spurious\ false\ positive}}
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ FrobberImpl();}}
+\DoxyCodeLine{00092\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ return;}}
+\DoxyCodeLine{00093\ \ \ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//\ \ \ \ \ //\ Sampled\ execution}}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//\ \ \ \ \ //\ ...}}
+\DoxyCodeLine{00097\ \ \ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00098\ \ \ inline\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_a697477dcc332080a174a92efa8c9f608}{SubtleMaybeSample}}()\ noexcept;}
+\DoxyCodeLine{00099\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_a14345fbcde451bb3b84428bd69fe88a2}{SubtleConfirmSample}}()\ noexcept;}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \ protected:}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ We\ explicitly\ don't\ use\ a\ virtual\ destructor\ as\ this\ class\ is\ never}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ virtually\ destroyed,\ and\ it\ keeps\ the\ class\ trivial,\ which\ avoids\ TLS}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ prologue\ and\ epilogue\ code\ for\ our\ TLS\ instances.}}
+\DoxyCodeLine{00105\ \ \ \string~\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase}{PeriodicSamplerBase}}()\ =\ default;}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \ \ \textcolor{comment}{//\ Returns\ the\ next\ stride\ for\ our\ sampler.}}
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//\ This\ function\ is\ virtual\ for\ testing\ purposes\ only.}}
+\DoxyCodeLine{00109\ \ \ virtual\ int64\_t\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_a88acf0663f5e81e27da15a5583c4f9ba}{GetExponentialBiased}}(\textcolor{keywordtype}{int}\ period)\ noexcept;}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \ private:}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//\ Returns\ the\ current\ period\ of\ this\ sampler.\ Thread-\/safe.}}
+\DoxyCodeLine{00113\ \ \ virtual\ \textcolor{keywordtype}{int}\ period()\ const\ noexcept\ =\ 0;}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//\ Keep\ and\ decrement\ stride\_\ as\ an\ unsigned\ integer,\ but\ compare\ the\ value}}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ to\ zero\ casted\ as\ a\ signed\ int.\ clang\ and\ msvc\ do\ not\ create\ optimum\ code}}
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//\ if\ we\ use\ signed\ for\ the\ combined\ decrement\ and\ sign\ comparison.}}
+\DoxyCodeLine{00118\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00119\ \ \ \textcolor{comment}{//\ Below\ 3\ alternative\ options,\ all\ compiles\ generate\ the\ best\ code}}
+\DoxyCodeLine{00120\ \ \ \textcolor{comment}{//\ using\ the\ unsigned\ increment\ <-\/-\/-\/>\ signed\ int\ comparison\ option.}}
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//\ Option\ 1:}}
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//\ \ \ int64\_t\ stride\_;}}
+\DoxyCodeLine{00124\ \ \ \textcolor{comment}{//\ \ \ if\ (ABSL\_PREDICT\_TRUE(++stride\_\ <\ 0))\ \{\ ...\ \}}}
+\DoxyCodeLine{00125\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00126\ \ \ \textcolor{comment}{//\ \ \ GCC\ \ \ x64\ (OK)\ :\ https://gcc.godbolt.org/z/R5MzzA}}
+\DoxyCodeLine{00127\ \ \ \textcolor{comment}{//\ \ \ GCC\ \ \ ppc\ (OK)\ :\ https://gcc.godbolt.org/z/z7NZAt}}
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ \ \ Clang\ x64\ (BAD):\ https://gcc.godbolt.org/z/t4gPsd}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ \ \ ICC\ \ \ x64\ (OK)\ :\ https://gcc.godbolt.org/z/rE6s8W}}
+\DoxyCodeLine{00130\ \ \ \textcolor{comment}{//\ \ \ MSVC\ \ x64\ (OK)\ :\ https://gcc.godbolt.org/z/ARMXqS}}
+\DoxyCodeLine{00131\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ Option\ 2:}}
+\DoxyCodeLine{00133\ \ \ \textcolor{comment}{//\ \ \ int64\_t\ stride\_\ =\ 0;}}
+\DoxyCodeLine{00134\ \ \ \textcolor{comment}{//\ \ \ if\ (ABSL\_PREDICT\_TRUE(-\/-\/stride\_\ >=\ 0))\ \{\ ...\ \}}}
+\DoxyCodeLine{00135\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00136\ \ \ \textcolor{comment}{//\ \ \ GCC\ \ \ x64\ (OK)\ :\ https://gcc.godbolt.org/z/jSQxYK}}
+\DoxyCodeLine{00137\ \ \ \textcolor{comment}{//\ \ \ GCC\ \ \ ppc\ (OK)\ :\ https://gcc.godbolt.org/z/VJdYaA}}
+\DoxyCodeLine{00138\ \ \ \textcolor{comment}{//\ \ \ Clang\ x64\ (BAD):\ https://gcc.godbolt.org/z/Xm4NjX}}
+\DoxyCodeLine{00139\ \ \ \textcolor{comment}{//\ \ \ ICC\ \ \ x64\ (OK)\ :\ https://gcc.godbolt.org/z/4snaFd}}
+\DoxyCodeLine{00140\ \ \ \textcolor{comment}{//\ \ \ MSVC\ \ x64\ (BAD):\ https://gcc.godbolt.org/z/BgnEKE}}
+\DoxyCodeLine{00141\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00142\ \ \ \textcolor{comment}{//\ Option\ 3:}}
+\DoxyCodeLine{00143\ \ \ \textcolor{comment}{//\ \ \ uint64\_t\ stride\_;}}
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//\ \ \ if\ (ABSL\_PREDICT\_TRUE(static\_cast<int64\_t>(++stride\_)\ <\ 0))\ \{\ ...\ \}}}
+\DoxyCodeLine{00145\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00146\ \ \ \textcolor{comment}{//\ \ \ GCC\ \ \ x64\ (OK)\ :\ https://gcc.godbolt.org/z/bFbfPy}}
+\DoxyCodeLine{00147\ \ \ \textcolor{comment}{//\ \ \ GCC\ \ \ ppc\ (OK)\ :\ https://gcc.godbolt.org/z/S9KkUE}}
+\DoxyCodeLine{00148\ \ \ \textcolor{comment}{//\ \ \ Clang\ x64\ (OK)\ :\ https://gcc.godbolt.org/z/UYzRb4}}
+\DoxyCodeLine{00149\ \ \ \textcolor{comment}{//\ \ \ ICC\ \ \ x64\ (OK)\ :\ https://gcc.godbolt.org/z/ptTNfD}}
+\DoxyCodeLine{00150\ \ \ \textcolor{comment}{//\ \ \ MSVC\ \ x64\ (OK)\ :\ https://gcc.godbolt.org/z/76j4-\/5}}
+\DoxyCodeLine{00151\ \ \ uint64\_t\ stride\_\ =\ 0;}
+\DoxyCodeLine{00152\ \ \ \mbox{\hyperlink{namespaceabsl}{absl}}::profiling\_internal::\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1ExponentialBiased}{ExponentialBiased}}\ rng\_;}
+\DoxyCodeLine{00153\ \};}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ inline\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase}{PeriodicSamplerBase}}::\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_a697477dcc332080a174a92efa8c9f608}{SubtleMaybeSample}}()\ noexcept\ \{}
+\DoxyCodeLine{00156\ \ \ \textcolor{comment}{//\ See\ comments\ on\ \`{}stride\_`\ for\ the\ unsigned\ increment\ /\ signed\ compare.}}
+\DoxyCodeLine{00157\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(\textcolor{keyword}{static\_cast<}int64\_t\textcolor{keyword}{>}(++stride\_)\ <\ 0))\ \{}
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00159\ \ \ \}}
+\DoxyCodeLine{00160\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00161\ \}}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_a2f153caf2b54a16fc3d5ef071e0e15f5}{PeriodicSamplerBase::Sample}}()\ noexcept\ \{}
+\DoxyCodeLine{00164\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_a697477dcc332080a174a92efa8c9f608}{SubtleMaybeSample}}())\ ?\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase_a14345fbcde451bb3b84428bd69fe88a2}{SubtleConfirmSample}}()}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00166\ \}}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ PeriodicSampler\ is\ a\ concreted\ periodic\ sampler\ implementation.}}
+\DoxyCodeLine{00169\ \textcolor{comment}{//\ The\ user\ provided\ Tag\ identifies\ the\ implementation,\ and\ is\ required\ to}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ isolate\ the\ global\ state\ of\ this\ instance\ from\ other\ instances.}}
+\DoxyCodeLine{00171\ \textcolor{comment}{//}}
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ Typical\ use\ case:}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//}}
+\DoxyCodeLine{00174\ \textcolor{comment}{//\ \ \ struct\ HashTablezTag\ \{\};}}
+\DoxyCodeLine{00175\ \textcolor{comment}{//\ \ \ thread\_local\ PeriodicSampler<HashTablezTag,\ 100>\ sampler;}}
+\DoxyCodeLine{00176\ \textcolor{comment}{//}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//\ \ \ void\ HashTableSamplingLogic(...)\ \{}}
+\DoxyCodeLine{00178\ \textcolor{comment}{//\ \ \ \ \ if\ (sampler.Sample())\ \{}}
+\DoxyCodeLine{00179\ \textcolor{comment}{//\ \ \ \ \ \ \ HashTableSlowSamplePath(...);}}
+\DoxyCodeLine{00180\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00181\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00182\ \textcolor{comment}{//}}
+\DoxyCodeLine{00183\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Tag,\ \textcolor{keywordtype}{int}\ default\_period\ =\ 0>}
+\DoxyCodeLine{00184\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSampler}{PeriodicSampler}}\ final\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSamplerBase}{PeriodicSamplerBase}}\ \{}
+\DoxyCodeLine{00185\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00186\ \ \ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSampler_a19347e2127c5349516a9b9f1396579a3}{\string~PeriodicSampler}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSampler_a96029c0f0f8206dcf32d8f7c4cf86902}{period}}()\ const\ noexcept\ final\ \{}
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{keywordflow}{return}\ period\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00190\ \ \ \}}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \ \ \textcolor{comment}{//\ Sets\ the\ global\ period\ for\ this\ sampler.\ Thread-\/safe.}}
+\DoxyCodeLine{00193\ \ \ \textcolor{comment}{//\ Setting\ a\ period\ of\ 0\ disables\ the\ sampler,\ i.e.,\ every\ call\ to\ Sample()}}
+\DoxyCodeLine{00194\ \ \ \textcolor{comment}{//\ will\ return\ false.\ Setting\ a\ period\ of\ 1\ puts\ the\ sampler\ in\ 'always\ on'}}
+\DoxyCodeLine{00195\ \ \ \textcolor{comment}{//\ mode,\ i.e.,\ every\ call\ to\ Sample()\ returns\ true.}}
+\DoxyCodeLine{00196\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1PeriodicSampler_a2656eb7badeb00fbb9faed026aa730c2}{SetGlobalPeriod}}(\textcolor{keywordtype}{int}\ period)\ \{}
+\DoxyCodeLine{00197\ \ \ \ \ period\_.store(period,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00198\ \ \ \}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00201\ \ \ \textcolor{keyword}{static}\ std::atomic<int>\ period\_;}
+\DoxyCodeLine{00202\ \};}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Tag,\ \textcolor{keywordtype}{int}\ default\_period>}
+\DoxyCodeLine{00205\ std::atomic<int>\ PeriodicSampler<Tag,\ default\_period>::period\_(default\_period);}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \}\ \ \textcolor{comment}{//\ namespace\ profiling\_internal}}
+\DoxyCodeLine{00208\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00209\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_PROFILING\_INTERNAL\_PERIODIC\_SAMPLER\_H\_}}
+
+\end{DoxyCode}

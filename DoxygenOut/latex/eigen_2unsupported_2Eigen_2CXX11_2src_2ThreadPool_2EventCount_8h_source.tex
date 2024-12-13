@@ -1,0 +1,255 @@
+\doxysection{Event\+Count.\+h}
+\hypertarget{eigen_2unsupported_2Eigen_2CXX11_2src_2ThreadPool_2EventCount_8h_source}{}\label{eigen_2unsupported_2Eigen_2CXX11_2src_2ThreadPool_2EventCount_8h_source}\index{eigen/unsupported/Eigen/CXX11/src/ThreadPool/EventCount.h@{eigen/unsupported/Eigen/CXX11/src/ThreadPool/EventCount.h}}
+\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2ThreadPool_2EventCount_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2016\ Dmitry\ Vyukov\ <dvyukov@google.com>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_CXX11\_THREADPOOL\_EVENTCOUNT\_H\_}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#define\ EIGEN\_CXX11\_THREADPOOL\_EVENTCOUNT\_H\_}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ EventCount\ allows\ to\ wait\ for\ arbitrary\ predicates\ in\ non-\/blocking}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ algorithms.\ Think\ of\ condition\ variable,\ but\ wait\ predicate\ does\ not\ need\ to}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ be\ protected\ by\ a\ mutex.\ Usage:}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Waiting\ thread\ does:}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ \ \ if\ (predicate)}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ \ \ \ \ return\ act();}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ \ \ EventCount::Waiter\&\ w\ =\ waiters[my\_index];}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \ \ ec.Prewait(\&w);}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ \ \ if\ (predicate)\ \{}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ \ \ \ \ ec.CancelWait(\&w);}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ \ \ \ \ return\ act();}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ \ \ ec.CommitWait(\&w);}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ Notifying\ thread\ does:}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ \ \ predicate\ =\ true;}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ \ \ ec.Notify(true);}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ Notify\ is\ cheap\ if\ there\ are\ no\ waiting\ threads.\ Prewait/CommitWait\ are\ not}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ cheap,\ but\ they\ are\ executed\ only\ if\ the\ preceding\ predicate\ check\ has}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ failed.}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ Algorithm\ outline:}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ There\ are\ two\ main\ variables:\ predicate\ (managed\ by\ user)\ and\ state\_.}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ Operation\ closely\ resembles\ Dekker\ mutual\ algorithm:}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ https://en.wikipedia.org/wiki/Dekker\%27s\_algorithm}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ Waiting\ thread\ sets\ state\_\ then\ checks\ predicate,\ Notifying\ thread\ sets}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ predicate\ then\ checks\ state\_.\ Due\ to\ seq\_cst\ fences\ in\ between\ these}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ operations\ it\ is\ guaranteed\ than\ either\ waiter\ will\ see\ predicate\ change}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ and\ won't\ block,\ or\ notifying\ thread\ will\ see\ state\_\ change\ and\ will\ unblock}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ the\ waiter,\ or\ both.\ But\ it\ can't\ happen\ that\ both\ threads\ don't\ see\ each}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ other\ changes,\ which\ would\ lead\ to\ deadlock.}}
+\DoxyCodeLine{00049\ \textcolor{keyword}{class\ }EventCount\ \{}
+\DoxyCodeLine{00050\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00051\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{namespaceabsl_1_1synchronization__internal_ad8a6556ce15cb7328a3b4727325fbc7f}{Waiter}};}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \ \ \mbox{\hyperlink{classEigen_1_1EventCount_a0d8e7a05e1e87ca91da77e301947a60c}{EventCount}}(\mbox{\hyperlink{classEigen_1_1MaxSizeVector}{MaxSizeVector<Waiter>}}\&\ waiters)}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ :\ state\_(kStackMask),\ waiters\_(waiters)\ \{}
+\DoxyCodeLine{00055\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}(waiters.\mbox{\hyperlink{classEigen_1_1MaxSizeVector_a126c2ea17157a14348222e5cb6a276ca}{size}}()\ <\ (1\ <<\ kWaiterBits)\ -\/\ 1);}
+\DoxyCodeLine{00056\ \ \ \}}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \ \ \mbox{\hyperlink{classEigen_1_1EventCount_af7c1192cf7485a5965aa6b9ff44b8fbf}{\string~EventCount}}()\ \{}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{comment}{//\ Ensure\ there\ are\ no\ waiters.}}
+\DoxyCodeLine{00060\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}(state\_.load()\ ==\ kStackMask);}
+\DoxyCodeLine{00061\ \ \ \}}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \ \ \textcolor{comment}{//\ Prewait\ prepares\ for\ waiting.}}
+\DoxyCodeLine{00064\ \ \ \textcolor{comment}{//\ After\ calling\ Prewait,\ the\ thread\ must\ re-\/check\ the\ wait\ predicate}}
+\DoxyCodeLine{00065\ \ \ \textcolor{comment}{//\ and\ then\ call\ either\ CancelWait\ or\ CommitWait.}}
+\DoxyCodeLine{00066\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1EventCount_af783653098405a22f54e91d2a51152b1}{Prewait}}()\ \{}
+\DoxyCodeLine{00067\ \ \ \ \ uint64\_t\ state\ =\ state\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00068\ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \{}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ CheckState(state);}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ uint64\_t\ newstate\ =\ state\ +\ kWaiterInc;}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ CheckState(newstate);}
+\DoxyCodeLine{00072\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (state\_.compare\_exchange\_weak(state,\ newstate,}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_seq\_cst))}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00075\ \ \ \ \ \}}
+\DoxyCodeLine{00076\ \ \ \}}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ CommitWait\ commits\ waiting\ after\ Prewait.}}
+\DoxyCodeLine{00079\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1EventCount_a381300f183b2dc605b8f68b41a96ee90}{CommitWait}}(\mbox{\hyperlink{classEigen_1_1EventCount_1_1Waiter}{Waiter}}*\ w)\ \{}
+\DoxyCodeLine{00080\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}((w-\/>epoch\ \&\ \string~kEpochMask)\ ==\ 0);}
+\DoxyCodeLine{00081\ \ \ \ \ w-\/>state\ =\ Waiter::kNotSignaled;}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ me\ =\ (w\ -\/\ \&waiters\_[0])\ |\ w-\/>epoch;}
+\DoxyCodeLine{00083\ \ \ \ \ uint64\_t\ state\ =\ state\_.load(std::memory\_order\_seq\_cst);}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \{}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ CheckState(state,\ \textcolor{keyword}{true});}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ uint64\_t\ newstate;}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((state\ \&\ kSignalMask)\ !=\ 0)\ \{}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Consume\ the\ signal\ and\ return\ immidiately.}}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ newstate\ =\ state\ -\/\ kWaiterInc\ -\/\ kSignalInc;}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Remove\ this\ thread\ from\ pre-\/wait\ counter\ and\ add\ to\ the\ waiter\ stack.}}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ newstate\ =\ ((state\ \&\ kWaiterMask)\ -\/\ kWaiterInc)\ |\ me;}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ w-\/>next.store(state\ \&\ (kStackMask\ |\ kEpochMask),}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ CheckState(newstate);}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (state\_.compare\_exchange\_weak(state,\ newstate,}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_acq\_rel))\ \{}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((state\ \&\ kSignalMask)\ ==\ 0)\ \{}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \ \ \ \ w-\/>epoch\ +=\ kEpochInc;}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \ \ Park(w);}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00105\ \ \ \ \ \}}
+\DoxyCodeLine{00106\ \ \ \}}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//\ CancelWait\ cancels\ effects\ of\ the\ previous\ Prewait\ call.}}
+\DoxyCodeLine{00109\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1EventCount_a8f69b70f7f0021e5487d710cecda3b57}{CancelWait}}()\ \{}
+\DoxyCodeLine{00110\ \ \ \ \ uint64\_t\ state\ =\ state\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \{}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ CheckState(state,\ \textcolor{keyword}{true});}
+\DoxyCodeLine{00113\ \ \ \ \ \ \ uint64\_t\ newstate\ =\ state\ -\/\ kWaiterInc;}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \textcolor{comment}{//\ We\ don't\ know\ if\ the\ thread\ was\ also\ notified\ or\ not,}}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \textcolor{comment}{//\ so\ we\ should\ not\ consume\ a\ signal\ unconditionaly.}}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \textcolor{comment}{//\ Only\ if\ number\ of\ waiters\ is\ equal\ to\ number\ of\ signals,}}
+\DoxyCodeLine{00117\ \ \ \ \ \ \ \textcolor{comment}{//\ we\ know\ that\ the\ thread\ was\ notified\ and\ we\ must\ take\ away\ the\ signal.}}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (((state\ \&\ kWaiterMask)\ >>\ kWaiterShift)\ ==}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ \ \ ((state\ \&\ kSignalMask)\ >>\ kSignalShift))}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ \ \ newstate\ -\/=\ kSignalInc;}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ CheckState(newstate);}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (state\_.compare\_exchange\_weak(state,\ newstate,}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_acq\_rel))}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00125\ \ \ \ \ \}}
+\DoxyCodeLine{00126\ \ \ \}}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ Notify\ wakes\ one\ or\ all\ waiting\ threads.}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ Must\ be\ called\ after\ changing\ the\ associated\ wait\ predicate.}}
+\DoxyCodeLine{00130\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1EventCount_a4e0c3f15c54ef7baa9ff1963f549f73d}{Notify}}(\textcolor{keywordtype}{bool}\ notifyAll)\ \{}
+\DoxyCodeLine{00131\ \ \ \ \ std::atomic\_thread\_fence(std::memory\_order\_seq\_cst);}
+\DoxyCodeLine{00132\ \ \ \ \ uint64\_t\ state\ =\ state\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \{}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ CheckState(state);}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ waiters\ =\ (state\ \&\ kWaiterMask)\ >>\ kWaiterShift;}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ signals\ =\ (state\ \&\ kSignalMask)\ >>\ kSignalShift;}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \textcolor{comment}{//\ Easy\ case:\ no\ waiters.}}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((state\ \&\ kStackMask)\ ==\ kStackMask\ \&\&\ waiters\ ==\ signals)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ uint64\_t\ newstate;}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (notifyAll)\ \{}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Empty\ wait\ stack\ and\ set\ signal\ to\ number\ of\ pre-\/wait\ threads.}}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \ \ newstate\ =}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \ \ \ \ \ \ (state\ \&\ kWaiterMask)\ |\ (waiters\ <<\ kSignalShift)\ |\ kStackMask;}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (signals\ <\ waiters)\ \{}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ There\ is\ a\ thread\ in\ pre-\/wait\ state,\ unblock\ it.}}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ newstate\ =\ state\ +\ kSignalInc;}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Pop\ a\ waiter\ from\ list\ and\ unpark\ it.}}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1EventCount_1_1Waiter}{Waiter}}*\ w\ =\ \&waiters\_[state\ \&\ kStackMask];}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ uint64\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a99b32867fd662c5f37b4c76816edc19e}{next}}\ =\ w-\/>next.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ newstate\ =\ (state\ \&\ (kWaiterMask\ |\ kSignalMask))\ |\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a99b32867fd662c5f37b4c76816edc19e}{next}};}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ CheckState(newstate);}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (state\_.compare\_exchange\_weak(state,\ newstate,}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_acq\_rel))\ \{}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!notifyAll\ \&\&\ (signals\ <\ waiters))}
+\DoxyCodeLine{00157\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};\ \ \textcolor{comment}{//\ unblocked\ pre-\/wait\ thread}}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ ((state\ \&\ kStackMask)\ ==\ kStackMask)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1EventCount_1_1Waiter}{Waiter}}*\ w\ =\ \&waiters\_[state\ \&\ kStackMask];}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!notifyAll)\ w-\/>next.store(kStackMask,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00161\ \ \ \ \ \ \ \ \ Unpark(w);}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00163\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00164\ \ \ \ \ \}}
+\DoxyCodeLine{00165\ \ \ \}}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \ \ \textcolor{keyword}{class\ }Waiter\ \{}
+\DoxyCodeLine{00168\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1EventCount}{EventCount}};}
+\DoxyCodeLine{00169\ \ \ \ \ \textcolor{comment}{//\ Align\ to\ 128\ byte\ boundary\ to\ prevent\ false\ sharing\ with\ other\ Waiter}}
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{comment}{//\ objects\ in\ the\ same\ vector.}}
+\DoxyCodeLine{00171\ \ \ \ \ EIGEN\_ALIGN\_TO\_BOUNDARY(128)\ \mbox{\hyperlink{namespacestd}{std}}::atomic<uint64\_t>\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a99b32867fd662c5f37b4c76816edc19e}{next}};}
+\DoxyCodeLine{00172\ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2cordz__handle_8cc_ade5ed16648cf9ca35a2425963b9e3a98}{mutex}}\ mu;}
+\DoxyCodeLine{00173\ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::condition\_variable\ cv;}
+\DoxyCodeLine{00174\ \ \ \ \ uint64\_t\ epoch\ =\ 0;}
+\DoxyCodeLine{00175\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ state\ =\ kNotSignaled;}
+\DoxyCodeLine{00176\ \ \ \ \ enum\ \{}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ kNotSignaled,}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ kWaiting,}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ kSignaled,}
+\DoxyCodeLine{00180\ \ \ \ \ \};}
+\DoxyCodeLine{00181\ \ \ \};}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00184\ \ \ \textcolor{comment}{//\ State\_\ layout:}}
+\DoxyCodeLine{00185\ \ \ \textcolor{comment}{//\ -\/\ low\ kWaiterBits\ is\ a\ stack\ of\ waiters\ committed\ wait}}
+\DoxyCodeLine{00186\ \ \ \textcolor{comment}{//\ \ \ (indexes\ in\ waiters\_\ array\ are\ used\ as\ stack\ elements,}}
+\DoxyCodeLine{00187\ \ \ \textcolor{comment}{//\ \ \ kStackMask\ means\ empty\ stack).}}
+\DoxyCodeLine{00188\ \ \ \textcolor{comment}{//\ -\/\ next\ kWaiterBits\ is\ count\ of\ waiters\ in\ prewait\ state.}}
+\DoxyCodeLine{00189\ \ \ \textcolor{comment}{//\ -\/\ next\ kWaiterBits\ is\ count\ of\ pending\ signals.}}
+\DoxyCodeLine{00190\ \ \ \textcolor{comment}{//\ -\/\ remaining\ bits\ are\ ABA\ counter\ for\ the\ stack.}}
+\DoxyCodeLine{00191\ \ \ \textcolor{comment}{//\ \ \ (stored\ in\ Waiter\ node\ and\ incremented\ on\ push).}}
+\DoxyCodeLine{00192\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kWaiterBits\ =\ 14;}
+\DoxyCodeLine{00193\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kStackMask\ =\ (1ull\ <<\ kWaiterBits)\ -\/\ 1;}
+\DoxyCodeLine{00194\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kWaiterShift\ =\ kWaiterBits;}
+\DoxyCodeLine{00195\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kWaiterMask\ =\ ((1ull\ <<\ kWaiterBits)\ -\/\ 1)}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ <<\ kWaiterShift;}
+\DoxyCodeLine{00197\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kWaiterInc\ =\ 1ull\ <<\ kWaiterShift;}
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kSignalShift\ =\ 2\ *\ kWaiterBits;}
+\DoxyCodeLine{00199\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kSignalMask\ =\ ((1ull\ <<\ kWaiterBits)\ -\/\ 1)}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ <<\ kSignalShift;}
+\DoxyCodeLine{00201\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kSignalInc\ =\ 1ull\ <<\ kSignalShift;}
+\DoxyCodeLine{00202\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kEpochShift\ =\ 3\ *\ kWaiterBits;}
+\DoxyCodeLine{00203\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kEpochBits\ =\ 64\ -\/\ kEpochShift;}
+\DoxyCodeLine{00204\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kEpochMask\ =\ ((1ull\ <<\ kEpochBits)\ -\/\ 1)\ <<\ kEpochShift;}
+\DoxyCodeLine{00205\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ uint64\_t\ kEpochInc\ =\ 1ull\ <<\ kEpochShift;}
+\DoxyCodeLine{00206\ \ \ std::atomic<uint64\_t>\ state\_;}
+\DoxyCodeLine{00207\ \ \ \mbox{\hyperlink{classEigen_1_1MaxSizeVector}{MaxSizeVector<Waiter>}}\&\ waiters\_;}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00209\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ CheckState(uint64\_t\ state,\ \textcolor{keywordtype}{bool}\ waiter\ =\ \textcolor{keyword}{false})\ \{}
+\DoxyCodeLine{00210\ \ \ \ \ \textcolor{keyword}{static\_assert}(kEpochBits\ >=\ 20,\ \textcolor{stringliteral}{"{}not\ enough\ bits\ to\ prevent\ ABA\ problem"{}});}
+\DoxyCodeLine{00211\ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ waiters\ =\ (state\ \&\ kWaiterMask)\ >>\ kWaiterShift;}
+\DoxyCodeLine{00212\ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ signals\ =\ (state\ \&\ kSignalMask)\ >>\ kSignalShift;}
+\DoxyCodeLine{00213\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}(waiters\ >=\ signals);}
+\DoxyCodeLine{00214\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}(waiters\ <\ (1\ <<\ kWaiterBits)\ -\/\ 1);}
+\DoxyCodeLine{00215\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}(!waiter\ ||\ waiters\ >\ 0);}
+\DoxyCodeLine{00216\ \ \ \ \ (void)waiters;}
+\DoxyCodeLine{00217\ \ \ \ \ (void)signals;}
+\DoxyCodeLine{00218\ \ \ \}}
+\DoxyCodeLine{00219\ }
+\DoxyCodeLine{00220\ \ \ \textcolor{keywordtype}{void}\ Park(Waiter*\ w)\ \{}
+\DoxyCodeLine{00221\ \ \ \ \ std::unique\_lock<std::mutex>\ lock(w-\/>mu);}
+\DoxyCodeLine{00222\ \ \ \ \ \textcolor{keywordflow}{while}\ (w-\/>state\ !=\ Waiter::kSignaled)\ \{}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ w-\/>state\ =\ Waiter::kWaiting;}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ w-\/>cv.wait(lock);}
+\DoxyCodeLine{00225\ \ \ \ \ \}}
+\DoxyCodeLine{00226\ \ \ \}}
+\DoxyCodeLine{00227\ }
+\DoxyCodeLine{00228\ \ \ \textcolor{keywordtype}{void}\ Unpark(Waiter*\ w)\ \{}
+\DoxyCodeLine{00229\ \ \ \ \ \textcolor{keywordflow}{for}\ (Waiter*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a99b32867fd662c5f37b4c76816edc19e}{next}};\ w;\ w\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a99b32867fd662c5f37b4c76816edc19e}{next}})\ \{}
+\DoxyCodeLine{00230\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_a637f20cd528b31ef3ce8d1ef803ebbde}{uint64\_t}}\ wnext\ =\ w-\/>next.load(std::memory\_order\_relaxed)\ \&\ kStackMask;}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a99b32867fd662c5f37b4c76816edc19e}{next}}\ =\ wnext\ ==\ kStackMask\ ?\ nullptr\ :\ \&waiters\_[wnext];}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \textcolor{keywordtype}{unsigned}\ state;}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00234\ \ \ \ \ \ \ \ \ std::unique\_lock<std::mutex>\ lock(w-\/>mu);}
+\DoxyCodeLine{00235\ \ \ \ \ \ \ \ \ state\ =\ w-\/>state;}
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \ \ w-\/>state\ =\ Waiter::kSignaled;}
+\DoxyCodeLine{00237\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00238\ \ \ \ \ \ \ \textcolor{comment}{//\ Avoid\ notifying\ if\ it\ wasn't\ waiting.}}
+\DoxyCodeLine{00239\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (state\ ==\ Waiter::kWaiting)\ w-\/>cv.notify\_one();}
+\DoxyCodeLine{00240\ \ \ \ \ \}}
+\DoxyCodeLine{00241\ \ \ \}}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \ \ \mbox{\hyperlink{classEigen_1_1EventCount_a0d8e7a05e1e87ca91da77e301947a60c}{EventCount}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1EventCount_a0d8e7a05e1e87ca91da77e301947a60c}{EventCount}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00244\ \ \ \textcolor{keywordtype}{void}\ operator=(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1EventCount_a0d8e7a05e1e87ca91da77e301947a60c}{EventCount}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00245\ \};}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \}\ \ \textcolor{comment}{//\ namespace\ Eigen}}
+\DoxyCodeLine{00248\ }
+\DoxyCodeLine{00249\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ EIGEN\_CXX11\_THREADPOOL\_EVENTCOUNT\_H\_}}
+
+\end{DoxyCode}

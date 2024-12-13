@@ -1,0 +1,103 @@
+\doxysection{cordz\+\_\+sample\+\_\+token.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2strings_2internal_2cordz__sample__token_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2strings_2internal_2cordz__sample__token_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/strings/internal/cordz\_sample\_token.h@{OriginalStuff/abseil-\/cpp/absl/strings/internal/cordz\_sample\_token.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2strings_2internal_2cordz__sample__token_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2019\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cordz\_handle.h"{}}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cordz\_info.h"{}}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_INTERNAL\_CORDZ\_SAMPLE\_TOKEN\_H\_}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_INTERNAL\_CORDZ\_SAMPLE\_TOKEN\_H\_}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00023\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00024\ \textcolor{keyword}{namespace\ }cord\_internal\ \{}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ The\ existence\ of\ a\ CordzSampleToken\ guarantees\ that\ a\ reader\ can\ traverse\ the}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ global\_cordz\_infos\_head\ linked-\/list\ without\ needing\ to\ hold\ a\ mutex.\ When\ a}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ CordzSampleToken\ exists,\ all\ CordzInfo\ objects\ that\ would\ be\ destroyed\ are}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ instead\ appended\ to\ a\ deletion\ queue.\ When\ the\ CordzSampleToken\ is\ destroyed,}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ it\ will\ also\ clean\ up\ any\ of\ these\ CordzInfo\ objects.}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ E.g.,\ ST\ are\ CordzSampleToken\ objects\ and\ CH\ are\ CordzHandle\ objects.}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ \ \ ST1\ <-\/\ CH1\ <-\/\ CH2\ <-\/\ ST2\ <-\/\ CH3\ <-\/\ global\_delete\_queue\_tail}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ This\ list\ tracks\ that\ CH1\ and\ CH2\ were\ created\ after\ ST1,\ so\ the\ thread}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ holding\ ST1\ might\ have\ a\ reference\ to\ CH1,\ CH2,\ ST2,\ and\ CH3.\ However,\ ST2}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ was\ created\ later,\ so\ the\ thread\ holding\ the\ ST2\ token\ cannot\ have\ a}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ reference\ to\ ST1,\ CH1,\ or\ CH2.\ If\ ST1\ is\ cleaned\ up\ first,\ that\ thread\ will}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ delete\ ST1,\ CH1,\ and\ CH2.\ If\ instead\ ST2\ is\ cleaned\ up\ first,\ that\ thread}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ will\ only\ delete\ ST2.}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ If\ ST1\ is\ cleaned\ up\ first,\ the\ new\ list\ will\ be:}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ ST2\ <-\/\ CH3\ <-\/\ global\_delete\_queue\_tail}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ If\ ST2\ is\ cleaned\ up\ first,\ the\ new\ list\ will\ be:}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \ \ ST1\ <-\/\ CH1\ <-\/\ CH2\ <-\/\ CH3\ <-\/\ global\_delete\_queue\_tail}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ All\ new\ CordzHandle\ objects\ are\ appended\ to\ the\ list,\ so\ if\ a\ new\ thread}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ comes\ along\ before\ either\ ST1\ or\ ST2\ are\ cleaned\ up,\ the\ new\ list\ will\ be:}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ \ \ ST1\ <-\/\ CH1\ <-\/\ CH2\ <-\/\ ST2\ <-\/\ CH3\ <-\/\ ST3\ <-\/\ global\_delete\_queue\_tail}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ A\ thread\ must\ hold\ the\ global\_delete\_queue\_mu\ mutex\ whenever\ it's\ altering}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ this\ list.}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ It\ is\ safe\ for\ thread\ that\ holds\ a\ CordzSampleToken\ to\ read}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ global\_cordz\_infos\ at\ any\ time\ since\ the\ objects\ it\ is\ able\ to\ retrieve\ will}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ not\ be\ deleted\ while\ the\ CordzSampleToken\ exists.}}
+\DoxyCodeLine{00058\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken}{CordzSampleToken}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSnapshot}{CordzSnapshot}}\ \{}
+\DoxyCodeLine{00059\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00060\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}\ \{}
+\DoxyCodeLine{00061\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_abf594213840a72bd648956640093c963}{iterator\_category}}\ =\ std::input\_iterator\_tag;}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{value\_type}}\ =\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{CordzInfo}}\&;}
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_a62a0c52e5790d448685bbdd0ba2dabef}{difference\_type}}\ =\ ptrdiff\_t;}
+\DoxyCodeLine{00065\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{pointer}}\ =\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{CordzInfo}}*;}
+\DoxyCodeLine{00066\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{reference}}\ =\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_ae61a0919c1411ab835f379af8f7938f7}{value\_type}};}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_a86dd709a797603e4b4dd0472bea1c084}{Iterator}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}\&\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_a5d26d0bd929d622905697ea04ecf931c}{operator++}}();}
+\DoxyCodeLine{00071\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_ae228489501d5f1b4217f4a28e3c25be4}{operator++}}(\textcolor{keywordtype}{int});}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_a649732d4adaa4dacbf1b9ae82309988d}{operator==}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}\&\ lhs,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}\&\ rhs);}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_a93c87a67ed2a218cd480af6da4db7e1a}{operator!=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}\&\ lhs,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}\&\ rhs);}
+\DoxyCodeLine{00074\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{reference}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_adbd17bc433c175426bc00e25b283c918}{operator*}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00075\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{pointer}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_a8470eb14f76e1345d121612078eb2c29}{operator-\/>}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken}{CordzSampleToken}};}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator_a86dd709a797603e4b4dd0472bea1c084}{Iterator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken}{CordzSampleToken}}*\ token);}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken}{CordzSampleToken}}*\ token\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00082\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{pointer}}\ current\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00083\ \ \ \};}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_a005bf93a2a5fea8732158d6e57e2261f}{CordzSampleToken}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00086\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_a8b084ab0082e74b6b423fd3a6f1e0833}{CordzSampleToken}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken}{CordzSampleToken}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00087\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken}{CordzSampleToken}}\&\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_ab9f5556d611049a4a50354b17bb1d4b3}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken}{CordzSampleToken}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_a61fad10dc63da488e205141555098bd3}{begin}}()\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}(\textcolor{keyword}{this});\ \}}
+\DoxyCodeLine{00090\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_a8a2049b2f334f49c1a90ba4f50fb5022}{end}}()\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSampleToken_1_1Iterator}{Iterator}}();\ \}}
+\DoxyCodeLine{00091\ \};}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \}\ \ \textcolor{comment}{//\ namespace\ cord\_internal}}
+\DoxyCodeLine{00094\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00095\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_INTERNAL\_CORDZ\_SAMPLE\_TOKEN\_H\_}}
+
+\end{DoxyCode}

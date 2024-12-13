@@ -1,0 +1,1013 @@
+\doxysection{Assign\+Evaluator.\+h}
+\hypertarget{OriginalStuff_2eigen_2Eigen_2src_2Core_2AssignEvaluator_8h_source}{}\label{OriginalStuff_2eigen_2Eigen_2src_2Core_2AssignEvaluator_8h_source}\index{OriginalStuff/eigen/Eigen/src/Core/AssignEvaluator.h@{OriginalStuff/eigen/Eigen/src/Core/AssignEvaluator.h}}
+\mbox{\hyperlink{OriginalStuff_2eigen_2Eigen_2src_2Core_2AssignEvaluator_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2011\ Benoit\ Jacob\ <jacob.benoit.1@gmail.com>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ Copyright\ (C)\ 2011-\/2014\ Gael\ Guennebaud\ <gael.guennebaud@inria.fr>}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ Copyright\ (C)\ 2011-\/2012\ Jitse\ Niesen\ <jitse@maths.leeds.ac.uk>}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00011\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_ASSIGN\_EVALUATOR\_H}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#define\ EIGEN\_ASSIGN\_EVALUATOR\_H}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ This\ implementation\ is\ based\ on\ Assign.h}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}\ \{}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00022\ \textcolor{comment}{*\ Part\ 1\ :\ the\ logic\ deciding\ a\ strategy\ for\ traversal\ and\ unrolling\ \ \ \ \ \ \ *}}
+\DoxyCodeLine{00023\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ copy\_using\_evaluator\_traits\ is\ based\ on\ assign\_traits}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ DstEvaluator,\ \textcolor{keyword}{typename}\ SrcEvaluator,\ \textcolor{keyword}{typename}\ AssignFunc,\ \textcolor{keywordtype}{int}\ MaxPacketSize\ =\ -\/1>}
+\DoxyCodeLine{00028\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits}{copy\_using\_evaluator\_traits}}}
+\DoxyCodeLine{00029\ \{}
+\DoxyCodeLine{00030\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ DstEvaluator::XprType\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_aa9716330cd953312b26506a8eccce6c2}{Dst}};}
+\DoxyCodeLine{00031\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Dst::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_af9dc04a1c6ce0fece31652de6c20924e}{DstScalar}};}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00034\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091aca5c1cdb4c1d9640457efab5196266b5}{DstFlags}}\ =\ DstEvaluator::Flags,}
+\DoxyCodeLine{00035\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091a1fc307e1b5e4751abef856524b1f176b}{SrcFlags}}\ =\ SrcEvaluator::Flags}
+\DoxyCodeLine{00036\ \ \ \};}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00039\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00040\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea38576e4b88f1ee8d6b7a4bffc3be599e}{DstAlignment}}\ =\ DstEvaluator::Alignment,}
+\DoxyCodeLine{00041\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea17dbebe891d9fac44baa09f90c8cc159}{SrcAlignment}}\ =\ SrcEvaluator::Alignment,}
+\DoxyCodeLine{00042\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea65c155f487f83c27dacc040631e6585d}{DstHasDirectAccess}}\ =\ (\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091aca5c1cdb4c1d9640457efab5196266b5}{DstFlags}}\ \&\ \mbox{\hyperlink{group__flags_gabf1e9d0516a933445a4c307ad8f14915}{DirectAccessBit}})\ ==\ \mbox{\hyperlink{group__flags_gabf1e9d0516a933445a4c307ad8f14915}{DirectAccessBit}},}
+\DoxyCodeLine{00043\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62eaad8d0d438094d24e334095f9461c9742}{JointAlignment}}\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a4b1145e5f3a0b345e0b769a3d81acc1f}{EIGEN\_PLAIN\_ENUM\_MIN}}(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea38576e4b88f1ee8d6b7a4bffc3be599e}{DstAlignment}},\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea17dbebe891d9fac44baa09f90c8cc159}{SrcAlignment}})}
+\DoxyCodeLine{00044\ \ \ \};}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00047\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00048\ \ \ \ \ InnerSize\ =\ int(Dst::IsVectorAtCompileTime)\ ?\ int(Dst::SizeAtCompileTime)}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091aca5c1cdb4c1d9640457efab5196266b5}{DstFlags}})\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}}\ ?\ int(Dst::ColsAtCompileTime)}
+\DoxyCodeLine{00050\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(Dst::RowsAtCompileTime),}
+\DoxyCodeLine{00051\ \ \ \ \ InnerMaxSize\ =\ int(Dst::IsVectorAtCompileTime)\ ?\ int(Dst::MaxSizeAtCompileTime)}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091aca5c1cdb4c1d9640457efab5196266b5}{DstFlags}})\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}}\ ?\ int(Dst::MaxColsAtCompileTime)}
+\DoxyCodeLine{00053\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(Dst::MaxRowsAtCompileTime),}
+\DoxyCodeLine{00054\ \ \ \ \ RestrictedInnerSize\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2d58514e6156c4da2d4af66fafd0b12}{EIGEN\_SIZE\_MIN\_PREFER\_FIXED}}(InnerSize,MaxPacketSize),}
+\DoxyCodeLine{00055\ \ \ \ \ RestrictedLinearSize\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2d58514e6156c4da2d4af66fafd0b12}{EIGEN\_SIZE\_MIN\_PREFER\_FIXED}}(Dst::SizeAtCompileTime,MaxPacketSize),}
+\DoxyCodeLine{00056\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1OuterStride}{OuterStride}}\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1outer__stride__at__compile__time}{outer\_stride\_at\_compile\_time<Dst>::ret}}),}
+\DoxyCodeLine{00057\ \ \ \ \ MaxSizeAtCompileTime\ =\ Dst::SizeAtCompileTime}
+\DoxyCodeLine{00058\ \ \ \};}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \ \ \textcolor{comment}{//\ TODO\ distinguish\ between\ linear\ traversal\ and\ inner-\/traversals}}
+\DoxyCodeLine{00061\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1find__best__packet_a74c5256299f16c9f9bad173250bf12be}{find\_best\_packet<DstScalar,RestrictedLinearSize>::type}}\ LinearPacketType;}
+\DoxyCodeLine{00062\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1find__best__packet_a74c5256299f16c9f9bad173250bf12be}{find\_best\_packet<DstScalar,RestrictedInnerSize>::type}}\ InnerPacketType;}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00065\ \ \ \ \ LinearPacketSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<LinearPacketType>::size}},}
+\DoxyCodeLine{00066\ \ \ \ \ InnerPacketSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<InnerPacketType>::size}}}
+\DoxyCodeLine{00067\ \ \ \};}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00070\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00071\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_af2c9e2390ae377565cb7cfa1018338cbaf008e07dc888a4f2a6745f4841ef8cc0}{LinearRequiredAlignment}}\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<LinearPacketType>::alignment}},}
+\DoxyCodeLine{00072\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_af2c9e2390ae377565cb7cfa1018338cbaf19b6f42852021b351ec2f431e49364b}{InnerRequiredAlignment}}\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<InnerPacketType>::alignment}}}
+\DoxyCodeLine{00073\ \ \ \};}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00076\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00077\ \ \ \ \ DstIsRowMajor\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091aca5c1cdb4c1d9640457efab5196266b5}{DstFlags}}\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}},}
+\DoxyCodeLine{00078\ \ \ \ \ SrcIsRowMajor\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091a1fc307e1b5e4751abef856524b1f176b}{SrcFlags}}\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}},}
+\DoxyCodeLine{00079\ \ \ \ \ StorageOrdersAgree\ =\ (int(DstIsRowMajor)\ ==\ int(SrcIsRowMajor)),}
+\DoxyCodeLine{00080\ \ \ \ \ MightVectorize\ =\ \textcolor{keywordtype}{bool}(StorageOrdersAgree)}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ (int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091aca5c1cdb4c1d9640457efab5196266b5}{DstFlags}})\ \&\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091a1fc307e1b5e4751abef856524b1f176b}{SrcFlags}})\ \&\ \mbox{\hyperlink{namespaceEigen_a020f88dc24a123b9afbd756c4b220db2}{ActualPacketAccessBit}})}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ \textcolor{keywordtype}{bool}(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<AssignFunc>::PacketAccess}}),}
+\DoxyCodeLine{00083\ \ \ \ \ MayInnerVectorize\ \ =\ MightVectorize}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ int(InnerSize)!=Dynamic\ \&\&\ int(InnerSize)\%int(InnerPacketSize)==0}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ int(\mbox{\hyperlink{classEigen_1_1OuterStride}{OuterStride}})!=Dynamic\ \&\&\ int(\mbox{\hyperlink{classEigen_1_1OuterStride}{OuterStride}})\%int(InnerPacketSize)==0}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ (\mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2ConfigureVectorization_8h_a1867e397bb6f521970e4a8e724a5e0db}{EIGEN\_UNALIGNED\_VECTORIZE}}\ \ ||\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62eaad8d0d438094d24e334095f9461c9742}{JointAlignment}})>=int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_af2c9e2390ae377565cb7cfa1018338cbaf19b6f42852021b351ec2f431e49364b}{InnerRequiredAlignment}})),}
+\DoxyCodeLine{00087\ \ \ \ \ MayLinearize\ =\ \textcolor{keywordtype}{bool}(StorageOrdersAgree)\ \&\&\ (int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091aca5c1cdb4c1d9640457efab5196266b5}{DstFlags}})\ \&\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091a1fc307e1b5e4751abef856524b1f176b}{SrcFlags}})\ \&\ \mbox{\hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit}}),}
+\DoxyCodeLine{00088\ \ \ \ \ MayLinearVectorize\ =\ \textcolor{keywordtype}{bool}(MightVectorize)\ \&\&\ bool(MayLinearize)\ \&\&\ bool(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea65c155f487f83c27dacc040631e6585d}{DstHasDirectAccess}})}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ (\mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2ConfigureVectorization_8h_a1867e397bb6f521970e4a8e724a5e0db}{EIGEN\_UNALIGNED\_VECTORIZE}}\ ||\ (int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea38576e4b88f1ee8d6b7a4bffc3be599e}{DstAlignment}})>=int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_af2c9e2390ae377565cb7cfa1018338cbaf008e07dc888a4f2a6745f4841ef8cc0}{LinearRequiredAlignment}}))\ ||\ MaxSizeAtCompileTime\ ==\ \mbox{\hyperlink{namespaceEigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}}),}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \textcolor{comment}{/*\ If\ the\ destination\ isn't\ aligned,\ we\ have\ to\ do\ runtime\ checks\ and\ we\ don't\ unroll,}}
+\DoxyCodeLine{00091\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ so\ it's\ only\ good\ for\ large\ enough\ sizes.\ */}}
+\DoxyCodeLine{00092\ \ \ \ \ MaySliceVectorize\ \ =\ \textcolor{keywordtype}{bool}(MightVectorize)\ \&\&\ bool(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea65c155f487f83c27dacc040631e6585d}{DstHasDirectAccess}})}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ (int(InnerMaxSize)==Dynamic\ ||\ int(InnerMaxSize)>=(\mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2ConfigureVectorization_8h_a1867e397bb6f521970e4a8e724a5e0db}{EIGEN\_UNALIGNED\_VECTORIZE}}?InnerPacketSize:(3*InnerPacketSize)))}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \textcolor{comment}{/*\ slice\ vectorization\ can\ be\ slow,\ so\ we\ only\ want\ it\ if\ the\ slices\ are\ big,\ which\ is}}
+\DoxyCodeLine{00095\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ indicated\ by\ InnerMaxSize\ rather\ than\ InnerSize,\ think\ of\ the\ case\ of\ a\ dynamic\ block}}
+\DoxyCodeLine{00096\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ in\ a\ fixed-\/size\ matrix}}
+\DoxyCodeLine{00097\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ However,\ with\ EIGEN\_UNALIGNED\_VECTORIZE\ and\ unrolling,\ slice\ vectorization\ is\ still\ worth\ it\ */}}
+\DoxyCodeLine{00098\ \ \ \};}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}}\ =\ \ int(Dst::SizeAtCompileTime)\ ==\ 0\ ?\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a97e9d5e56af0a16542c98faaeecc80a3}{AllAtOnceTraversal}})\ \textcolor{comment}{//\ If\ compile-\/size\ is\ zero,\ traversing\ will\ fail\ at\ compile-\/time.}}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (int(MayLinearVectorize)\ \&\&\ (LinearPacketSize>InnerPacketSize))\ ?\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}})}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(MayInnerVectorize)\ \ \ ?\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a0651c316b8fae12e150c3ec169c90939}{InnerVectorizedTraversal}})}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(MayLinearVectorize)\ \ ?\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}})}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(MaySliceVectorize)\ \ \ ?\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a655eb95e8f634fefeef7dd9c8211a88c}{SliceVectorizedTraversal}})}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(MayLinearize)\ \ \ \ \ \ \ \ ?\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a4b969c6436fcd8bad812212c25535727}{LinearTraversal}})}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a1c6ce6bcccb0a3c8af050b6ad271d46e}{DefaultTraversal}}),}
+\DoxyCodeLine{00109\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791ab88271bf7e24b1484927a8aa9b19e0a9}{Vectorized}}\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})\ ==\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a0651c316b8fae12e150c3ec169c90939}{InnerVectorizedTraversal}}}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ||\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})\ ==\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}}}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ||\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})\ ==\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a655eb95e8f634fefeef7dd9c8211a88c}{SliceVectorizedTraversal}}}
+\DoxyCodeLine{00112\ \ \ \};}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00114\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1conditional}{conditional}}<int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})==\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}},\ LinearPacketType,\ InnerPacketType>::type\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a2d448c440f2ae6b2127b4f3162f8eb4d}{PacketType}};}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00117\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00118\ \ \ \ \ ActualPacketSize\ \ \ \ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})==\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}}\ ?\ LinearPacketSize}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791ab88271bf7e24b1484927a8aa9b19e0a9}{Vectorized}}\ ?\ InnerPacketSize}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 1,}
+\DoxyCodeLine{00121\ \ \ \ \ UnrollingLimit\ \ \ \ \ \ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2arch_2Default_2Settings_8h_a82cebcbf6c1138bd0f956d10fc46ef75}{EIGEN\_UNROLLING\_LIMIT}}\ *\ ActualPacketSize,}
+\DoxyCodeLine{00122\ \ \ \ \ MayUnrollCompletely\ =\ int(Dst::SizeAtCompileTime)\ !=\ Dynamic}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ int(Dst::SizeAtCompileTime)\ *\ (int(DstEvaluator::CoeffReadCost)+int(SrcEvaluator::CoeffReadCost))\ <=\ \textcolor{keywordtype}{int}(UnrollingLimit),}
+\DoxyCodeLine{00124\ \ \ \ \ MayUnrollInner\ \ \ \ \ \ =\ int(InnerSize)\ !=\ Dynamic}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ int(InnerSize)\ *\ (int(DstEvaluator::CoeffReadCost)+int(SrcEvaluator::CoeffReadCost))\ <=\ \textcolor{keywordtype}{int}(UnrollingLimit)}
+\DoxyCodeLine{00126\ \ \ \};}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00129\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00130\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_aa3bc11914a5c4adab1255733852d5727a96f19389265711f2ea995f6738830e90}{Unrolling}}\ =\ (int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})\ ==\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a0651c316b8fae12e150c3ec169c90939}{InnerVectorizedTraversal}})\ ||\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})\ ==\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a1c6ce6bcccb0a3c8af050b6ad271d46e}{DefaultTraversal}}))}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ (}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}(MayUnrollCompletely)\ ?\ \textcolor{keywordtype}{int}(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}})}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \textcolor{keywordtype}{int}(MayUnrollInner)\ \ \ \ \ \ ?\ \textcolor{keywordtype}{int}(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da7524221dfcc856234d8bf3108fa59b34}{InnerUnrolling}})}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \textcolor{keywordtype}{int}(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}})}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ )}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})\ ==\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}})}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ (\ bool(MayUnrollCompletely)\ \&\&\ (\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2ConfigureVectorization_8h_a1867e397bb6f521970e4a8e724a5e0db}{EIGEN\_UNALIGNED\_VECTORIZE}}\ ||\ (int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea38576e4b88f1ee8d6b7a4bffc3be599e}{DstAlignment}})>=int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_af2c9e2390ae377565cb7cfa1018338cbaf008e07dc888a4f2a6745f4841ef8cc0}{LinearRequiredAlignment}})))}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ \textcolor{keywordtype}{int}(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}})}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}})\ )}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})\ ==\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a4b969c6436fcd8bad812212c25535727}{LinearTraversal}})}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ (\ bool(MayUnrollCompletely)\ ?\ int(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}})}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}})\ )}
+\DoxyCodeLine{00143\ \#\textcolor{keywordflow}{if}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2ConfigureVectorization_8h_a1867e397bb6f521970e4a8e724a5e0db}{EIGEN\_UNALIGNED\_VECTORIZE}}}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})\ ==\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a655eb95e8f634fefeef7dd9c8211a88c}{SliceVectorizedTraversal}})}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ (\ bool(MayUnrollInner)\ ?\ int(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da7524221dfcc856234d8bf3108fa59b34}{InnerUnrolling}})}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}})\ )}
+\DoxyCodeLine{00147\ \#endif}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}})}
+\DoxyCodeLine{00149\ \ \ \};}
+\DoxyCodeLine{00150\ }
+\DoxyCodeLine{00151\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_DEBUG\_ASSIGN}}
+\DoxyCodeLine{00152\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ debug()}
+\DoxyCodeLine{00153\ \ \ \{}
+\DoxyCodeLine{00154\ \ \ \ \ std::cerr\ <<\ \textcolor{stringliteral}{"{}DstXpr:\ "{}}\ <<\ \textcolor{keyword}{typeid}(\textcolor{keyword}{typename}\ DstEvaluator::XprType).\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}}()\ <<\ std::endl;}
+\DoxyCodeLine{00155\ \ \ \ \ std::cerr\ <<\ \textcolor{stringliteral}{"{}SrcXpr:\ "{}}\ <<\ \textcolor{keyword}{typeid}(\textcolor{keyword}{typename}\ SrcEvaluator::XprType).\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}}()\ <<\ std::endl;}
+\DoxyCodeLine{00156\ \ \ \ \ std::cerr.setf(std::ios::hex,\ std::ios::basefield);}
+\DoxyCodeLine{00157\ \ \ \ \ std::cerr\ <<\ \textcolor{stringliteral}{"{}DstFlags"{}}\ <<\ \textcolor{stringliteral}{"{}\ =\ "{}}\ <<\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091aca5c1cdb4c1d9640457efab5196266b5}{DstFlags}}\ <<\ \textcolor{stringliteral}{"{}\ ("{}}\ <<\ demangle\_flags(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091aca5c1cdb4c1d9640457efab5196266b5}{DstFlags}})\ <<\ \textcolor{stringliteral}{"{}\ )"{}}\ <<\ std::endl;}
+\DoxyCodeLine{00158\ \ \ \ \ std::cerr\ <<\ \textcolor{stringliteral}{"{}SrcFlags"{}}\ <<\ \textcolor{stringliteral}{"{}\ =\ "{}}\ <<\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091a1fc307e1b5e4751abef856524b1f176b}{SrcFlags}}\ <<\ \textcolor{stringliteral}{"{}\ ("{}}\ <<\ demangle\_flags(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a73db7d04a4e9fc96694785cb9fe3d091a1fc307e1b5e4751abef856524b1f176b}{SrcFlags}})\ <<\ \textcolor{stringliteral}{"{}\ )"{}}\ <<\ std::endl;}
+\DoxyCodeLine{00159\ \ \ \ \ std::cerr.unsetf(std::ios::hex);}
+\DoxyCodeLine{00160\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea38576e4b88f1ee8d6b7a4bffc3be599e}{DstAlignment}})}
+\DoxyCodeLine{00161\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62ea17dbebe891d9fac44baa09f90c8cc159}{SrcAlignment}})}
+\DoxyCodeLine{00162\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_af2c9e2390ae377565cb7cfa1018338cbaf008e07dc888a4f2a6745f4841ef8cc0}{LinearRequiredAlignment}})}
+\DoxyCodeLine{00163\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_af2c9e2390ae377565cb7cfa1018338cbaf19b6f42852021b351ec2f431e49364b}{InnerRequiredAlignment}})}
+\DoxyCodeLine{00164\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a5f9a19f3ad63ffacdafa0449ca51c62eaad8d0d438094d24e334095f9461c9742}{JointAlignment}})}
+\DoxyCodeLine{00165\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(InnerSize)}
+\DoxyCodeLine{00166\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(InnerMaxSize)}
+\DoxyCodeLine{00167\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(LinearPacketSize)}
+\DoxyCodeLine{00168\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(InnerPacketSize)}
+\DoxyCodeLine{00169\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(ActualPacketSize)}
+\DoxyCodeLine{00170\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(StorageOrdersAgree)}
+\DoxyCodeLine{00171\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(MightVectorize)}
+\DoxyCodeLine{00172\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(MayLinearize)}
+\DoxyCodeLine{00173\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(MayInnerVectorize)}
+\DoxyCodeLine{00174\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(MayLinearVectorize)}
+\DoxyCodeLine{00175\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(MaySliceVectorize)}
+\DoxyCodeLine{00176\ \ \ \ \ std::cerr\ <<\ \textcolor{stringliteral}{"{}Traversal"{}}\ <<\ \textcolor{stringliteral}{"{}\ =\ "{}}\ <<\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}}\ <<\ \textcolor{stringliteral}{"{}\ ("{}}\ <<\ demangle\_traversal(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_a59cbadffd5ce111371cbe0ba1d879791a39352fd34d3ad53f64853c6d1abed8d7}{Traversal}})\ <<\ \textcolor{stringliteral}{"{})"{}}\ <<\ std::endl;}
+\DoxyCodeLine{00177\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(SrcEvaluator::CoeffReadCost)}
+\DoxyCodeLine{00178\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(DstEvaluator::CoeffReadCost)}
+\DoxyCodeLine{00179\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(Dst::SizeAtCompileTime)}
+\DoxyCodeLine{00180\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(UnrollingLimit)}
+\DoxyCodeLine{00181\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(MayUnrollCompletely)}
+\DoxyCodeLine{00182\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(MayUnrollInner)}
+\DoxyCodeLine{00183\ \ \ \ \ std::cerr\ <<\ \textcolor{stringliteral}{"{}Unrolling"{}}\ <<\ \textcolor{stringliteral}{"{}\ =\ "{}}\ <<\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_aa3bc11914a5c4adab1255733852d5727a96f19389265711f2ea995f6738830e90}{Unrolling}}\ <<\ \textcolor{stringliteral}{"{}\ ("{}}\ <<\ demangle\_unrolling(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits_aa3bc11914a5c4adab1255733852d5727a96f19389265711f2ea995f6738830e90}{Unrolling}})\ <<\ \textcolor{stringliteral}{"{})"{}}\ <<\ std::endl;}
+\DoxyCodeLine{00184\ \ \ \ \ std::cerr\ <<\ std::endl;}
+\DoxyCodeLine{00185\ \ \ \}}
+\DoxyCodeLine{00186\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00187\ \};}
+\DoxyCodeLine{00188\ }
+\DoxyCodeLine{00189\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00190\ \textcolor{comment}{*\ Part\ 2\ :\ meta-\/unrollers}}
+\DoxyCodeLine{00191\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00192\ }
+\DoxyCodeLine{00193\ \textcolor{comment}{/************************}}
+\DoxyCodeLine{00194\ \textcolor{comment}{***\ Default\ traversal\ ***}}
+\DoxyCodeLine{00195\ \textcolor{comment}{************************/}}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Index,\ \textcolor{keywordtype}{int}\ Stop>}
+\DoxyCodeLine{00198\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling}{copy\_using\_evaluator\_DefaultTraversal\_CompleteUnrolling}}}
+\DoxyCodeLine{00199\ \{}
+\DoxyCodeLine{00200\ \ \ \textcolor{comment}{//\ FIXME:\ this\ is\ not\ very\ clean,\ perhaps\ this\ information\ should\ be\ provided\ by\ the\ kernel?}}
+\DoxyCodeLine{00201\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_afa8b115419f4f7254c00e31026d89ad6}{DstEvaluatorType}};}
+\DoxyCodeLine{00202\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ DstEvaluatorType::XprType\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_a26932dba1235922ba07998e8b6afd88e}{DstXprType}};}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00205\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_a32d3c683641b47c5e3f755424d016a3ca22b288f7b31b9db8fc886b513d19a7a6}{outer}}\ =\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ /\ DstXprType::InnerSizeAtCompileTime,}
+\DoxyCodeLine{00206\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_a32d3c683641b47c5e3f755424d016a3ca13b2d1bd175b3b5bc2059293c568e146}{inner}}\ =\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \%\ DstXprType::InnerSizeAtCompileTime}
+\DoxyCodeLine{00207\ \ \ \};}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00209\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_a9d9964d1daebdb781f198dc25cde8d1f}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00210\ \ \ \{}
+\DoxyCodeLine{00211\ \ \ \ \ kernel.assignCoeffByOuterInner(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_a32d3c683641b47c5e3f755424d016a3ca22b288f7b31b9db8fc886b513d19a7a6}{outer}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_a32d3c683641b47c5e3f755424d016a3ca13b2d1bd175b3b5bc2059293c568e146}{inner}});}
+\DoxyCodeLine{00212\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_a9d9964d1daebdb781f198dc25cde8d1f}{copy\_using\_evaluator\_DefaultTraversal\_CompleteUnrolling<Kernel,\ Index+1,\ Stop>::run}}(kernel);}
+\DoxyCodeLine{00213\ \ \ \}}
+\DoxyCodeLine{00214\ \};}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Stop>}
+\DoxyCodeLine{00217\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling}{copy\_using\_evaluator\_DefaultTraversal\_CompleteUnrolling}}<Kernel,\ Stop,\ Stop>}
+\DoxyCodeLine{00218\ \{}
+\DoxyCodeLine{00219\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_3_01Kernel_00_01Stop_00_01Stop_01_4_a4a12c3b2e8f901f1989cffedabdff5bf}{run}}(Kernel\&)\ \{\ \}}
+\DoxyCodeLine{00220\ \};}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Index\_,\ \textcolor{keywordtype}{int}\ Stop>}
+\DoxyCodeLine{00223\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__InnerUnrolling}{copy\_using\_evaluator\_DefaultTraversal\_InnerUnrolling}}}
+\DoxyCodeLine{00224\ \{}
+\DoxyCodeLine{00225\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__InnerUnrolling_a4a3241ab24ef97eec46891b1488eb31e}{run}}(Kernel\ \&kernel,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer)}
+\DoxyCodeLine{00226\ \ \ \{}
+\DoxyCodeLine{00227\ \ \ \ \ kernel.assignCoeffByOuterInner(outer,\ Index\_);}
+\DoxyCodeLine{00228\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__InnerUnrolling_a4a3241ab24ef97eec46891b1488eb31e}{copy\_using\_evaluator\_DefaultTraversal\_InnerUnrolling<Kernel,\ Index\_+1,\ Stop>::run}}(kernel,\ outer);}
+\DoxyCodeLine{00229\ \ \ \}}
+\DoxyCodeLine{00230\ \};}
+\DoxyCodeLine{00231\ }
+\DoxyCodeLine{00232\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Stop>}
+\DoxyCodeLine{00233\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__InnerUnrolling}{copy\_using\_evaluator\_DefaultTraversal\_InnerUnrolling}}<Kernel,\ Stop,\ Stop>}
+\DoxyCodeLine{00234\ \{}
+\DoxyCodeLine{00235\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__InnerUnrolling_3_01Kernel_00_01Stop_00_01Stop_01_4_ad378c60aa2c775fb49af7c666ec92f82}{run}}(Kernel\&,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}})\ \{\ \}}
+\DoxyCodeLine{00236\ \};}
+\DoxyCodeLine{00237\ }
+\DoxyCodeLine{00238\ \textcolor{comment}{/***********************}}
+\DoxyCodeLine{00239\ \textcolor{comment}{***\ Linear\ traversal\ ***}}
+\DoxyCodeLine{00240\ \textcolor{comment}{***********************/}}
+\DoxyCodeLine{00241\ }
+\DoxyCodeLine{00242\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Index,\ \textcolor{keywordtype}{int}\ Stop>}
+\DoxyCodeLine{00243\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__LinearTraversal__CompleteUnrolling}{copy\_using\_evaluator\_LinearTraversal\_CompleteUnrolling}}}
+\DoxyCodeLine{00244\ \{}
+\DoxyCodeLine{00245\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__LinearTraversal__CompleteUnrolling_a290a74d6dfcf33ce64f78513f29574e9}{run}}(Kernel\&\ kernel)}
+\DoxyCodeLine{00246\ \ \ \{}
+\DoxyCodeLine{00247\ \ \ \ \ kernel.assignCoeff(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}});}
+\DoxyCodeLine{00248\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__LinearTraversal__CompleteUnrolling_a290a74d6dfcf33ce64f78513f29574e9}{copy\_using\_evaluator\_LinearTraversal\_CompleteUnrolling<Kernel,\ Index+1,\ Stop>::run}}(kernel);}
+\DoxyCodeLine{00249\ \ \ \}}
+\DoxyCodeLine{00250\ \};}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00252\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Stop>}
+\DoxyCodeLine{00253\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__LinearTraversal__CompleteUnrolling}{copy\_using\_evaluator\_LinearTraversal\_CompleteUnrolling}}<Kernel,\ Stop,\ Stop>}
+\DoxyCodeLine{00254\ \{}
+\DoxyCodeLine{00255\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__LinearTraversal__CompleteUnrolling_3_01Kernel_00_01Stop_00_01Stop_01_4_ac091bfbc88981b5c6f6435af523d42bf}{run}}(Kernel\&)\ \{\ \}}
+\DoxyCodeLine{00256\ \};}
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00258\ \textcolor{comment}{/**************************}}
+\DoxyCodeLine{00259\ \textcolor{comment}{***\ Inner\ vectorization\ ***}}
+\DoxyCodeLine{00260\ \textcolor{comment}{**************************/}}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Index,\ \textcolor{keywordtype}{int}\ Stop>}
+\DoxyCodeLine{00263\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling}{copy\_using\_evaluator\_innervec\_CompleteUnrolling}}}
+\DoxyCodeLine{00264\ \{}
+\DoxyCodeLine{00265\ \ \ \textcolor{comment}{//\ FIXME:\ this\ is\ not\ very\ clean,\ perhaps\ this\ information\ should\ be\ provided\ by\ the\ kernel?}}
+\DoxyCodeLine{00266\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a380af5207fb13006b1a69698fd758082}{DstEvaluatorType}};}
+\DoxyCodeLine{00267\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ DstEvaluatorType::XprType\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a6b3dce8ef2f1568a09bf18dc15a15f81}{DstXprType}};}
+\DoxyCodeLine{00268\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::PacketType\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a0941896241a59f3dd7d288ae55fd236d}{PacketType}};}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00270\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00271\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a948de0e2d9cc126bc2fcd40660a5b86fa9c0fd2a3667ca429297df966b6946e50}{outer}}\ =\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ /\ DstXprType::InnerSizeAtCompileTime,}
+\DoxyCodeLine{00272\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a948de0e2d9cc126bc2fcd40660a5b86fa25fdb6c81996c70f64540fc9de63913c}{inner}}\ =\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \%\ DstXprType::InnerSizeAtCompileTime,}
+\DoxyCodeLine{00273\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a948de0e2d9cc126bc2fcd40660a5b86faee3487ace2b0a54b7c575194fe585944}{SrcAlignment}}\ =\ Kernel::AssignmentTraits::SrcAlignment,}
+\DoxyCodeLine{00274\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a948de0e2d9cc126bc2fcd40660a5b86faff7b672f717115860af47f3c35c1eab9}{DstAlignment}}\ =\ Kernel::AssignmentTraits::DstAlignment}
+\DoxyCodeLine{00275\ \ \ \};}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00277\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a5d26f02f41e78b2e18e0294a22393ebb}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00278\ \ \ \{}
+\DoxyCodeLine{00279\ \ \ \ \ kernel.template\ assignPacketByOuterInner<DstAlignment,\ SrcAlignment,\ PacketType>(\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a948de0e2d9cc126bc2fcd40660a5b86fa9c0fd2a3667ca429297df966b6946e50}{outer}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a948de0e2d9cc126bc2fcd40660a5b86fa25fdb6c81996c70f64540fc9de63913c}{inner}});}
+\DoxyCodeLine{00280\ \ \ \ \ \textcolor{keyword}{enum}\ \{\ NextIndex\ =\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ +\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketType>::size}}\ \};}
+\DoxyCodeLine{00281\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a5d26f02f41e78b2e18e0294a22393ebb}{copy\_using\_evaluator\_innervec\_CompleteUnrolling<Kernel,\ NextIndex,\ Stop>::run}}(kernel);}
+\DoxyCodeLine{00282\ \ \ \}}
+\DoxyCodeLine{00283\ \};}
+\DoxyCodeLine{00284\ }
+\DoxyCodeLine{00285\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Stop>}
+\DoxyCodeLine{00286\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling}{copy\_using\_evaluator\_innervec\_CompleteUnrolling}}<Kernel,\ Stop,\ Stop>}
+\DoxyCodeLine{00287\ \{}
+\DoxyCodeLine{00288\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_3_01Kernel_00_01Stop_00_01Stop_01_4_a80a1b7cdacbdcc72795e2800f47ea92d}{run}}(Kernel\&)\ \{\ \}}
+\DoxyCodeLine{00289\ \};}
+\DoxyCodeLine{00290\ }
+\DoxyCodeLine{00291\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Index\_,\ \textcolor{keywordtype}{int}\ Stop,\ \textcolor{keywordtype}{int}\ SrcAlignment,\ \textcolor{keywordtype}{int}\ DstAlignment>}
+\DoxyCodeLine{00292\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling}{copy\_using\_evaluator\_innervec\_InnerUnrolling}}}
+\DoxyCodeLine{00293\ \{}
+\DoxyCodeLine{00294\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::PacketType\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling_a7bd34f0aaff97549c85930302f539eef}{PacketType}};}
+\DoxyCodeLine{00295\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling_a50b1b52b49e7474bb4b6d77bb0286c2d}{run}}(Kernel\ \&kernel,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer)}
+\DoxyCodeLine{00296\ \ \ \{}
+\DoxyCodeLine{00297\ \ \ \ \ kernel.template\ assignPacketByOuterInner<DstAlignment,\ SrcAlignment,\ PacketType>(outer,\ Index\_);}
+\DoxyCodeLine{00298\ \ \ \ \ \textcolor{keyword}{enum}\ \{\ NextIndex\ =\ Index\_\ +\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketType>::size}}\ \};}
+\DoxyCodeLine{00299\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling_a50b1b52b49e7474bb4b6d77bb0286c2d}{copy\_using\_evaluator\_innervec\_InnerUnrolling<Kernel,\ NextIndex,\ Stop,\ SrcAlignment,\ DstAlignment>::run}}(kernel,\ outer);}
+\DoxyCodeLine{00300\ \ \ \}}
+\DoxyCodeLine{00301\ \};}
+\DoxyCodeLine{00302\ }
+\DoxyCodeLine{00303\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Stop,\ \textcolor{keywordtype}{int}\ SrcAlignment,\ \textcolor{keywordtype}{int}\ DstAlignment>}
+\DoxyCodeLine{00304\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling}{copy\_using\_evaluator\_innervec\_InnerUnrolling}}<Kernel,\ Stop,\ Stop,\ SrcAlignment,\ DstAlignment>}
+\DoxyCodeLine{00305\ \{}
+\DoxyCodeLine{00306\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling_3_01Kernel_00_01Stopf42768ba11799f170ea26e4c3d1a1f41_aa4b8cc41b2fd619fa21cb57414053b68}{run}}(Kernel\ \&,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}})\ \{\ \}}
+\DoxyCodeLine{00307\ \};}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00309\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00310\ \textcolor{comment}{*\ Part\ 3\ :\ implementation\ of\ all\ cases}}
+\DoxyCodeLine{00311\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00312\ }
+\DoxyCodeLine{00313\ \textcolor{comment}{//\ dense\_assignment\_loop\ is\ based\ on\ assign\_impl}}
+\DoxyCodeLine{00314\ }
+\DoxyCodeLine{00315\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,}
+\DoxyCodeLine{00316\ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ Traversal\ =\ Kernel::AssignmentTraits::Traversal,}
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ Unrolling\ =\ Kernel::AssignmentTraits::Unrolling>}
+\DoxyCodeLine{00318\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}};}
+\DoxyCodeLine{00319\ }
+\DoxyCodeLine{00320\ \textcolor{comment}{/************************}}
+\DoxyCodeLine{00321\ \textcolor{comment}{*****\ Special\ Cases\ *****}}
+\DoxyCodeLine{00322\ \textcolor{comment}{************************/}}
+\DoxyCodeLine{00323\ }
+\DoxyCodeLine{00324\ \textcolor{comment}{//\ Zero-\/sized\ assignment\ is\ a\ no-\/op.}}
+\DoxyCodeLine{00325\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel,\ \textcolor{keywordtype}{int}\ Unrolling>}
+\DoxyCodeLine{00326\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a97e9d5e56af0a16542c98faaeecc80a3}{AllAtOnceTraversal}},\ Unrolling>}
+\DoxyCodeLine{00327\ \{}
+\DoxyCodeLine{00328\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01AllAtOnceTraversal_00_01Unrolling_01_4_a9b22bc3e72fc615c2b73ba65d8cf420b}{run}}(Kernel\&\ \textcolor{comment}{/*kernel*/})}
+\DoxyCodeLine{00329\ \ \ \{}
+\DoxyCodeLine{00330\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType::XprType\ DstXprType;}
+\DoxyCodeLine{00331\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2StaticAssert_8h_ac95cf960f4a8395b28af90edfda755f0}{EIGEN\_STATIC\_ASSERT}}(\textcolor{keywordtype}{int}(DstXprType::SizeAtCompileTime)\ ==\ 0,}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ EIGEN\_INTERNAL\_ERROR\_PLEASE\_FILE\_A\_BUG\_REPORT)}
+\DoxyCodeLine{00333\ \ \ \}}
+\DoxyCodeLine{00334\ \};}
+\DoxyCodeLine{00335\ }
+\DoxyCodeLine{00336\ \textcolor{comment}{/************************}}
+\DoxyCodeLine{00337\ \textcolor{comment}{***\ Default\ traversal\ ***}}
+\DoxyCodeLine{00338\ \textcolor{comment}{************************/}}
+\DoxyCodeLine{00339\ }
+\DoxyCodeLine{00340\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00341\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a1c6ce6bcccb0a3c8af050b6ad271d46e}{DefaultTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}}>}
+\DoxyCodeLine{00342\ \{}
+\DoxyCodeLine{00343\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01DefaultTraversal_00_01NoUnrolling_01_4_a8704abbb9459a7b5c0b6f52e4f9b089d}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00344\ \ \ \{}
+\DoxyCodeLine{00345\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer\ =\ 0;\ outer\ <\ kernel.outerSize();\ ++outer)\ \{}
+\DoxyCodeLine{00346\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner\ =\ 0;\ inner\ <\ kernel.innerSize();\ ++inner)\ \{}
+\DoxyCodeLine{00347\ \ \ \ \ \ \ \ \ kernel.assignCoeffByOuterInner(outer,\ inner);}
+\DoxyCodeLine{00348\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00349\ \ \ \ \ \}}
+\DoxyCodeLine{00350\ \ \ \}}
+\DoxyCodeLine{00351\ \};}
+\DoxyCodeLine{00352\ }
+\DoxyCodeLine{00353\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00354\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a1c6ce6bcccb0a3c8af050b6ad271d46e}{DefaultTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}}>}
+\DoxyCodeLine{00355\ \{}
+\DoxyCodeLine{00356\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01DefaultTraversal_00_01CompleteUnrolling_01_4_ae2963af4736cb63500650702da959d3f}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00357\ \ \ \{}
+\DoxyCodeLine{00358\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType::XprType\ DstXprType;}
+\DoxyCodeLine{00359\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_a9d9964d1daebdb781f198dc25cde8d1f}{copy\_using\_evaluator\_DefaultTraversal\_CompleteUnrolling<Kernel,\ 0,\ DstXprType::SizeAtCompileTime>::run}}(kernel);}
+\DoxyCodeLine{00360\ \ \ \}}
+\DoxyCodeLine{00361\ \};}
+\DoxyCodeLine{00362\ }
+\DoxyCodeLine{00363\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00364\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a1c6ce6bcccb0a3c8af050b6ad271d46e}{DefaultTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da7524221dfcc856234d8bf3108fa59b34}{InnerUnrolling}}>}
+\DoxyCodeLine{00365\ \{}
+\DoxyCodeLine{00366\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01DefaultTraversal_00_01InnerUnrolling_01_4_a02ff3628c48eb236d79bf69c05791a49}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00367\ \ \ \{}
+\DoxyCodeLine{00368\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType::XprType\ DstXprType;}
+\DoxyCodeLine{00369\ }
+\DoxyCodeLine{00370\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outerSize\ =\ kernel.outerSize();}
+\DoxyCodeLine{00371\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer\ =\ 0;\ outer\ <\ outerSize;\ ++outer)}
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__InnerUnrolling}{copy\_using\_evaluator\_DefaultTraversal\_InnerUnrolling<Kernel,\ 0,\ DstXprType::InnerSizeAtCompileTime>::run}}(kernel,\ outer);}
+\DoxyCodeLine{00373\ \ \ \}}
+\DoxyCodeLine{00374\ \};}
+\DoxyCodeLine{00375\ }
+\DoxyCodeLine{00376\ \textcolor{comment}{/***************************}}
+\DoxyCodeLine{00377\ \textcolor{comment}{***\ Linear\ vectorization\ ***}}
+\DoxyCodeLine{00378\ \textcolor{comment}{***************************/}}
+\DoxyCodeLine{00379\ }
+\DoxyCodeLine{00380\ }
+\DoxyCodeLine{00381\ \textcolor{comment}{//\ The\ goal\ of\ unaligned\_dense\_assignment\_loop\ is\ simply\ to\ factorize\ the\ handling}}
+\DoxyCodeLine{00382\ \textcolor{comment}{//\ of\ the\ non\ vectorizable\ beginning\ and\ ending\ parts}}
+\DoxyCodeLine{00383\ }
+\DoxyCodeLine{00384\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ IsAligned\ =\ false>}
+\DoxyCodeLine{00385\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1unaligned__dense__assignment__loop}{unaligned\_dense\_assignment\_loop}}}
+\DoxyCodeLine{00386\ \{}
+\DoxyCodeLine{00387\ \ \ \textcolor{comment}{//\ if\ IsAligned\ =\ true,\ then\ do\ nothing}}
+\DoxyCodeLine{00388\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00389\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1unaligned__dense__assignment__loop_a72977a929d0f3ee1371cc39498e468d9}{run}}(Kernel\&,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}},\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}})\ \{\}}
+\DoxyCodeLine{00390\ \};}
+\DoxyCodeLine{00391\ }
+\DoxyCodeLine{00392\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00393\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1unaligned__dense__assignment__loop}{unaligned\_dense\_assignment\_loop}}<false>}
+\DoxyCodeLine{00394\ \{}
+\DoxyCodeLine{00395\ \ \ \textcolor{comment}{//\ MSVC\ must\ not\ inline\ this\ functions.\ If\ it\ does,\ it\ fails\ to\ optimize\ the}}
+\DoxyCodeLine{00396\ \ \ \textcolor{comment}{//\ packet\ access\ path.}}
+\DoxyCodeLine{00397\ \ \ \textcolor{comment}{//\ FIXME\ check\ which\ version\ exhibits\ this\ issue}}
+\DoxyCodeLine{00398\ \textcolor{preprocessor}{\#if\ EIGEN\_COMP\_MSVC}}
+\DoxyCodeLine{00399\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00400\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_aa715c1fe854205b27e962ee7d7e06faf}{EIGEN\_DONT\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1unaligned__dense__assignment__loop_a72977a929d0f3ee1371cc39498e468d9}{run}}(Kernel\ \&kernel,}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ start,}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ end)}
+\DoxyCodeLine{00403\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00404\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00405\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1unaligned__dense__assignment__loop_3_01false_01_4_a1a8b25a9d174f08fc57cb22dc5503f89}{run}}(Kernel\ \&kernel,}
+\DoxyCodeLine{00406\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ start,}
+\DoxyCodeLine{00407\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ end)}
+\DoxyCodeLine{00408\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00409\ \ \ \{}
+\DoxyCodeLine{00410\ \ \ \ \ \textcolor{keywordflow}{for}\ (\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index\ =\ start;\ index\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}};\ ++index)}
+\DoxyCodeLine{00411\ \ \ \ \ \ \ kernel.assignCoeff(index);}
+\DoxyCodeLine{00412\ \ \ \}}
+\DoxyCodeLine{00413\ \};}
+\DoxyCodeLine{00414\ }
+\DoxyCodeLine{00415\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00416\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}}>}
+\DoxyCodeLine{00417\ \{}
+\DoxyCodeLine{00418\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01LinearVectorizedTraversal_00_01NoUnrolling_01_4_a540279ab58209006a325677a33995c1a}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00419\ \ \ \{}
+\DoxyCodeLine{00420\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ kernel.size();}
+\DoxyCodeLine{00421\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::Scalar\ Scalar;}
+\DoxyCodeLine{00422\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::PacketType\ \mbox{\hyperlink{structEigen_1_1PacketType}{PacketType}};}
+\DoxyCodeLine{00423\ \ \ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00424\ \ \ \ \ \ \ requestedAlignment\ =\ Kernel::AssignmentTraits::LinearRequiredAlignment,}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ packetSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketType>::size}},}
+\DoxyCodeLine{00426\ \ \ \ \ \ \ dstIsAligned\ =\ int(Kernel::AssignmentTraits::DstAlignment)>=int(requestedAlignment),}
+\DoxyCodeLine{00427\ \ \ \ \ \ \ dstAlignment\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1packet__traits}{packet\_traits<Scalar>::AlignedOnScalar}}\ ?\ int(requestedAlignment)}
+\DoxyCodeLine{00428\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(Kernel::AssignmentTraits::DstAlignment),}
+\DoxyCodeLine{00429\ \ \ \ \ \ \ srcAlignment\ =\ Kernel::AssignmentTraits::JointAlignment}
+\DoxyCodeLine{00430\ \ \ \ \ \};}
+\DoxyCodeLine{00431\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedStart\ =\ dstIsAligned\ ?\ 0\ :\ \mbox{\hyperlink{namespaceEigen_1_1internal_ab83986b0ebbd20ebde1f9033162ca121}{internal::first\_aligned<requestedAlignment>}}(kernel.dstDataPtr(),\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00432\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedEnd\ =\ alignedStart\ +\ ((\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}-\/alignedStart)/packetSize)*packetSize;}
+\DoxyCodeLine{00433\ }
+\DoxyCodeLine{00434\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1unaligned__dense__assignment__loop_a72977a929d0f3ee1371cc39498e468d9}{unaligned\_dense\_assignment\_loop<dstIsAligned!=0>::run}}(kernel,\ 0,\ alignedStart);}
+\DoxyCodeLine{00435\ }
+\DoxyCodeLine{00436\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index\ =\ alignedStart;\ index\ <\ alignedEnd;\ index\ +=\ packetSize)}
+\DoxyCodeLine{00437\ \ \ \ \ \ \ kernel.template\ assignPacket<dstAlignment,\ srcAlignment,\ PacketType>(index);}
+\DoxyCodeLine{00438\ }
+\DoxyCodeLine{00439\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1unaligned__dense__assignment__loop_a72977a929d0f3ee1371cc39498e468d9}{unaligned\_dense\_assignment\_loop<>::run}}(kernel,\ alignedEnd,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00440\ \ \ \}}
+\DoxyCodeLine{00441\ \};}
+\DoxyCodeLine{00442\ }
+\DoxyCodeLine{00443\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00444\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}}>}
+\DoxyCodeLine{00445\ \{}
+\DoxyCodeLine{00446\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01LinearVectorizedTraversal_00_01CompleteUnrolling_01_4_a2263dc7ea15ab40daa87defa27d3fe26}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00447\ \ \ \{}
+\DoxyCodeLine{00448\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType::XprType\ DstXprType;}
+\DoxyCodeLine{00449\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::PacketType\ \mbox{\hyperlink{structEigen_1_1PacketType}{PacketType}};}
+\DoxyCodeLine{00450\ }
+\DoxyCodeLine{00451\ \ \ \ \ \textcolor{keyword}{enum}\ \{\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ DstXprType::SizeAtCompileTime,}
+\DoxyCodeLine{00452\ \ \ \ \ \ \ \ \ \ \ \ packetSize\ =\mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketType>::size}},}
+\DoxyCodeLine{00453\ \ \ \ \ \ \ \ \ \ \ \ alignedSize\ =\ (int(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})/packetSize)*packetSize\ \};}
+\DoxyCodeLine{00454\ }
+\DoxyCodeLine{00455\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a5d26f02f41e78b2e18e0294a22393ebb}{copy\_using\_evaluator\_innervec\_CompleteUnrolling<Kernel,\ 0,\ alignedSize>::run}}(kernel);}
+\DoxyCodeLine{00456\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__CompleteUnrolling_a9d9964d1daebdb781f198dc25cde8d1f}{copy\_using\_evaluator\_DefaultTraversal\_CompleteUnrolling<Kernel,\ alignedSize,\ size>::run}}(kernel);}
+\DoxyCodeLine{00457\ \ \ \}}
+\DoxyCodeLine{00458\ \};}
+\DoxyCodeLine{00459\ }
+\DoxyCodeLine{00460\ \textcolor{comment}{/**************************}}
+\DoxyCodeLine{00461\ \textcolor{comment}{***\ Inner\ vectorization\ ***}}
+\DoxyCodeLine{00462\ \textcolor{comment}{**************************/}}
+\DoxyCodeLine{00463\ }
+\DoxyCodeLine{00464\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00465\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a0651c316b8fae12e150c3ec169c90939}{InnerVectorizedTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}}>}
+\DoxyCodeLine{00466\ \{}
+\DoxyCodeLine{00467\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::PacketType\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01InnerVectorizedTraversal_00_01NoUnrolling_01_4_a0e154e1ab2f981d932c579fe98be7057}{PacketType}};}
+\DoxyCodeLine{00468\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00469\ \ \ \ \ SrcAlignment\ =\ Kernel::AssignmentTraits::SrcAlignment,}
+\DoxyCodeLine{00470\ \ \ \ \ DstAlignment\ =\ Kernel::AssignmentTraits::DstAlignment}
+\DoxyCodeLine{00471\ \ \ \};}
+\DoxyCodeLine{00472\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01InnerVectorizedTraversal_00_01NoUnrolling_01_4_a3f9af6ccbdafdfc7e2e8545c0683ca30}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00473\ \ \ \{}
+\DoxyCodeLine{00474\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ innerSize\ =\ kernel.innerSize();}
+\DoxyCodeLine{00475\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outerSize\ =\ kernel.outerSize();}
+\DoxyCodeLine{00476\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ packetSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketType>::size}};}
+\DoxyCodeLine{00477\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer\ =\ 0;\ outer\ <\ outerSize;\ ++outer)}
+\DoxyCodeLine{00478\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner\ =\ 0;\ inner\ <\ innerSize;\ inner+=packetSize)}
+\DoxyCodeLine{00479\ \ \ \ \ \ \ \ \ kernel.template\ assignPacketByOuterInner<DstAlignment,\ SrcAlignment,\ PacketType>(outer,\ inner);}
+\DoxyCodeLine{00480\ \ \ \}}
+\DoxyCodeLine{00481\ \};}
+\DoxyCodeLine{00482\ }
+\DoxyCodeLine{00483\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00484\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a0651c316b8fae12e150c3ec169c90939}{InnerVectorizedTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}}>}
+\DoxyCodeLine{00485\ \{}
+\DoxyCodeLine{00486\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01InnerVectorizedTraversal_00_01CompleteUnrolling_01_4_a903c9b84389dcdb758dd8dcc7e742283}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00487\ \ \ \{}
+\DoxyCodeLine{00488\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType::XprType\ DstXprType;}
+\DoxyCodeLine{00489\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling_a5d26f02f41e78b2e18e0294a22393ebb}{copy\_using\_evaluator\_innervec\_CompleteUnrolling<Kernel,\ 0,\ DstXprType::SizeAtCompileTime>::run}}(kernel);}
+\DoxyCodeLine{00490\ \ \ \}}
+\DoxyCodeLine{00491\ \};}
+\DoxyCodeLine{00492\ }
+\DoxyCodeLine{00493\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00494\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a0651c316b8fae12e150c3ec169c90939}{InnerVectorizedTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da7524221dfcc856234d8bf3108fa59b34}{InnerUnrolling}}>}
+\DoxyCodeLine{00495\ \{}
+\DoxyCodeLine{00496\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01InnerVectorizedTraversal_00_01InnerUnrolling_01_4_a43950b1d4d1f69b5eba0a3b5a5cd0ff1}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00497\ \ \ \{}
+\DoxyCodeLine{00498\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType::XprType\ DstXprType;}
+\DoxyCodeLine{00499\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::AssignmentTraits\ Traits;}
+\DoxyCodeLine{00500\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outerSize\ =\ kernel.outerSize();}
+\DoxyCodeLine{00501\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer\ =\ 0;\ outer\ <\ outerSize;\ ++outer)}
+\DoxyCodeLine{00502\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling}{copy\_using\_evaluator\_innervec\_InnerUnrolling}}<Kernel,\ 0,\ DstXprType::InnerSizeAtCompileTime,}
+\DoxyCodeLine{00503\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Traits::SrcAlignment,\ Traits::DstAlignment>::run(kernel,\ outer);}
+\DoxyCodeLine{00504\ \ \ \}}
+\DoxyCodeLine{00505\ \};}
+\DoxyCodeLine{00506\ }
+\DoxyCodeLine{00507\ \textcolor{comment}{/***********************}}
+\DoxyCodeLine{00508\ \textcolor{comment}{***\ Linear\ traversal\ ***}}
+\DoxyCodeLine{00509\ \textcolor{comment}{***********************/}}
+\DoxyCodeLine{00510\ }
+\DoxyCodeLine{00511\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00512\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a4b969c6436fcd8bad812212c25535727}{LinearTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}}>}
+\DoxyCodeLine{00513\ \{}
+\DoxyCodeLine{00514\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01LinearTraversal_00_01NoUnrolling_01_4_a8853bcf4c1f929744b93becdf42e1484}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00515\ \ \ \{}
+\DoxyCodeLine{00516\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ kernel.size();}
+\DoxyCodeLine{00517\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}};\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00518\ \ \ \ \ \ \ kernel.assignCoeff(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{00519\ \ \ \}}
+\DoxyCodeLine{00520\ \};}
+\DoxyCodeLine{00521\ }
+\DoxyCodeLine{00522\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00523\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a4b969c6436fcd8bad812212c25535727}{LinearTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}}>}
+\DoxyCodeLine{00524\ \{}
+\DoxyCodeLine{00525\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01LinearTraversal_00_01CompleteUnrolling_01_4_a57fe1a0c9f007a8da12440489e46159a}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00526\ \ \ \{}
+\DoxyCodeLine{00527\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType::XprType\ DstXprType;}
+\DoxyCodeLine{00528\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__LinearTraversal__CompleteUnrolling_a290a74d6dfcf33ce64f78513f29574e9}{copy\_using\_evaluator\_LinearTraversal\_CompleteUnrolling<Kernel,\ 0,\ DstXprType::SizeAtCompileTime>::run}}(kernel);}
+\DoxyCodeLine{00529\ \ \ \}}
+\DoxyCodeLine{00530\ \};}
+\DoxyCodeLine{00531\ }
+\DoxyCodeLine{00532\ \textcolor{comment}{/**************************}}
+\DoxyCodeLine{00533\ \textcolor{comment}{***\ Slice\ vectorization\ ***}}
+\DoxyCodeLine{00534\ \textcolor{comment}{***************************/}}
+\DoxyCodeLine{00535\ }
+\DoxyCodeLine{00536\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00537\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop}}<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a655eb95e8f634fefeef7dd9c8211a88c}{SliceVectorizedTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}}>}
+\DoxyCodeLine{00538\ \{}
+\DoxyCodeLine{00539\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop_3_01Kernel_00_01SliceVectorizedTraversal_00_01NoUnrolling_01_4_a293c80494b4f743a63dff2b5c2d8345c}{run}}(Kernel\ \&kernel)}
+\DoxyCodeLine{00540\ \ \ \{}
+\DoxyCodeLine{00541\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::Scalar\ Scalar;}
+\DoxyCodeLine{00542\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::PacketType\ \mbox{\hyperlink{structEigen_1_1PacketType}{PacketType}};}
+\DoxyCodeLine{00543\ \ \ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00544\ \ \ \ \ \ \ packetSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketType>::size}},}
+\DoxyCodeLine{00545\ \ \ \ \ \ \ requestedAlignment\ =\ int(Kernel::AssignmentTraits::InnerRequiredAlignment),}
+\DoxyCodeLine{00546\ \ \ \ \ \ \ alignable\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1packet__traits}{packet\_traits<Scalar>::AlignedOnScalar}}\ ||\ int(Kernel::AssignmentTraits::DstAlignment)>=\textcolor{keyword}{sizeof}(Scalar),}
+\DoxyCodeLine{00547\ \ \ \ \ \ \ dstIsAligned\ =\ \textcolor{keywordtype}{int}(Kernel::AssignmentTraits::DstAlignment)>=int(requestedAlignment),}
+\DoxyCodeLine{00548\ \ \ \ \ \ \ dstAlignment\ =\ alignable\ ?\ int(requestedAlignment)}
+\DoxyCodeLine{00549\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(Kernel::AssignmentTraits::DstAlignment)}
+\DoxyCodeLine{00550\ \ \ \ \ \};}
+\DoxyCodeLine{00551\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ *dst\_ptr\ =\ kernel.dstDataPtr();}
+\DoxyCodeLine{00552\ \ \ \ \ \textcolor{keywordflow}{if}((!\textcolor{keywordtype}{bool}(dstIsAligned))\ \&\&\ (\mbox{\hyperlink{namespaceEigen_1_1internal_a017bb5f182d0e8afd1fed693649d2436}{UIntPtr}}(dst\_ptr)\ \%\ \textcolor{keyword}{sizeof}(Scalar))>0)}
+\DoxyCodeLine{00553\ \ \ \ \ \{}
+\DoxyCodeLine{00554\ \ \ \ \ \ \ \textcolor{comment}{//\ the\ pointer\ is\ not\ aligned-\/on\ scalar,\ so\ alignment\ is\ not\ possible}}
+\DoxyCodeLine{00555\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structEigen_1_1internal_1_1dense__assignment__loop}{dense\_assignment\_loop<Kernel,DefaultTraversal,NoUnrolling>::run}}(kernel);}
+\DoxyCodeLine{00556\ \ \ \ \ \}}
+\DoxyCodeLine{00557\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ packetAlignedMask\ =\ packetSize\ -\/\ 1;}
+\DoxyCodeLine{00558\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ innerSize\ =\ kernel.innerSize();}
+\DoxyCodeLine{00559\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outerSize\ =\ kernel.outerSize();}
+\DoxyCodeLine{00560\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedStep\ =\ alignable\ ?\ (packetSize\ -\/\ kernel.outerStride()\ \%\ packetSize)\ \&\ packetAlignedMask\ :\ 0;}
+\DoxyCodeLine{00561\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedStart\ =\ ((!alignable)\ ||\ bool(dstIsAligned))\ ?\ 0\ :\ \mbox{\hyperlink{namespaceEigen_1_1internal_ab83986b0ebbd20ebde1f9033162ca121}{internal::first\_aligned<requestedAlignment>}}(dst\_ptr,\ innerSize);}
+\DoxyCodeLine{00562\ }
+\DoxyCodeLine{00563\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer\ =\ 0;\ outer\ <\ outerSize;\ ++outer)}
+\DoxyCodeLine{00564\ \ \ \ \ \{}
+\DoxyCodeLine{00565\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedEnd\ =\ alignedStart\ +\ ((innerSize-\/alignedStart)\ \&\ \string~packetAlignedMask);}
+\DoxyCodeLine{00566\ \ \ \ \ \ \ \textcolor{comment}{//\ do\ the\ non-\/vectorizable\ part\ of\ the\ assignment}}
+\DoxyCodeLine{00567\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner\ =\ 0;\ inner<alignedStart\ ;\ ++inner)}
+\DoxyCodeLine{00568\ \ \ \ \ \ \ \ \ kernel.assignCoeffByOuterInner(outer,\ inner);}
+\DoxyCodeLine{00569\ }
+\DoxyCodeLine{00570\ \ \ \ \ \ \ \textcolor{comment}{//\ do\ the\ vectorizable\ part\ of\ the\ assignment}}
+\DoxyCodeLine{00571\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner\ =\ alignedStart;\ inner<alignedEnd;\ inner+=packetSize)}
+\DoxyCodeLine{00572\ \ \ \ \ \ \ \ \ kernel.template\ assignPacketByOuterInner<dstAlignment,\ Unaligned,\ PacketType>(outer,\ inner);}
+\DoxyCodeLine{00573\ }
+\DoxyCodeLine{00574\ \ \ \ \ \ \ \textcolor{comment}{//\ do\ the\ non-\/vectorizable\ part\ of\ the\ assignment}}
+\DoxyCodeLine{00575\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner\ =\ alignedEnd;\ inner<innerSize\ ;\ ++inner)}
+\DoxyCodeLine{00576\ \ \ \ \ \ \ \ \ kernel.assignCoeffByOuterInner(outer,\ inner);}
+\DoxyCodeLine{00577\ }
+\DoxyCodeLine{00578\ \ \ \ \ \ \ alignedStart\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini}}((alignedStart+alignedStep)\%packetSize,\ innerSize);}
+\DoxyCodeLine{00579\ \ \ \ \ \}}
+\DoxyCodeLine{00580\ \ \ \}}
+\DoxyCodeLine{00581\ \};}
+\DoxyCodeLine{00582\ }
+\DoxyCodeLine{00583\ \textcolor{preprocessor}{\#if\ EIGEN\_UNALIGNED\_VECTORIZE}}
+\DoxyCodeLine{00584\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Kernel>}
+\DoxyCodeLine{00585\ \textcolor{keyword}{struct\ }dense\_assignment\_loop<Kernel,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a655eb95e8f634fefeef7dd9c8211a88c}{SliceVectorizedTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da7524221dfcc856234d8bf3108fa59b34}{InnerUnrolling}}>}
+\DoxyCodeLine{00586\ \{}
+\DoxyCodeLine{00587\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ run(Kernel\ \&kernel)}
+\DoxyCodeLine{00588\ \ \ \{}
+\DoxyCodeLine{00589\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::DstEvaluatorType::XprType\ DstXprType;}
+\DoxyCodeLine{00590\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Kernel::PacketType\ \mbox{\hyperlink{structEigen_1_1PacketType}{PacketType}};}
+\DoxyCodeLine{00591\ }
+\DoxyCodeLine{00592\ \ \ \ \ \textcolor{keyword}{enum}\ \{\ innerSize\ =\ DstXprType::InnerSizeAtCompileTime,}
+\DoxyCodeLine{00593\ \ \ \ \ \ \ \ \ \ \ \ packetSize\ =\mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits_a5b21fd9722aa194d08fc43ec7efa4094a816f6f9ad61a2e49d4cb7c6c786d56d0}{unpacket\_traits<PacketType>::size}},}
+\DoxyCodeLine{00594\ \ \ \ \ \ \ \ \ \ \ \ vectorizableSize\ =\ (int(innerSize)\ /\ int(packetSize))\ *\ \textcolor{keywordtype}{int}(packetSize),}
+\DoxyCodeLine{00595\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ DstXprType::SizeAtCompileTime\ \};}
+\DoxyCodeLine{00596\ }
+\DoxyCodeLine{00597\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer\ =\ 0;\ outer\ <\ kernel.outerSize();\ ++outer)}
+\DoxyCodeLine{00598\ \ \ \ \ \{}
+\DoxyCodeLine{00599\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling_a50b1b52b49e7474bb4b6d77bb0286c2d}{copy\_using\_evaluator\_innervec\_InnerUnrolling<Kernel,\ 0,\ vectorizableSize,\ 0,\ 0>::run}}(kernel,\ outer);}
+\DoxyCodeLine{00600\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__DefaultTraversal__InnerUnrolling_a4a3241ab24ef97eec46891b1488eb31e}{copy\_using\_evaluator\_DefaultTraversal\_InnerUnrolling<Kernel,\ vectorizableSize,\ innerSize>::run}}(kernel,\ outer);}
+\DoxyCodeLine{00601\ \ \ \ \ \}}
+\DoxyCodeLine{00602\ \ \ \}}
+\DoxyCodeLine{00603\ \};}
+\DoxyCodeLine{00604\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00605\ }
+\DoxyCodeLine{00606\ }
+\DoxyCodeLine{00607\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00608\ \textcolor{comment}{*\ Part\ 4\ :\ Generic\ dense\ assignment\ kernel}}
+\DoxyCodeLine{00609\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00610\ }
+\DoxyCodeLine{00611\ \textcolor{comment}{//\ This\ class\ generalize\ the\ assignment\ of\ a\ coefficient\ (or\ packet)\ from\ one\ dense\ evaluator}}
+\DoxyCodeLine{00612\ \textcolor{comment}{//\ to\ another\ dense\ writable\ evaluator.}}
+\DoxyCodeLine{00613\ \textcolor{comment}{//\ It\ is\ parametrized\ by\ the\ two\ evaluators,\ and\ the\ actual\ assignment\ functor.}}
+\DoxyCodeLine{00614\ \textcolor{comment}{//\ This\ abstraction\ level\ permits\ to\ keep\ the\ evaluation\ loops\ as\ simple\ and\ as\ generic\ as\ possible.}}
+\DoxyCodeLine{00615\ \textcolor{comment}{//\ One\ can\ customize\ the\ assignment\ using\ this\ generic\ dense\_assignment\_kernel\ with\ different}}
+\DoxyCodeLine{00616\ \textcolor{comment}{//\ functors,\ or\ by\ completely\ overloading\ it,\ by-\/passing\ a\ functor.}}
+\DoxyCodeLine{00617\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DstEvaluatorTypeT,\ \textcolor{keyword}{typename}\ SrcEvaluatorTypeT,\ \textcolor{keyword}{typename}\ Functor,\ \textcolor{keywordtype}{int}\ Version\ =\ Specialized>}
+\DoxyCodeLine{00618\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel}{generic\_dense\_assignment\_kernel}}}
+\DoxyCodeLine{00619\ \{}
+\DoxyCodeLine{00620\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00621\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ DstEvaluatorTypeT::XprType\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_af8e9503cf14af5b67c678cc7908554a9}{DstXprType}};}
+\DoxyCodeLine{00622\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ SrcEvaluatorTypeT::XprType\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_ad41c9cdbb78e6c5e7371dd694a907d0d}{SrcXprType}};}
+\DoxyCodeLine{00623\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00624\ }
+\DoxyCodeLine{00625\ \ \ \textcolor{keyword}{typedef}\ DstEvaluatorTypeT\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a561ba921c2fd4cf20ee8304fec07d362}{DstEvaluatorType}};}
+\DoxyCodeLine{00626\ \ \ \textcolor{keyword}{typedef}\ SrcEvaluatorTypeT\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7e8f332a10f727ff2487720b8001c877}{SrcEvaluatorType}};}
+\DoxyCodeLine{00627\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ DstEvaluatorType::Scalar\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_afc39f4324a65c5fa84a2fa40b4eeab61}{Scalar}};}
+\DoxyCodeLine{00628\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits}{copy\_using\_evaluator\_traits<DstEvaluatorTypeT,\ SrcEvaluatorTypeT,\ Functor>}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_ad59e35d07a32f6206dfd95fe0e072fb2}{AssignmentTraits}};}
+\DoxyCodeLine{00629\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{AssignmentTraits::PacketType}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a5eb38ddec89edaeba68915596584bd90}{PacketType}};}
+\DoxyCodeLine{00630\ }
+\DoxyCodeLine{00631\ }
+\DoxyCodeLine{00632\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00633\ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a51dd3a08338dd3c02e31f8438dbc3490}{generic\_dense\_assignment\_kernel}}(\mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a561ba921c2fd4cf20ee8304fec07d362}{DstEvaluatorType}}\ \&dst,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7e8f332a10f727ff2487720b8001c877}{SrcEvaluatorType}}\ \&src,\ \textcolor{keyword}{const}\ Functor\ \&func,\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_af8e9503cf14af5b67c678cc7908554a9}{DstXprType}}\&\ dstExpr)}
+\DoxyCodeLine{00634\ \ \ \ \ :\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_ac1720df7c1c66bb4eb513b4f3284af5b}{m\_dst}}(dst),\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a12c661e350a5c6bf4c04a94917ec8e50}{m\_src}}(src),\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7b1605b397d6f32e6bc4c90eb7bc5d90}{m\_functor}}(func),\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_adef77cada2e6be5bf44bba5835c09943}{m\_dstExpr}}(dstExpr)}
+\DoxyCodeLine{00635\ \ \ \{}
+\DoxyCodeLine{00636\ \textcolor{preprocessor}{\ \ \ \ \#ifdef\ EIGEN\_DEBUG\_ASSIGN}}
+\DoxyCodeLine{00637\ \ \ \ \ AssignmentTraits::debug();}
+\DoxyCodeLine{00638\ \textcolor{preprocessor}{\ \ \ \ \#endif}}
+\DoxyCodeLine{00639\ \ \ \}}
+\DoxyCodeLine{00640\ }
+\DoxyCodeLine{00641\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a62a0d46d3d76fff438aec3b57f29c90c}{EIGEN\_CONSTEXPR}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a2884118506d8c1c5c7b76d6ded824082}{size}}()\ const\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a532c42c61426cc18d84097e29577acf8}{EIGEN\_NOEXCEPT}}\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_adef77cada2e6be5bf44bba5835c09943}{m\_dstExpr}}.size();\ \}}
+\DoxyCodeLine{00642\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a62a0d46d3d76fff438aec3b57f29c90c}{EIGEN\_CONSTEXPR}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_aaa7cee458b36dd2130a5b80b0cb9787e}{innerSize}}()\ const\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a532c42c61426cc18d84097e29577acf8}{EIGEN\_NOEXCEPT}}\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_adef77cada2e6be5bf44bba5835c09943}{m\_dstExpr}}.innerSize();\ \}}
+\DoxyCodeLine{00643\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a62a0d46d3d76fff438aec3b57f29c90c}{EIGEN\_CONSTEXPR}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a8ed8eee9ef164f824ec6b163f42a491e}{outerSize}}()\ const\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a532c42c61426cc18d84097e29577acf8}{EIGEN\_NOEXCEPT}}\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_adef77cada2e6be5bf44bba5835c09943}{m\_dstExpr}}.outerSize();\ \}}
+\DoxyCodeLine{00644\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a62a0d46d3d76fff438aec3b57f29c90c}{EIGEN\_CONSTEXPR}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a5e49c564f895b3e53ebe070852ce3347}{rows}}()\ const\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a532c42c61426cc18d84097e29577acf8}{EIGEN\_NOEXCEPT}}\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_adef77cada2e6be5bf44bba5835c09943}{m\_dstExpr}}.rows();\ \}}
+\DoxyCodeLine{00645\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a62a0d46d3d76fff438aec3b57f29c90c}{EIGEN\_CONSTEXPR}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a60d70a80cff3dba40c68f7705b14dc0d}{cols}}()\ const\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a532c42c61426cc18d84097e29577acf8}{EIGEN\_NOEXCEPT}}\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_adef77cada2e6be5bf44bba5835c09943}{m\_dstExpr}}.cols();\ \}}
+\DoxyCodeLine{00646\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a62a0d46d3d76fff438aec3b57f29c90c}{EIGEN\_CONSTEXPR}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_aa533eae09f9ee0e228804a7c8ad74ba8}{outerStride}}()\ const\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a532c42c61426cc18d84097e29577acf8}{EIGEN\_NOEXCEPT}}\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_adef77cada2e6be5bf44bba5835c09943}{m\_dstExpr}}.outerStride();\ \}}
+\DoxyCodeLine{00647\ }
+\DoxyCodeLine{00648\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a561ba921c2fd4cf20ee8304fec07d362}{DstEvaluatorType}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a53e38f72f76f6e0eb4c6d179f1af562c}{dstEvaluator}}()\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a532c42c61426cc18d84097e29577acf8}{EIGEN\_NOEXCEPT}}\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_ac1720df7c1c66bb4eb513b4f3284af5b}{m\_dst}};\ \}}
+\DoxyCodeLine{00649\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7e8f332a10f727ff2487720b8001c877}{SrcEvaluatorType}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_aac98e308464e3c7d1186a8b8f95f3fdb}{srcEvaluator}}()\ const\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a532c42c61426cc18d84097e29577acf8}{EIGEN\_NOEXCEPT}}\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a12c661e350a5c6bf4c04a94917ec8e50}{m\_src}};\ \}}
+\DoxyCodeLine{00650\ }
+\DoxyCodeLine{00652\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7ca974cc4049f1ef3d6f2feac94ea35b}{assignCoeff}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}},\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}})}
+\DoxyCodeLine{00653\ \ \ \{}
+\DoxyCodeLine{00654\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7b1605b397d6f32e6bc4c90eb7bc5d90}{m\_functor}}.assignCoeff(\mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_ac1720df7c1c66bb4eb513b4f3284af5b}{m\_dst}}.coeffRef(\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}},\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}}),\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a12c661e350a5c6bf4c04a94917ec8e50}{m\_src}}.coeff(\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}},\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}}));}
+\DoxyCodeLine{00655\ \ \ \}}
+\DoxyCodeLine{00656\ }
+\DoxyCodeLine{00658\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a9f36120222600d1d843b4253b08a383b}{assignCoeff}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index)}
+\DoxyCodeLine{00659\ \ \ \{}
+\DoxyCodeLine{00660\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7b1605b397d6f32e6bc4c90eb7bc5d90}{m\_functor}}.assignCoeff(\mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_ac1720df7c1c66bb4eb513b4f3284af5b}{m\_dst}}.coeffRef(index),\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a12c661e350a5c6bf4c04a94917ec8e50}{m\_src}}.coeff(index));}
+\DoxyCodeLine{00661\ \ \ \}}
+\DoxyCodeLine{00662\ }
+\DoxyCodeLine{00664\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_aff1bc113e270d4f895ca90570536303b}{assignCoeffByOuterInner}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner)}
+\DoxyCodeLine{00665\ \ \ \{}
+\DoxyCodeLine{00666\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}}\ =\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_acd610e29a8a60fe5399ccc0d944517a0}{rowIndexByOuterInner}}(outer,\ inner);}
+\DoxyCodeLine{00667\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}}\ =\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_af6260148d2eac69af23dcd24cca3adb0}{colIndexByOuterInner}}(outer,\ inner);}
+\DoxyCodeLine{00668\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7ca974cc4049f1ef3d6f2feac94ea35b}{assignCoeff}}(\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}},\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}});}
+\DoxyCodeLine{00669\ \ \ \}}
+\DoxyCodeLine{00670\ }
+\DoxyCodeLine{00671\ }
+\DoxyCodeLine{00672\ \ \ \textcolor{keyword}{template}<\textcolor{keywordtype}{int}\ StoreMode,\ \textcolor{keywordtype}{int}\ LoadMode,\ \textcolor{keyword}{typename}\ PacketType>}
+\DoxyCodeLine{00673\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_aaed04d17fc441168ff9d7dfbda9f7c6e}{assignPacket}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}},\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}})}
+\DoxyCodeLine{00674\ \ \ \{}
+\DoxyCodeLine{00675\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7b1605b397d6f32e6bc4c90eb7bc5d90}{m\_functor}}.template\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_aaed04d17fc441168ff9d7dfbda9f7c6e}{assignPacket<StoreMode>}}(\&\mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_ac1720df7c1c66bb4eb513b4f3284af5b}{m\_dst}}.coeffRef(\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}},\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}}),\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a12c661e350a5c6bf4c04a94917ec8e50}{m\_src}}.template\ packet<LoadMode,PacketType>(\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}},\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}}));}
+\DoxyCodeLine{00676\ \ \ \}}
+\DoxyCodeLine{00677\ }
+\DoxyCodeLine{00678\ \ \ \textcolor{keyword}{template}<\textcolor{keywordtype}{int}\ StoreMode,\ \textcolor{keywordtype}{int}\ LoadMode,\ \textcolor{keyword}{typename}\ PacketType>}
+\DoxyCodeLine{00679\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a152c4bd979ed06358343fa77edc037a7}{assignPacket}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index)}
+\DoxyCodeLine{00680\ \ \ \{}
+\DoxyCodeLine{00681\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7b1605b397d6f32e6bc4c90eb7bc5d90}{m\_functor}}.template\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_aaed04d17fc441168ff9d7dfbda9f7c6e}{assignPacket<StoreMode>}}(\&\mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_ac1720df7c1c66bb4eb513b4f3284af5b}{m\_dst}}.coeffRef(index),\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a12c661e350a5c6bf4c04a94917ec8e50}{m\_src}}.template\ packet<LoadMode,PacketType>(index));}
+\DoxyCodeLine{00682\ \ \ \}}
+\DoxyCodeLine{00683\ }
+\DoxyCodeLine{00684\ \ \ \textcolor{keyword}{template}<\textcolor{keywordtype}{int}\ StoreMode,\ \textcolor{keywordtype}{int}\ LoadMode,\ \textcolor{keyword}{typename}\ PacketType>}
+\DoxyCodeLine{00685\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a91436c094fad327d8128825e2c8a54cc}{assignPacketByOuterInner}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner)}
+\DoxyCodeLine{00686\ \ \ \{}
+\DoxyCodeLine{00687\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}}\ =\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_acd610e29a8a60fe5399ccc0d944517a0}{rowIndexByOuterInner}}(outer,\ inner);}
+\DoxyCodeLine{00688\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}}\ =\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_af6260148d2eac69af23dcd24cca3adb0}{colIndexByOuterInner}}(outer,\ inner);}
+\DoxyCodeLine{00689\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_aaed04d17fc441168ff9d7dfbda9f7c6e}{assignPacket<StoreMode,LoadMode,PacketType>}}(\mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ace0220ddc85e95e756b362cda5bf17c9}{row}},\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_a00a58bf5d6022e451612db73ffbf4aef}{col}});}
+\DoxyCodeLine{00690\ \ \ \}}
+\DoxyCodeLine{00691\ }
+\DoxyCodeLine{00692\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_acd610e29a8a60fe5399ccc0d944517a0}{rowIndexByOuterInner}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner)}
+\DoxyCodeLine{00693\ \ \ \{}
+\DoxyCodeLine{00694\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ DstEvaluatorType::ExpressionTraits\ Traits;}
+\DoxyCodeLine{00695\ \ \ \ \ \textcolor{keywordflow}{return}\ int(Traits::RowsAtCompileTime)\ ==\ 1\ ?\ 0}
+\DoxyCodeLine{00696\ \ \ \ \ \ \ :\ int(Traits::ColsAtCompileTime)\ ==\ 1\ ?\ inner}
+\DoxyCodeLine{00697\ \ \ \ \ \ \ :\ int(DstEvaluatorType::Flags)\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}}\ ?\ outer}
+\DoxyCodeLine{00698\ \ \ \ \ \ \ :\ inner;}
+\DoxyCodeLine{00699\ \ \ \}}
+\DoxyCodeLine{00700\ }
+\DoxyCodeLine{00701\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_af6260148d2eac69af23dcd24cca3adb0}{colIndexByOuterInner}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner)}
+\DoxyCodeLine{00702\ \ \ \{}
+\DoxyCodeLine{00703\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ DstEvaluatorType::ExpressionTraits\ Traits;}
+\DoxyCodeLine{00704\ \ \ \ \ \textcolor{keywordflow}{return}\ int(Traits::ColsAtCompileTime)\ ==\ 1\ ?\ 0}
+\DoxyCodeLine{00705\ \ \ \ \ \ \ :\ int(Traits::RowsAtCompileTime)\ ==\ 1\ ?\ inner}
+\DoxyCodeLine{00706\ \ \ \ \ \ \ :\ int(DstEvaluatorType::Flags)\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}}\ ?\ inner}
+\DoxyCodeLine{00707\ \ \ \ \ \ \ :\ outer;}
+\DoxyCodeLine{00708\ \ \ \}}
+\DoxyCodeLine{00709\ }
+\DoxyCodeLine{00710\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_afc39f4324a65c5fa84a2fa40b4eeab61}{Scalar}}*\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a50fc1e0c08a2f8cbe5bcf74bc2cf91c2}{dstDataPtr}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00711\ \textcolor{keyword}{\ \ }\{}
+\DoxyCodeLine{00712\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_adef77cada2e6be5bf44bba5835c09943}{m\_dstExpr}}.data();}
+\DoxyCodeLine{00713\ \ \ \}}
+\DoxyCodeLine{00714\ }
+\DoxyCodeLine{00715\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00716\ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a561ba921c2fd4cf20ee8304fec07d362}{DstEvaluatorType}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_ac1720df7c1c66bb4eb513b4f3284af5b}{m\_dst}};}
+\DoxyCodeLine{00717\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7e8f332a10f727ff2487720b8001c877}{SrcEvaluatorType}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a12c661e350a5c6bf4c04a94917ec8e50}{m\_src}};}
+\DoxyCodeLine{00718\ \ \ \textcolor{keyword}{const}\ Functor\ \&\mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_a7b1605b397d6f32e6bc4c90eb7bc5d90}{m\_functor}};}
+\DoxyCodeLine{00719\ \ \ \textcolor{comment}{//\ TODO\ find\ a\ way\ to\ avoid\ the\ needs\ of\ the\ original\ expression}}
+\DoxyCodeLine{00720\ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_af8e9503cf14af5b67c678cc7908554a9}{DstXprType}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_adef77cada2e6be5bf44bba5835c09943}{m\_dstExpr}};}
+\DoxyCodeLine{00721\ \};}
+\DoxyCodeLine{00722\ }
+\DoxyCodeLine{00723\ \textcolor{comment}{//\ Special\ kernel\ used\ when\ computing\ small\ products\ whose\ operands\ have\ dynamic\ dimensions.\ \ It\ ensures\ that\ the}}
+\DoxyCodeLine{00724\ \textcolor{comment}{//\ PacketSize\ used\ is\ no\ larger\ than\ 4,\ thereby\ increasing\ the\ chance\ that\ vectorized\ instructions\ will\ be\ used}}
+\DoxyCodeLine{00725\ \textcolor{comment}{//\ when\ computing\ the\ product.}}
+\DoxyCodeLine{00726\ }
+\DoxyCodeLine{00727\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DstEvaluatorTypeT,\ \textcolor{keyword}{typename}\ SrcEvaluatorTypeT,\ \textcolor{keyword}{typename}\ Functor>}
+\DoxyCodeLine{00728\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1restricted__packet__dense__assignment__kernel}{restricted\_packet\_dense\_assignment\_kernel}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel}{generic\_dense\_assignment\_kernel}}<DstEvaluatorTypeT,\ SrcEvaluatorTypeT,\ Functor,\ BuiltIn>}
+\DoxyCodeLine{00729\ \{}
+\DoxyCodeLine{00730\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00731\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel}{generic\_dense\_assignment\_kernel<DstEvaluatorTypeT,\ SrcEvaluatorTypeT,\ Functor,\ BuiltIn>}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1restricted__packet__dense__assignment__kernel_ada51c8628f52d1478166490ec124e44c}{Base}};}
+\DoxyCodeLine{00732\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00733\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_afc39f4324a65c5fa84a2fa40b4eeab61}{Base::Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1restricted__packet__dense__assignment__kernel_ae12655eabe1ef55cb317d20bbe347b50}{Scalar}};}
+\DoxyCodeLine{00734\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel_af8e9503cf14af5b67c678cc7908554a9}{Base::DstXprType}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1restricted__packet__dense__assignment__kernel_a05eaad759912a7d7827936116fa34811}{DstXprType}};}
+\DoxyCodeLine{00735\ \ \ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1copy__using__evaluator__traits}{copy\_using\_evaluator\_traits<DstEvaluatorTypeT,\ SrcEvaluatorTypeT,\ Functor,\ 4>}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1restricted__packet__dense__assignment__kernel_aca1d8ae1f4a4d6275c22796a22f713b3}{AssignmentTraits}};}
+\DoxyCodeLine{00736\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{AssignmentTraits::PacketType}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1restricted__packet__dense__assignment__kernel_aa5613d5619a73f0b934052e56b9f55e3}{PacketType}};}
+\DoxyCodeLine{00737\ }
+\DoxyCodeLine{00738\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1restricted__packet__dense__assignment__kernel_a08a8ca2387a8daada870d8d3182128f8}{restricted\_packet\_dense\_assignment\_kernel}}(DstEvaluatorTypeT\ \&dst,\ \textcolor{keyword}{const}\ SrcEvaluatorTypeT\ \&src,\ \textcolor{keyword}{const}\ Functor\ \&func,\ \mbox{\hyperlink{classEigen_1_1internal_1_1restricted__packet__dense__assignment__kernel_a05eaad759912a7d7827936116fa34811}{DstXprType}}\&\ dstExpr)}
+\DoxyCodeLine{00739\ \ \ \ \ :\ \mbox{\hyperlink{classEigen_1_1internal_1_1generic__dense__assignment__kernel}{Base}}(dst,\ src,\ func,\ dstExpr)}
+\DoxyCodeLine{00740\ \ \ \{}
+\DoxyCodeLine{00741\ \ \ \}}
+\DoxyCodeLine{00742\ \ \};}
+\DoxyCodeLine{00743\ }
+\DoxyCodeLine{00744\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00745\ \textcolor{comment}{*\ Part\ 5\ :\ Entry\ point\ for\ dense\ rectangular\ assignment}}
+\DoxyCodeLine{00746\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00747\ }
+\DoxyCodeLine{00748\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DstXprType,\textcolor{keyword}{typename}\ SrcXprType,\ \textcolor{keyword}{typename}\ Functor>}
+\DoxyCodeLine{00749\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00750\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a21ebfb5e1f166f266aa5ae63dd47f1ed}{resize\_if\_allowed}}(DstXprType\ \&dst,\ \textcolor{keyword}{const}\ SrcXprType\&\ src,\ \textcolor{keyword}{const}\ Functor\ \&\textcolor{comment}{/*func*/})}
+\DoxyCodeLine{00751\ \{}
+\DoxyCodeLine{00752\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_aa92b5a5bd7b7cbc4754cea71c0866023}{EIGEN\_ONLY\_USED\_FOR\_DEBUG}}(dst);}
+\DoxyCodeLine{00753\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_aa92b5a5bd7b7cbc4754cea71c0866023}{EIGEN\_ONLY\_USED\_FOR\_DEBUG}}(src);}
+\DoxyCodeLine{00754\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(dst.rows()\ ==\ src.rows()\ \&\&\ dst.cols()\ ==\ src.cols());}
+\DoxyCodeLine{00755\ \}}
+\DoxyCodeLine{00756\ }
+\DoxyCodeLine{00757\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DstXprType,\textcolor{keyword}{typename}\ SrcXprType,\ \textcolor{keyword}{typename}\ T1,\ \textcolor{keyword}{typename}\ T2>}
+\DoxyCodeLine{00758\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00759\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a21ebfb5e1f166f266aa5ae63dd47f1ed}{resize\_if\_allowed}}(DstXprType\ \&dst,\ \textcolor{keyword}{const}\ SrcXprType\&\ src,\ \textcolor{keyword}{const}\ internal::assign\_op<T1,T2>\ \&\textcolor{comment}{/*func*/})}
+\DoxyCodeLine{00760\ \{}
+\DoxyCodeLine{00761\ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ dstRows\ =\ src.rows();}
+\DoxyCodeLine{00762\ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ dstCols\ =\ src.cols();}
+\DoxyCodeLine{00763\ \ \ \textcolor{keywordflow}{if}(((dst.rows()!=dstRows)\ ||\ (dst.cols()!=dstCols)))}
+\DoxyCodeLine{00764\ \ \ \ \ dst.resize(dstRows,\ dstCols);}
+\DoxyCodeLine{00765\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(dst.rows()\ ==\ dstRows\ \&\&\ dst.cols()\ ==\ dstCols);}
+\DoxyCodeLine{00766\ \}}
+\DoxyCodeLine{00767\ }
+\DoxyCodeLine{00768\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DstXprType,\ \textcolor{keyword}{typename}\ SrcXprType,\ \textcolor{keyword}{typename}\ Functor>}
+\DoxyCodeLine{00769\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_acad2d3161008ad15e0d086b71783de25}{call\_dense\_assignment\_loop}}(DstXprType\&\ dst,\ \textcolor{keyword}{const}\ SrcXprType\&\ src,\ \textcolor{keyword}{const}\ Functor\ \&func)}
+\DoxyCodeLine{00770\ \{}
+\DoxyCodeLine{00771\ \ \ \textcolor{keyword}{typedef}\ evaluator<DstXprType>\ DstEvaluatorType;}
+\DoxyCodeLine{00772\ \ \ \textcolor{keyword}{typedef}\ evaluator<SrcXprType>\ SrcEvaluatorType;}
+\DoxyCodeLine{00773\ }
+\DoxyCodeLine{00774\ \ \ SrcEvaluatorType\ srcEvaluator(src);}
+\DoxyCodeLine{00775\ }
+\DoxyCodeLine{00776\ \ \ \textcolor{comment}{//\ NOTE\ To\ properly\ handle\ A\ =\ (A*A.transpose())/s\ with\ A\ rectangular,}}
+\DoxyCodeLine{00777\ \ \ \textcolor{comment}{//\ we\ need\ to\ resize\ the\ destination\ after\ the\ source\ evaluator\ has\ been\ created.}}
+\DoxyCodeLine{00778\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a21ebfb5e1f166f266aa5ae63dd47f1ed}{resize\_if\_allowed}}(dst,\ src,\ func);}
+\DoxyCodeLine{00779\ }
+\DoxyCodeLine{00780\ \ \ DstEvaluatorType\ dstEvaluator(dst);}
+\DoxyCodeLine{00781\ }
+\DoxyCodeLine{00782\ \ \ \textcolor{keyword}{typedef}\ generic\_dense\_assignment\_kernel<DstEvaluatorType,SrcEvaluatorType,Functor>\ Kernel;}
+\DoxyCodeLine{00783\ \ \ Kernel\ kernel(dstEvaluator,\ srcEvaluator,\ func,\ dst.const\_cast\_derived());}
+\DoxyCodeLine{00784\ }
+\DoxyCodeLine{00785\ \ \ dense\_assignment\_loop<Kernel>::run(kernel);}
+\DoxyCodeLine{00786\ \}}
+\DoxyCodeLine{00787\ }
+\DoxyCodeLine{00788\ \textcolor{comment}{//\ Specialization\ for\ filling\ the\ destination\ with\ a\ constant\ value.}}
+\DoxyCodeLine{00789\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_GPU\_COMPILE\_PHASE}}
+\DoxyCodeLine{00790\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DstXprType>}
+\DoxyCodeLine{00791\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_acad2d3161008ad15e0d086b71783de25}{call\_dense\_assignment\_loop}}(DstXprType\&\ dst,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseNullaryOp}{Eigen::CwiseNullaryOp}}<\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__constant__op}{Eigen::internal::scalar\_constant\_op<typename\ DstXprType::Scalar>}},\ DstXprType>\&\ src,\ \textcolor{keyword}{const}\ internal::assign\_op<typename\ DstXprType::Scalar,typename\ DstXprType::Scalar>\&\ func)}
+\DoxyCodeLine{00792\ \{}
+\DoxyCodeLine{00793\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a21ebfb5e1f166f266aa5ae63dd47f1ed}{resize\_if\_allowed}}(dst,\ src,\ func);}
+\DoxyCodeLine{00794\ \ \ std::fill\_n(dst.data(),\ dst.size(),\ src.functor()());}
+\DoxyCodeLine{00795\ \}}
+\DoxyCodeLine{00796\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00797\ }
+\DoxyCodeLine{00798\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DstXprType,\ \textcolor{keyword}{typename}\ SrcXprType>}
+\DoxyCodeLine{00799\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_acad2d3161008ad15e0d086b71783de25}{call\_dense\_assignment\_loop}}(DstXprType\&\ dst,\ \textcolor{keyword}{const}\ SrcXprType\&\ src)}
+\DoxyCodeLine{00800\ \{}
+\DoxyCodeLine{00801\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_acad2d3161008ad15e0d086b71783de25}{call\_dense\_assignment\_loop}}(dst,\ src,\ internal::assign\_op<typename\ DstXprType::Scalar,typename\ SrcXprType::Scalar>());}
+\DoxyCodeLine{00802\ \}}
+\DoxyCodeLine{00803\ }
+\DoxyCodeLine{00804\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00805\ \textcolor{comment}{*\ Part\ 6\ :\ Generic\ assignment}}
+\DoxyCodeLine{00806\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00807\ }
+\DoxyCodeLine{00808\ \textcolor{comment}{//\ Based\ on\ the\ respective\ shapes\ of\ the\ destination\ and\ source,}}
+\DoxyCodeLine{00809\ \textcolor{comment}{//\ the\ class\ AssignmentKind\ determine\ the\ kind\ of\ assignment\ mechanism.}}
+\DoxyCodeLine{00810\ \textcolor{comment}{//\ AssignmentKind\ must\ define\ a\ Kind\ typedef.}}
+\DoxyCodeLine{00811\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DstShape,\ \textcolor{keyword}{typename}\ SrcShape>\ \textcolor{keyword}{struct\ }AssignmentKind;}
+\DoxyCodeLine{00812\ }
+\DoxyCodeLine{00813\ \textcolor{comment}{//\ Assignment\ kind\ defined\ in\ this\ file:}}
+\DoxyCodeLine{00814\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1Dense2Dense}{Dense2Dense}}\ \{\};}
+\DoxyCodeLine{00815\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1EigenBase2EigenBase}{EigenBase2EigenBase}}\ \{\};}
+\DoxyCodeLine{00816\ }
+\DoxyCodeLine{00817\ \textcolor{keyword}{template}<\textcolor{keyword}{typename},\textcolor{keyword}{typename}>\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1AssignmentKind}{AssignmentKind}}\ \{\ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1EigenBase2EigenBase}{EigenBase2EigenBase}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1AssignmentKind_a18fda331c81a14c0764198df6851d6d1}{Kind}};\ \};}
+\DoxyCodeLine{00818\ \textcolor{keyword}{template}<>\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1AssignmentKind}{AssignmentKind}}<\mbox{\hyperlink{structEigen_1_1DenseShape}{DenseShape}},\mbox{\hyperlink{structEigen_1_1DenseShape}{DenseShape}}>\ \{\ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1Dense2Dense}{Dense2Dense}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1AssignmentKind_a18fda331c81a14c0764198df6851d6d1}{Kind}};\ \};}
+\DoxyCodeLine{00819\ }
+\DoxyCodeLine{00820\ \textcolor{comment}{//\ This\ is\ the\ main\ assignment\ class}}
+\DoxyCodeLine{00821\ \textcolor{keyword}{template}<\ \textcolor{keyword}{typename}\ DstXprType,\ \textcolor{keyword}{typename}\ SrcXprType,\ \textcolor{keyword}{typename}\ Functor,}
+\DoxyCodeLine{00822\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ Kind\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1AssignmentKind}{AssignmentKind<\ typename\ evaluator\_traits<DstXprType>::Shape}}\ ,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator__traits__base_a4983c4c5973a8bb7730de6e942c8f827}{evaluator\_traits<SrcXprType>::Shape}}\ >::Kind,}
+\DoxyCodeLine{00823\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1EnableIf}{EnableIf}}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00824\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1Assignment}{Assignment}};}
+\DoxyCodeLine{00825\ }
+\DoxyCodeLine{00826\ }
+\DoxyCodeLine{00827\ \textcolor{comment}{//\ The\ only\ purpose\ of\ this\ call\_assignment()\ function\ is\ to\ deal\ with\ noalias()\ /\ "{}assume-\/aliasing"{}\ and\ automatic\ transposition.}}
+\DoxyCodeLine{00828\ \textcolor{comment}{//\ Indeed,\ I\ (Gael)\ think\ that\ this\ concept\ of\ "{}assume-\/aliasing"{}\ was\ a\ mistake,\ and\ it\ makes\ thing\ quite\ complicated.}}
+\DoxyCodeLine{00829\ \textcolor{comment}{//\ So\ this\ intermediate\ function\ removes\ everything\ related\ to\ "{}assume-\/aliasing"{}\ such\ that\ Assignment}}
+\DoxyCodeLine{00830\ \textcolor{comment}{//\ does\ not\ has\ to\ bother\ about\ these\ annoying\ details.}}
+\DoxyCodeLine{00831\ }
+\DoxyCodeLine{00832\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src>}
+\DoxyCodeLine{00833\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00834\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a77793e4b74b9919e35295c839f2659b2}{call\_assignment}}(Dst\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src)}
+\DoxyCodeLine{00835\ \{}
+\DoxyCodeLine{00836\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a77793e4b74b9919e35295c839f2659b2}{call\_assignment}}(dst,\ src,\ \mbox{\hyperlink{structEigen_1_1internal_1_1assign__op}{internal::assign\_op<typename\ Dst::Scalar,typename\ Src::Scalar>}}());}
+\DoxyCodeLine{00837\ \}}
+\DoxyCodeLine{00838\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src>}
+\DoxyCodeLine{00839\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00840\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a77793e4b74b9919e35295c839f2659b2}{call\_assignment}}(\textcolor{keyword}{const}\ Dst\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src)}
+\DoxyCodeLine{00841\ \{}
+\DoxyCodeLine{00842\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a77793e4b74b9919e35295c839f2659b2}{call\_assignment}}(dst,\ src,\ \mbox{\hyperlink{structEigen_1_1internal_1_1assign__op}{internal::assign\_op<typename\ Dst::Scalar,typename\ Src::Scalar>}}());}
+\DoxyCodeLine{00843\ \}}
+\DoxyCodeLine{00844\ }
+\DoxyCodeLine{00845\ \textcolor{comment}{//\ Deal\ with\ "{}assume-\/aliasing"{}}}
+\DoxyCodeLine{00846\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src,\ \textcolor{keyword}{typename}\ Func>}
+\DoxyCodeLine{00847\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00848\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a77793e4b74b9919e35295c839f2659b2}{call\_assignment}}(Dst\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src,\ \textcolor{keyword}{const}\ Func\&\ func,\ \textcolor{keyword}{typename}\ enable\_if<\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator__assume__aliasing_ae6f9792ea8c123042c30490e45c054f4}{evaluator\_assume\_aliasing<Src>::value}},\ \textcolor{keywordtype}{void}*>::type\ =\ 0)}
+\DoxyCodeLine{00849\ \{}
+\DoxyCodeLine{00850\ \ \ \textcolor{keyword}{typename}\ plain\_matrix\_type<Src>::type\ tmp(src);}
+\DoxyCodeLine{00851\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a5be231eab9df93bff91f5e0a81e87be7}{call\_assignment\_no\_alias}}(dst,\ tmp,\ func);}
+\DoxyCodeLine{00852\ \}}
+\DoxyCodeLine{00853\ }
+\DoxyCodeLine{00854\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src,\ \textcolor{keyword}{typename}\ Func>}
+\DoxyCodeLine{00855\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00856\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a77793e4b74b9919e35295c839f2659b2}{call\_assignment}}(Dst\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src,\ \textcolor{keyword}{const}\ Func\&\ func,\ \textcolor{keyword}{typename}\ enable\_if<!\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator__assume__aliasing_ae6f9792ea8c123042c30490e45c054f4}{evaluator\_assume\_aliasing<Src>::value}},\ \textcolor{keywordtype}{void}*>::type\ =\ 0)}
+\DoxyCodeLine{00857\ \{}
+\DoxyCodeLine{00858\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a5be231eab9df93bff91f5e0a81e87be7}{call\_assignment\_no\_alias}}(dst,\ src,\ func);}
+\DoxyCodeLine{00859\ \}}
+\DoxyCodeLine{00860\ }
+\DoxyCodeLine{00861\ \textcolor{comment}{//\ by-\/pass\ "{}assume-\/aliasing"{}}}
+\DoxyCodeLine{00862\ \textcolor{comment}{//\ When\ there\ is\ no\ aliasing,\ we\ require\ that\ 'dst'\ has\ been\ properly\ resized}}
+\DoxyCodeLine{00863\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}>\ \textcolor{keyword}{class\ }StorageBase,\ \textcolor{keyword}{typename}\ Src,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_ae5601f0ee37624b104ba614cece26d83}{Func}}>}
+\DoxyCodeLine{00864\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00865\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a77793e4b74b9919e35295c839f2659b2}{call\_assignment}}(NoAlias<Dst,StorageBase>\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src,\ \textcolor{keyword}{const}\ Func\&\ func)}
+\DoxyCodeLine{00866\ \{}
+\DoxyCodeLine{00867\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a5be231eab9df93bff91f5e0a81e87be7}{call\_assignment\_no\_alias}}(dst.expression(),\ src,\ func);}
+\DoxyCodeLine{00868\ \}}
+\DoxyCodeLine{00869\ }
+\DoxyCodeLine{00870\ }
+\DoxyCodeLine{00871\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src,\ \textcolor{keyword}{typename}\ Func>}
+\DoxyCodeLine{00872\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00873\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a5be231eab9df93bff91f5e0a81e87be7}{call\_assignment\_no\_alias}}(Dst\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src,\ \textcolor{keyword}{const}\ Func\&\ func)}
+\DoxyCodeLine{00874\ \{}
+\DoxyCodeLine{00875\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00876\ \ \ \ \ NeedToTranspose\ =\ (\ \ \ \ (\mbox{\hyperlink{namespacefineweb_a7ab32de24971f7d1f91cd2edca351e06}{int}}(Dst::RowsAtCompileTime)\ ==\ 1\ \&\&\ \mbox{\hyperlink{namespacefineweb_a7ab32de24971f7d1f91cd2edca351e06}{int}}(Src::ColsAtCompileTime)\ ==\ 1)}
+\DoxyCodeLine{00877\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ||\ (\mbox{\hyperlink{namespacefineweb_a7ab32de24971f7d1f91cd2edca351e06}{int}}(Dst::ColsAtCompileTime)\ ==\ 1\ \&\&\ \mbox{\hyperlink{namespacefineweb_a7ab32de24971f7d1f91cd2edca351e06}{int}}(Src::RowsAtCompileTime)\ ==\ 1)}
+\DoxyCodeLine{00878\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ )\ \&\&\ \textcolor{keywordtype}{int}(Dst::SizeAtCompileTime)\ !=\ 1}
+\DoxyCodeLine{00879\ \ \ \};}
+\DoxyCodeLine{00880\ }
+\DoxyCodeLine{00881\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ internal::conditional<NeedToTranspose,\ Transpose<Dst>,\ Dst>::type\ ActualDstTypeCleaned;}
+\DoxyCodeLine{00882\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ internal::conditional<NeedToTranspose,\ Transpose<Dst>,\ Dst\&>::type\ ActualDstType;}
+\DoxyCodeLine{00883\ \ \ ActualDstType\ actualDst(dst);}
+\DoxyCodeLine{00884\ }
+\DoxyCodeLine{00885\ \ \ \textcolor{comment}{//\ TODO\ check\ whether\ this\ is\ the\ right\ place\ to\ perform\ these\ checks:}}
+\DoxyCodeLine{00886\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2StaticAssert_8h_a035dfe5cbd4c226a3a96d8677a996fdf}{EIGEN\_STATIC\_ASSERT\_LVALUE}}(Dst)}
+\DoxyCodeLine{00887\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2StaticAssert_8h_ab247f0d0f9226fe72bb02adefde6361d}{EIGEN\_STATIC\_ASSERT\_SAME\_MATRIX\_SIZE}}(ActualDstTypeCleaned,Src)}
+\DoxyCodeLine{00888\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2XprHelper_8h_aa74c2010558ea2f2bb8d6b1ebafd4d58}{EIGEN\_CHECK\_BINARY\_COMPATIBILIY}}(Func,\textcolor{keyword}{typename}\ ActualDstTypeCleaned::Scalar,\textcolor{keyword}{typename}\ Src::Scalar);}
+\DoxyCodeLine{00889\ }
+\DoxyCodeLine{00890\ \ \ Assignment<ActualDstTypeCleaned,Src,Func>::run(actualDst,\ src,\ func);}
+\DoxyCodeLine{00891\ \}}
+\DoxyCodeLine{00892\ }
+\DoxyCodeLine{00893\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src,\ \textcolor{keyword}{typename}\ Func>}
+\DoxyCodeLine{00894\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00895\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a07ea945257fb18f22f5e29411f3d2ce4}{call\_restricted\_packet\_assignment\_no\_alias}}(Dst\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src,\ \textcolor{keyword}{const}\ Func\&\ func)}
+\DoxyCodeLine{00896\ \{}
+\DoxyCodeLine{00897\ \ \ \ \ \textcolor{keyword}{typedef}\ evaluator<Dst>\ DstEvaluatorType;}
+\DoxyCodeLine{00898\ \ \ \ \ \textcolor{keyword}{typedef}\ evaluator<Src>\ SrcEvaluatorType;}
+\DoxyCodeLine{00899\ \ \ \ \ \textcolor{keyword}{typedef}\ restricted\_packet\_dense\_assignment\_kernel<DstEvaluatorType,SrcEvaluatorType,Func>\ Kernel;}
+\DoxyCodeLine{00900\ }
+\DoxyCodeLine{00901\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2StaticAssert_8h_a035dfe5cbd4c226a3a96d8677a996fdf}{EIGEN\_STATIC\_ASSERT\_LVALUE}}(Dst)}
+\DoxyCodeLine{00902\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2XprHelper_8h_aa74c2010558ea2f2bb8d6b1ebafd4d58}{EIGEN\_CHECK\_BINARY\_COMPATIBILIY}}(Func,\textcolor{keyword}{typename}\ Dst::Scalar,\textcolor{keyword}{typename}\ Src::Scalar);}
+\DoxyCodeLine{00903\ }
+\DoxyCodeLine{00904\ \ \ \ \ SrcEvaluatorType\ srcEvaluator(src);}
+\DoxyCodeLine{00905\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a21ebfb5e1f166f266aa5ae63dd47f1ed}{resize\_if\_allowed}}(dst,\ src,\ func);}
+\DoxyCodeLine{00906\ }
+\DoxyCodeLine{00907\ \ \ \ \ DstEvaluatorType\ dstEvaluator(dst);}
+\DoxyCodeLine{00908\ \ \ \ \ Kernel\ kernel(dstEvaluator,\ srcEvaluator,\ func,\ dst.const\_cast\_derived());}
+\DoxyCodeLine{00909\ }
+\DoxyCodeLine{00910\ \ \ \ \ dense\_assignment\_loop<Kernel>::run(kernel);}
+\DoxyCodeLine{00911\ \}}
+\DoxyCodeLine{00912\ }
+\DoxyCodeLine{00913\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src>}
+\DoxyCodeLine{00914\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00915\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a5be231eab9df93bff91f5e0a81e87be7}{call\_assignment\_no\_alias}}(Dst\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src)}
+\DoxyCodeLine{00916\ \{}
+\DoxyCodeLine{00917\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a5be231eab9df93bff91f5e0a81e87be7}{call\_assignment\_no\_alias}}(dst,\ src,\ internal::assign\_op<typename\ Dst::Scalar,typename\ Src::Scalar>());}
+\DoxyCodeLine{00918\ \}}
+\DoxyCodeLine{00919\ }
+\DoxyCodeLine{00920\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src,\ \textcolor{keyword}{typename}\ Func>}
+\DoxyCodeLine{00921\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00922\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_ad37c6a435875b21fda4d7ca5a4364154}{call\_assignment\_no\_alias\_no\_transpose}}(Dst\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src,\ \textcolor{keyword}{const}\ Func\&\ func)}
+\DoxyCodeLine{00923\ \{}
+\DoxyCodeLine{00924\ \ \ \textcolor{comment}{//\ TODO\ check\ whether\ this\ is\ the\ right\ place\ to\ perform\ these\ checks:}}
+\DoxyCodeLine{00925\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2StaticAssert_8h_a035dfe5cbd4c226a3a96d8677a996fdf}{EIGEN\_STATIC\_ASSERT\_LVALUE}}(Dst)}
+\DoxyCodeLine{00926\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2StaticAssert_8h_ab247f0d0f9226fe72bb02adefde6361d}{EIGEN\_STATIC\_ASSERT\_SAME\_MATRIX\_SIZE}}(Dst,Src)}
+\DoxyCodeLine{00927\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2XprHelper_8h_aa74c2010558ea2f2bb8d6b1ebafd4d58}{EIGEN\_CHECK\_BINARY\_COMPATIBILIY}}(Func,\textcolor{keyword}{typename}\ Dst::Scalar,\textcolor{keyword}{typename}\ Src::Scalar);}
+\DoxyCodeLine{00928\ }
+\DoxyCodeLine{00929\ \ \ Assignment<Dst,Src,Func>::run(dst,\ src,\ func);}
+\DoxyCodeLine{00930\ \}}
+\DoxyCodeLine{00931\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src>}
+\DoxyCodeLine{00932\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00933\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_ad37c6a435875b21fda4d7ca5a4364154}{call\_assignment\_no\_alias\_no\_transpose}}(Dst\&\ dst,\ \textcolor{keyword}{const}\ Src\&\ src)}
+\DoxyCodeLine{00934\ \{}
+\DoxyCodeLine{00935\ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ad37c6a435875b21fda4d7ca5a4364154}{call\_assignment\_no\_alias\_no\_transpose}}(dst,\ src,\ internal::assign\_op<typename\ Dst::Scalar,typename\ Src::Scalar>());}
+\DoxyCodeLine{00936\ \}}
+\DoxyCodeLine{00937\ }
+\DoxyCodeLine{00938\ \textcolor{comment}{//\ forward\ declaration}}
+\DoxyCodeLine{00939\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dst,\ \textcolor{keyword}{typename}\ Src>\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a2088791fb8428a2cfad6bd71298795a2}{check\_for\_aliasing}}(\textcolor{keyword}{const}\ Dst\ \&dst,\ \textcolor{keyword}{const}\ Src\ \&src);}
+\DoxyCodeLine{00940\ }
+\DoxyCodeLine{00941\ \textcolor{comment}{//\ Generic\ Dense\ to\ Dense\ assignment}}
+\DoxyCodeLine{00942\ \textcolor{comment}{//\ Note\ that\ the\ last\ template\ argument\ "{}Weak"{}\ is\ needed\ to\ make\ it\ possible\ to\ perform}}
+\DoxyCodeLine{00943\ \textcolor{comment}{//\ both\ partial\ specialization+SFINAE\ without\ ambiguous\ specialization}}
+\DoxyCodeLine{00944\ \textcolor{keyword}{template}<\ \textcolor{keyword}{typename}\ DstXprType,\ \textcolor{keyword}{typename}\ SrcXprType,\ \textcolor{keyword}{typename}\ Functor,\ \textcolor{keyword}{typename}\ Weak>}
+\DoxyCodeLine{00945\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1Assignment}{Assignment}}<DstXprType,\ SrcXprType,\ Functor,\ \mbox{\hyperlink{structEigen_1_1internal_1_1Dense2Dense}{Dense2Dense}},\ Weak>}
+\DoxyCodeLine{00946\ \{}
+\DoxyCodeLine{00947\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}}
+\DoxyCodeLine{00948\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1Assignment_3_01DstXprType_00_01SrcXprType_00_01Functor_00_01Dense2Dense_00_01Weak_01_4_a23b7a4281a249055ccd7f123144a3a84}{run}}(DstXprType\ \&dst,\ \textcolor{keyword}{const}\ SrcXprType\ \&src,\ \textcolor{keyword}{const}\ Functor\ \&func)}
+\DoxyCodeLine{00949\ \ \ \{}
+\DoxyCodeLine{00950\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_NO\_DEBUG}}
+\DoxyCodeLine{00951\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a2088791fb8428a2cfad6bd71298795a2}{internal::check\_for\_aliasing}}(dst,\ src);}
+\DoxyCodeLine{00952\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00953\ }
+\DoxyCodeLine{00954\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_acad2d3161008ad15e0d086b71783de25}{call\_dense\_assignment\_loop}}(dst,\ src,\ func);}
+\DoxyCodeLine{00955\ \ \ \}}
+\DoxyCodeLine{00956\ \};}
+\DoxyCodeLine{00957\ }
+\DoxyCodeLine{00958\ \textcolor{comment}{//\ Generic\ assignment\ through\ evalTo.}}
+\DoxyCodeLine{00959\ \textcolor{comment}{//\ TODO:\ not\ sure\ we\ have\ to\ keep\ that\ one,\ but\ it\ helps\ porting\ current\ code\ to\ new\ evaluator\ mechanism.}}
+\DoxyCodeLine{00960\ \textcolor{comment}{//\ Note\ that\ the\ last\ template\ argument\ "{}Weak"{}\ is\ needed\ to\ make\ it\ possible\ to\ perform}}
+\DoxyCodeLine{00961\ \textcolor{comment}{//\ both\ partial\ specialization+SFINAE\ without\ ambiguous\ specialization}}
+\DoxyCodeLine{00962\ \textcolor{keyword}{template}<\ \textcolor{keyword}{typename}\ DstXprType,\ \textcolor{keyword}{typename}\ SrcXprType,\ \textcolor{keyword}{typename}\ Functor,\ \textcolor{keyword}{typename}\ Weak>}
+\DoxyCodeLine{00963\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1Assignment}{Assignment}}<DstXprType,\ SrcXprType,\ Functor,\ \mbox{\hyperlink{structEigen_1_1internal_1_1EigenBase2EigenBase}{EigenBase2EigenBase}},\ Weak>}
+\DoxyCodeLine{00964\ \{}
+\DoxyCodeLine{00965\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}}
+\DoxyCodeLine{00966\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1Assignment_3_01DstXprType_00_01SrcXprType_00_01Functor_00_01EigenBase2EigenBase_00_01Weak_01_4_aa049e2581ae61f4c4391e1854003e132}{run}}(DstXprType\ \&dst,\ \textcolor{keyword}{const}\ SrcXprType\ \&src,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1assign__op}{internal::assign\_op<typename\ DstXprType::Scalar,typename\ SrcXprType::Scalar>}}\ \&\textcolor{comment}{/*func*/})}
+\DoxyCodeLine{00967\ \ \ \{}
+\DoxyCodeLine{00968\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ dstRows\ =\ src.rows();}
+\DoxyCodeLine{00969\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ dstCols\ =\ src.cols();}
+\DoxyCodeLine{00970\ \ \ \ \ \textcolor{keywordflow}{if}((dst.rows()!=dstRows)\ ||\ (dst.cols()!=dstCols))}
+\DoxyCodeLine{00971\ \ \ \ \ \ \ dst.resize(dstRows,\ dstCols);}
+\DoxyCodeLine{00972\ }
+\DoxyCodeLine{00973\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(dst.rows()\ ==\ src.rows()\ \&\&\ dst.cols()\ ==\ src.cols());}
+\DoxyCodeLine{00974\ \ \ \ \ src.evalTo(dst);}
+\DoxyCodeLine{00975\ \ \ \}}
+\DoxyCodeLine{00976\ }
+\DoxyCodeLine{00977\ \ \ \textcolor{comment}{//\ NOTE\ The\ following\ two\ functions\ are\ templated\ to\ avoid\ their\ instantiation\ if\ not\ needed}}
+\DoxyCodeLine{00978\ \ \ \textcolor{comment}{//\ \ \ \ \ \ This\ is\ needed\ because\ some\ expressions\ supports\ evalTo\ only\ and/or\ have\ 'void'\ as\ scalar\ type.}}
+\DoxyCodeLine{00979\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ SrcScalarType>}
+\DoxyCodeLine{00980\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}}
+\DoxyCodeLine{00981\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1Assignment_3_01DstXprType_00_01SrcXprType_00_01Functor_00_01EigenBase2EigenBase_00_01Weak_01_4_a915dbd72d6a3f50505f06554da7af5da}{run}}(DstXprType\ \&dst,\ \textcolor{keyword}{const}\ SrcXprType\ \&src,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1add__assign__op}{internal::add\_assign\_op<typename\ DstXprType::Scalar,SrcScalarType>}}\ \&\textcolor{comment}{/*func*/})}
+\DoxyCodeLine{00982\ \ \ \{}
+\DoxyCodeLine{00983\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ dstRows\ =\ src.rows();}
+\DoxyCodeLine{00984\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ dstCols\ =\ src.cols();}
+\DoxyCodeLine{00985\ \ \ \ \ \textcolor{keywordflow}{if}((dst.rows()!=dstRows)\ ||\ (dst.cols()!=dstCols))}
+\DoxyCodeLine{00986\ \ \ \ \ \ \ dst.resize(dstRows,\ dstCols);}
+\DoxyCodeLine{00987\ }
+\DoxyCodeLine{00988\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(dst.rows()\ ==\ src.rows()\ \&\&\ dst.cols()\ ==\ src.cols());}
+\DoxyCodeLine{00989\ \ \ \ \ src.addTo(dst);}
+\DoxyCodeLine{00990\ \ \ \}}
+\DoxyCodeLine{00991\ }
+\DoxyCodeLine{00992\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ SrcScalarType>}
+\DoxyCodeLine{00993\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}}
+\DoxyCodeLine{00994\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1Assignment_3_01DstXprType_00_01SrcXprType_00_01Functor_00_01EigenBase2EigenBase_00_01Weak_01_4_a6d0d55aa4438451b3d517e6f29161c4a}{run}}(DstXprType\ \&dst,\ \textcolor{keyword}{const}\ SrcXprType\ \&src,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sub__assign__op}{internal::sub\_assign\_op<typename\ DstXprType::Scalar,SrcScalarType>}}\ \&\textcolor{comment}{/*func*/})}
+\DoxyCodeLine{00995\ \ \ \{}
+\DoxyCodeLine{00996\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ dstRows\ =\ src.rows();}
+\DoxyCodeLine{00997\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ dstCols\ =\ src.cols();}
+\DoxyCodeLine{00998\ \ \ \ \ \textcolor{keywordflow}{if}((dst.rows()!=dstRows)\ ||\ (dst.cols()!=dstCols))}
+\DoxyCodeLine{00999\ \ \ \ \ \ \ dst.resize(dstRows,\ dstCols);}
+\DoxyCodeLine{01000\ }
+\DoxyCodeLine{01001\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(dst.rows()\ ==\ src.rows()\ \&\&\ dst.cols()\ ==\ src.cols());}
+\DoxyCodeLine{01002\ \ \ \ \ src.subTo(dst);}
+\DoxyCodeLine{01003\ \ \ \}}
+\DoxyCodeLine{01004\ \};}
+\DoxyCodeLine{01005\ }
+\DoxyCodeLine{01006\ \}\ \textcolor{comment}{//\ namespace\ internal}}
+\DoxyCodeLine{01007\ }
+\DoxyCodeLine{01008\ \}\ \textcolor{comment}{//\ end\ namespace\ Eigen}}
+\DoxyCodeLine{01009\ }
+\DoxyCodeLine{01010\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ EIGEN\_ASSIGN\_EVALUATOR\_H}}
+
+\end{DoxyCode}

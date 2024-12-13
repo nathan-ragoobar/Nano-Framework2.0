@@ -1,0 +1,260 @@
+\doxysection{mocking\+\_\+bit\+\_\+gen.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2random_2mocking__bit__gen_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2random_2mocking__bit__gen_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/random/mocking\_bit\_gen.h@{OriginalStuff/abseil-\/cpp/absl/random/mocking\_bit\_gen.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2random_2mocking__bit__gen_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ mocking\_bit\_gen.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ file\ includes\ an\ \`{}absl::MockingBitGen`\ class\ to\ use\ as\ a\ mock\ within\ the}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ Googletest\ testing\ framework.\ Such\ a\ mock\ is\ useful\ to\ provide\ deterministic}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ values\ as\ return\ values\ within\ (otherwise\ random)\ Abseil\ distribution}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ functions.\ Such\ determinism\ within\ a\ mock\ is\ useful\ within\ testing\ frameworks}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ to\ test\ otherwise\ indeterminate\ APIs.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ More\ information\ about\ the\ Googletest\ testing\ framework\ is\ available\ at}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ https://github.com/google/googletest}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#ifndef\ ABSL\_RANDOM\_MOCKING\_BIT\_GEN\_H\_}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#define\ ABSL\_RANDOM\_MOCKING\_BIT\_GEN\_H\_}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <tuple>}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ "{}gmock/gmock.h"{}}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/fast\_type\_id.h"{}}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ "{}absl/container/flat\_hash\_map.h"{}}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ "{}absl/random/internal/mock\_helpers.h"{}}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ "{}absl/random/random.h"{}}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ "{}absl/utility/utility.h"{}}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00047\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{keyword}{class\ }BitGenRef;}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{keyword}{namespace\ }random\_internal\ \{}
+\DoxyCodeLine{00052\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}>}
+\DoxyCodeLine{00053\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1DistributionCaller}{DistributionCaller}};}
+\DoxyCodeLine{00054\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1random__internal_1_1MockHelpers}{MockHelpers}};}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ Implements\ MockingBitGen\ with\ an\ option\ to\ turn\ on\ extra\ validation.}}
+\DoxyCodeLine{00057\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ EnableVal\textcolor{keywordtype}{id}ation>}
+\DoxyCodeLine{00058\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl}{MockingBitGenImpl}}\ \{}
+\DoxyCodeLine{00059\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00060\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_a826138bad376f0060bba31ef86f81ad2}{MockingBitGenImpl}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00061\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_aa8682ff13c4af1c575afeea791529c08}{\string~MockingBitGenImpl}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \ \ \textcolor{comment}{//\ URBG\ interface}}
+\DoxyCodeLine{00064\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_a5e82fbfe1dd886f08a5ecb14062c3017}{result\_type}}\ =\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1NonsecureURBGBase_a145593f04f4bfe262d78036ddea9b174}{absl::BitGen::result\_type}};}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_a5e82fbfe1dd886f08a5ecb14062c3017}{result\_type}}(\mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_aaecb29112ee6b9a8daf63aa300b857bf}{min}})()\ \{\ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{classabsl_1_1random__internal_1_1NonsecureURBGBase_a92b277b027769c91af25d2596ec22b88}{absl::BitGen::min}})();\ \}}
+\DoxyCodeLine{00067\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_a5e82fbfe1dd886f08a5ecb14062c3017}{result\_type}}(\mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_a7bc2fa1f5fa9b1b1e1eb1703822c8f92}{max}})()\ \{\ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{classabsl_1_1random__internal_1_1NonsecureURBGBase_af3ffd3facc83e42489f6d992b035acbb}{absl::BitGen::max}})();\ \}}
+\DoxyCodeLine{00068\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_a5e82fbfe1dd886f08a5ecb14062c3017}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_ad7f4aab9cd666a8a64f1c8add4858aff}{operator()}}()\ \{\ \textcolor{keywordflow}{return}\ gen\_();\ \}}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ GetMockFnType\ returns\ the\ testing::MockFunction\ for\ a\ result\ and\ tuple.}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ This\ method\ only\ exists\ for\ type\ deduction\ and\ is\ otherwise\ unimplemented.}}
+\DoxyCodeLine{00073\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ResultT,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{auto}\ GetMockFnType(ResultT,\ std::tuple<Args...>)}
+\DoxyCodeLine{00075\ \ \ \ \ \ \ -\/>\ ::testing::MockFunction<ResultT(Args...)>;}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ MockFnCaller\ is\ a\ helper\ method\ for\ use\ with\ absl::apply\ to}}
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ apply\ an\ ArgTupleT\ to\ a\ compatible\ MockFunction.}}
+\DoxyCodeLine{00079\ \ \ \textcolor{comment}{//\ NOTE:\ MockFnCaller\ is\ essentially\ equivalent\ to\ the\ lambda:}}
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ [fn](auto...\ args)\ \{\ return\ fn-\/>Call(std::move(args)...)\}}}
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ however\ that\ fails\ to\ build\ on\ some\ supported\ platforms.}}
+\DoxyCodeLine{00082\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ MockFnType,\ \textcolor{keyword}{typename}\ ValidatorT,\ \textcolor{keyword}{typename}\ ResultT,}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ Tuple>}
+\DoxyCodeLine{00084\ \ \ \textcolor{keyword}{struct\ }MockFnCaller;}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//\ specialization\ for\ std::tuple.}}
+\DoxyCodeLine{00087\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ MockFnType,\ \textcolor{keyword}{typename}\ ValidatorT,\ \textcolor{keyword}{typename}\ ResultT,}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00089\ \ \ \textcolor{keyword}{struct\ }MockFnCaller<MockFnType,\ ValidatorT,\ ResultT,\ \mbox{\hyperlink{namespacestd}{std}}::tuple<Args...>>\ \{}
+\DoxyCodeLine{00090\ \ \ \ \ MockFnType*\ fn;}
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{keyword}{inline}\ ResultT\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockingBitGenImpl_ad7f4aab9cd666a8a64f1c8add4858aff}{operator()}}(Args...\ args)\ \{}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ ResultT\ result\ =\ fn-\/>Call(args...);}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ ValidatorT::Validate(result,\ args...);}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00095\ \ \ \ \ \}}
+\DoxyCodeLine{00096\ \ \ \};}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ FunctionHolder\ owns\ a\ particular\ ::testing::MockFunction\ associated\ with}}
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ a\ mocked\ type\ signature,\ and\ implement\ the\ type-\/erased\ Apply\ call,\ which}}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ applies\ type-\/erased\ arguments\ to\ the\ mock.}}
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{class\ }FunctionHolder\ \{}
+\DoxyCodeLine{00102\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00103\ \ \ \ \ \textcolor{keyword}{virtual}\ \string~FunctionHolder()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{comment}{//\ Call\ is\ a\ dispatch\ function\ which\ converts\ the}}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{comment}{//\ generic\ type-\/erased\ parameters\ into\ a\ specific\ mock\ invocation\ call.}}
+\DoxyCodeLine{00107\ \ \ \ \ \textcolor{keyword}{virtual}\ \textcolor{keywordtype}{void}\ Apply(\textcolor{comment}{/*ArgTupleT*/}\ \textcolor{keywordtype}{void}*\ args\_tuple,}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*ResultT*/}\ \textcolor{keywordtype}{void}*\ result)\ =\ 0;}
+\DoxyCodeLine{00109\ \ \ \};}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ MockFnType,\ \textcolor{keyword}{typename}\ ValidatorT,\ \textcolor{keyword}{typename}\ ResultT,}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ ArgTupleT>}
+\DoxyCodeLine{00113\ \ \ \textcolor{keyword}{class\ }FunctionHolderImpl\ final\ :\ \textcolor{keyword}{public}\ FunctionHolder\ \{}
+\DoxyCodeLine{00114\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00115\ \ \ \ \ \textcolor{keywordtype}{void}\ Apply(\textcolor{keywordtype}{void}*\ args\_tuple,\ \textcolor{keywordtype}{void}*\ result)\ \textcolor{keyword}{final}\ \{}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \textcolor{comment}{//\ Requires\ tuple\_args\ to\ point\ to\ a\ ArgTupleT,\ which\ is\ a}}
+\DoxyCodeLine{00117\ \ \ \ \ \ \ \textcolor{comment}{//\ std::tuple<Args...>\ used\ to\ invoke\ the\ mock\ function.\ Requires\ result}}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ \textcolor{comment}{//\ to\ point\ to\ a\ ResultT,\ which\ is\ the\ result\ of\ the\ call.}}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ *\textcolor{keyword}{static\_cast<}ResultT*\textcolor{keyword}{>}(result)\ =\ \mbox{\hyperlink{namespaceabsl_aa05586667a215a68e80f7decee9d06ce}{absl::apply}}(}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ \ \ \ \ MockFnCaller<MockFnType,\ ValidatorT,\ ResultT,\ ArgTupleT>\{\&mock\_fn\_\},}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \ \ \ \ *\textcolor{keyword}{static\_cast<}ArgTupleT*\textcolor{keyword}{>}(args\_tuple));}
+\DoxyCodeLine{00122\ \ \ \ \ \}}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \ \ \ \ MockFnType\ mock\_fn\_;}
+\DoxyCodeLine{00125\ \ \ \};}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \textcolor{comment}{//\ MockingBitGen::RegisterMock}}
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ RegisterMock<ResultT,\ ArgTupleT>(FastTypeIdType)\ is\ the\ main\ extension}}
+\DoxyCodeLine{00130\ \ \ \textcolor{comment}{//\ point\ for\ extending\ the\ MockingBitGen\ framework.\ It\ provides\ a\ mechanism\ to}}
+\DoxyCodeLine{00131\ \ \ \textcolor{comment}{//\ install\ a\ mock\ expectation\ for\ a\ function\ like\ ResultT(Args...)\ keyed\ by}}
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ type\_idex\ onto\ the\ MockingBitGen\ context.\ The\ key\ is\ that\ the\ type\_index}}
+\DoxyCodeLine{00133\ \ \ \textcolor{comment}{//\ used\ to\ register\ must\ match\ the\ type\ index\ used\ to\ call\ the\ mock.}}
+\DoxyCodeLine{00134\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00135\ \ \ \textcolor{comment}{//\ The\ returned\ MockFunction<...>\ type\ can\ be\ used\ to\ setup\ additional}}
+\DoxyCodeLine{00136\ \ \ \textcolor{comment}{//\ distribution\ parameters\ of\ the\ expectation.}}
+\DoxyCodeLine{00137\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ResultT,\ \textcolor{keyword}{typename}\ ArgTupleT,\ \textcolor{keyword}{typename}\ SelfT,}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ ValidatorT>}
+\DoxyCodeLine{00139\ \ \ \textcolor{keyword}{auto}\ RegisterMock(SelfT\&,\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ac4232b348046a6a9bc30dc6817174faa}{base\_internal::FastTypeIdType}}\ type,\ ValidatorT)}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ -\/>\ \textcolor{keyword}{decltype}(GetMockFnType(std::declval<ResultT>(),}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<ArgTupleT>()))\&\ \{}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keyword}{using\ }ActualValidatorT\ =}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \ \ std::conditional\_t<EnableValidation,\ ValidatorT,\ NoOpValidator>;}
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{keyword}{using\ }MockFnType\ =\ \textcolor{keyword}{decltype}(GetMockFnType(std::declval<ResultT>(),}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<ArgTupleT>()));}
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{keyword}{using\ }WrappedFnType\ =\ \mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{absl::conditional\_t}}<}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \ \ std::is\_same<SelfT,\ ::testing::NiceMock<MockingBitGenImpl>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \ \ ::testing::NiceMock<MockFnType>,}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{absl::conditional\_t}}<}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<SelfT,\ ::testing::NaggyMock<MockingBitGenImpl>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ \ \ \ \ ::testing::NaggyMock<MockFnType>,}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{absl::conditional\_t}}<}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<SelfT,}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::testing::StrictMock<MockingBitGenImpl>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::testing::StrictMock<MockFnType>,\ MockFnType>>>;}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keyword}{using\ }ImplT\ =}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ FunctionHolderImpl<WrappedFnType,\ ActualValidatorT,\ ResultT,\ ArgTupleT>;}
+\DoxyCodeLine{00160\ \ \ \ \ \textcolor{keyword}{auto}\&\ mock\ =\ mocks\_[\mbox{\hyperlink{namespacefineweb_a8695301745cad3a63cfe73f8f67ebf3d}{type}}];}
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keywordflow}{if}\ (!mock)\ \{}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ mock\ =\ absl::make\_unique<ImplT>();}
+\DoxyCodeLine{00163\ \ \ \ \ \}}
+\DoxyCodeLine{00164\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}ImplT*\textcolor{keyword}{>}(mock.get())-\/>mock\_fn\_;}
+\DoxyCodeLine{00165\ \ \ \}}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \ \ \textcolor{comment}{//\ MockingBitGen::InvokeMock}}
+\DoxyCodeLine{00168\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00169\ \ \ \textcolor{comment}{//\ InvokeMock(FastTypeIdType,\ args,\ result)\ is\ the\ entrypoint\ for\ invoking}}
+\DoxyCodeLine{00170\ \ \ \textcolor{comment}{//\ mocks\ registered\ on\ MockingBitGen.}}
+\DoxyCodeLine{00171\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00172\ \ \ \textcolor{comment}{//\ When\ no\ mocks\ are\ registered\ on\ the\ provided\ FastTypeIdType,\ returns\ false.}}
+\DoxyCodeLine{00173\ \ \ \textcolor{comment}{//\ Otherwise\ attempts\ to\ invoke\ the\ mock\ function\ ResultT(Args...)\ that}}
+\DoxyCodeLine{00174\ \ \ \textcolor{comment}{//\ was\ previously\ registered\ via\ the\ type\_index.}}
+\DoxyCodeLine{00175\ \ \ \textcolor{comment}{//\ Requires\ tuple\_args\ to\ point\ to\ a\ ArgTupleT,\ which\ is\ a\ std::tuple<Args...>}}
+\DoxyCodeLine{00176\ \ \ \textcolor{comment}{//\ used\ to\ invoke\ the\ mock\ function.}}
+\DoxyCodeLine{00177\ \ \ \textcolor{comment}{//\ Requires\ result\ to\ point\ to\ a\ ResultT,\ which\ is\ the\ result\ of\ the\ call.}}
+\DoxyCodeLine{00178\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ InvokeMock(\mbox{\hyperlink{namespaceabsl_1_1base__internal_ac4232b348046a6a9bc30dc6817174faa}{base\_internal::FastTypeIdType}}\ type,\ \textcolor{keywordtype}{void}*\ args\_tuple,}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ result)\ \{}
+\DoxyCodeLine{00180\ \ \ \ \ \textcolor{comment}{//\ Trigger\ a\ mock,\ if\ there\ exists\ one\ that\ matches\ \`{}param`.}}
+\DoxyCodeLine{00181\ \ \ \ \ \textcolor{keyword}{auto}\ it\ =\ mocks\_.find(type);}
+\DoxyCodeLine{00182\ \ \ \ \ \textcolor{keywordflow}{if}\ (it\ ==\ mocks\_.end())\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00183\ \ \ \ \ it-\/>second-\/>Apply(args\_tuple,\ result);}
+\DoxyCodeLine{00184\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00185\ \ \ \}}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \ \ \mbox{\hyperlink{classabsl_1_1flat__hash__map}{absl::flat\_hash\_map}}<\mbox{\hyperlink{namespaceabsl_1_1base__internal_ac4232b348046a6a9bc30dc6817174faa}{base\_internal::FastTypeIdType}},}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::unique\_ptr<FunctionHolder>>}
+\DoxyCodeLine{00189\ \ \ \ \ \ \ mocks\_;}
+\DoxyCodeLine{00190\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1NonsecureURBGBase}{absl::BitGen}}\ gen\_;}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}>}
+\DoxyCodeLine{00193\ \ \ \textcolor{keyword}{friend}\ struct\ ::absl::random\_internal::DistributionCaller;\ \ \textcolor{comment}{//\ for\ InvokeMock}}
+\DoxyCodeLine{00194\ \ \ \textcolor{keyword}{friend}\ class\ ::absl::BitGenRef;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ for\ InvokeMock}}
+\DoxyCodeLine{00195\ \ \ \textcolor{keyword}{friend}\ class\ ::absl::random\_internal::MockHelpers;\ \ \textcolor{comment}{//\ for\ RegisterMock,}}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ InvokeMock}}
+\DoxyCodeLine{00197\ \};}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ \}\ \ \textcolor{comment}{//\ namespace\ random\_internal}}
+\DoxyCodeLine{00200\ }
+\DoxyCodeLine{00201\ \textcolor{comment}{//\ MockingBitGen}}
+\DoxyCodeLine{00202\ \textcolor{comment}{//}}
+\DoxyCodeLine{00203\ \textcolor{comment}{//\ \`{}absl::MockingBitGen`\ is\ a\ mock\ Uniform\ Random\ Bit\ Generator\ (URBG)\ class}}
+\DoxyCodeLine{00204\ \textcolor{comment}{//\ which\ can\ act\ in\ place\ of\ an\ \`{}absl::BitGen`\ URBG\ within\ tests\ using\ the}}
+\DoxyCodeLine{00205\ \textcolor{comment}{//\ Googletest\ testing\ framework.}}
+\DoxyCodeLine{00206\ \textcolor{comment}{//}}
+\DoxyCodeLine{00207\ \textcolor{comment}{//\ Usage:}}
+\DoxyCodeLine{00208\ \textcolor{comment}{//}}
+\DoxyCodeLine{00209\ \textcolor{comment}{//\ Use\ an\ \`{}absl::MockingBitGen`\ along\ with\ a\ mock\ distribution\ object\ (within}}
+\DoxyCodeLine{00210\ \textcolor{comment}{//\ mock\_distributions.h)\ inside\ Googletest\ constructs\ such\ as\ ON\_CALL(),}}
+\DoxyCodeLine{00211\ \textcolor{comment}{//\ EXPECT\_TRUE(),\ etc.\ to\ produce\ deterministic\ results\ conforming\ to\ the}}
+\DoxyCodeLine{00212\ \textcolor{comment}{//\ distribution's\ API\ contract.}}
+\DoxyCodeLine{00213\ \textcolor{comment}{//}}
+\DoxyCodeLine{00214\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00215\ \textcolor{comment}{//}}
+\DoxyCodeLine{00216\ \textcolor{comment}{//\ \ //\ Mock\ a\ call\ to\ an\ \`{}absl::Bernoulli`\ distribution\ using\ Googletest}}
+\DoxyCodeLine{00217\ \textcolor{comment}{//\ \ \ absl::MockingBitGen\ bitgen;}}
+\DoxyCodeLine{00218\ \textcolor{comment}{//}}
+\DoxyCodeLine{00219\ \textcolor{comment}{//\ \ \ ON\_CALL(absl::MockBernoulli(),\ Call(bitgen,\ 0.5))}}
+\DoxyCodeLine{00220\ \textcolor{comment}{//\ \ \ \ \ \ \ .WillByDefault(testing::Return(true));}}
+\DoxyCodeLine{00221\ \textcolor{comment}{//\ \ \ EXPECT\_TRUE(absl::Bernoulli(bitgen,\ 0.5));}}
+\DoxyCodeLine{00222\ \textcolor{comment}{//}}
+\DoxyCodeLine{00223\ \textcolor{comment}{//\ \ //\ Mock\ a\ call\ to\ an\ \`{}absl::Uniform`\ distribution\ within\ Googletest}}
+\DoxyCodeLine{00224\ \textcolor{comment}{//\ \ absl::MockingBitGen\ bitgen;}}
+\DoxyCodeLine{00225\ \textcolor{comment}{//}}
+\DoxyCodeLine{00226\ \textcolor{comment}{//\ \ \ ON\_CALL(absl::MockUniform<int>(),\ Call(bitgen,\ testing::\_,\ testing::\_))}}
+\DoxyCodeLine{00227\ \textcolor{comment}{//\ \ \ \ \ \ \ .WillByDefault([]\ (int\ low,\ int\ high)\ \{}}
+\DoxyCodeLine{00228\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ return\ low\ +\ (high\ -\/\ low)\ /\ 2;}}
+\DoxyCodeLine{00229\ \textcolor{comment}{//\ \ \ \ \ \ \ \});}}
+\DoxyCodeLine{00230\ \textcolor{comment}{//}}
+\DoxyCodeLine{00231\ \textcolor{comment}{//\ \ \ EXPECT\_EQ(absl::Uniform<int>(gen,\ 0,\ 10),\ 5);}}
+\DoxyCodeLine{00232\ \textcolor{comment}{//\ \ \ EXPECT\_EQ(absl::Uniform<int>(gen,\ 30,\ 40),\ 35);}}
+\DoxyCodeLine{00233\ \textcolor{comment}{//}}
+\DoxyCodeLine{00234\ \textcolor{comment}{//\ At\ this\ time,\ only\ mock\ distributions\ supplied\ within\ the\ Abseil\ random}}
+\DoxyCodeLine{00235\ \textcolor{comment}{//\ library\ are\ officially\ supported.}}
+\DoxyCodeLine{00236\ \textcolor{comment}{//}}
+\DoxyCodeLine{00237\ \textcolor{comment}{//\ EXPECT\_CALL\ and\ ON\_CALL\ need\ to\ be\ made\ within\ the\ same\ DLL\ component\ as}}
+\DoxyCodeLine{00238\ \textcolor{comment}{//\ the\ call\ to\ absl::Uniform\ and\ related\ methods,\ otherwise\ mocking\ will\ fail}}
+\DoxyCodeLine{00239\ \textcolor{comment}{//\ since\ the\ \ underlying\ implementation\ creates\ a\ type-\/specific\ pointer\ which}}
+\DoxyCodeLine{00240\ \textcolor{comment}{//\ will\ be\ distinct\ across\ different\ DLL\ boundaries.}}
+\DoxyCodeLine{00241\ \textcolor{comment}{//}}
+\DoxyCodeLine{00242\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_acfb50251de64dfc102e53484a21ba857}{MockingBitGen}}\ =\ random\_internal::MockingBitGenImpl<true>;}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \textcolor{comment}{//\ UnvalidatedMockingBitGen}}
+\DoxyCodeLine{00245\ \textcolor{comment}{//}}
+\DoxyCodeLine{00246\ \textcolor{comment}{//\ UnvalidatedMockingBitGen\ is\ a\ variant\ of\ MockingBitGen\ which\ does\ no\ extra}}
+\DoxyCodeLine{00247\ \textcolor{comment}{//\ validation.}}
+\DoxyCodeLine{00248\ \textcolor{keyword}{using\ }UnvalidatedMockingBitGen\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ab9d9672cd14cd241c68cc25f39f50529}{ABSL\_DEPRECATED}}(\textcolor{stringliteral}{"{}Use\ MockingBitGen\ instead"{}})\ =}
+\DoxyCodeLine{00249\ \ \ \ \ random\_internal::MockingBitGenImpl<false>;}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00251\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00252\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00253\ }
+\DoxyCodeLine{00254\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_RANDOM\_MOCKING\_BIT\_GEN\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,133 @@
+\doxysection{low\+\_\+level\+\_\+alloc.\+h}
+\hypertarget{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8h_source}{}\label{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8h_source}\index{abseil-\/cpp/absl/base/internal/low\_level\_alloc.h@{abseil-\/cpp/absl/base/internal/low\_level\_alloc.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_LOW\_LEVEL\_ALLOC\_H\_}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_LOW\_LEVEL\_ALLOC\_H\_}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ A\ simple\ thread-\/safe\ memory\ allocator\ that\ does\ not\ depend\ on}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ mutexes\ or\ thread-\/specific\ data.\ \ It\ is\ intended\ to\ be\ used}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ sparingly,\ and\ only\ when\ malloc()\ would\ introduce\ an\ unwanted}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ dependency,\ such\ as\ inside\ the\ heap-\/checker,\ or\ the\ Mutex}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ implementation.}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ IWYU\ pragma:\ private,\ include\ "{}base/low\_level\_alloc.h"{}}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <sys/types.h>}}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ LowLevelAlloc\ requires\ that\ the\ platform\ support\ low-\/level}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ allocation\ of\ virtual\ memory.\ Platforms\ lacking\ this\ cannot\ use}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ LowLevelAlloc.}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#ifdef\ ABSL\_LOW\_LEVEL\_ALLOC\_MISSING}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#error\ ABSL\_LOW\_LEVEL\_ALLOC\_MISSING\ cannot\ be\ directly\ set}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#elif\ !defined(ABSL\_HAVE\_MMAP)\ \&\&\ !defined(\_WIN32)}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ ABSL\_LOW\_LEVEL\_ALLOC\_MISSING\ 1}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ Using\ LowLevelAlloc\ with\ kAsyncSignalSafe\ isn't\ supported\ on\ Windows\ or}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ asm.js\ /\ WebAssembly.}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ See\ https://kripken.github.io/emscripten-\/site/docs/porting/pthreads.html}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ for\ more\ information.}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#ifdef\ ABSL\_LOW\_LEVEL\_ALLOC\_ASYNC\_SIGNAL\_SAFE\_MISSING}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#error\ ABSL\_LOW\_LEVEL\_ALLOC\_ASYNC\_SIGNAL\_SAFE\_MISSING\ cannot\ be\ directly\ set}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#elif\ defined(\_WIN32)\ ||\ defined(\_\_asmjs\_\_)\ ||\ defined(\_\_wasm\_\_)\ ||\ \(\backslash\)}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\ \ \ \ defined(\_\_hexagon\_\_)}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#define\ ABSL\_LOW\_LEVEL\_ALLOC\_ASYNC\_SIGNAL\_SAFE\_MISSING\ 1}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#include\ "{}absl/base/port.h"{}}}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00059\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00060\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{keyword}{class\ }LowLevelAlloc\ \{}
+\DoxyCodeLine{00063\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00064\ \ \ \textcolor{keyword}{struct\ }Arena;\ \ \ \ \ \ \ \textcolor{comment}{//\ an\ arena\ from\ which\ memory\ may\ be\ allocated}}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ Returns\ a\ pointer\ to\ a\ block\ of\ at\ least\ "{}request"{}\ bytes}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ that\ have\ been\ newly\ allocated\ from\ the\ specific\ arena.}}
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//\ for\ Alloc()\ call\ the\ DefaultArena()\ is\ used.}}
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ Returns\ 0\ if\ passed\ request==0.}}
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//\ Does\ not\ return\ 0\ under\ other\ circumstances;\ it\ crashes\ if\ memory}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ is\ not\ available.}}
+\DoxyCodeLine{00072\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ *\mbox{\hyperlink{classabsl_1_1base__internal_1_1LowLevelAlloc_a828a7b358441c8536f7bb486c3b422eb}{Alloc}}(\textcolor{keywordtype}{size\_t}\ request)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ac6ad508649e389bbdbe0e5483d46edc2}{ABSL\_ATTRIBUTE\_SECTION}}(malloc\_hook);}
+\DoxyCodeLine{00073\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ *\mbox{\hyperlink{classabsl_1_1base__internal_1_1LowLevelAlloc_a76db89c0f91f9b36c64647b3a67ef1ca}{AllocWithArena}}(\textcolor{keywordtype}{size\_t}\ request,\ Arena\ *\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a07c34e40db1cc998b6c21e23f6390aa4}{arena}})}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ac6ad508649e389bbdbe0e5483d46edc2}{ABSL\_ATTRIBUTE\_SECTION}}(malloc\_hook);}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ Deallocates\ a\ region\ of\ memory\ that\ was\ previously\ allocated\ with}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ Alloc().\ \ \ Does\ nothing\ if\ passed\ 0.\ \ \ "{}s"{}\ must\ be\ either\ 0,}}
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ or\ must\ have\ been\ returned\ from\ a\ call\ to\ Alloc()\ and\ not\ yet\ passed\ to}}
+\DoxyCodeLine{00079\ \ \ \textcolor{comment}{//\ Free()\ since\ that\ call\ to\ Alloc().\ \ The\ space\ is\ returned\ to\ the\ arena}}
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ from\ which\ it\ was\ allocated.}}
+\DoxyCodeLine{00081\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1LowLevelAlloc_ac30893025fd9bf0bea5df8a9c566f9b8}{Free}}(\textcolor{keywordtype}{void}\ *\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ac6ad508649e389bbdbe0e5483d46edc2}{ABSL\_ATTRIBUTE\_SECTION}}(malloc\_hook);}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{//\ ABSL\_ATTRIBUTE\_SECTION(malloc\_hook)\ for\ Alloc*\ and\ Free}}
+\DoxyCodeLine{00084\ \ \ \textcolor{comment}{//\ are\ to\ put\ all\ callers\ of\ MallocHook::Invoke*\ in\ this\ module}}
+\DoxyCodeLine{00085\ \ \ \textcolor{comment}{//\ into\ special\ section,}}
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//\ so\ that\ MallocHook::GetCallerStackTrace\ can\ function\ accurately.}}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ Create\ a\ new\ arena.}}
+\DoxyCodeLine{00089\ \ \ \textcolor{comment}{//\ The\ root\ metadata\ for\ the\ new\ arena\ is\ allocated\ in\ the}}
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ meta\_data\_arena;\ the\ DefaultArena()\ can\ be\ passed\ for\ meta\_data\_arena.}}
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ These\ values\ may\ be\ ored\ into\ flags:}}
+\DoxyCodeLine{00092\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{comment}{//\ Report\ calls\ to\ Alloc()\ and\ Free()\ via\ the\ MallocHook\ interface.}}
+\DoxyCodeLine{00094\ \ \ \ \ \textcolor{comment}{//\ Set\ in\ the\ DefaultArena.}}
+\DoxyCodeLine{00095\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1LowLevelAlloc_aa67d16cf06bf014185df3da077416ea3a36941fd5747eed2e52b02ea04172f653}{kCallMallocHook}}\ =\ 0x0001,}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\#ifndef\ ABSL\_LOW\_LEVEL\_ALLOC\_ASYNC\_SIGNAL\_SAFE\_MISSING}}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{comment}{//\ Make\ calls\ to\ Alloc(),\ Free()\ be\ async-\/signal-\/safe.\ Not\ set\ in}}
+\DoxyCodeLine{00099\ \ \ \ \ \textcolor{comment}{//\ DefaultArena().\ Not\ supported\ on\ all\ platforms.}}
+\DoxyCodeLine{00100\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1LowLevelAlloc_aa67d16cf06bf014185df3da077416ea3a0ee2614ee2be75081662c9515464fbb9}{kAsyncSignalSafe}}\ =\ 0x0002,}
+\DoxyCodeLine{00101\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00102\ \ \ \};}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ Construct\ a\ new\ arena.\ \ The\ allocation\ of\ the\ underlying\ metadata\ honors}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ the\ provided\ flags.\ \ For\ example,\ the\ call\ NewArena(kAsyncSignalSafe)}}
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ is\ itself\ async-\/signal-\/safe,\ as\ well\ as\ generatating\ an\ arena\ that\ provides}}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ async-\/signal-\/safe\ Alloc/Free.}}
+\DoxyCodeLine{00107\ \ \ \textcolor{keyword}{static}\ Arena\ *\mbox{\hyperlink{classabsl_1_1base__internal_1_1LowLevelAlloc_a7d4a9602b6cb93211a8356a62e5130d1}{NewArena}}(uint32\_t\ \mbox{\hyperlink{namespaceabsl_1_1flags__internal}{flags}});}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ Destroys\ an\ arena\ allocated\ by\ NewArena\ and\ returns\ true,}}
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ provided\ no\ allocated\ blocks\ remain\ in\ the\ arena.}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ If\ allocated\ blocks\ remain\ in\ the\ arena,\ does\ nothing\ and}}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//\ returns\ false.}}
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ It\ is\ illegal\ to\ attempt\ to\ destroy\ the\ DefaultArena().}}
+\DoxyCodeLine{00114\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1LowLevelAlloc_af3b66bb104f1768922547ff87632897b}{DeleteArena}}(Arena\ *\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a07c34e40db1cc998b6c21e23f6390aa4}{arena}});}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ The\ default\ arena\ that\ always\ exists.}}
+\DoxyCodeLine{00117\ \ \ \textcolor{keyword}{static}\ Arena\ *\mbox{\hyperlink{classabsl_1_1base__internal_1_1LowLevelAlloc_a739c0221ee14ef8f60bdf40c7e3ba7cf}{DefaultArena}}();}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00120\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1LowLevelAlloc}{LowLevelAlloc}}();\ \ \ \ \ \ \textcolor{comment}{//\ no\ instances}}
+\DoxyCodeLine{00121\ \};}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00124\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00125\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_LOW\_LEVEL\_ALLOC\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,883 @@
+\doxysection{nn.\+hpp}
+\hypertarget{OriginalStuff_2nn_8hpp_source}{}\label{OriginalStuff_2nn_8hpp_source}\index{OriginalStuff/nn.hpp@{OriginalStuff/nn.hpp}}
+\mbox{\hyperlink{OriginalStuff_2nn_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ LLM\_CPP\_\_NN\_HPP\_}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ LLM\_CPP\_\_NN\_HPP\_}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <unistd.h>}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <iomanip>}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ <iostream>}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#include\ <random>}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{OriginalStuff_2llmc_2rand_8h}{llmc/rand.h}}"{}}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp}{tensor\_util.hpp}}"{}}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{comment}{/*\ \#include\ "{}absl/algorithm/container.h"{}}}
+\DoxyCodeLine{00015\ \textcolor{comment}{\#include\ "{}absl/log/check.h"{}}}
+\DoxyCodeLine{00016\ \textcolor{comment}{\#include\ "{}absl/log/log.h"{}}}
+\DoxyCodeLine{00017\ \textcolor{comment}{\#include\ "{}absl/strings/string\_view.h"{}}}
+\DoxyCodeLine{00018\ \textcolor{comment}{\#include\ "{}absl/types/span.h"{}\ */}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2algorithm_2container_8h}{abseil-\/cpp/absl/algorithm/container.h}}"{}}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2log_2check_8h}{abseil-\/cpp/absl/log/check.h}}"{}}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2log_2log_8h}{abseil-\/cpp/absl/log/log.h}}"{}}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2strings_2string__view_8h}{abseil-\/cpp/absl/strings/string\_view.h}}"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2types_2span_8h}{abseil-\/cpp/absl/types/span.h}}"{}}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespacenn}{nn}}\ \{}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_GPU}}
+\DoxyCodeLine{00030\ Eigen::GpuStreamDevice\ g\_stream;}
+\DoxyCodeLine{00031\ Eigen::GpuDevice\ g\_device(\&g\_stream);}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00033\ \mbox{\hyperlink{classEigen_1_1ThreadPoolTempl}{Eigen::ThreadPool}}\ \mbox{\hyperlink{namespacenn_aceb3ca07330f23a6bffe93e606fcc6d8}{g\_thread\_pool}}(16\ \textcolor{comment}{/*\ number\ of\ threads\ in\ pool\ */});}
+\DoxyCodeLine{00034\ Eigen::ThreadPoolDevice\ g\_device(\&\mbox{\hyperlink{namespacenn_aceb3ca07330f23a6bffe93e606fcc6d8}{g\_thread\_pool}},}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 12\ \textcolor{comment}{/*\ number\ of\ threads\ to\ use\ */});}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \mbox{\hyperlink{structmt19937__state}{mt19937\_state}}\ \mbox{\hyperlink{namespacenn_ac7b27125b312174adc4f7f9a3f478e76}{g\_mt19937\_state}};}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespacenn_af51d93c61a072d59ba2e321b7fac681c}{ManualSeed}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ seed)\ \{}
+\DoxyCodeLine{00041\ \ \ \mbox{\hyperlink{llmc_2rand_8h_ab64d400dcc18bac40a0c38b316caa406}{manual\_seed}}(\&\mbox{\hyperlink{namespacenn_ac7b27125b312174adc4f7f9a3f478e76}{g\_mt19937\_state}},\ seed);}
+\DoxyCodeLine{00042\ \}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespacenn_afd34dfbb2119f475e4582064af7a06f0}{ConstantFill}}(\mbox{\hyperlink{classabsl_1_1Span}{absl::Span<float>}}\ weight,\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}})\ \{}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_GPU}}
+\DoxyCodeLine{00046\ \ \ std::vector<float>\ w(weight.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00047\ \ \ g\_device.memcpyHostToDevice(weight.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ w.data(),}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})\ *\ w.size());}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00050\ \ \ \mbox{\hyperlink{namespaceabsl_a1b228348b0d7cd46a5d9a1d4daf702cb}{absl::c\_fill}}(weight,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00052\ \}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespacenn_aa7f7fc1fcad89e0745dbae4bfad4d356}{UniformFill}}(\mbox{\hyperlink{classabsl_1_1Span}{absl::Span<float>}}\ weight,\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a66a6152caa0d2dec6985ed86838ba876}{from}}\ =\ 0.0,}
+\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a633ab603a49d0a046734a0f3e6de45e9}{to}}\ =\ 1.0)\ \{}
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_GPU}}
+\DoxyCodeLine{00057\ \ \ std::vector<float>\ w(weight.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00058\ \ \ \mbox{\hyperlink{llmc_2rand_8h_aaf0aeafba5647f2ad3bb2cae66e5ed44}{uniform\_}}(w.data(),\ w.size(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a66a6152caa0d2dec6985ed86838ba876}{from}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a633ab603a49d0a046734a0f3e6de45e9}{to}},\ \&\mbox{\hyperlink{namespacenn_ac7b27125b312174adc4f7f9a3f478e76}{g\_mt19937\_state}});}
+\DoxyCodeLine{00059\ \ \ g\_device.memcpyHostToDevice(weight.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ w.data(),}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})\ *\ w.size());}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00062\ \ \ \mbox{\hyperlink{llmc_2rand_8h_aaf0aeafba5647f2ad3bb2cae66e5ed44}{uniform\_}}(weight.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ weight.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a66a6152caa0d2dec6985ed86838ba876}{from}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a633ab603a49d0a046734a0f3e6de45e9}{to}},\ \&\mbox{\hyperlink{namespacenn_ac7b27125b312174adc4f7f9a3f478e76}{g\_mt19937\_state}});}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00064\ \}}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespacenn_a7a0bfd75fc17c62ba9e681cd3d346efc}{NormalFill}}(\mbox{\hyperlink{classabsl_1_1Span}{absl::Span<float>}}\ weight,\ \textcolor{keywordtype}{float}\ mean\ =\ 0.0,}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{namespacestd}{std}}\ =\ 1.0)\ \{}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_GPU}}
+\DoxyCodeLine{00069\ \ \ std::vector<float>\ w(weight.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00070\ \ \ \mbox{\hyperlink{llmc_2rand_8h_a486e23d6acb57456d73173c03f66a052}{normal\_}}(w.data(),\ w.size(),\ mean,\ \mbox{\hyperlink{namespacestd}{std}},\ \&\mbox{\hyperlink{namespacenn_ac7b27125b312174adc4f7f9a3f478e76}{g\_mt19937\_state}});}
+\DoxyCodeLine{00071\ \ \ g\_device.memcpyHostToDevice(weight.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ w.data(),}
+\DoxyCodeLine{00072\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})\ *\ w.size());}
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00074\ \ \ \mbox{\hyperlink{llmc_2rand_8h_a486e23d6acb57456d73173c03f66a052}{normal\_}}(weight.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ weight.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}(),\ mean,\ \mbox{\hyperlink{namespacestd}{std}},\ \&\mbox{\hyperlink{namespacenn_ac7b27125b312174adc4f7f9a3f478e76}{g\_mt19937\_state}});}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00076\ \}}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespacenn_a5268109b8c87089a840f743713f8781f}{KaimingUniformFill}}(\mbox{\hyperlink{classabsl_1_1Span}{absl::Span<float>}}\ weight,\ \textcolor{keywordtype}{int}\ in\_features)\ \{}
+\DoxyCodeLine{00079\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ bound\ =\ std::sqrt(1.0f\ /\ in\_features);}
+\DoxyCodeLine{00080\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_GPU}}
+\DoxyCodeLine{00081\ \ \ std::vector<float>\ w(weight.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00082\ \ \ \mbox{\hyperlink{llmc_2rand_8h_aaf0aeafba5647f2ad3bb2cae66e5ed44}{uniform\_}}(w.data(),\ w.size(),\ -\/bound,\ bound,\ \&\mbox{\hyperlink{namespacenn_ac7b27125b312174adc4f7f9a3f478e76}{g\_mt19937\_state}});}
+\DoxyCodeLine{00083\ \ \ g\_device.memcpyHostToDevice(weight.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ w.data(),}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})\ *\ w.size());}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00086\ \ \ \mbox{\hyperlink{llmc_2rand_8h_aaf0aeafba5647f2ad3bb2cae66e5ed44}{uniform\_}}(weight.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ weight.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}(),\ -\/bound,\ bound,\ \&\mbox{\hyperlink{namespacenn_ac7b27125b312174adc4f7f9a3f478e76}{g\_mt19937\_state}});}
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00088\ \}}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespacenn_acb3bf801e394f195e8cece47de7b5311}{UpperTriangularWithNegativeInf}}(}
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<float>::Matrix}}\ matrix)\ \{}
+\DoxyCodeLine{00092\ \ \ \textcolor{keyword}{using\ }MatrixXf\ =}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1Matrix}{Eigen::Matrix<float,\ Eigen::Dynamic,\ Eigen::Dynamic,\ Eigen::RowMajor>}};}
+\DoxyCodeLine{00094\ \ \ MatrixXf\ m\ =\ MatrixXf::Zero(matrix.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0),\ matrix.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00095\ \ \ m.triangularView<\mbox{\hyperlink{group__enums_gga39e3366ff5554d731e7dc8bb642f83cdae38aad7d66fecfb213fce453edff4c7a}{Eigen::StrictlyUpper}}>().setConstant(}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ -\/std::numeric\_limits<float>::infinity());}
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_GPU}}
+\DoxyCodeLine{00098\ \ \ g\_device.memcpyHostToDevice(matrix.\mbox{\hyperlink{classEigen_1_1TensorMap_a735ad83edfacfcb9173e59ed861e6bbf}{data}}(),\ m.\mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorReadOnly_a9be5f49eeb9fb048cc4f036588a41fc5}{data}}(),}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})\ *\ matrix.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00100\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00101\ \ \ g\_device.memcpy(matrix.\mbox{\hyperlink{classEigen_1_1TensorMap_a735ad83edfacfcb9173e59ed861e6bbf}{data}}(),\ m.\mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorReadOnly_a9be5f49eeb9fb048cc4f036588a41fc5}{data}}(),\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})\ *\ matrix.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00102\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00103\ \}}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespacenn_ace7109b820ab3e99ec8c4fbfe7c0f13e}{OntHot}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<int>::ConstFlat}}\ target,}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<float>::Matrix}}\ label)\ \{}
+\DoxyCodeLine{00107\ \ \ \textcolor{keywordtype}{int}\ batch\_size\ =\ target.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}(),\ num\_class\ =\ label.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1);}
+\DoxyCodeLine{00108\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(batch\_size,\ label.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00109\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ batch\_size;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{keywordtype}{int}\ ix\ =\ target(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{00111\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a4bd2e815ca2f702a4b6aa744b1ff3b82}{CHECK\_LT}}(ix,\ num\_class);}
+\DoxyCodeLine{00112\ \ \ \ \ label(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ ix)\ =\ 1.0f;}
+\DoxyCodeLine{00113\ \ \ \}}
+\DoxyCodeLine{00114\ \}}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \textcolor{keyword}{inline}\ std::pair<int,\ int>\ \mbox{\hyperlink{namespacenn_a2b75086de2e32662267822633e0399d7}{SplitRange}}(\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a3fab45bb4d7cd7e889bdf00080096e8e}{total}},\ \textcolor{keywordtype}{int}\ idx,\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ \{}
+\DoxyCodeLine{00117\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a5cda5c90c4e51bbe6611e423fd9c176f}{q}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a3fab45bb4d7cd7e889bdf00080096e8e}{total}}\ /\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00118\ \ \ \textcolor{keywordtype}{int}\ r\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a3fab45bb4d7cd7e889bdf00080096e8e}{total}}\ \%\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00119\ \ \ \textcolor{keywordflow}{if}\ (idx\ <\ r)\ \{}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keywordflow}{return}\ \{(\mbox{\hyperlink{namespaceEigen_1_1numext_a5cda5c90c4e51bbe6611e423fd9c176f}{q}}\ +\ 1)\ *\ idx,\ (q\ +\ 1)\ *\ (idx\ +\ 1)\};}
+\DoxyCodeLine{00121\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{namespaceEigen_1_1numext_a5cda5c90c4e51bbe6611e423fd9c176f}{q}}\ *\ idx\ +\ r,\ \mbox{\hyperlink{namespaceEigen_1_1numext_a5cda5c90c4e51bbe6611e423fd9c176f}{q}}\ *\ (idx\ +\ 1)\ +\ r\};}
+\DoxyCodeLine{00123\ \ \ \}}
+\DoxyCodeLine{00124\ \}}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \textcolor{keyword}{enum}\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcf}{DataType}}\ :\ \textcolor{keywordtype}{int}\ \{\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfa619d8e532169cd16e25ef103f28e3213}{DT\_FLOAT}}\ =\ 1,\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfae00f2994306b9bd91c2165b87d5502f3}{DT\_HALF}}\ =\ 2,\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfa6a6aeedaa380640cdd4933339270f7cd}{DT\_INT32}}\ =\ 3\ \};}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ Validates\ type\ T\ for\ whether\ it\ is\ a\ supported\ DataType.}}
+\DoxyCodeLine{00129\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00130\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1IsValidDataType}{IsValidDataType}};}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \textcolor{comment}{//\ DataTypeToEnum<T>::v()\ and\ DataTypeToEnum<T>::value\ are\ the\ DataType}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ constants\ for\ T,\ e.g.\ DataTypeToEnum<float>::v()\ is\ DT\_FLOAT.}}
+\DoxyCodeLine{00134\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00135\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum}}\ \{}
+\DoxyCodeLine{00136\ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{structnn_1_1IsValidDataType}{IsValidDataType<T>::value}},\ \textcolor{stringliteral}{"{}Specified\ Data\ Type\ not\ supported"{}});}
+\DoxyCodeLine{00137\ \};\ \ \textcolor{comment}{//\ Specializations\ below}}
+\DoxyCodeLine{00138\ }
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ EnumToDataType<VALUE>::Type\ is\ the\ type\ for\ DataType\ constant\ VALUE,\ e.g.}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//\ EnumToDataType<DT\_FLOAT>::Type\ is\ float.}}
+\DoxyCodeLine{00141\ \textcolor{keyword}{template}\ <DataType\ VALUE>}
+\DoxyCodeLine{00142\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1EnumToDataType}{EnumToDataType}}\ \{\};\ \ \textcolor{comment}{//\ Specializations\ below}}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ Template\ specialization\ for\ both\ DataTypeToEnum\ and\ EnumToDataType.}}
+\DoxyCodeLine{00145\ \textcolor{preprocessor}{\#define\ MATCH\_TYPE\_AND\_ENUM(TYPE,\ ENUM)\ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00146\ \textcolor{preprocessor}{\ \ template\ <>\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00147\ \textcolor{preprocessor}{\ \ struct\ DataTypeToEnum<TYPE>\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00148\ \textcolor{preprocessor}{\ \ \ \ static\ DataType\ v()\ \{\ return\ ENUM;\ \}\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00149\ \textcolor{preprocessor}{\ \ \ \ static\ constexpr\ DataType\ value\ =\ ENUM;\ \(\backslash\)}}
+\DoxyCodeLine{00150\ \textcolor{preprocessor}{\ \ \};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00151\ \textcolor{preprocessor}{\ \ template\ <>\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00152\ \textcolor{preprocessor}{\ \ struct\ IsValidDataType<TYPE>\ \{\ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00153\ \textcolor{preprocessor}{\ \ \ \ static\ constexpr\ bool\ value\ =\ true;\ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00154\ \textcolor{preprocessor}{\ \ \};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00155\ \textcolor{preprocessor}{\ \ template\ <>\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00156\ \textcolor{preprocessor}{\ \ struct\ EnumToDataType<ENUM>\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00157\ \textcolor{preprocessor}{\ \ \ \ typedef\ TYPE\ Type;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00158\ \textcolor{preprocessor}{\ \ \}}}
+\DoxyCodeLine{00159\ }
+\DoxyCodeLine{00160\ \mbox{\hyperlink{Parameter_8hpp_ab7cf30991ed49f035a787185466250cc}{MATCH\_TYPE\_AND\_ENUM}}(\textcolor{keywordtype}{float},\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfa619d8e532169cd16e25ef103f28e3213}{DT\_FLOAT}});}
+\DoxyCodeLine{00161\ \mbox{\hyperlink{Parameter_8hpp_ab7cf30991ed49f035a787185466250cc}{MATCH\_TYPE\_AND\_ENUM}}(\mbox{\hyperlink{structEigen_1_1half}{Eigen::half}},\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfae00f2994306b9bd91c2165b87d5502f3}{DT\_HALF}});}
+\DoxyCodeLine{00162\ \mbox{\hyperlink{Parameter_8hpp_ab7cf30991ed49f035a787185466250cc}{MATCH\_TYPE\_AND\_ENUM}}(\textcolor{keywordtype}{int},\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfa6a6aeedaa380640cdd4933339270f7cd}{DT\_INT32}});}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \textcolor{comment}{//\ Parameter\ weight\ and\ its\ corresponding\ gradient}}
+\DoxyCodeLine{00165\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1Parameter}{Parameter}}\ \{}
+\DoxyCodeLine{00166\ \ \ \mbox{\hyperlink{structnn_1_1Parameter_a583c2b74827af48d9677855299ba15cb}{Parameter}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structnn_1_1Parameter}{Parameter}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00167\ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{Parameter}}\&\ \mbox{\hyperlink{structnn_1_1Parameter_a18e03a33c68df7e4b79cb02e9d25aed8}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structnn_1_1Parameter}{Parameter}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00168\ }
+\DoxyCodeLine{00169\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structnn_1_1Parameter_ad48cb3449bf14e55ef9ee3bbc1185040}{Parameter}}(\mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcf}{DataType}}\ dtype,\ int64\_t\ num\_element\ =\ 0)}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ :\ dtype\_(dtype),}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ \ \ num\_element\_(num\_element),}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ data\_(nullptr),}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ grad\_(nullptr)\ \{}
+\DoxyCodeLine{00174\ \ \ \ \ \textcolor{keywordflow}{if}\ (num\_element)\ \{}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter_a1ee1215e818b6f398934b9813c0fa03d}{LazyAllocate}}(num\_element);}
+\DoxyCodeLine{00176\ \ \ \ \ \}}
+\DoxyCodeLine{00177\ \ \ \}}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \ \ \mbox{\hyperlink{structnn_1_1Parameter_aca04f2db8d48672f0d9ffaff4cd04341}{\string~Parameter}}()\ \{}
+\DoxyCodeLine{00180\ \ \ \ \ \textcolor{keywordflow}{if}\ (data\_\ !=\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ g\_device.deallocate(data\_);}
+\DoxyCodeLine{00182\ \ \ \ \ \}}
+\DoxyCodeLine{00183\ \ \ \ \ \textcolor{keywordflow}{if}\ (grad\_\ !=\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ g\_device.deallocate(grad\_);}
+\DoxyCodeLine{00185\ \ \ \ \ \}}
+\DoxyCodeLine{00186\ \ \ \}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ int64\_t\ \mbox{\hyperlink{structnn_1_1Parameter_af39913537c8c3d6b71377c3df9333b56}{size}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ num\_element\_;\ \}}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00190\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Parameter_a1ee1215e818b6f398934b9813c0fa03d}{LazyAllocate}}(\textcolor{keywordtype}{int}\ num\_element)\ \{}
+\DoxyCodeLine{00191\ \ \ \ \ \textcolor{keywordflow}{if}\ (data\_\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ data\_\ =\ Allocate(dtype\_,\ num\_element);}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ Zero(data\_,\ dtype\_,\ num\_element);}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ num\_element\_\ =\ num\_element;}
+\DoxyCodeLine{00195\ \ \ \ \ \}}
+\DoxyCodeLine{00196\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(num\_element,\ num\_element\_);}
+\DoxyCodeLine{00197\ \ \ \}}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Parameter_ae5946d86c24b338dc5c0592637a97259}{LazyAllocateGradient}}()\ \{}
+\DoxyCodeLine{00200\ \ \ \ \ \textcolor{keywordflow}{if}\ (grad\_\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7e03ec13560fa94a8fea569960d7efc6}{CHECK\_GT}}(num\_element\_,\ 0);}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ grad\_\ =\ Allocate(dtype\_,\ num\_element\_);}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ Zero(grad\_,\ dtype\_,\ num\_element\_);}
+\DoxyCodeLine{00204\ \ \ \ \ \}}
+\DoxyCodeLine{00205\ \ \ \}}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Parameter_ad146b3bd6d2d220409ea0cf5aebfe2eb}{ZeroData}}()\ \{}
+\DoxyCodeLine{00208\ \ \ \ \ \textcolor{keywordflow}{if}\ (data\_\ !=\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ Zero(data\_,\ dtype\_,\ num\_element\_);}
+\DoxyCodeLine{00210\ \ \ \ \ \}}
+\DoxyCodeLine{00211\ \ \ \}}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Parameter_a52db062016881a2cb90535351c4377ef}{ZeroGrad}}()\ \{}
+\DoxyCodeLine{00214\ \ \ \ \ \textcolor{keywordflow}{if}\ (grad\_\ !=\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00215\ \ \ \ \ \ \ Zero(grad\_,\ dtype\_,\ num\_element\_);}
+\DoxyCodeLine{00216\ \ \ \ \ \}}
+\DoxyCodeLine{00217\ \ \ \}}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00220\ \ \ T*\ \mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00221\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}T*\textcolor{keyword}{>}(data\_);}
+\DoxyCodeLine{00222\ \ \ \}}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00225\ \ \ T*\ \mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}T*\textcolor{keyword}{>}(grad\_);}
+\DoxyCodeLine{00227\ \ \ \}}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00230\ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<T>}}\ \mbox{\hyperlink{structnn_1_1Parameter_abe781e9cb2ab94df0e45ce4adf20d56d}{span}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00231\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00232\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data<T>}}(),\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(num\_element\_)\};}
+\DoxyCodeLine{00233\ \ \ \}}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00235\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00236\ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<T>}}\ \mbox{\hyperlink{structnn_1_1Parameter_a26d35841294de83ed2f9a64525d1420b}{span\_grad}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00237\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad<T>}}(),\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(num\_element\_)\};}
+\DoxyCodeLine{00239\ \ \ \}}
+\DoxyCodeLine{00240\ }
+\DoxyCodeLine{00241\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00242\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Flat}}\ \mbox{\hyperlink{structnn_1_1Parameter_a6f0e1ddc221a505c43c7abf5bcf439ee}{flat}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00243\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data<T>}}(),\ num\_element\_\};}
+\DoxyCodeLine{00245\ \ \ \}}
+\DoxyCodeLine{00246\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00247\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstFlat}}\ \mbox{\hyperlink{structnn_1_1Parameter_ac0ee4086c327b580089e3df17177c295}{const\_flat}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00248\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00249\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data<T>}}(),\ num\_element\_\};}
+\DoxyCodeLine{00250\ \ \ \}}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00252\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00253\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ \mbox{\hyperlink{structnn_1_1Parameter_a57425fbc922f81c2d9ef81287c29b24e}{matrix}}(\textcolor{keywordtype}{int}\ rows,\ \textcolor{keywordtype}{int}\ cols)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00254\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00255\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(rows\ *\ cols,\ num\_element\_);}
+\DoxyCodeLine{00256\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data<T>}}(),\ rows,\ cols\};}
+\DoxyCodeLine{00257\ \ \ \}}
+\DoxyCodeLine{00258\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00259\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ \mbox{\hyperlink{structnn_1_1Parameter_ad9ef295d080c627b955acbf5b25b78a9}{const\_matrix}}(\textcolor{keywordtype}{int}\ rows,\ \textcolor{keywordtype}{int}\ cols)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00260\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00261\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(rows\ *\ cols,\ num\_element\_);}
+\DoxyCodeLine{00262\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data<T>}}(),\ rows,\ cols\};}
+\DoxyCodeLine{00263\ \ \ \}}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00266\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T,\ 3>::Tensor}}\ \mbox{\hyperlink{structnn_1_1Parameter_a0225855097608608bd9d4e1df866126c}{tensor\_3d}}(\textcolor{keywordtype}{int}\ dim0,\ \textcolor{keywordtype}{int}\ dim1,\ \textcolor{keywordtype}{int}\ dim2)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00267\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00268\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(dim0\ *\ dim1\ *\ dim2,\ num\_element\_);}
+\DoxyCodeLine{00269\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data<T>}}(),\ dim0,\ dim1,\ dim2\};}
+\DoxyCodeLine{00270\ \ \ \}}
+\DoxyCodeLine{00271\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00272\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T,\ 3>::ConstTensor}}\ \mbox{\hyperlink{structnn_1_1Parameter_a7c03f7343425f14757e8921a2cc5d13d}{const\_tensor\_3d}}(\textcolor{keywordtype}{int}\ dim0,\ \textcolor{keywordtype}{int}\ dim1,}
+\DoxyCodeLine{00273\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dim2)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00274\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00275\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(dim0\ *\ dim1\ *\ dim2,\ num\_element\_);}
+\DoxyCodeLine{00276\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data<T>}}(),\ dim0,\ dim1,\ dim2\};}
+\DoxyCodeLine{00277\ \ \ \}}
+\DoxyCodeLine{00278\ }
+\DoxyCodeLine{00279\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00280\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T,\ 4>::Tensor}}\ \mbox{\hyperlink{structnn_1_1Parameter_a96fd7a8f8ff1890afc82c16006105642}{tensor\_4d}}(\textcolor{keywordtype}{int}\ dim0,\ \textcolor{keywordtype}{int}\ dim1,\ \textcolor{keywordtype}{int}\ dim2,}
+\DoxyCodeLine{00281\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dim3)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00282\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00283\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(dim0\ *\ dim1\ *\ dim2\ *\ dim3,\ num\_element\_);}
+\DoxyCodeLine{00284\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data<T>}}(),\ dim0,\ dim1,\ dim2,\ dim3\};}
+\DoxyCodeLine{00285\ \ \ \}}
+\DoxyCodeLine{00286\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00287\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T,\ 4>::ConstTensor}}\ \mbox{\hyperlink{structnn_1_1Parameter_a2fe94f0c8a72286208dbd447419f7fd0}{const\_tensor\_4d}}(\textcolor{keywordtype}{int}\ dim0,\ \textcolor{keywordtype}{int}\ dim1,}
+\DoxyCodeLine{00288\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dim2,\ \textcolor{keywordtype}{int}\ dim3)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00289\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00290\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(dim0\ *\ dim1\ *\ dim2\ *\ dim3,\ num\_element\_);}
+\DoxyCodeLine{00291\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data<T>}}(),\ dim0,\ dim1,\ dim2,\ dim3\};}
+\DoxyCodeLine{00292\ \ \ \}}
+\DoxyCodeLine{00293\ }
+\DoxyCodeLine{00294\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00295\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Flat}}\ \mbox{\hyperlink{structnn_1_1Parameter_adc5d7e335fd359c4abaa49579c66bd72}{flat\_grad}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00296\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00297\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad<T>}}(),\ num\_element\_\};}
+\DoxyCodeLine{00298\ \ \ \}}
+\DoxyCodeLine{00299\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00300\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstFlat}}\ \mbox{\hyperlink{structnn_1_1Parameter_a6d0ae2b005bfc890d7d8b72798dcc43a}{const\_flat\_grad}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00301\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00302\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad<T>}}(),\ num\_element\_\};}
+\DoxyCodeLine{00303\ \ \ \}}
+\DoxyCodeLine{00304\ }
+\DoxyCodeLine{00305\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00306\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ \mbox{\hyperlink{structnn_1_1Parameter_a9b7a7795983465be2eb5cb5546cd63a3}{matrix\_grad}}(\textcolor{keywordtype}{int}\ rows,\ \textcolor{keywordtype}{int}\ cols)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00307\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00308\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(rows\ *\ cols,\ num\_element\_);}
+\DoxyCodeLine{00309\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad<T>}}(),\ rows,\ cols\};}
+\DoxyCodeLine{00310\ \ \ \}}
+\DoxyCodeLine{00311\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00312\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ \mbox{\hyperlink{structnn_1_1Parameter_a1510411a8f4221a6e163896c7e586f90}{const\_matrix\_grad}}(\textcolor{keywordtype}{int}\ rows,\ \textcolor{keywordtype}{int}\ cols)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00313\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00314\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(rows\ *\ cols,\ num\_element\_);}
+\DoxyCodeLine{00315\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad<T>}}(),\ rows,\ cols\};}
+\DoxyCodeLine{00316\ \ \ \}}
+\DoxyCodeLine{00317\ }
+\DoxyCodeLine{00318\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00319\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T,\ 3>::Tensor}}\ \mbox{\hyperlink{structnn_1_1Parameter_a83ee4857383ef5f5e62de7529498d43e}{tensor\_3d\_grad}}(\textcolor{keywordtype}{int}\ dim0,\ \textcolor{keywordtype}{int}\ dim1,}
+\DoxyCodeLine{00320\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dim2)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00321\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00322\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(dim0\ *\ dim1\ *\ dim2,\ num\_element\_);}
+\DoxyCodeLine{00323\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad<T>}}(),\ dim0,\ dim1,\ dim2\};}
+\DoxyCodeLine{00324\ \ \ \}}
+\DoxyCodeLine{00325\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00326\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T,\ 3>::ConstTensor}}\ \mbox{\hyperlink{structnn_1_1Parameter_ae9da6b86774d2ff46dfbd89c432c12e4}{const\_tensor\_3d\_grad}}(\textcolor{keywordtype}{int}\ dim0,\ \textcolor{keywordtype}{int}\ dim1,}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dim2)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00328\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00329\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(dim0\ *\ dim1\ *\ dim2,\ num\_element\_);}
+\DoxyCodeLine{00330\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad<T>}}(),\ dim0,\ dim1,\ dim2\};}
+\DoxyCodeLine{00331\ \ \ \}}
+\DoxyCodeLine{00332\ }
+\DoxyCodeLine{00333\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00334\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T,\ 4>::Tensor}}\ \mbox{\hyperlink{structnn_1_1Parameter_ad1e84918801072e188a3c683f668e5cf}{tensor\_4d\_grad}}(\textcolor{keywordtype}{int}\ dim0,\ \textcolor{keywordtype}{int}\ dim1,\ \textcolor{keywordtype}{int}\ dim2,}
+\DoxyCodeLine{00335\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dim3)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00336\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00337\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(dim0\ *\ dim1\ *\ dim2\ *\ dim3,\ num\_element\_);}
+\DoxyCodeLine{00338\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad<T>}}(),\ dim0,\ dim1,\ dim2,\ dim3\};}
+\DoxyCodeLine{00339\ \ \ \}}
+\DoxyCodeLine{00340\ }
+\DoxyCodeLine{00341\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00342\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T,\ 4>::ConstTensor}}\ \mbox{\hyperlink{structnn_1_1Parameter_a64181c4853cb79169680bbf4bce05f3d}{const\_tensor\_4d\_grad}}(\textcolor{keywordtype}{int}\ dim0,\ \textcolor{keywordtype}{int}\ dim1,}
+\DoxyCodeLine{00343\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dim2,}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ dim3)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00345\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}},\ dtype\_);}
+\DoxyCodeLine{00346\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(dim0\ *\ dim1\ *\ dim2\ *\ dim3,\ num\_element\_);}
+\DoxyCodeLine{00347\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{structnn_1_1Parameter_a41ce5efd7f501301e59858c3edd7904a}{grad<T>}}(),\ dim0,\ dim1,\ dim2,\ dim3\};}
+\DoxyCodeLine{00348\ \ \ \}}
+\DoxyCodeLine{00349\ }
+\DoxyCodeLine{00350\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00351\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}*\ Allocate(\mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcf}{DataType}}\ dtype,\ int64\_t\ num\_element)\ \{}
+\DoxyCodeLine{00352\ \ \ \ \ \textcolor{keywordflow}{if}\ (dtype\ ==\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfa619d8e532169cd16e25ef103f28e3213}{DT\_FLOAT}})\ \{}
+\DoxyCodeLine{00353\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ g\_device.allocate(\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})\ *\ num\_element);}
+\DoxyCodeLine{00354\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (dtype\ ==\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfae00f2994306b9bd91c2165b87d5502f3}{DT\_HALF}})\ \{}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ g\_device.allocate(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1half}{Eigen::half}})\ *\ num\_element);}
+\DoxyCodeLine{00356\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00357\ \ \ \ \ \ \ \textcolor{keywordflow}{throw}\ std::invalid\_argument(\textcolor{stringliteral}{"{}invalid\ data\ type:\ "{}}\ +}
+\DoxyCodeLine{00358\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::to\_string(dtype));}
+\DoxyCodeLine{00359\ \ \ \ \ \}}
+\DoxyCodeLine{00360\ \ \ \}}
+\DoxyCodeLine{00361\ }
+\DoxyCodeLine{00362\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ Zero(\textcolor{keywordtype}{void}*\ \mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data}},\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcf}{DataType}}\ dtype,\ int64\_t\ num\_element)\ \{}
+\DoxyCodeLine{00363\ \ \ \ \ \textcolor{keywordflow}{if}\ (dtype\ ==\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfa619d8e532169cd16e25ef103f28e3213}{DT\_FLOAT}})\ \{}
+\DoxyCodeLine{00364\ \ \ \ \ \ \ g\_device.memset(\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data}},\ 0,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})\ *\ num\_element);}
+\DoxyCodeLine{00365\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (dtype\ ==\ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfae00f2994306b9bd91c2165b87d5502f3}{DT\_HALF}})\ \{}
+\DoxyCodeLine{00366\ \ \ \ \ \ \ g\_device.memset(\mbox{\hyperlink{structnn_1_1Parameter_a7f4e7a8af36cef820ae8c05c943af2e5}{data}},\ 0,\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1half}{Eigen::half}})\ *\ num\_element);}
+\DoxyCodeLine{00367\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00368\ \ \ \ \ \ \ \textcolor{keywordflow}{throw}\ std::invalid\_argument(\textcolor{stringliteral}{"{}invalid\ data\ type:\ "{}}\ +}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::to\_string(dtype));}
+\DoxyCodeLine{00370\ \ \ \ \ \}}
+\DoxyCodeLine{00371\ \ \ \}}
+\DoxyCodeLine{00372\ }
+\DoxyCodeLine{00373\ \ \ \mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcf}{DataType}}\ dtype\_;}
+\DoxyCodeLine{00374\ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_a26035668345422b5f30be2124b0b6f6e}{int64\_t}}\ num\_element\_;}
+\DoxyCodeLine{00375\ \ \ \textcolor{keywordtype}{void}*\ data\_;}
+\DoxyCodeLine{00376\ \ \ \textcolor{keywordtype}{void}*\ grad\_;}
+\DoxyCodeLine{00377\ \};}
+\DoxyCodeLine{00378\ }
+\DoxyCodeLine{00379\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespacenn_a15e2232b24a304936a0f3d6452ab7095}{Activation}}\ =\ Parameter;}
+\DoxyCodeLine{00380\ }
+\DoxyCodeLine{00381\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1MatMul}{MatMul}}\ \{}
+\DoxyCodeLine{00382\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structnn_1_1MatMul_a64937ece43bd2e55440ff29d940cdb9a}{T}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00383\ }
+\DoxyCodeLine{00384\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1MatMul_a8d05ee55fe5c544993b4371333300e78}{Forward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ x1,}
+\DoxyCodeLine{00385\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ x2,}
+\DoxyCodeLine{00386\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ y,\ \mbox{\hyperlink{structnn_1_1MatMul_a64937ece43bd2e55440ff29d940cdb9a}{T}}\ scale\ =\ 1.0f)\ \{}
+\DoxyCodeLine{00387\ \ \ \ \ \textcolor{comment}{//\ x:\ [M,\ N],\ x2:\ [N,\ K],\ y:\ [M,\ K]}}
+\DoxyCodeLine{00388\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x1.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0),\ y.dimension(0));}
+\DoxyCodeLine{00389\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x1.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1),\ x2.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00390\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x2.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1),\ y.dimension(1));}
+\DoxyCodeLine{00391\ }
+\DoxyCodeLine{00392\ \ \ \ \ \textcolor{comment}{//\ y\ =\ x1\ *\ x2}}
+\DoxyCodeLine{00393\ \ \ \ \ \textcolor{comment}{//\ \ \ \ y.noalias()\ =\ x1\ *\ x2;}}
+\DoxyCodeLine{00394\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::IndexPair<int>}},\ 1>\ product\_dims\ =\ \{}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1IndexPair}{Eigen::IndexPair<int>}}(1,\ 0)\};}
+\DoxyCodeLine{00396\ \ \ \ \ y.device(g\_device)\ =\ x1.contract(x2,\ product\_dims)\ *\ scale;}
+\DoxyCodeLine{00397\ \ \ \}}
+\DoxyCodeLine{00398\ }
+\DoxyCodeLine{00399\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1MatMul_aeb87efe916cb0309e67f3957ba6628a1}{Backward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ x1,}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ x2,}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ y\_grad,}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ x1\_grad,}
+\DoxyCodeLine{00403\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ x2\_grad,\ \mbox{\hyperlink{structnn_1_1MatMul_a64937ece43bd2e55440ff29d940cdb9a}{T}}\ scale\ =\ 1.0)\ \{}
+\DoxyCodeLine{00404\ \ \ \ \ \textcolor{comment}{//\ input:}}
+\DoxyCodeLine{00405\ \ \ \ \ \textcolor{comment}{//\ x1:\ [M,\ N],\ x2:[N,\ K]}}
+\DoxyCodeLine{00406\ \ \ \ \ \textcolor{comment}{//\ y\_grad:\ [M,\ K]}}
+\DoxyCodeLine{00407\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00408\ \ \ \ \ \textcolor{comment}{//\ output:}}
+\DoxyCodeLine{00409\ \ \ \ \ \textcolor{comment}{//\ x1\_grad:\ [M,\ N],\ x2\_grad:\ [N,\ K]}}
+\DoxyCodeLine{00410\ \ \ \ \ \textcolor{keywordtype}{int}\ M\ =\ x1.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0),\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ =\ x1.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1),\ K\ =\ x2.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1);}
+\DoxyCodeLine{00411\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(M\ ==\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0)\ \&\&\ M\ ==\ x1\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00412\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ ==\ x2.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0)\ \&\&\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ ==\ x1\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1)\ \&\&}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ ==\ x2\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00414\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(K\ ==\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1)\ \&\&\ K\ ==\ x2\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00415\ }
+\DoxyCodeLine{00416\ \ \ \ \ \textcolor{comment}{//\ x1\_grad\ =\ dL/dy\ *\ dy/dx1}}
+\DoxyCodeLine{00417\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ y\_grad(M,\ K)\ *\ x2\string^T\ (K,\ N)}}
+\DoxyCodeLine{00418\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ [M,\ N]}}
+\DoxyCodeLine{00419\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::IndexPair<int>}},\ 1>\ product\_dims\ =\ \{}
+\DoxyCodeLine{00420\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1IndexPair}{Eigen::IndexPair<int>}}(1,\ 1)\};}
+\DoxyCodeLine{00421\ \ \ \ \ x1\_grad.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ +=\ y\_grad.contract(x2,\ product\_dims)\ *\ scale;}
+\DoxyCodeLine{00422\ }
+\DoxyCodeLine{00423\ \ \ \ \ \textcolor{comment}{//\ x2\_grad\ =\ dL/dy\ *\ dy/dx2}}
+\DoxyCodeLine{00424\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ x1\string^T(N,\ M)\ *\ y\_grad(M,\ K)}}
+\DoxyCodeLine{00425\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ [N,\ K]}}
+\DoxyCodeLine{00426\ }
+\DoxyCodeLine{00427\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::IndexPair<int>}},\ 1>\ product\_dims2\ =\ \{}
+\DoxyCodeLine{00428\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1IndexPair}{Eigen::IndexPair<int>}}(0,\ 0)\};}
+\DoxyCodeLine{00429\ \ \ \ \ x2\_grad.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ +=\ x1.contract(y\_grad,\ product\_dims2)\ *\ scale;}
+\DoxyCodeLine{00430\ \ \ \}}
+\DoxyCodeLine{00431\ \};}
+\DoxyCodeLine{00432\ }
+\DoxyCodeLine{00433\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1Residual}{Residual}}\ \{}
+\DoxyCodeLine{00434\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structnn_1_1Residual_a6058419c871cad6d7ec56982369bc57a}{T}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00435\ }
+\DoxyCodeLine{00436\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Residual_a4891550c91057f4f56dd81242f62893d}{Forward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstFlat}}\ x,}
+\DoxyCodeLine{00437\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstFlat}}\ Fx,}
+\DoxyCodeLine{00438\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Flat}}\ Hx)\ \{}
+\DoxyCodeLine{00439\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ =\ x.size();}
+\DoxyCodeLine{00440\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ ==\ Fx.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}()\ \&\&\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ ==\ Hx.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00441\ }
+\DoxyCodeLine{00442\ \ \ \ \ \textcolor{comment}{//\ H(x)\ =\ x\ +\ F(x)\ -\/>\ F(x)\ =\ H(x)\ -\/\ x}}
+\DoxyCodeLine{00443\ \ \ \ \ Hx.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ =\ x\ +\ Fx;}
+\DoxyCodeLine{00444\ \ \ \}}
+\DoxyCodeLine{00445\ }
+\DoxyCodeLine{00446\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Residual_a99d49a6ebe5268051e6de48f423e2a43}{Backward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstFlat}}\ Hx\_grad,}
+\DoxyCodeLine{00447\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Flat}}\ x\_grad,}
+\DoxyCodeLine{00448\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Flat}}\ Fx\_grad)\ \{}
+\DoxyCodeLine{00449\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ =\ Hx\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}();}
+\DoxyCodeLine{00450\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ ==\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}()\ \&\&\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ ==\ Fx\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00451\ }
+\DoxyCodeLine{00452\ \ \ \ \ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ +=\ Hx\_grad;}
+\DoxyCodeLine{00453\ \ \ \ \ Fx\_grad.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ +=\ Hx\_grad;}
+\DoxyCodeLine{00454\ \ \ \}}
+\DoxyCodeLine{00455\ \};}
+\DoxyCodeLine{00456\ }
+\DoxyCodeLine{00457\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1Linear}{Linear}}\ \{}
+\DoxyCodeLine{00458\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structnn_1_1Linear_a08e89584cfce3229c870cb1048261bd0}{T}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00459\ }
+\DoxyCodeLine{00460\ \ \ \mbox{\hyperlink{structnn_1_1Linear_a34d599cf91de5e85d30162cecab1201d}{Linear}}(\textcolor{keywordtype}{int}\ in\_features,\ \textcolor{keywordtype}{int}\ out\_features,\ \textcolor{keywordtype}{bool}\ bias\ =\ \textcolor{keyword}{true})}
+\DoxyCodeLine{00461\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structnn_1_1Linear_ae00df6b4cbb5e5f6f47f710fdc2c3c70}{in\_features\_}}(in\_features),}
+\DoxyCodeLine{00462\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}}(out\_features),}
+\DoxyCodeLine{00463\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Linear_a72bd5097d6212d9c40124b2a9112aea7}{has\_bias\_}}(bias)\ \{}
+\DoxyCodeLine{00464\ \ \ \ \ \textcolor{keyword}{auto}\ dtype\ =\ \mbox{\hyperlink{structnn_1_1DataTypeToEnum}{DataTypeToEnum<T>::value}};}
+\DoxyCodeLine{00465\ \ \ \ \ \mbox{\hyperlink{structnn_1_1Linear_aabbd0988c06e326f03daa1be44de1124}{weight\_}}\ =\ std::make\_unique<Parameter>(dtype,\ out\_features\ *\ in\_features);}
+\DoxyCodeLine{00466\ \ \ \ \ \mbox{\hyperlink{namespacenn_a5268109b8c87089a840f743713f8781f}{KaimingUniformFill}}(\mbox{\hyperlink{structnn_1_1Linear_aabbd0988c06e326f03daa1be44de1124}{weight\_}}-\/>span<\mbox{\hyperlink{structnn_1_1Linear_a08e89584cfce3229c870cb1048261bd0}{T}}>(),\ in\_features);}
+\DoxyCodeLine{00467\ \ \ \ \ \textcolor{keywordflow}{if}\ (bias)\ \{}
+\DoxyCodeLine{00468\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Linear_a13d4f763b63f1e09d54a491a0cccfe6c}{bias\_}}\ =\ std::make\_unique<Parameter>(dtype,\ out\_features);}
+\DoxyCodeLine{00469\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ bound\ =\ 1.0f\ /\ std::sqrt(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}\textcolor{keyword}{>}(in\_features));}
+\DoxyCodeLine{00470\ \ \ \ \ \ \ \mbox{\hyperlink{namespacenn_aa7f7fc1fcad89e0745dbae4bfad4d356}{UniformFill}}(\mbox{\hyperlink{structnn_1_1Linear_a13d4f763b63f1e09d54a491a0cccfe6c}{bias\_}}-\/>span<\mbox{\hyperlink{structnn_1_1Linear_a08e89584cfce3229c870cb1048261bd0}{T}}>(),\ -\/bound,\ bound);}
+\DoxyCodeLine{00471\ \ \ \ \ \}}
+\DoxyCodeLine{00472\ \ \ \}}
+\DoxyCodeLine{00473\ }
+\DoxyCodeLine{00474\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Linear_a64e6ffe3fbc3c76826b715609a105b22}{Forward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ x,}
+\DoxyCodeLine{00475\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ y)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00476\ \ \ \ \ \textcolor{comment}{//\ x:\ [B,\ in\_features],\ y:\ [B,\ out\_features]}}
+\DoxyCodeLine{00477\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(1),\ \mbox{\hyperlink{structnn_1_1Linear_ae00df6b4cbb5e5f6f47f710fdc2c3c70}{in\_features\_}});}
+\DoxyCodeLine{00478\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(y.dimension(1),\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}});}
+\DoxyCodeLine{00479\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(0),\ y.dimension(0));}
+\DoxyCodeLine{00480\ \ \ \ \ \textcolor{keywordtype}{int}\ B\ =\ x.dimension(0);}
+\DoxyCodeLine{00481\ }
+\DoxyCodeLine{00482\ \ \ \ \ \textcolor{keyword}{auto}\ weight\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a30c79fba785f603a86fa02252305fbed}{MakeMatrix}}(\mbox{\hyperlink{structnn_1_1Linear_aabbd0988c06e326f03daa1be44de1124}{weight\_}}-\/>data<\mbox{\hyperlink{structnn_1_1Linear_a08e89584cfce3229c870cb1048261bd0}{T}}>(),\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}},\ \mbox{\hyperlink{structnn_1_1Linear_ae00df6b4cbb5e5f6f47f710fdc2c3c70}{in\_features\_}});}
+\DoxyCodeLine{00483\ \ \ \ \ \textcolor{comment}{//\ y\ =\ x\ *\ w\string^T\ +\ b}}
+\DoxyCodeLine{00484\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::IndexPair<int>}},\ 1>\ product\_dims\ =\ \{}
+\DoxyCodeLine{00485\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1IndexPair}{Eigen::IndexPair<int>}}(1,\ 1)\};}
+\DoxyCodeLine{00486\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structnn_1_1Linear_a72bd5097d6212d9c40124b2a9112aea7}{has\_bias\_}})\ \{}
+\DoxyCodeLine{00487\ \ \ \ \ \ \ \textcolor{keyword}{auto}\ bias\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structnn_1_1Linear_a13d4f763b63f1e09d54a491a0cccfe6c}{bias\_}}-\/>data<\mbox{\hyperlink{structnn_1_1Linear_a08e89584cfce3229c870cb1048261bd0}{T}}>(),\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}});}
+\DoxyCodeLine{00488\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<int,\ 2>}}\ batch\_by\_one\ =\ \{B,\ 1\},}
+\DoxyCodeLine{00489\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ one\_by\_out\ =\ \{1,\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}}\};}
+\DoxyCodeLine{00490\ \ \ \ \ \ \ y.device(g\_device)\ =\ x.contract(weight,\ product\_dims)\ +}
+\DoxyCodeLine{00491\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bias.reshape(one\_by\_out).broadcast(batch\_by\_one);}
+\DoxyCodeLine{00492\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00493\ \ \ \ \ \ \ y.device(g\_device)\ =\ x.contract(weight,\ product\_dims);}
+\DoxyCodeLine{00494\ \ \ \ \ \}}
+\DoxyCodeLine{00495\ \ \ \}}
+\DoxyCodeLine{00496\ }
+\DoxyCodeLine{00497\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Linear_adc5b2d2b9d62d9dca412db85ee72d7e1}{Backward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ x,}
+\DoxyCodeLine{00498\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ y\_grad,}
+\DoxyCodeLine{00499\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ x\_grad)\ \{}
+\DoxyCodeLine{00500\ \ \ \ \ \textcolor{comment}{//\ x:\ [B,\ in\_features],\ y\_grad:\ [B,\ out\_features],\ x\_grad:\ [B,\ in\_features]}}
+\DoxyCodeLine{00501\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(1),\ \mbox{\hyperlink{structnn_1_1Linear_ae00df6b4cbb5e5f6f47f710fdc2c3c70}{in\_features\_}});}
+\DoxyCodeLine{00502\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1),\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}});}
+\DoxyCodeLine{00503\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(0),\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00504\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(0),\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00505\ }
+\DoxyCodeLine{00506\ \ \ \ \ \textcolor{comment}{//\ Lazily\ allocate\ the\ memory\ for\ gradients}}
+\DoxyCodeLine{00507\ \ \ \ \ \mbox{\hyperlink{structnn_1_1Linear_aabbd0988c06e326f03daa1be44de1124}{weight\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00508\ \ \ \ \ \textcolor{keyword}{auto}\ weight\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a30c79fba785f603a86fa02252305fbed}{MakeMatrix}}(\mbox{\hyperlink{structnn_1_1Linear_aabbd0988c06e326f03daa1be44de1124}{weight\_}}-\/>data<\mbox{\hyperlink{structnn_1_1Linear_a08e89584cfce3229c870cb1048261bd0}{T}}>(),\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}},\ \mbox{\hyperlink{structnn_1_1Linear_ae00df6b4cbb5e5f6f47f710fdc2c3c70}{in\_features\_}});}
+\DoxyCodeLine{00509\ \ \ \ \ \textcolor{keyword}{auto}\ weight\_grad\ =}
+\DoxyCodeLine{00510\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a30c79fba785f603a86fa02252305fbed}{MakeMatrix}}(\mbox{\hyperlink{structnn_1_1Linear_aabbd0988c06e326f03daa1be44de1124}{weight\_}}-\/>grad<\mbox{\hyperlink{structnn_1_1Linear_a08e89584cfce3229c870cb1048261bd0}{T}}>(),\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}},\ \mbox{\hyperlink{structnn_1_1Linear_ae00df6b4cbb5e5f6f47f710fdc2c3c70}{in\_features\_}});}
+\DoxyCodeLine{00511\ }
+\DoxyCodeLine{00512\ \ \ \ \ \textcolor{comment}{//\ x\_grad\ =\ dL/dy\ *\ dy/dx}}
+\DoxyCodeLine{00513\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ y\_grad(B,\ out\_features)\ *\ W(out\_features,\ in\_features)}}
+\DoxyCodeLine{00514\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ [B,\ in\_features]}}
+\DoxyCodeLine{00515\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::IndexPair<int>}},\ 1>\ product\_dims\ =\ \{}
+\DoxyCodeLine{00516\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1IndexPair}{Eigen::IndexPair<int>}}(1,\ 0)\};}
+\DoxyCodeLine{00517\ \ \ \ \ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ +=\ y\_grad.contract(weight,\ product\_dims);}
+\DoxyCodeLine{00518\ }
+\DoxyCodeLine{00519\ \ \ \ \ \textcolor{comment}{//\ w\_grad\ =\ dL/dy\ *\ dy/dw}}
+\DoxyCodeLine{00520\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ y\_grad\string^T(out\_features,\ B)\ *\ x(B,\ in\_features)}}
+\DoxyCodeLine{00521\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ [out\_features,\ in\_features]}}
+\DoxyCodeLine{00522\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::IndexPair<int>}},\ 1>\ product\_dims2\ =\ \{}
+\DoxyCodeLine{00523\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1IndexPair}{Eigen::IndexPair<int>}}(0,\ 0)\};}
+\DoxyCodeLine{00524\ \ \ \ \ weight\_grad.device(g\_device)\ +=\ y\_grad.contract(x,\ product\_dims2);}
+\DoxyCodeLine{00525\ }
+\DoxyCodeLine{00526\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structnn_1_1Linear_a72bd5097d6212d9c40124b2a9112aea7}{has\_bias\_}})\ \{}
+\DoxyCodeLine{00527\ \ \ \ \ \ \ \textcolor{comment}{//\ b\_grad\ =\ dL/dy\ *\ dy/db}}
+\DoxyCodeLine{00528\ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ \(\backslash\)sum\_i\string^(B)(y\_grad(B,\ out\_features))}}
+\DoxyCodeLine{00529\ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ =\ [out\_features,]}}
+\DoxyCodeLine{00530\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Linear_a13d4f763b63f1e09d54a491a0cccfe6c}{bias\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00531\ \ \ \ \ \ \ \textcolor{keyword}{auto}\ bias\_grad\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structnn_1_1Linear_a13d4f763b63f1e09d54a491a0cccfe6c}{bias\_}}-\/>grad<\mbox{\hyperlink{structnn_1_1Linear_a08e89584cfce3229c870cb1048261bd0}{T}}>(),\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}});}
+\DoxyCodeLine{00532\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 1>}}\ along\_batch\ =\ \{0\};}
+\DoxyCodeLine{00533\ \ \ \ \ \ \ bias\_grad.device(g\_device)\ =\ y\_grad.sum(along\_batch);}
+\DoxyCodeLine{00534\ \ \ \ \ \}}
+\DoxyCodeLine{00535\ \ \ \}}
+\DoxyCodeLine{00536\ }
+\DoxyCodeLine{00537\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structnn_1_1Linear_a409875da04ee814f1da7847a261b0a8a}{NumParameters}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00538\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ num\_parameters\ =\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}}\ *\ \mbox{\hyperlink{structnn_1_1Linear_ae00df6b4cbb5e5f6f47f710fdc2c3c70}{in\_features\_}};}
+\DoxyCodeLine{00539\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structnn_1_1Linear_a72bd5097d6212d9c40124b2a9112aea7}{has\_bias\_}})\ \{}
+\DoxyCodeLine{00540\ \ \ \ \ \ \ num\_parameters\ +=\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}};}
+\DoxyCodeLine{00541\ \ \ \ \ \}}
+\DoxyCodeLine{00542\ }
+\DoxyCodeLine{00543\ \ \ \ \ \textcolor{keywordflow}{return}\ num\_parameters;}
+\DoxyCodeLine{00544\ \ \ \}}
+\DoxyCodeLine{00545\ }
+\DoxyCodeLine{00546\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structnn_1_1Linear_a604a0a510c6eed24be8b31b6d1e131b1}{NumActivations}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ 0;\ \}}
+\DoxyCodeLine{00547\ }
+\DoxyCodeLine{00548\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Linear_a2f1e0f7cef394d2a5f3988ade39de320}{Parameters}}(std::vector<Parameter*>*\ parameters)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00549\ \ \ \ \ parameters-\/>push\_back(\mbox{\hyperlink{structnn_1_1Linear_aabbd0988c06e326f03daa1be44de1124}{weight\_}}.get());}
+\DoxyCodeLine{00550\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structnn_1_1Linear_a72bd5097d6212d9c40124b2a9112aea7}{has\_bias\_}})\ \{}
+\DoxyCodeLine{00551\ \ \ \ \ \ \ parameters-\/>push\_back(\mbox{\hyperlink{structnn_1_1Linear_a13d4f763b63f1e09d54a491a0cccfe6c}{bias\_}}.get());}
+\DoxyCodeLine{00552\ \ \ \ \ \}}
+\DoxyCodeLine{00553\ \ \ \}}
+\DoxyCodeLine{00554\ }
+\DoxyCodeLine{00555\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structnn_1_1Linear_a72bd5097d6212d9c40124b2a9112aea7}{has\_bias\_}};}
+\DoxyCodeLine{00556\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structnn_1_1Linear_ae00df6b4cbb5e5f6f47f710fdc2c3c70}{in\_features\_}};}
+\DoxyCodeLine{00557\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structnn_1_1Linear_ab98234ba76a2c699c39cc42bf6039d47}{out\_features\_}};}
+\DoxyCodeLine{00558\ \ \ std::unique\_ptr<Parameter>\ \mbox{\hyperlink{structnn_1_1Linear_aabbd0988c06e326f03daa1be44de1124}{weight\_}};\ \ \textcolor{comment}{//\ out\_features\ x\ in\_features}}
+\DoxyCodeLine{00559\ \ \ std::unique\_ptr<Parameter>\ \mbox{\hyperlink{structnn_1_1Linear_a13d4f763b63f1e09d54a491a0cccfe6c}{bias\_}};\ \ \ \ \textcolor{comment}{//\ out\_features}}
+\DoxyCodeLine{00560\ \};}
+\DoxyCodeLine{00561\ }
+\DoxyCodeLine{00562\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1Embedding}{Embedding}}\ \{}
+\DoxyCodeLine{00563\ \ \ \mbox{\hyperlink{structnn_1_1Embedding_a63bb11f840116115c042f99771853944}{Embedding}}(\textcolor{keywordtype}{int}\ num\_embeddings,\ \textcolor{keywordtype}{int}\ embedding\_dim)}
+\DoxyCodeLine{00564\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structnn_1_1Embedding_a9aa76d7d0487450a2ca01c185b0375c1}{num\_embeddings\_}}(num\_embeddings),\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}}(embedding\_dim)\ \{}
+\DoxyCodeLine{00565\ \ \ \ \ \mbox{\hyperlink{structnn_1_1Embedding_a0e3855fe03f02d5bf6cd047fe476258a}{weight\_}}\ =}
+\DoxyCodeLine{00566\ \ \ \ \ \ \ \ \ std::make\_unique<Parameter>(\mbox{\hyperlink{namespacenn_afadc7a301a4a916a264a59541a7cbfcfa619d8e532169cd16e25ef103f28e3213}{DT\_FLOAT}},\ num\_embeddings\ *\ embedding\_dim);}
+\DoxyCodeLine{00567\ \ \ \ \ \mbox{\hyperlink{namespacenn_a7a0bfd75fc17c62ba9e681cd3d346efc}{NormalFill}}(\mbox{\hyperlink{structnn_1_1Embedding_a0e3855fe03f02d5bf6cd047fe476258a}{weight\_}}-\/>span<\textcolor{keywordtype}{float}>());}
+\DoxyCodeLine{00568\ \ \ \}}
+\DoxyCodeLine{00569\ }
+\DoxyCodeLine{00570\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Embedding_ae46671667b089b91f58428338b7097a4}{Forward}}(\mbox{\hyperlink{classabsl_1_1Span}{absl::Span<const\ int>}}\ idx,\ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<float>}}\ embedding)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00571\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(embedding.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}(),\ idx.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}()\ *\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}});}
+\DoxyCodeLine{00572\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ idx.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}();\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00573\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a4bd2e815ca2f702a4b6aa744b1ff3b82}{CHECK\_LT}}(idx[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}],\ \mbox{\hyperlink{structnn_1_1Embedding_a9aa76d7d0487450a2ca01c185b0375c1}{num\_embeddings\_}});}
+\DoxyCodeLine{00574\ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ dst\ =\ embedding.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}()\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ *\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}};}
+\DoxyCodeLine{00575\ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ src\ =\ \mbox{\hyperlink{structnn_1_1Embedding_a0e3855fe03f02d5bf6cd047fe476258a}{weight\_}}-\/>data<\textcolor{keywordtype}{float}>()\ +\ idx[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ *\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}};}
+\DoxyCodeLine{00576\ \ \ \ \ \ \ g\_device.memcpy(dst,\ src,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float})\ *\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}});}
+\DoxyCodeLine{00577\ \ \ \ \ \}}
+\DoxyCodeLine{00578\ \ \ \}}
+\DoxyCodeLine{00579\ }
+\DoxyCodeLine{00580\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Embedding_a427a7f4f7e77b6904e6fa19b373ebc34}{Backward}}(\mbox{\hyperlink{classabsl_1_1Span}{absl::Span<const\ int>}}\ idx,}
+\DoxyCodeLine{00581\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<const\ float>}}\ grad\_embedding)\ \{}
+\DoxyCodeLine{00582\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(grad\_embedding.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}(),\ idx.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}()\ *\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}});}
+\DoxyCodeLine{00583\ }
+\DoxyCodeLine{00584\ \ \ \ \ \textcolor{comment}{//\ Lazily\ allocate\ the\ memory\ for\ gradients}}
+\DoxyCodeLine{00585\ \ \ \ \ \mbox{\hyperlink{structnn_1_1Embedding_a0e3855fe03f02d5bf6cd047fe476258a}{weight\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00586\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ idx.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}();\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00587\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a4bd2e815ca2f702a4b6aa744b1ff3b82}{CHECK\_LT}}(idx[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}],\ \mbox{\hyperlink{structnn_1_1Embedding_a9aa76d7d0487450a2ca01c185b0375c1}{num\_embeddings\_}});}
+\DoxyCodeLine{00588\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}*\ g\ =\ grad\_embedding.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}()\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ *\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}};}
+\DoxyCodeLine{00589\ \ \ \ \ \ \ \textcolor{keywordtype}{float}*\ grad\ =\ \mbox{\hyperlink{structnn_1_1Embedding_a0e3855fe03f02d5bf6cd047fe476258a}{weight\_}}-\/>grad<\textcolor{keywordtype}{float}>()\ +\ idx[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ *\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}};}
+\DoxyCodeLine{00590\ \ \ \ \ \ \ \textcolor{keyword}{auto}\ g\_1d\ =\ \mbox{\hyperlink{structTTypes_aa53f19202b54ddd0fe543e2e7f771caf}{TTypes<float>::UnalignedConstFlat}}(g,\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}});}
+\DoxyCodeLine{00591\ \ \ \ \ \ \ \textcolor{keyword}{auto}\ grad\_1d\ =\ \mbox{\hyperlink{structTTypes_aea634ba279401433e58c5e59b008cf36}{TTypes<float>::UnalignedFlat}}(grad,\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}});}
+\DoxyCodeLine{00592\ \ \ \ \ \ \ grad\_1d.device(g\_device)\ +=\ g\_1d;}
+\DoxyCodeLine{00593\ \ \ \ \ \}}
+\DoxyCodeLine{00594\ \ \ \}}
+\DoxyCodeLine{00595\ }
+\DoxyCodeLine{00596\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structnn_1_1Embedding_a17a1666754ba09e03c9073abc89e27e8}{NumParameters}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structnn_1_1Embedding_a9aa76d7d0487450a2ca01c185b0375c1}{num\_embeddings\_}}\ *\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}};\ \}}
+\DoxyCodeLine{00597\ }
+\DoxyCodeLine{00598\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structnn_1_1Embedding_a0836507be6dea19c0289e580e2fb8973}{NumActivations}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ 0;\ \}}
+\DoxyCodeLine{00599\ }
+\DoxyCodeLine{00600\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Embedding_a8669a3a9dadd00830d3d1d0b48a37789}{Parameters}}(std::vector<Parameter*>*\ parameters)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00601\ \ \ \ \ parameters-\/>push\_back(\mbox{\hyperlink{structnn_1_1Embedding_a0e3855fe03f02d5bf6cd047fe476258a}{weight\_}}.get());}
+\DoxyCodeLine{00602\ \ \ \}}
+\DoxyCodeLine{00603\ }
+\DoxyCodeLine{00604\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structnn_1_1Embedding_a9aa76d7d0487450a2ca01c185b0375c1}{num\_embeddings\_}};}
+\DoxyCodeLine{00605\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structnn_1_1Embedding_a20ec286e805f73e6c796263abc4cbd6e}{embedding\_dim\_}};}
+\DoxyCodeLine{00606\ \ \ std::unique\_ptr<Parameter>\ \mbox{\hyperlink{structnn_1_1Embedding_a0e3855fe03f02d5bf6cd047fe476258a}{weight\_}};}
+\DoxyCodeLine{00607\ \};}
+\DoxyCodeLine{00608\ }
+\DoxyCodeLine{00609\ }
+\DoxyCodeLine{00610\ \textcolor{comment}{//\ Careful\ there\ are\ a\ few\ versions\ of\ GeLU,\ this\ one\ is\ the\ exact\ one\ used\ by}}
+\DoxyCodeLine{00611\ \textcolor{comment}{//\ OpenAI}}
+\DoxyCodeLine{00612\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1NewGELU}{NewGELU}}\ \{}
+\DoxyCodeLine{00613\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structnn_1_1NewGELU_aea252245f5f7a07d0b5dcb8156e14a03}{T}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00614\ }
+\DoxyCodeLine{00615\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1NewGELU_aa83faf7441c0ebe6c33fd3f7610eb1dc}{Forward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstFlat}}\ x,}
+\DoxyCodeLine{00616\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Flat}}\ y)\ \{}
+\DoxyCodeLine{00617\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.size(),\ y.size());}
+\DoxyCodeLine{00618\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ sqrt\_2\_over\_pi\ =\ std::sqrt(M\_2\_PI);}
+\DoxyCodeLine{00619\ }
+\DoxyCodeLine{00620\ \ \ \ \ \textcolor{comment}{//\ y\ =\ 0.5\ *\ x\ *\ (1.0\ +\ tanh[sqrt(2/pi)\ *\ (x\ +\ 0.044715\ *\ x\string^3)])}}
+\DoxyCodeLine{00621\ \ \ \ \ \textcolor{keywordtype}{float}\ coeff\ =\ 0.044715f;}
+\DoxyCodeLine{00622\ \ \ \ \ y.device(g\_device)\ =}
+\DoxyCodeLine{00623\ \ \ \ \ \ \ \ \ 0.5\ *\ x\ *\ (1.0\ +\ ((sqrt\_2\_over\_pi\ *\ (x\ +\ coeff\ *\ x\ *\ x\ *\ x)).tanh()));}
+\DoxyCodeLine{00624\ \ \ \}}
+\DoxyCodeLine{00625\ }
+\DoxyCodeLine{00626\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1NewGELU_a61bfcf96b22838809e7ed1c217df351f}{Backward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstFlat}}\ x,}
+\DoxyCodeLine{00627\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstFlat}}\ y\_grad,}
+\DoxyCodeLine{00628\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Flat}}\ x\_grad)\ \{}
+\DoxyCodeLine{00629\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.size(),\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00630\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.size(),\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00631\ }
+\DoxyCodeLine{00632\ \ \ \ \ \textcolor{comment}{//\ dL/dx\ =\ dL/dy\ *\ dy/dx}}
+\DoxyCodeLine{00633\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ =\ dL/dy\ *\ [\ 0.5\ *\ (1.0\ +\ tanh[sqrt(2/pi)\ *\ (x\ +\ 0.044715\ *\ x\string^3)])}}
+\DoxyCodeLine{00634\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ 0.5\ *\ x\ *\ (1\ -\/\ (tanh[sqrt(2/pi)\ *\ (x\ +\ 0.044715\ *}}
+\DoxyCodeLine{00635\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ x\string^3)])\string^2}}
+\DoxyCodeLine{00636\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ \ (sqrt(2/pi)\ *\ (1\ +\ 0.044715\ *\ 3\ *\ x\string^2))}}
+\DoxyCodeLine{00637\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ )}}
+\DoxyCodeLine{00638\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ]}}
+\DoxyCodeLine{00639\ }
+\DoxyCodeLine{00640\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ sqrt\_2\_over\_pi\ =\ std::sqrt(M\_2\_PI);}
+\DoxyCodeLine{00641\ \ \ \ \ \textcolor{keywordtype}{float}\ coeff\ =\ 0.044715f;}
+\DoxyCodeLine{00642\ \ \ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2ArrayCwiseUnaryOps_8h_ad816d4a0c05f21e660e91e9febb1b900}{cube}}\ =\ coeff\ *\ x\ *\ x\ *\ x;}
+\DoxyCodeLine{00643\ \ \ \ \ \textcolor{keyword}{auto}\ tanh\_arg\ =\ sqrt\_2\_over\_pi\ *\ (x\ +\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2ArrayCwiseUnaryOps_8h_ad816d4a0c05f21e660e91e9febb1b900}{cube}});}
+\DoxyCodeLine{00644\ \ \ \ \ \textcolor{keyword}{auto}\ tanh\_out\ =\ tanh\_arg.tanh();}
+\DoxyCodeLine{00645\ \ \ \ \ \textcolor{keyword}{auto}\ dydx\ =\ 0.5f\ *\ (1.0f\ +\ tanh\_out)\ +}
+\DoxyCodeLine{00646\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 0.5f\ *\ x\ *\ (1.0f\ -\/\ tanh\_out\ *\ tanh\_out)\ *}
+\DoxyCodeLine{00647\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (sqrt\_2\_over\_pi\ *\ (1.0f\ +\ 3.0f\ *\ coeff\ *\ x\ *\ x));}
+\DoxyCodeLine{00648\ \ \ \ \ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ +=\ y\_grad\ *\ dydx;}
+\DoxyCodeLine{00649\ \ \ \}}
+\DoxyCodeLine{00650\ \};}
+\DoxyCodeLine{00651\ }
+\DoxyCodeLine{00652\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1Softmax}{Softmax}}\ \{}
+\DoxyCodeLine{00653\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structnn_1_1Softmax_af7722532871a3341255166920486e0aa}{T}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00654\ }
+\DoxyCodeLine{00655\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Softmax_ad89595ce55976d7e45283370ca51fb5c}{Forward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ x,}
+\DoxyCodeLine{00656\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ y)\ \{}
+\DoxyCodeLine{00657\ \ \ \ \ \textcolor{comment}{//\ x:\ [B,\ D],\ y:\ [B,\ D]}}
+\DoxyCodeLine{00658\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(0),\ y.dimension(0));}
+\DoxyCodeLine{00659\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(1),\ y.dimension(1));}
+\DoxyCodeLine{00660\ }
+\DoxyCodeLine{00661\ \ \ \ \ \textcolor{keywordtype}{int}\ batch\_size\ =\ x.dimension(0),\ num\_class\ =\ x.dimension(1);}
+\DoxyCodeLine{00662\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 1>}}\ along\_class\ =\ \{1\};}
+\DoxyCodeLine{00663\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 2>}}\ batch\_by\_one\ =\ \{batch\_size,\ 1\};}
+\DoxyCodeLine{00664\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 2>}}\ one\_by\_class\ =\ \{1,\ num\_class\};}
+\DoxyCodeLine{00665\ }
+\DoxyCodeLine{00666\ \ \ \ \ y.device(g\_device)\ =\ (x\ -\/\ x.maximum(along\_class)}
+\DoxyCodeLine{00667\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .eval()}
+\DoxyCodeLine{00668\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .reshape(batch\_by\_one)}
+\DoxyCodeLine{00669\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .broadcast(one\_by\_class))}
+\DoxyCodeLine{00670\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .exp();}
+\DoxyCodeLine{00671\ \ \ \ \ y.device(g\_device)\ =\ y\ *\ y.sum(along\_class)}
+\DoxyCodeLine{00672\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .inverse()}
+\DoxyCodeLine{00673\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .eval()}
+\DoxyCodeLine{00674\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .reshape(batch\_by\_one)}
+\DoxyCodeLine{00675\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ .broadcast(one\_by\_class);}
+\DoxyCodeLine{00676\ \ \ \}}
+\DoxyCodeLine{00677\ }
+\DoxyCodeLine{00678\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1Softmax_a1552ecc513a69adec694e31a57bc926d}{Backward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ y,}
+\DoxyCodeLine{00679\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ y\_grad,}
+\DoxyCodeLine{00680\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ x\_grad)\ \{}
+\DoxyCodeLine{00681\ \ \ \ \ \textcolor{comment}{//\ y:[B,\ D],\ y\_grad:\ [B,\ D],\ x\_grad:\ [B,\ D]}}
+\DoxyCodeLine{00682\ \ \ \ \ \textcolor{keywordtype}{int}\ B\ =\ y.dimension(0),\ D\ =\ y.dimension(1);}
+\DoxyCodeLine{00683\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(B\ ==\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0)\ \&\&\ B\ ==\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00684\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(D\ ==\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1)\ \&\&\ D\ ==\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00685\ }
+\DoxyCodeLine{00686\ \ \ \ \ \textcolor{comment}{//\ Using\ alternative\ formula:}}
+\DoxyCodeLine{00687\ \ \ \ \ \textcolor{comment}{//\ dL/dx\ =\ dL/dy\ *\ y\ -\/\ sum(dL/dy\ *\ y)\ *\ y}}
+\DoxyCodeLine{00688\ \ \ \ \ \textcolor{comment}{//\ \ \ \ =\ (dL/dy\ -\/\ sum(dL/dy\ *\ y))\ *\ y}}
+\DoxyCodeLine{00689\ \ \ \ \ \textcolor{keywordtype}{int}\ batch\_size\ =\ y.dimension(0),\ num\_class\ =\ y.dimension(1);}
+\DoxyCodeLine{00690\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 2>}}\ batch\_by\_one\ =\ \{batch\_size,\ 1\};}
+\DoxyCodeLine{00691\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 2>}}\ one\_by\_class\ =\ \{1,\ num\_class\};}
+\DoxyCodeLine{00692\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 1>}}\ along\_class\ =\ \{1\};}
+\DoxyCodeLine{00693\ \ \ \ \ \textcolor{keyword}{auto}\ dyy\ =\ y\_grad\ *\ y;}
+\DoxyCodeLine{00694\ \ \ \ \ \textcolor{keyword}{auto}\ sum\ =\ dyy.sum(along\_class).reshape(batch\_by\_one);}
+\DoxyCodeLine{00695\ \ \ \ \ \textcolor{keyword}{auto}\ sub\ =\ y\_grad\ -\/\ sum.broadcast(one\_by\_class);}
+\DoxyCodeLine{00696\ \ \ \ \ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ +=\ sub\ *\ y;}
+\DoxyCodeLine{00697\ }
+\DoxyCodeLine{00698\ \ \ \ \ \textcolor{comment}{/*}}
+\DoxyCodeLine{00699\ \textcolor{comment}{\ \ \ \ //\ dy\_j\ /\ dx\_i\ =\ S\_i(1\ -\/\ S\_j)\ for\ i==j}}
+\DoxyCodeLine{00700\ \textcolor{comment}{\ \ \ \ //\ \ \ \ \ \ \ \ \ \ \ \ \ =\ -\/S\_j*S\_i\ \ \ \ \ for\ i!=j}}
+\DoxyCodeLine{00701\ \textcolor{comment}{\ \ \ \ //\ dL/dx\_i\ =\ \(\backslash\)sum\_j\ dL/dy\_j\ *\ dy\_j\ /\ dx\_i}}
+\DoxyCodeLine{00702\ \textcolor{comment}{\ \ \ \ auto\ fn\ =\ [D,\ \&x\_grad,\ \&y\_grad,\ \&y](int\ begin,\ int\ end)\ \{}}
+\DoxyCodeLine{00703\ \textcolor{comment}{\ \ \ \ \ \ for\ (int\ b\ =\ begin;\ b\ <\ end;\ ++b)\ \{}}
+\DoxyCodeLine{00704\ \textcolor{comment}{\ \ \ \ \ \ \ \ float*\ x\_grad\_b\ =\ x\_grad.data()\ +\ b\ *\ D;}}
+\DoxyCodeLine{00705\ \textcolor{comment}{\ \ \ \ \ \ \ \ float*\ y\_grad\_b\ =\ y\_grad.data()\ +\ b\ *\ D;}}
+\DoxyCodeLine{00706\ \textcolor{comment}{\ \ \ \ \ \ \ \ float*\ y\_b\ =\ y.data()\ +\ b\ *\ D;}}
+\DoxyCodeLine{00707\ \textcolor{comment}{\ \ \ \ \ \ \ \ for\ (int\ i\ =\ 0;\ i\ <\ D;\ ++i)\ \{}}
+\DoxyCodeLine{00708\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ for\ (int\ j\ =\ 0;\ j\ <\ D;\ ++j)\ \{}}
+\DoxyCodeLine{00709\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ float\ indicator\ =\ i\ ==\ j\ ?\ 1.0f\ :\ 0.0f;}}
+\DoxyCodeLine{00710\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ //\ \ \ \ \ \ \ \ \ \ \ \ x\_grad(b,\ i)\ +=\ y\_grad(b,\ j)\ *\ y(b,\ i)\ *\ (indicator\ -\/}}
+\DoxyCodeLine{00711\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ //\ \ \ \ \ \ \ \ \ \ \ \ y(b,\ j));}}
+\DoxyCodeLine{00712\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ x\_grad\_b[i]\ +=\ y\_grad\_b[j]\ *\ y\_b[i]\ *\ (indicator\ -\/\ y\_b[j]);}}
+\DoxyCodeLine{00713\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \}}}
+\DoxyCodeLine{00714\ \textcolor{comment}{\ \ \ \ \ \ \ \ \}}}
+\DoxyCodeLine{00715\ \textcolor{comment}{\ \ \ \ \ \ \}}}
+\DoxyCodeLine{00716\ \textcolor{comment}{\ \ \ \ \};}}
+\DoxyCodeLine{00717\ \textcolor{comment}{}}
+\DoxyCodeLine{00718\ \textcolor{comment}{\ \ \ \ int\ thread\_num\ =\ g\_cpu\_device.numThreads();}}
+\DoxyCodeLine{00719\ \textcolor{comment}{\ \ \ \ Eigen::Barrier\ barrier(thread\_num);}}
+\DoxyCodeLine{00720\ \textcolor{comment}{\ \ \ \ for\ (int\ t\ =\ 0;\ t\ <\ thread\_num;\ ++t)\ \{}}
+\DoxyCodeLine{00721\ \textcolor{comment}{\ \ \ \ \ \ auto\ range\ =\ SplitRange(B,\ t,\ thread\_num);}}
+\DoxyCodeLine{00722\ \textcolor{comment}{\ \ \ \ \ \ g\_cpu\_device.enqueue\_with\_barrier(\&barrier,\ fn,\ range.first,}}
+\DoxyCodeLine{00723\ \textcolor{comment}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ range.second);}}
+\DoxyCodeLine{00724\ \textcolor{comment}{\ \ \ \ \}}}
+\DoxyCodeLine{00725\ \textcolor{comment}{\ \ \ \ barrier.Wait();}}
+\DoxyCodeLine{00726\ \textcolor{comment}{\ \ \ \ */}}
+\DoxyCodeLine{00727\ \ \ \}}
+\DoxyCodeLine{00728\ \};}
+\DoxyCodeLine{00729\ }
+\DoxyCodeLine{00730\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy}{SoftmaxCrossEntropy}}\ \{}
+\DoxyCodeLine{00731\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a353b6bc3af73be364a53c3ae80019bd3}{T}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00732\ \ \ \textcolor{keyword}{enum}\ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a8f693b30c7b9e1c382dce3cdd77a8b04}{Reduction}}\ \{\ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a8f693b30c7b9e1c382dce3cdd77a8b04add36ad20b6e6cbc891022762da1b385d}{MEAN}},\ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a8f693b30c7b9e1c382dce3cdd77a8b04a44fe5ec5ac95c2fce33759616a32a6ad}{SUM}}\ \};}
+\DoxyCodeLine{00733\ }
+\DoxyCodeLine{00734\ \ \ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a61c0fc7c4f30c38c37b2a69353aebfb8}{SoftmaxCrossEntropy}}(\mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a8f693b30c7b9e1c382dce3cdd77a8b04}{Reduction}}\ reduction\ =\ Reduction::MEAN)}
+\DoxyCodeLine{00735\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a60b41ca5338568fc097834fbaabe8ec0}{reduction\_}}(reduction)\ \{\}}
+\DoxyCodeLine{00736\ }
+\DoxyCodeLine{00737\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_afb6a8fe2404484125128f5b2cafe7806}{Forward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ logits,}
+\DoxyCodeLine{00738\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<const\ int>}}\ targets,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ probs,}
+\DoxyCodeLine{00739\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}*\ loss)\ \{}
+\DoxyCodeLine{00740\ \ \ \ \ \textcolor{comment}{//\ logits:\ [B,\ C],\ targets:\ [B,],\ probs:[B,\ C],\ loss:\ scalar}}
+\DoxyCodeLine{00741\ \ \ \ \ \textcolor{keywordtype}{int}\ B\ =\ logits.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0),\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ logits.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1);}
+\DoxyCodeLine{00742\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(B\ ==\ targets.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}()\ \&\&\ B\ ==\ probs.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00743\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ probs.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00744\ }
+\DoxyCodeLine{00745\ \ \ \ \ \textcolor{comment}{//\ apply\ softmax\ to\ convert\ logits\ to\ (normalized)\ probabilities}}
+\DoxyCodeLine{00746\ \ \ \ \ \mbox{\hyperlink{structnn_1_1Softmax_ad89595ce55976d7e45283370ca51fb5c}{Softmax::Forward}}(logits,\ probs);}
+\DoxyCodeLine{00747\ }
+\DoxyCodeLine{00748\ \ \ \ \ \textcolor{comment}{//\ targets:\ [B,]}}
+\DoxyCodeLine{00749\ \ \ \ \ *loss\ =\ 0.0f;}
+\DoxyCodeLine{00750\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ targets.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}();\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00751\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ix\ =\ targets[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00752\ \ \ \ \ \ \ *loss\ +=\ -\/std::log(probs(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ ix));}
+\DoxyCodeLine{00753\ \ \ \ \ \}}
+\DoxyCodeLine{00754\ }
+\DoxyCodeLine{00755\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a60b41ca5338568fc097834fbaabe8ec0}{reduction\_}}\ ==\ Reduction::MEAN)\ \{}
+\DoxyCodeLine{00756\ \ \ \ \ \ \ *loss\ /=\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}\textcolor{keyword}{>}(B);}
+\DoxyCodeLine{00757\ \ \ \ \ \}}
+\DoxyCodeLine{00758\ \ \ \}}
+\DoxyCodeLine{00759\ }
+\DoxyCodeLine{00760\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_abd096903b589b4f9575bfca0e5b7b49d}{Backward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ probs,}
+\DoxyCodeLine{00761\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<const\ int>}}\ targets,}
+\DoxyCodeLine{00762\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ logits\_grad)\ \{}
+\DoxyCodeLine{00763\ \ \ \ \ \textcolor{comment}{//\ probs:\ [B,\ C],\ targets:\ [B,]}}
+\DoxyCodeLine{00764\ \ \ \ \ \textcolor{comment}{//\ logits\_grad:\ [B,\ C]}}
+\DoxyCodeLine{00765\ \ \ \ \ \textcolor{keywordtype}{int}\ B\ =\ probs.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0),\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ probs.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1);}
+\DoxyCodeLine{00766\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(B\ ==\ targets.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}()\ \&\&\ B\ ==\ logits\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00767\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ logits\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00768\ }
+\DoxyCodeLine{00769\ \ \ \ \ \textcolor{keywordtype}{float}\ factor\ =}
+\DoxyCodeLine{00770\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a60b41ca5338568fc097834fbaabe8ec0}{reduction\_}}\ ==\ Reduction::MEAN\ ?\ 1.0f\ /\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}\textcolor{keyword}{>}(B)\ :\ 1.0f;}
+\DoxyCodeLine{00771\ }
+\DoxyCodeLine{00772\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ B;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00773\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ix\ =\ targets[\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}];}
+\DoxyCodeLine{00774\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ c\ =\ 0;\ c\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}};\ ++c)\ \{}
+\DoxyCodeLine{00775\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ indicator\ =\ c\ ==\ ix\ ?\ 1.0f\ :\ 0.0f;}
+\DoxyCodeLine{00776\ \ \ \ \ \ \ \ \ logits\_grad(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ c)\ +=\ (probs(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ c)\ -\/\ indicator)\ *\ factor;}
+\DoxyCodeLine{00777\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00778\ \ \ \ \ \}}
+\DoxyCodeLine{00779\ \ \ \}}
+\DoxyCodeLine{00780\ }
+\DoxyCodeLine{00781\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a7688dce4252afd47dbb64a0b5717ea2c}{ForwardAndBackward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ logits,}
+\DoxyCodeLine{00782\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ labels,}
+\DoxyCodeLine{00783\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Flat}}\ scratch,}
+\DoxyCodeLine{00784\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Flat}}\ loss,}
+\DoxyCodeLine{00785\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ logit\_grad)\ \{}
+\DoxyCodeLine{00786\ \ \ \ \ \textcolor{comment}{//\ logits:\ [B,\ C],\ targets:\ [B,],\ probs:[B,\ C],\ loss:\ scalar}}
+\DoxyCodeLine{00787\ \ \ \ \ \textcolor{keywordtype}{int}\ B\ =\ logits.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0),\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ logits.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1);}
+\DoxyCodeLine{00788\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(B\ ==\ labels.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0)\ \&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ ==\ labels.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00789\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(B\ ==\ logit\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0)\ \&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ ==\ logit\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00790\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(B,\ scratch.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00791\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(B,\ loss.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00792\ }
+\DoxyCodeLine{00793\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ batch\_size\ =\ B,\ num\_class\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}};}
+\DoxyCodeLine{00794\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 1>}}\ along\_class\ =\ \{1\};}
+\DoxyCodeLine{00795\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 2>}}\ batch\_by\_one\ =\ \{batch\_size,\ 1\};}
+\DoxyCodeLine{00796\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{Eigen::array<Eigen::Index,\ 2>}}\ one\_by\_class\ =\ \{1,\ num\_class\};}
+\DoxyCodeLine{00797\ }
+\DoxyCodeLine{00798\ \ \ \ \ \textcolor{comment}{//\ max\_logits\ along\ classes.}}
+\DoxyCodeLine{00799\ \ \ \ \ scratch.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ =\ logits.maximum(along\_class);}
+\DoxyCodeLine{00800\ }
+\DoxyCodeLine{00801\ \ \ \ \ \textcolor{comment}{//\ logits\ -\/\ max\_logits.}}
+\DoxyCodeLine{00802\ \ \ \ \ logit\_grad.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ =}
+\DoxyCodeLine{00803\ \ \ \ \ \ \ \ \ logits\ -\/\ scratch.\mbox{\hyperlink{classEigen_1_1TensorBase_adc5c658be289d8944ca3c8e7a2fac1f7}{reshape}}(batch\_by\_one).broadcast(one\_by\_class);}
+\DoxyCodeLine{00804\ }
+\DoxyCodeLine{00805\ \ \ \ \ \textcolor{comment}{//\ sum(exp(logits\ -\/\ max\_logits))\ along\ classes.}}
+\DoxyCodeLine{00806\ \ \ \ \ scratch.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ =\ logit\_grad.exp().sum(along\_class);}
+\DoxyCodeLine{00807\ }
+\DoxyCodeLine{00808\ \ \ \ \ \textcolor{comment}{//\ NOTE:\ Eigen\ on\ GPU\ dispatches\ to\ an\ optimized\ implementation}}
+\DoxyCodeLine{00809\ \ \ \ \ \textcolor{comment}{//\ for\ an\ expression\ of\ the\ form\ lhs\ =\ rhs.sum().}}
+\DoxyCodeLine{00810\ \ \ \ \ \textcolor{comment}{//\ lhs\ =\ -\/rhs.sum()\ doesn't\ match\ the\ above\ pattern,\ so\ folding\ in\ the}}
+\DoxyCodeLine{00811\ \ \ \ \ \textcolor{comment}{//\ negation\ before\ calling\ sum().}}
+\DoxyCodeLine{00812\ \ \ \ \ \textcolor{comment}{//\ \ sum(-\/labels\ *}}
+\DoxyCodeLine{00813\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ ((logits\ -\/\ max\_logits)\ -\/\ log(sum(exp(logits\ -\/\ max\_logits)))))}}
+\DoxyCodeLine{00814\ \ \ \ \ \textcolor{comment}{//\ \ along\ classes}}
+\DoxyCodeLine{00815\ \ \ \ \ loss.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ =}
+\DoxyCodeLine{00816\ \ \ \ \ \ \ \ \ (labels\ *\ (scratch.log().reshape(batch\_by\_one).broadcast(one\_by\_class)\ -\/}
+\DoxyCodeLine{00817\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ logit\_grad))}
+\DoxyCodeLine{00818\ \ \ \ \ \ \ \ \ \ \ \ \ .sum(along\_class);}
+\DoxyCodeLine{00819\ }
+\DoxyCodeLine{00820\ \ \ \ \ \textcolor{comment}{//\ backprop:\ prob\ -\/\ labels,\ where}}
+\DoxyCodeLine{00821\ \ \ \ \ \textcolor{comment}{//\ \ \ prob\ =\ exp(logits\ -\/\ max\_logits)\ /\ sum(exp(logits\ -\/\ max\_logits))}}
+\DoxyCodeLine{00822\ \ \ \ \ logit\_grad.\mbox{\hyperlink{classEigen_1_1TensorBase_ac18f87a86c01efc64d8f7235596d5d7d}{device}}(g\_device)\ =}
+\DoxyCodeLine{00823\ \ \ \ \ \ \ \ \ (logit\_grad.exp()\ /}
+\DoxyCodeLine{00824\ \ \ \ \ \ \ \ \ \ scratch.\mbox{\hyperlink{classEigen_1_1TensorBase_adc5c658be289d8944ca3c8e7a2fac1f7}{reshape}}(batch\_by\_one).broadcast(one\_by\_class))\ -\/}
+\DoxyCodeLine{00825\ \ \ \ \ \ \ \ \ labels;}
+\DoxyCodeLine{00826\ \ \ \}}
+\DoxyCodeLine{00827\ }
+\DoxyCodeLine{00828\ \ \ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a8f693b30c7b9e1c382dce3cdd77a8b04}{Reduction}}\ \mbox{\hyperlink{structnn_1_1SoftmaxCrossEntropy_a60b41ca5338568fc097834fbaabe8ec0}{reduction\_}};}
+\DoxyCodeLine{00829\ \};}
+\DoxyCodeLine{00830\ }
+\DoxyCodeLine{00831\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structnn_1_1CrossEntropy}{CrossEntropy}}\ \{}
+\DoxyCodeLine{00832\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structnn_1_1CrossEntropy_ac2c82ea85793511ae3c7a6e58961ba52}{T}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00833\ \ \ \textcolor{keyword}{enum}\ \mbox{\hyperlink{structnn_1_1CrossEntropy_a66479cf14574903516fdc5fd59b4b8b3}{Reduction}}\ \{\ \mbox{\hyperlink{structnn_1_1CrossEntropy_a66479cf14574903516fdc5fd59b4b8b3a61bc49dd30d67bb2e67230b59719e56d}{MEAN}},\ \mbox{\hyperlink{structnn_1_1CrossEntropy_a66479cf14574903516fdc5fd59b4b8b3ae3282ef2d73939de84601a2aabc567ad}{SUM}}\ \};}
+\DoxyCodeLine{00834\ }
+\DoxyCodeLine{00835\ \ \ \mbox{\hyperlink{structnn_1_1CrossEntropy_a317c3ff9babc59fb78b4301edf3893e4}{CrossEntropy}}(\mbox{\hyperlink{structnn_1_1CrossEntropy_a66479cf14574903516fdc5fd59b4b8b3}{Reduction}}\ reduction\ =\ Reduction::MEAN)\ :\ \mbox{\hyperlink{structnn_1_1CrossEntropy_a8df82dc1e730e73cb3636d0d584158dc}{reduction\_}}(reduction)\ \{\}}
+\DoxyCodeLine{00836\ }
+\DoxyCodeLine{00837\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1CrossEntropy_a0a71ab9cf2092f7cfebe57f783285bb0}{Forward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ probs,}
+\DoxyCodeLine{00838\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<const\ int>}}\ targets,\ \textcolor{keywordtype}{float}*\ loss)\ \{}
+\DoxyCodeLine{00839\ \ \ \ \ \textcolor{comment}{//\ probs:[B,\ C],\ targets:\ [B,]\ loss:\ scalar}}
+\DoxyCodeLine{00840\ \ \ \ \ \textcolor{keywordtype}{int}\ B\ =\ probs.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0),\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ probs.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1);}
+\DoxyCodeLine{00841\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(B,\ targets.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00842\ }
+\DoxyCodeLine{00843\ \ \ \ \ \textcolor{comment}{//\ targets:\ [B,]}}
+\DoxyCodeLine{00844\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ targets.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}();\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00845\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ix\ =\ targets[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00846\ \ \ \ \ \ \ *loss\ +=\ -\/std::log(probs(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ ix));}
+\DoxyCodeLine{00847\ \ \ \ \ \}}
+\DoxyCodeLine{00848\ }
+\DoxyCodeLine{00849\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structnn_1_1CrossEntropy_a8df82dc1e730e73cb3636d0d584158dc}{reduction\_}}\ ==\ Reduction::MEAN)\ \{}
+\DoxyCodeLine{00850\ \ \ \ \ \ \ *loss\ /=\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}\textcolor{keyword}{>}(B);}
+\DoxyCodeLine{00851\ \ \ \ \ \}}
+\DoxyCodeLine{00852\ \ \ \}}
+\DoxyCodeLine{00853\ }
+\DoxyCodeLine{00854\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structnn_1_1CrossEntropy_a1fd65ea7f1a8f32574363455434ce234}{Backward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ probs,}
+\DoxyCodeLine{00855\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<const\ int>}}\ targets,}
+\DoxyCodeLine{00856\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ probs\_grad)\ \{}
+\DoxyCodeLine{00857\ \ \ \ \ \textcolor{comment}{//\ probs:\ [B,\ C],\ targets:\ [B,]}}
+\DoxyCodeLine{00858\ \ \ \ \ \textcolor{comment}{//\ probs\_grad:\ [B,\ C]}}
+\DoxyCodeLine{00859\ \ \ \ \ \textcolor{keywordtype}{int}\ B\ =\ probs.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0),\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ probs.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1);}
+\DoxyCodeLine{00860\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a3e1cfef60e774a81f30eaddf26a3a274}{CHECK}}(B\ ==\ targets.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}()\ \&\&\ B\ ==\ probs\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00861\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ probs\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00862\ }
+\DoxyCodeLine{00863\ \ \ \ \ \textcolor{keywordtype}{float}\ factor\ =}
+\DoxyCodeLine{00864\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1CrossEntropy_a8df82dc1e730e73cb3636d0d584158dc}{reduction\_}}\ ==\ Reduction::MEAN\ ?\ 1.0f\ /\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}\textcolor{keyword}{>}(B)\ :\ 1.0f;}
+\DoxyCodeLine{00865\ }
+\DoxyCodeLine{00866\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ B;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00867\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ix\ =\ targets[\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}];}
+\DoxyCodeLine{00868\ \ \ \ \ \ \ probs\_grad(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ ix)\ +=\ -\/1.0f\ /\ probs(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ ix)\ *\ factor;}
+\DoxyCodeLine{00869\ \ \ \ \ \}}
+\DoxyCodeLine{00870\ \ \ \}}
+\DoxyCodeLine{00871\ }
+\DoxyCodeLine{00872\ \ \ \mbox{\hyperlink{structnn_1_1CrossEntropy_a66479cf14574903516fdc5fd59b4b8b3}{Reduction}}\ \mbox{\hyperlink{structnn_1_1CrossEntropy_a8df82dc1e730e73cb3636d0d584158dc}{reduction\_}};}
+\DoxyCodeLine{00873\ \};}
+\DoxyCodeLine{00874\ }
+\DoxyCodeLine{00875\ \}\ \ \textcolor{comment}{//\ namespace\ nn}}
+\DoxyCodeLine{00876\ }
+\DoxyCodeLine{00877\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ LLM\_CPP\_\_NN\_HPP\_}}
+
+\end{DoxyCode}

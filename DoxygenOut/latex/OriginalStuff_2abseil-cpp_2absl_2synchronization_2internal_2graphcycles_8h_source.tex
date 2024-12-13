@@ -1,0 +1,152 @@
+\doxysection{graphcycles.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/synchronization/internal/graphcycles.h@{OriginalStuff/abseil-\/cpp/absl/synchronization/internal/graphcycles.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#ifndef\ ABSL\_SYNCHRONIZATION\_INTERNAL\_GRAPHCYCLES\_H\_}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#define\ ABSL\_SYNCHRONIZATION\_INTERNAL\_GRAPHCYCLES\_H\_}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ GraphCycles\ detects\ the\ introduction\ of\ a\ cycle\ into\ a\ directed}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ graph\ that\ is\ being\ built\ up\ incrementally.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ Nodes\ are\ identified\ by\ small\ integers.\ \ It\ is\ not\ possible\ to}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ record\ multiple\ edges\ with\ the\ same\ (source,\ destination)\ pair;}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ requests\ to\ add\ an\ edge\ where\ one\ already\ exists\ are\ silently}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ ignored.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ It\ is\ also\ not\ possible\ to\ introduce\ a\ cycle;\ an\ attempt\ to\ insert}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ an\ edge\ that\ would\ introduce\ a\ cycle\ fails\ and\ returns\ false.}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ GraphCycles\ uses\ no\ internal\ locking;\ calls\ into\ it\ should\ be}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ serialized\ externally.}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ Performance\ considerations:}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ \ \ Works\ well\ on\ sparse\ graphs,\ poorly\ on\ dense\ graphs.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ \ \ Extra\ information\ is\ maintained\ incrementally\ to\ detect\ cycles\ quickly.}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ \ \ InsertEdge()\ is\ very\ fast\ when\ the\ edge\ already\ exists,\ and\ reasonably\ fast}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ \ \ otherwise.}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ \ \ FindPath()\ is\ linear\ in\ the\ size\ of\ the\ graph.}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ The\ current\ implementation\ uses\ O(|V|+|E|)\ space.}}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00046\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00047\ \textcolor{keyword}{namespace\ }synchronization\_internal\ \{}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ Opaque\ identifier\ for\ a\ graph\ node.}}
+\DoxyCodeLine{00050\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ \{}
+\DoxyCodeLine{00051\ \ \ uint64\_t\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId_aaa561a2cf14240cc797563eb92789b6d}{handle}};}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId_a7d6cdf41a5ea4dcdc369816b74548bf3}{operator==}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId_aaa561a2cf14240cc797563eb92789b6d}{handle}}\ ==\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.handle;\ \}}
+\DoxyCodeLine{00054\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId_a50c3cf148ca7ec88a08db3d5b50dc584}{operator!=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId_aaa561a2cf14240cc797563eb92789b6d}{handle}}\ !=\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.handle;\ \}}
+\DoxyCodeLine{00055\ \};}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ Return\ an\ invalid\ graph\ id\ that\ will\ never\ be\ assigned\ by\ GraphCycles.}}
+\DoxyCodeLine{00058\ \textcolor{keyword}{inline}\ GraphId\ \mbox{\hyperlink{namespaceabsl_1_1synchronization__internal_ab3d8c7658be04e5d06ae41a09564067f}{InvalidGraphId}}()\ \{}
+\DoxyCodeLine{00059\ \ \ \textcolor{keywordflow}{return}\ GraphId\{0\};}
+\DoxyCodeLine{00060\ \}}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles}{GraphCycles}}\ \{}
+\DoxyCodeLine{00063\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00064\ \ \ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_abfaca02a5a5dc155b374e2be60408ddf}{GraphCycles}}();}
+\DoxyCodeLine{00065\ \ \ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_a24f144c93fec64c75beed311198684ad}{\string~GraphCycles}}();}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ Return\ the\ id\ to\ use\ for\ ptr,\ assigning\ one\ if\ necessary.}}
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//\ Subsequent\ calls\ with\ the\ same\ ptr\ value\ will\ return\ the\ same\ id}}
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ until\ Remove().}}
+\DoxyCodeLine{00070\ \ \ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_a6313b110f799f6feb6e9da4ebcb3eb3e}{GetId}}(\textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}});}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ Remove\ "{}ptr"{}\ from\ the\ graph.\ \ Its\ corresponding\ node\ and\ all}}
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ edges\ to\ and\ from\ it\ are\ removed.}}
+\DoxyCodeLine{00074\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_a7527fbc772f0545822d8e994400eb18e}{RemoveNode}}(\textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}});}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ Return\ the\ pointer\ associated\ with\ id,\ or\ nullptr\ if\ id\ is\ not}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ currently\ in\ the\ graph.}}
+\DoxyCodeLine{00078\ \ \ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_a3e22940e953801cbdfab137f3ac33f32}{Ptr}}(\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ \textcolor{keywordtype}{id});}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ Attempt\ to\ insert\ an\ edge\ from\ source\_node\ to\ dest\_node.\ \ If\ the}}
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ edge\ would\ introduce\ a\ cycle,\ return\ false\ without\ making\ any}}
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{//\ changes.\ Otherwise\ add\ the\ edge\ and\ return\ true.}}
+\DoxyCodeLine{00083\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_afa2247d27dec62e51e364194514bb316}{InsertEdge}}(\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ source\_node,\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ dest\_node);}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \ \ \textcolor{comment}{//\ Remove\ any\ edge\ that\ exists\ from\ source\_node\ to\ dest\_node.}}
+\DoxyCodeLine{00086\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_a6f7dff444613ec72c19d66b37dd1a08f}{RemoveEdge}}(\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ source\_node,\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ dest\_node);}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ Return\ whether\ node\ exists\ in\ the\ graph.}}
+\DoxyCodeLine{00089\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_a632fed5046de4206a57387049ef2a84b}{HasNode}}(\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ node);}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ Return\ whether\ there\ is\ an\ edge\ directly\ from\ source\_node\ to\ dest\_node.}}
+\DoxyCodeLine{00092\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_a162c5b0a00d2e230fd1c7aed050e225b}{HasEdge}}(\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ source\_node,\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ dest\_node)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//\ Return\ whether\ dest\_node\ is\ reachable\ from\ source\_node}}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//\ by\ following\ edges.}}
+\DoxyCodeLine{00096\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_ab2defaa1c81feaba5f8071f269e72663}{IsReachable}}(\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ source\_node,\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ dest\_node)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ Find\ a\ path\ from\ "{}source"{}\ to\ "{}dest"{}.\ \ If\ such\ a\ path\ exists,}}
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ place\ the\ nodes\ on\ the\ path\ in\ the\ array\ path[],\ and\ return}}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ the\ number\ of\ nodes\ on\ the\ path.\ \ If\ the\ path\ is\ longer\ than}}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ max\_path\_len\ nodes,\ only\ the\ first\ max\_path\_len\ nodes\ are\ placed}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ in\ path[].\ \ The\ client\ should\ compare\ the\ return\ value\ with}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ max\_path\_len"{}\ to\ see\ when\ this\ occurs.\ \ If\ no\ path\ exists,\ return}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ 0.\ \ Any\ valid\ path\ stored\ in\ path[]\ will\ start\ with\ "{}source"{}\ and}}
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ end\ with\ "{}dest"{}.\ \ There\ is\ no\ guarantee\ that\ the\ path\ is\ the}}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ shortest,\ but\ no\ node\ will\ appear\ twice\ in\ the\ path,\ except\ the}}
+\DoxyCodeLine{00107\ \ \ \textcolor{comment}{//\ source\ and\ destination\ node\ if\ they\ are\ identical;\ therefore,\ the}}
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//\ return\ value\ is\ at\ most\ one\ greater\ than\ the\ number\ of\ nodes\ in}}
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ the\ graph.}}
+\DoxyCodeLine{00110\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_a4236ffce0b5e5914f4d57fd5bc975ba4}{FindPath}}(\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ source,\ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ dest,\ \textcolor{keywordtype}{int}\ max\_path\_len,}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ path[])\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ Update\ the\ stack\ trace\ recorded\ for\ id\ with\ the\ current\ stack}}
+\DoxyCodeLine{00114\ \ \ \textcolor{comment}{//\ trace\ if\ the\ last\ time\ it\ was\ updated\ had\ a\ smaller\ priority}}
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//\ than\ the\ priority\ passed\ on\ this\ call.}}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//\ *get\_stack\_trace\ is\ called\ to\ get\ the\ stack\ trace.}}
+\DoxyCodeLine{00118\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_a3e68e7706746852fd30e7389ed35a538}{UpdateStackTrace}}(\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ \textcolor{keywordtype}{id},\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8cc_acec9ce2df15222151ad66fcb1d74eb9f}{priority}},}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ (*get\_stack\_trace)(\textcolor{keywordtype}{void}**,\ \textcolor{keywordtype}{int}));}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//\ Set\ *ptr\ to\ the\ beginning\ of\ the\ array\ that\ holds\ the\ recorded}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//\ stack\ trace\ for\ id\ and\ return\ the\ depth\ of\ the\ stack\ trace.}}
+\DoxyCodeLine{00123\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_af0ea0e9921116ae050e8c6266d08489e}{GetStackTrace}}(\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphId}{GraphId}}\ \textcolor{keywordtype}{id},\ \textcolor{keywordtype}{void}***\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}});}
+\DoxyCodeLine{00124\ }
+\DoxyCodeLine{00125\ \ \ \textcolor{comment}{//\ Check\ internal\ invariants.\ Crashes\ on\ failure,\ returns\ true\ on\ success.}}
+\DoxyCodeLine{00126\ \ \ \textcolor{comment}{//\ Expensive:\ should\ only\ be\ called\ from\ graphcycles\_test.cc.}}
+\DoxyCodeLine{00127\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_ab6141277c022ea9ef242e77adc4e64f0}{CheckInvariants}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ Test-\/only\ method\ to\ add\ more\ nodes.\ The\ nodes\ will\ not\ be\ valid,\ and\ this}}
+\DoxyCodeLine{00130\ \ \ \textcolor{comment}{//\ method\ should\ only\ be\ used\ to\ test\ the\ behavior\ of\ the\ graph\ when\ it\ is}}
+\DoxyCodeLine{00131\ \ \ \textcolor{comment}{//\ very\ full.}}
+\DoxyCodeLine{00132\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_ab7b35cd4a2f95b98479dfa809ea6ce22}{TestOnlyAddNodes}}(uint32\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}});}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00135\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphCycles_1_1Rep}{Rep}};}
+\DoxyCodeLine{00136\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00137\ \ \ \mbox{\hyperlink{structabsl_1_1synchronization__internal_1_1GraphCycles_1_1Rep}{Rep}}\ *rep\_;\ \ \ \ \ \ \textcolor{comment}{//\ opaque\ representation}}
+\DoxyCodeLine{00138\ \ \ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles_abfaca02a5a5dc155b374e2be60408ddf}{GraphCycles}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles}{GraphCycles}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00139\ \ \ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles}{GraphCycles}}\&\ operator=(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1GraphCycles}{GraphCycles}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00140\ \};}
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00142\ \}\ \ \textcolor{comment}{//\ namespace\ synchronization\_internal}}
+\DoxyCodeLine{00143\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00144\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00145\ }
+\DoxyCodeLine{00146\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

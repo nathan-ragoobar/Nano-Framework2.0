@@ -1,0 +1,105 @@
+\doxysection{symbolize.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2debugging_2symbolize_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2debugging_2symbolize_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/debugging/symbolize.h@{OriginalStuff/abseil-\/cpp/absl/debugging/symbolize.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2debugging_2symbolize_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ symbolize.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ file\ configures\ the\ Abseil\ symbolizer\ for\ use\ in\ converting\ instruction}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ pointer\ addresses\ (program\ counters)\ into\ human-\/readable\ names\ (function}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ calls,\ etc.)\ within\ Abseil\ code.}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ The\ symbolizer\ may\ be\ invoked\ from\ several\ sources:}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ \ \ *\ Implicitly,\ through\ the\ installation\ of\ an\ Abseil\ failure\ signal\ handler.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ \ \ \ \ (See\ failure\_signal\_handler.h\ for\ more\ information.)}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ \ \ *\ By\ calling\ \`{}Symbolize()`\ directly\ on\ a\ program\ counter\ you\ obtain\ through}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ \ \ \ \ \`{}absl::GetStackTrace()`\ or\ \`{}absl::GetStackFrames()`.\ (See\ stacktrace.h}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ \ \ \ \ for\ more\ information.}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ \ \ *\ By\ calling\ \`{}Symbolize()`\ directly\ on\ a\ program\ counter\ you\ obtain\ through}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ \ \ \ \ other\ means\ (which\ would\ be\ platform-\/dependent).}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ In\ all\ of\ the\ above\ cases,\ the\ symbolizer\ must\ first\ be\ initialized\ before}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ any\ program\ counter\ values\ can\ be\ symbolized.\ If\ you\ are\ installing\ a\ failure}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ signal\ handler,\ initialize\ the\ symbolizer\ before\ you\ do\ so.}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ \ \ int\ main(int\ argc,\ char**\ argv)\ \{}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ \ \ \ \ //\ Initialize\ the\ Symbolizer\ before\ installing\ the\ failure\ signal\ handler}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ \ \ \ \ absl::InitializeSymbolizer(argv[0]);}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ \ \ //\ Now\ you\ may\ install\ the\ failure\ signal\ handler}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \ \ \ \ absl::FailureSignalHandlerOptions\ options;}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ \ \ \ \ absl::InstallFailureSignalHandler(options);}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ \ \ \ \ //\ Start\ running\ your\ main\ program}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \ \ \ \ ...}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ \ \ \ \ return\ 0;}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ \ \}}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#ifndef\ ABSL\_DEBUGGING\_SYMBOLIZE\_H\_}}
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#define\ ABSL\_DEBUGGING\_SYMBOLIZE\_H\_}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{preprocessor}{\#include\ "{}absl/debugging/internal/symbolize.h"{}}}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00058\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ InitializeSymbolizer()}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ Initializes\ the\ program\ counter\ symbolizer,\ given\ the\ path\ of\ the\ program}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ (typically\ obtained\ through\ \`{}main()`s\ \`{}argv[0]`).\ The\ Abseil\ symbolizer}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ allows\ you\ to\ read\ program\ counters\ (instruction\ pointer\ values)\ using\ their}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ human-\/readable\ names\ within\ output\ such\ as\ stack\ traces.}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ int\ main(int\ argc,\ char\ *argv[])\ \{}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \ \ absl::InitializeSymbolizer(argv[0]);}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ \ //\ Now\ you\ can\ use\ the\ symbolizer}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ \}}}
+\DoxyCodeLine{00073\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_ab0ce2d97e5598a55e0ddd079bb9d38e0}{InitializeSymbolizer}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ argv0);}
+\DoxyCodeLine{00074\ \textcolor{comment}{//}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ Symbolize()}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ Symbolizes\ a\ program\ counter\ (instruction\ pointer\ value)\ \`{}pc`\ and,\ on}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ success,\ writes\ the\ name\ to\ \`{}out`.\ The\ symbol\ name\ is\ demangled,\ if\ possible.}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ Note\ that\ the\ symbolized\ name\ may\ be\ truncated\ and\ will\ be\ NUL-\/terminated.}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ Demangling\ is\ supported\ for\ symbols\ generated\ by\ GCC\ 3.x\ or\ newer).\ Returns}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ \`{}false`\ on\ failure.}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ \ \ //\ Print\ a\ program\ counter\ and\ its\ symbol\ name.}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ \ \ static\ void\ DumpPCAndSymbol(void\ *pc)\ \{}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ \ \ \ \ char\ tmp[1024];}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ \ \ \ \ const\ char\ *symbol\ =\ "{}(unknown)"{};}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ \ \ \ \ if\ (absl::Symbolize(pc,\ tmp,\ sizeof(tmp)))\ \{}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ \ \ \ \ \ \ symbol\ =\ tmp;}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ \ \ \ \ absl::PrintF("{}\%p\ \ \%s\(\backslash\)n"{},\ pc,\ symbol);}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ \ \}}}
+\DoxyCodeLine{00094\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a1971f96dc51f2efa3a934f65bd098c8e}{Symbolize}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}\ *pc,\ \textcolor{keywordtype}{char}\ *\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{keywordtype}{int}\ out\_size);}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00097\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_DEBUGGING\_SYMBOLIZE\_H\_}}
+
+\end{DoxyCode}

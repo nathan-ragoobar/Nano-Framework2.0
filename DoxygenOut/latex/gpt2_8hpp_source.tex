@@ -1,0 +1,295 @@
+\doxysection{gpt2.\+hpp}
+\hypertarget{gpt2_8hpp_source}{}\label{gpt2_8hpp_source}\mbox{\hyperlink{gpt2_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ LLM\_CPP\_\_GPT2\_HPP\_}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ LLM\_CPP\_\_GPT2\_HPP\_}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{nano_8hpp}{nano.hpp}}"{}}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ }
+\DoxyCodeLine{00007\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespacegpt2}{gpt2}}\ \{}
+\DoxyCodeLine{00008\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structgpt2_1_1GPT2Config}{GPT2Config}}\ \{}
+\DoxyCodeLine{00009\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structgpt2_1_1GPT2Config_ace3b24aa885b7ef4f8dd1d8f24f1cba0}{max\_seq\_len}};\ \ \ \ \ \ \ \ \textcolor{comment}{//\ max\ sequence\ length,\ e.g.\ 1024}}
+\DoxyCodeLine{00010\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structgpt2_1_1GPT2Config_a9aeedf99e76437e8dcc3eda1d16f1d75}{vocab\_size}};\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ vocab\ size,\ e.g.\ 50257}}
+\DoxyCodeLine{00011\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structgpt2_1_1GPT2Config_af403209ec3f6f616a6d1ca2e27944edd}{padded\_vocab\_size}};\ \ \textcolor{comment}{//\ padded\ to\ e.g.\ \%128==0,\ 50304}}
+\DoxyCodeLine{00012\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structgpt2_1_1GPT2Config_a042b16107579c39b33e368686122daff}{num\_layers}};\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ number\ of\ layers,\ e.g.\ 12}}
+\DoxyCodeLine{00013\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structgpt2_1_1GPT2Config_a1894171eaf5129b96af87f2879562157}{num\_heads}};\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ number\ of\ heads\ in\ attention,\ e.g.\ 12}}
+\DoxyCodeLine{00014\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structgpt2_1_1GPT2Config_a9955ce74e167897dde1500539600831b}{channels}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ number\ of\ channels,\ e.g.\ 768}}
+\DoxyCodeLine{00015\ \};}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{comment}{//Eventually\ I\ would\ like\ to\ move\ all\ the\ functions\ from\ here\ into\ a\ more\ general\ location.\ }}
+\DoxyCodeLine{00018\ \textcolor{comment}{//I\ want\ to\ be\ able\ to\ apply\ these\ functions\ to\ any\ model,\ not\ just\ GPT-\/2.\ -\/NR}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structgpt2_1_1GPT2}{GPT2}}\ \{}
+\DoxyCodeLine{00021\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt2_1_1GPT2_a0cc068cf99be6c136943064bf92a4deb}{BuildFromCheckpoint}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ checkpoint\_path)\ \{}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{comment}{//\ read\ in\ model\ from\ a\ checkpoint\ file}}
+\DoxyCodeLine{00025\ \ \ \ \ FILE*\ model\_file\ =\ \mbox{\hyperlink{llmc_2utils_8h_a4d8fc8875786ef36e2c339e79f8b250b}{fopenCheck}}(checkpoint\_path.\mbox{\hyperlink{classabsl_1_1string__view_acdd63d87adecc9cb89e3bb2c4efedf47}{data}}(),\ \textcolor{stringliteral}{"{}rb"{}});\ \textcolor{comment}{//"{}rb"{}\ opens\ the\ binary\ file\ in\ read\ mode\ only.\ To\ open\ in\ read\ and\ write\ you\ need\ to\ do\ "{}rb+"{}}}
+\DoxyCodeLine{00026\ \ \ \ \ \textcolor{keywordflow}{if}\ (model\_file\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00027\ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Error\ opening\ model\ file\(\backslash\)n"{}});}
+\DoxyCodeLine{00028\ \ \ \ \ \ \ exit(1);}
+\DoxyCodeLine{00029\ \ \ \ \ \}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{keywordtype}{int}\ model\_header[256];}
+\DoxyCodeLine{00032\ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_aeaeb423fa1a9bddb0cf4c1e0120b09ee}{freadCheck}}(model\_header,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}),\ 256,\ model\_file);}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{keywordflow}{if}\ (model\_header[0]\ !=\ 20240326)\ \{}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Bad\ magic\ model\ file\(\backslash\)n"{}});}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ exit(1);}
+\DoxyCodeLine{00036\ \ \ \ \ \}}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keywordflow}{if}\ (model\_header[1]\ !=\ 3)\ \{}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Bad\ version\ in\ model\ file\(\backslash\)n"{}});}
+\DoxyCodeLine{00039\ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}-\/-\/-\/>\ HINT:\ try\ to\ re-\/run\ \`{}python\ train\_gpt2.py`\(\backslash\)n"{}});}
+\DoxyCodeLine{00040\ \ \ \ \ \ \ exit(1);}
+\DoxyCodeLine{00041\ \ \ \ \ \}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \ \ \ \ \textcolor{comment}{//\ read\ in\ hyperparameters}}
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keywordtype}{int}\ maxT,\ V,\ Vp,\ L,\ NH,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}};}
+\DoxyCodeLine{00045\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_ace3b24aa885b7ef4f8dd1d8f24f1cba0}{max\_seq\_len}}\ =\ maxT\ =\ model\_header[2];}
+\DoxyCodeLine{00046\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a9aeedf99e76437e8dcc3eda1d16f1d75}{vocab\_size}}\ =\ V\ =\ model\_header[3];}
+\DoxyCodeLine{00047\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a042b16107579c39b33e368686122daff}{num\_layers}}\ =\ L\ =\ model\_header[4];}
+\DoxyCodeLine{00048\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a1894171eaf5129b96af87f2879562157}{num\_heads}}\ =\ NH\ =\ model\_header[5];}
+\DoxyCodeLine{00049\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a9955ce74e167897dde1500539600831b}{channels}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ model\_header[6];}
+\DoxyCodeLine{00050\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_af403209ec3f6f616a6d1ca2e27944edd}{padded\_vocab\_size}}\ =\ Vp\ =\ model\_header[7];}
+\DoxyCodeLine{00051\ \ \ \ \ printf(\textcolor{stringliteral}{"{}[GPT-\/2]\(\backslash\)n"{}});}
+\DoxyCodeLine{00052\ \ \ \ \ printf(\textcolor{stringliteral}{"{}max\_seq\_len:\ \%zu\(\backslash\)n"{}},\ maxT);}
+\DoxyCodeLine{00053\ \ \ \ \ printf(\textcolor{stringliteral}{"{}vocab\_size:\ \%zu\(\backslash\)n"{}},\ V);}
+\DoxyCodeLine{00054\ \ \ \ \ printf(\textcolor{stringliteral}{"{}padded\_vocab\_size:\ \%zu\(\backslash\)n"{}},\ Vp);}
+\DoxyCodeLine{00055\ \ \ \ \ printf(\textcolor{stringliteral}{"{}num\_layers:\ \%zu\(\backslash\)n"{}},\ L);}
+\DoxyCodeLine{00056\ \ \ \ \ printf(\textcolor{stringliteral}{"{}num\_heads:\ \%zu\(\backslash\)n"{}},\ NH);}
+\DoxyCodeLine{00057\ \ \ \ \ printf(\textcolor{stringliteral}{"{}channels:\ \%zu\(\backslash\)n"{}},\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}\ =\ std::make\_unique<gpt::GPT>(}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_ace3b24aa885b7ef4f8dd1d8f24f1cba0}{max\_seq\_len}},\ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a9aeedf99e76437e8dcc3eda1d16f1d75}{vocab\_size}},\ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_af403209ec3f6f616a6d1ca2e27944edd}{padded\_vocab\_size}},}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a042b16107579c39b33e368686122daff}{num\_layers}},\ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a1894171eaf5129b96af87f2879562157}{num\_heads}},\ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a9955ce74e167897dde1500539600831b}{channels}});}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{comment}{//\ allocate\ space\ for\ all\ the\ parameters\ and\ read\ them\ in}}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ num\_parameters\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>NumParameters();}
+\DoxyCodeLine{00064\ \ \ \ \ printf(\textcolor{stringliteral}{"{}num\_parameters:\ \%zu(\%zu\ MB)\(\backslash\)n"{}},\ num\_parameters,}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ \ \ \ num\_parameters\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}})\ /\ 1024\ /\ 1024);}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keyword}{auto}\ restore\_fn\ =\ [\&](\mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p,\ \textcolor{keyword}{const}\ std::string\&\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}})\ \{}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_GPU}}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ std::vector<Type>\ cpu\_data(p-\/>size());}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_aeaeb423fa1a9bddb0cf4c1e0120b09ee}{freadCheck}}(cpu\_data.data(),\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}}),\ p-\/>size(),\ model\_file);}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ nn::g\_device.memcpyHostToDevice(p-\/>data<\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}}>(),\ cpu\_data.data(),}
+\DoxyCodeLine{00072\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}})\ *\ p-\/>size());}
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_aeaeb423fa1a9bddb0cf4c1e0120b09ee}{freadCheck}}(p-\/>data<\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}}>(),\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}}),\ p-\/>size(),\ model\_file);}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00076\ \ \ \ \ \};}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \ \ \ \ }
+\DoxyCodeLine{00079\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_a61b73543695c62c95aa37b27ee2ae3f5}{ApplyFn}}(restore\_fn,\ L);}
+\DoxyCodeLine{00080\ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_ae094d98ede0500b8f5acba043487a5c1}{fcloseCheck}}(model\_file);}
+\DoxyCodeLine{00081\ \ \ \}\ \textcolor{comment}{//end\ BuildFromCheckpoint()}}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//SAVE\ MODEL}}
+\DoxyCodeLine{00087\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt2_1_1GPT2_aec64aaa2fd92ab291fc094a010434084}{SaveModel}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ model\_path)\ \{}
+\DoxyCodeLine{00088\ \ \ \ \ \textcolor{comment}{//Opens\ model\ file\ for\ writing}}
+\DoxyCodeLine{00089\ \ \ \ \ FILE*\ model\_file\ =\ \mbox{\hyperlink{llmc_2utils_8h_a4d8fc8875786ef36e2c339e79f8b250b}{fopenCheck}}(model\_path.\mbox{\hyperlink{classabsl_1_1string__view_acdd63d87adecc9cb89e3bb2c4efedf47}{data}}(),\ \textcolor{stringliteral}{"{}wb"{}});\ \textcolor{comment}{//"{}wb"{}\ opens\ the\ binary\ file\ for\ writing.\ If\ the\ file\ already\ exists,\ the\ file\ is\ overwritten.\ If\ the\ file\ does\ not\ exist,\ it\ is\ created.}}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{keywordflow}{if}\ (model\_file\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Error\ opening\ model\ file\(\backslash\)n"{}});}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ exit(1);}
+\DoxyCodeLine{00093\ \ \ \ \ \}}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keywordtype}{int}\ model\_header[256];}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{comment}{//\ Save\ hyperparameters\ to\ header}}
+\DoxyCodeLine{00097\ \ \ \ \ \textcolor{keywordtype}{int}\ maxT,\ V,\ Vp,\ L,\ NH,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}};}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \ \ \ \ maxT\ =\ model\_header[2]\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>block\_size\_;}
+\DoxyCodeLine{00101\ \ \ \ \ V\ =\ model\_header[3]\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>vocab\_size\_;}
+\DoxyCodeLine{00102\ \ \ \ \ L\ =\ model\_header[4]\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>n\_layer\_;}
+\DoxyCodeLine{00103\ \ \ \ \ NH\ =\ model\_header[5]\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>n\_head\_;}
+\DoxyCodeLine{00104\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ model\_header[6]\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>n\_embed\_;}
+\DoxyCodeLine{00105\ \ \ \ \ Vp\ =\ model\_header[7]\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>padded\_vocab\_size\_;}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \ \ \ \ model\_header[0]\ =\ 20240326;\ \textcolor{comment}{//Magic\ number.\ Basically\ a\ unique\ number\ that\ is\ used\ to\ identify\ the\ file\ type.\ It\ is\ used\ to\ differentiate\ between\ different\ file\ formats\ or\ to\ identify\ the\ file\ type.}}
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{comment}{//Also\ this\ magic\ number\ was\ something\ zhangpiu\ had\ created.\ Idk\ if\ I\ want\ to\ keep\ it\ or\ not\ -\/NR}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \ \ \ \ model\_header[1]\ =\ 3;}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_aa8804d69dbe45911374dae86b8ce13ce}{fwriteCheck}}(model\_header,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}),\ 256,\ model\_file);}
+\DoxyCodeLine{00113\ \ \ \ \ }
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{comment}{//\ Define\ the\ save\ function}}
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{keyword}{auto}\ save\_fn\ =\ [\&](\mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p,\ \textcolor{keyword}{const}\ std::string\&\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}})\ \{}
+\DoxyCodeLine{00118\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_GPU}}
+\DoxyCodeLine{00119\ \ \ std::vector<Type>\ cpu\_data(p-\/>size());}
+\DoxyCodeLine{00120\ \ \ nn::g\_device.memcpyDeviceToHost(cpu\_data.data(),\ p-\/>data<\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}}>(),\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}})\ *\ p-\/>size());}
+\DoxyCodeLine{00121\ \ \ \mbox{\hyperlink{llmc_2utils_8h_aa8804d69dbe45911374dae86b8ce13ce}{fwriteCheck}}(cpu\_data.data(),\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}}),\ p-\/>size(),\ model\_file);}
+\DoxyCodeLine{00122\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00123\ \ \ \mbox{\hyperlink{llmc_2utils_8h_aa8804d69dbe45911374dae86b8ce13ce}{fwriteCheck}}(p-\/>data<\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}}>(),\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structgpt2_1_1GPT2_a97aa64291d43e23b82325d4116f7073d}{Type}}),\ p-\/>size(),\ model\_file);}
+\DoxyCodeLine{00124\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00125\ \ \ \ \ \};}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{comment}{//\ Apply\ the\ save\ function\ to\ the\ model\ parameters}}
+\DoxyCodeLine{00128\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_a61b73543695c62c95aa37b27ee2ae3f5}{ApplyFn}}(save\_fn,\ L);}
+\DoxyCodeLine{00129\ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_ae094d98ede0500b8f5acba043487a5c1}{fcloseCheck}}(model\_file);}
+\DoxyCodeLine{00130\ \ \ \}}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt2_1_1GPT2_ac5a2c49fe2a169e4d36026965308a4cc}{Parameters}}(std::vector<nn::Parameter*>*\ parameters)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keyword}{auto}\ collect\_fn\ =\ [\&](\mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p,\ \textcolor{keyword}{const}\ std::string\&\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}})\ \{}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ parameters-\/>push\_back(p);}
+\DoxyCodeLine{00135\ \ \ \ \ \};}
+\DoxyCodeLine{00136\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_a61b73543695c62c95aa37b27ee2ae3f5}{ApplyFn}}(collect\_fn,\ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a042b16107579c39b33e368686122daff}{num\_layers}});}
+\DoxyCodeLine{00137\ \ \ \}}
+\DoxyCodeLine{00138\ }
+\DoxyCodeLine{00139\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt2_1_1GPT2_ab8a1a3aa306c9f6dcff92f3b736628f3}{Parameters}}(}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ std::unordered\_map<std::string,\ nn::Parameter*>*\ parameters)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keyword}{auto}\ collect\_fn\ =\ [\&](\mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p,\ \textcolor{keyword}{const}\ std::string\&\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}})\ \{}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ parameters-\/>insert(\{\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}},\ p\});}
+\DoxyCodeLine{00143\ \ \ \ \ \};}
+\DoxyCodeLine{00144\ \ \ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2_a61b73543695c62c95aa37b27ee2ae3f5}{ApplyFn}}(collect\_fn,\ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}}.\mbox{\hyperlink{structgpt2_1_1GPT2Config_a042b16107579c39b33e368686122daff}{num\_layers}});}
+\DoxyCodeLine{00145\ \ \ \}}
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00147\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt2_1_1GPT2_a61b73543695c62c95aa37b27ee2ae3f5}{ApplyFn}}(}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::function<\textcolor{keywordtype}{void}(\mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*,\ \textcolor{keyword}{const}\ std::string\&)>\&\ apply\_fn,}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ L)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00150\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00151\ \textcolor{comment}{The\ provided\ code\ defines\ a\ method\ \`{}ApplyFn`\ that\ applies\ a\ given\ function\ to\ various\ parameters\ of\ a\ GPT-\/2\ model.\ The\ method\ takes\ two\ arguments:\ a\ function\ }}
+\DoxyCodeLine{00152\ \textcolor{comment}{}}
+\DoxyCodeLine{00153\ \textcolor{comment}{apply\_fn}}
+\DoxyCodeLine{00154\ \textcolor{comment}{}}
+\DoxyCodeLine{00155\ \textcolor{comment}{\ that\ operates\ on\ \`{}nn::Parameter*\`{}\ objects\ and\ their\ associated\ names,\ and\ an\ integer\ }}
+\DoxyCodeLine{00156\ \textcolor{comment}{}}
+\DoxyCodeLine{00157\ \textcolor{comment}{L}}
+\DoxyCodeLine{00158\ \textcolor{comment}{}}
+\DoxyCodeLine{00159\ \textcolor{comment}{\ representing\ the\ number\ of\ layers\ in\ the\ model.}}
+\DoxyCodeLine{00160\ \textcolor{comment}{}}
+\DoxyCodeLine{00161\ \textcolor{comment}{The\ method\ starts\ by\ applying\ the\ function\ to\ the\ weights\ of\ the\ word\ and\ position\ embeddings\ (`wte`\ and\ \`{}wpe`).\ It\ then\ defines\ a\ lambda\ function\ }}
+\DoxyCodeLine{00162\ \textcolor{comment}{}}
+\DoxyCodeLine{00163\ \textcolor{comment}{name\_with\_layer}}
+\DoxyCodeLine{00164\ \textcolor{comment}{}}
+\DoxyCodeLine{00165\ \textcolor{comment}{\ to\ generate\ names\ for\ parameters\ that\ include\ the\ layer\ index.}}
+\DoxyCodeLine{00166\ \textcolor{comment}{}}
+\DoxyCodeLine{00167\ \textcolor{comment}{The\ method\ proceeds\ to\ iterate\ over\ each\ layer\ }}
+\DoxyCodeLine{00168\ \textcolor{comment}{}}
+\DoxyCodeLine{00169\ \textcolor{comment}{l}}
+\DoxyCodeLine{00170\ \textcolor{comment}{}}
+\DoxyCodeLine{00171\ \textcolor{comment}{\ from\ 0\ to\ }}
+\DoxyCodeLine{00172\ \textcolor{comment}{}}
+\DoxyCodeLine{00173\ \textcolor{comment}{L-\/1}}
+\DoxyCodeLine{00174\ \textcolor{comment}{}}
+\DoxyCodeLine{00175\ \textcolor{comment}{,\ applying\ the\ function\ to\ various\ parameters\ within\ each\ layer.\ These\ parameters\ include:}}
+\DoxyCodeLine{00176\ \textcolor{comment}{-\/\ \`{}ln1w`\ and\ \`{}ln1b`:\ weights\ and\ biases\ of\ the\ first\ layer\ normalization.}}
+\DoxyCodeLine{00177\ \textcolor{comment}{-\/\ \`{}qkvw`\ and\ \`{}qkvb`:\ weights\ and\ biases\ of\ the\ query,\ key,\ and\ value\ projections\ in\ the\ attention\ mechanism.}}
+\DoxyCodeLine{00178\ \textcolor{comment}{-\/\ \`{}attprojw`\ and\ \`{}attprojb`:\ weights\ and\ biases\ of\ the\ attention\ projection.}}
+\DoxyCodeLine{00179\ \textcolor{comment}{-\/\ \`{}ln2w`\ and\ \`{}ln2b`:\ weights\ and\ biases\ of\ the\ second\ layer\ normalization.}}
+\DoxyCodeLine{00180\ \textcolor{comment}{-\/\ \`{}fcw`\ and\ \`{}fcb`:\ weights\ and\ biases\ of\ the\ fully\ connected\ layer.}}
+\DoxyCodeLine{00181\ \textcolor{comment}{-\/\ \`{}fcprojw`\ and\ \`{}fcprojb`:\ weights\ and\ biases\ of\ the\ projection\ layer\ in\ the\ multi-\/layer\ perceptron\ (MLP).}}
+\DoxyCodeLine{00182\ \textcolor{comment}{}}
+\DoxyCodeLine{00183\ \textcolor{comment}{Finally,\ the\ method\ applies\ the\ function\ to\ the\ weights\ and\ biases\ of\ the\ final\ layer\ normalization\ (`lnfw`\ and\ \`{}lnfb`).}}
+\DoxyCodeLine{00184\ \textcolor{comment}{}}
+\DoxyCodeLine{00185\ \textcolor{comment}{This\ method\ is\ useful\ for\ tasks\ such\ as\ initializing,\ updating,\ or\ saving\ model\ parameters,\ as\ it\ provides\ a\ systematic\ way\ to\ apply\ operations\ to\ all\ relevant\ parameters\ of\ the\ GPT-\/2\ model.}}
+\DoxyCodeLine{00186\ \textcolor{comment}{*/}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ \ \ apply\_fn(\mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>wte\_-\/>weight\_.get(),\ \textcolor{stringliteral}{"{}wte"{}});}
+\DoxyCodeLine{00189\ \ \ \ \ apply\_fn(\mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>wpe\_-\/>weight\_.get(),\ \textcolor{stringliteral}{"{}wpe"{}});}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \ \ \ \ \textcolor{keyword}{auto}\ name\_with\_layer\ =\ [](\textcolor{keyword}{const}\ std::string\&\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}},\ \textcolor{keywordtype}{int}\ l)\ \{}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}}\ +\ \textcolor{stringliteral}{"{}-\/L"{}}\ +\ std::to\_string(l);}
+\DoxyCodeLine{00193\ \ \ \ \ \};}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \ \ \ \ \textcolor{comment}{//\ ln1w}}
+\DoxyCodeLine{00196\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00198\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>ln1\_-\/>weight\_.get();}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}ln1w"{}},\ l));}
+\DoxyCodeLine{00200\ \ \ \ \ \}}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \ \ \ \ \textcolor{comment}{//\ ln1b}}
+\DoxyCodeLine{00203\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>ln1\_-\/>bias\_.get();}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}ln1b"{}},\ l));}
+\DoxyCodeLine{00207\ \ \ \ \ \}}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00209\ \ \ \ \ \textcolor{comment}{//\ qkvw}}
+\DoxyCodeLine{00210\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00211\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00212\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>attn\_-\/>c\_attn\_-\/>weight\_.get();}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}qkvw"{}},\ l));}
+\DoxyCodeLine{00214\ \ \ \ \ \}}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \ \ \ \ \textcolor{comment}{//\ qkvb}}
+\DoxyCodeLine{00217\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00219\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>attn\_-\/>c\_attn\_-\/>bias\_.get();}
+\DoxyCodeLine{00220\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}qkvb"{}},\ l));}
+\DoxyCodeLine{00221\ \ \ \ \ \}}
+\DoxyCodeLine{00222\ }
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{comment}{//\ attprojw}}
+\DoxyCodeLine{00224\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00226\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>attn\_-\/>c\_proj\_-\/>weight\_.get();}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}attprojw"{}},\ l));}
+\DoxyCodeLine{00228\ \ \ \ \ \}}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00230\ \ \ \ \ \textcolor{comment}{//\ attprojb}}
+\DoxyCodeLine{00231\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>attn\_-\/>c\_proj\_-\/>bias\_.get();}
+\DoxyCodeLine{00234\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}attprojb"{}},\ l));}
+\DoxyCodeLine{00235\ \ \ \ \ \}}
+\DoxyCodeLine{00236\ }
+\DoxyCodeLine{00237\ \ \ \ \ \textcolor{comment}{//\ ln2w}}
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00239\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00240\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>ln2\_-\/>weight\_.get();}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}ln2w"{}},\ l));}
+\DoxyCodeLine{00242\ \ \ \ \ \}}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{comment}{//\ ln2b}}
+\DoxyCodeLine{00245\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00246\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00247\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>ln2\_-\/>bias\_.get();}
+\DoxyCodeLine{00248\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}ln2b"{}},\ l));}
+\DoxyCodeLine{00249\ \ \ \ \ \}}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00251\ \ \ \ \ \textcolor{comment}{//\ fcw}}
+\DoxyCodeLine{00252\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00254\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>mlp\_-\/>c\_fc\_-\/>weight\_.get();}
+\DoxyCodeLine{00255\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}fcw"{}},\ l));}
+\DoxyCodeLine{00256\ \ \ \ \ \}}
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00258\ \ \ \ \ \textcolor{comment}{//\ fcb}}
+\DoxyCodeLine{00259\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>mlp\_-\/>c\_fc\_-\/>bias\_.get();}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}fcb"{}},\ l));}
+\DoxyCodeLine{00263\ \ \ \ \ \}}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ \ \ \ \ \textcolor{comment}{//\ fcprojw}}
+\DoxyCodeLine{00266\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>mlp\_-\/>c\_proj\_-\/>weight\_.get();}
+\DoxyCodeLine{00269\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}fcprojw"{}},\ l));}
+\DoxyCodeLine{00270\ \ \ \ \ \}}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00272\ \ \ \ \ \textcolor{comment}{//\ fcprojb}}
+\DoxyCodeLine{00273\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ L;\ ++l)\ \{}
+\DoxyCodeLine{00274\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}\ =\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>h\_[l];}
+\DoxyCodeLine{00275\ \ \ \ \ \ \ \mbox{\hyperlink{structnn_1_1Parameter}{nn::Parameter}}*\ p\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}-\/>mlp\_-\/>c\_proj\_-\/>bias\_.get();}
+\DoxyCodeLine{00276\ \ \ \ \ \ \ apply\_fn(p,\ name\_with\_layer(\textcolor{stringliteral}{"{}fcprojb"{}},\ l));}
+\DoxyCodeLine{00277\ \ \ \ \ \}}
+\DoxyCodeLine{00278\ }
+\DoxyCodeLine{00279\ \ \ \ \ \textcolor{comment}{//\ lnfw}}
+\DoxyCodeLine{00280\ \ \ \ \ apply\_fn(\mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>lnf\_-\/>weight\_.get(),\ \textcolor{stringliteral}{"{}lnfw"{}});}
+\DoxyCodeLine{00281\ \ \ \ \ \textcolor{comment}{//\ lnfb}}
+\DoxyCodeLine{00282\ \ \ \ \ apply\_fn(\mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}}-\/>lnf\_-\/>bias\_.get(),\ \textcolor{stringliteral}{"{}lnfb"{}});}
+\DoxyCodeLine{00283\ \ \ \}}
+\DoxyCodeLine{00284\ }
+\DoxyCodeLine{00285\ \ \ \mbox{\hyperlink{structgpt2_1_1GPT2Config}{GPT2Config}}\ \mbox{\hyperlink{structgpt2_1_1GPT2_ac31a23335e94f5f6c834060707bf741c}{config}};}
+\DoxyCodeLine{00286\ \ \ std::unique\_ptr<gpt::GPT>\ \mbox{\hyperlink{structgpt2_1_1GPT2_a30e5a78fb8de624a23f9ebab1c374fd4}{gpt2\_}};}
+\DoxyCodeLine{00287\ \};}
+\DoxyCodeLine{00288\ \}\ \ \textcolor{comment}{//\ namespace\ gpt2}}
+\DoxyCodeLine{00289\ }
+\DoxyCodeLine{00290\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ LLM\_CPP\_\_GPT2\_HPP\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,277 @@
+\doxysection{compressed\+\_\+tuple.\+h}
+\hypertarget{abseil-cpp_2absl_2container_2internal_2compressed__tuple_8h_source}{}\label{abseil-cpp_2absl_2container_2internal_2compressed__tuple_8h_source}\index{abseil-\/cpp/absl/container/internal/compressed\_tuple.h@{abseil-\/cpp/absl/container/internal/compressed\_tuple.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2compressed__tuple_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Helper\ class\ to\ perform\ the\ Empty\ Base\ Optimization.}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ Ts\ can\ contain\ classes\ and\ non-\/classes,\ empty\ or\ not.\ For\ the\ ones\ that}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ are\ empty\ classes,\ we\ perform\ the\ optimization.\ If\ all\ types\ in\ Ts\ are\ empty}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ classes,\ then\ CompressedTuple<Ts...>\ is\ itself\ an\ empty\ class.}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ To\ access\ the\ members,\ use\ member\ get<N>()\ function.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ Eg:}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \ \ absl::container\_internal::CompressedTuple<int,\ T1,\ T2,\ T3>\ value(7,\ t1,\ t2,}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ t3);}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ \ \ assert(value.get<0>()\ ==\ 7);}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ \ \ T1\&\ t1\ =\ value.get<1>();}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ \ \ const\ T2\&\ t2\ =\ value.get<2>();}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ \ \ ...}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ https://en.cppreference.com/w/cpp/language/ebo}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CONTAINER\_INTERNAL\_COMPRESSED\_TUPLE\_H\_}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#define\ ABSL\_CONTAINER\_INTERNAL\_COMPRESSED\_TUPLE\_H\_}}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <initializer\_list>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <tuple>}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ "{}absl/utility/utility.h"{}}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#if\ defined(\_MSC\_VER)\ \&\&\ !defined(\_\_NVCC\_\_)}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ We\ need\ to\ mark\ these\ classes\ with\ this\ declspec\ to\ ensure\ that}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ CompressedTuple\ happens.}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_COMPRESSED\_TUPLE\_DECLSPEC\ \_\_declspec(empty\_bases)}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_COMPRESSED\_TUPLE\_DECLSPEC}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00051\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00052\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{00055\ \textcolor{keyword}{class\ }CompressedTuple;}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{keyword}{namespace\ }internal\_compressed\_tuple\ \{}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ D,\ \textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00060\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Elem}{Elem}};}
+\DoxyCodeLine{00061\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ B,\ \textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00062\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Elem}{Elem}}<\mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}<B...>,\ I>}
+\DoxyCodeLine{00063\ \ \ \ \ :\ std::tuple\_element<I,\ std::tuple<B...>>\ \{\};}
+\DoxyCodeLine{00064\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ D,\ \textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00065\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a8e77adc0a4e53f56fad02413b91cfbad}{ElemT}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Elem}{Elem<D,\ I>::type}};}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ We\ can't\ use\ EBCO\ on\ other\ CompressedTuples\ because\ that\ would\ mean\ that\ we}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ derive\ from\ multiple\ Storage<>\ instantiations\ with\ the\ same\ I\ parameter,}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ and\ potentially\ from\ multiple\ identical\ Storage<>\ instantiations.\ \ So\ anytime}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ we\ use\ type\ inheritance\ rather\ than\ encapsulation,\ we\ mark}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ CompressedTupleImpl,\ to\ make\ this\ easy\ to\ detect.}}
+\DoxyCodeLine{00072\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1uses__inheritance}{uses\_inheritance}}\ \{\};}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00074\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00075\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a9397bb8afd5c35d89a28e6f5314ca3c6}{ShouldUseBase}}()\ \{}
+\DoxyCodeLine{00076\ \ \ \textcolor{keywordflow}{return}\ std::is\_class<T>::value\ \&\&\ std::is\_empty<T>::value\ \&\&}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \ !std::is\_final<T>::value\ \&\&}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ \ !std::is\_base\_of<uses\_inheritance,\ T>::value;}
+\DoxyCodeLine{00079\ \}}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ The\ storage\ class\ provides\ two\ specializations:}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ \ -\/\ For\ empty\ classes,\ it\ stores\ T\ as\ a\ base\ class.}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ \ -\/\ For\ everything\ else,\ it\ stores\ T\ as\ a\ member.}}
+\DoxyCodeLine{00084\ template\ <typename\ T,\ size\_t\ I,\ bool\ UseBase\ =\ ShouldUseBase<T>()>}
+\DoxyCodeLine{00085\ \textcolor{keyword}{struct\ }Storage\ \{}
+\DoxyCodeLine{00086\ \ \ T\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_a8dad9a9d3461d396947ae636070ded7c}{value}};}
+\DoxyCodeLine{00087\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_a1e02a52cfc39323cceed3ff9901d294f}{Storage}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00088\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ V>}
+\DoxyCodeLine{00089\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_affacfddb2e926159c1e4201af24590d4}{Storage}}(\mbox{\hyperlink{structabsl_1_1in__place__t}{absl::in\_place\_t}},\ V\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_a8dad9a9d3461d396947ae636070ded7c}{value}}(\mbox{\hyperlink{namespacestd}{std}}::forward<V>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))\ \{\}}
+\DoxyCodeLine{00091\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_aec0544d735d871a2589df72ac0a3433d}{get}}()\ const\&\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_a8dad9a9d3461d396947ae636070ded7c}{value}};\ \}}
+\DoxyCodeLine{00092\ \ \ \textcolor{keyword}{constexpr}\ T\&\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_a002ebe36fbddb3c7e0c90ab513d81659}{get}}()\ \&\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_a8dad9a9d3461d396947ae636070ded7c}{value}};\ \}}
+\DoxyCodeLine{00093\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ T\&\&\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_a14e6aa37c5a685e306462ea706f295ae}{get}}()\ const\&\&\ \{\ \textcolor{keywordflow}{return}\ std::move(*this).value;\ \}}
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{constexpr}\ T\&\&\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_a189d4659b075be9ae8035b4aaf221a33}{get}}()\ \&\&\ \{\ \textcolor{keywordflow}{return}\ std::move(*this).value;\ \}}
+\DoxyCodeLine{00095\ \};}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00098\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2compressed__tuple_8h_a603facfbb644d6bb5e568d5598c23242}{ABSL\_INTERNAL\_COMPRESSED\_TUPLE\_DECLSPEC}}\ Storage<T,\ I,\ true>\ :\ T\ \{}
+\DoxyCodeLine{00099\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_3_01T_00_01I_00_01true_01_4_a83c89f7e9e7297af8f6c285011ca1f9e}{Storage}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ V>}
+\DoxyCodeLine{00102\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_3_01T_00_01I_00_01true_01_4_afb370514e3517157a73101f59647a3c8}{Storage}}(\mbox{\hyperlink{structabsl_1_1in__place__t}{absl::in\_place\_t}},\ V\&\&\ v)\ :\ T(\mbox{\hyperlink{namespacestd}{std}}::forward<V>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))\ \{\}}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_3_01T_00_01I_00_01true_01_4_ae8cfd0439143979f2790f65a582fbff2}{get}}()\ const\&\ \{\ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};\ \}}
+\DoxyCodeLine{00105\ \ \ \textcolor{keyword}{constexpr}\ T\&\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_3_01T_00_01I_00_01true_01_4_a7e3be59d9a4dfdb006d68d95bc182865}{get}}()\ \&\ \{\ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};\ \}}
+\DoxyCodeLine{00106\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ T\&\&\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_3_01T_00_01I_00_01true_01_4_a6c0a3594139996e55d1f7af78f690fcd}{get}}()\ const\&\&\ \{\ \textcolor{keywordflow}{return}\ std::move(*\textcolor{keyword}{this});\ \}}
+\DoxyCodeLine{00107\ \ \ \textcolor{keyword}{constexpr}\ T\&\&\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage_3_01T_00_01I_00_01true_01_4_a48a159c2eff5f6f035337d2e7145251e}{get}}()\ \&\&\ \{\ \textcolor{keywordflow}{return}\ std::move(*\textcolor{keyword}{this});\ \}}
+\DoxyCodeLine{00108\ \};}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ D,\ \textcolor{keyword}{typename}\ I,\ \textcolor{keywordtype}{bool}\ ShouldAnyUseBase>}
+\DoxyCodeLine{00111\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2compressed__tuple_8h_a603facfbb644d6bb5e568d5598c23242}{ABSL\_INTERNAL\_COMPRESSED\_TUPLE\_DECLSPEC}}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a2ef1ba90a45b36f04113d51c6ba0fa22}{CompressedTupleImpl}};}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Ts,\ \textcolor{keywordtype}{size\_t}...\ I,\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a307ca7615a6ff8dcfb84cc0ed6de9df2}{ShouldAnyUseBase}}>}
+\DoxyCodeLine{00114\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2compressed__tuple_8h_a603facfbb644d6bb5e568d5598c23242}{ABSL\_INTERNAL\_COMPRESSED\_TUPLE\_DECLSPEC}}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a2ef1ba90a45b36f04113d51c6ba0fa22}{CompressedTupleImpl}}<}
+\DoxyCodeLine{00115\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}<Ts...>,\ \mbox{\hyperlink{namespaceabsl}{absl}}::index\_sequence<I...>,\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a307ca7615a6ff8dcfb84cc0ed6de9df2}{ShouldAnyUseBase}}>}
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{comment}{//\ We\ use\ the\ dummy\ identity\ function\ through\ std::integral\_constant\ to}}
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{comment}{//\ convince\ MSVC\ of\ accepting\ and\ expanding\ I\ in\ that\ context.\ Without\ it}}
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{comment}{//\ you\ would\ get:}}
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{comment}{//\ \ \ error\ C3548:\ 'I':\ parameter\ pack\ cannot\ be\ used\ in\ this\ context}}
+\DoxyCodeLine{00120\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1uses__inheritance}{uses\_inheritance}},}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage}{Storage}}<Ts,\ std::integral\_constant<size\_t,\ I>::value>...\ \{}
+\DoxyCodeLine{00122\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1CompressedTupleImpl_3_01Comp365939895d29e8ac31b2360540bd325c_a2661db4f82f88b80a76716a90ab6ffc9}{CompressedTupleImpl}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00123\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Vs>}
+\DoxyCodeLine{00124\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1CompressedTupleImpl_3_01Comp365939895d29e8ac31b2360540bd325c_a825077aee3865f778f3cdc6692ffcc21}{CompressedTupleImpl}}(\mbox{\hyperlink{structabsl_1_1in__place__t}{absl::in\_place\_t}},\ Vs\&\&...\ args)}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage}{Storage}}<Ts,\ I>(\mbox{\hyperlink{namespaceabsl}{absl}}::in\_place,\ \mbox{\hyperlink{namespacestd}{std}}::forward<Vs>(args))...\ \{\}}
+\DoxyCodeLine{00126\ \ \ \textcolor{keyword}{friend}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}<Ts...>;}
+\DoxyCodeLine{00127\ \};}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00129\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Ts,\ \textcolor{keywordtype}{size\_t}...\ I>}
+\DoxyCodeLine{00130\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2compressed__tuple_8h_a603facfbb644d6bb5e568d5598c23242}{ABSL\_INTERNAL\_COMPRESSED\_TUPLE\_DECLSPEC}}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a2ef1ba90a45b36f04113d51c6ba0fa22}{CompressedTupleImpl}}<}
+\DoxyCodeLine{00131\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}<Ts...>,\ \mbox{\hyperlink{namespaceabsl}{absl}}::index\_sequence<I...>,\ false>}
+\DoxyCodeLine{00132\ \ \ \ \ \textcolor{comment}{//\ We\ use\ the\ dummy\ identity\ function\ as\ above...}}
+\DoxyCodeLine{00133\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage}{Storage}}<Ts,\ std::integral\_constant<size\_t,\ I>::value,\ false>...\ \{}
+\DoxyCodeLine{00134\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1CompressedTupleImpl_3_01Comp5801467e512dde7cb76d79014bf6329a_a55bb03d0b5115060853b2000d6eca3f9}{CompressedTupleImpl}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00135\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Vs>}
+\DoxyCodeLine{00136\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1CompressedTupleImpl_3_01Comp5801467e512dde7cb76d79014bf6329a_abc5dc3aacb4602fa93ad28dce37de474}{CompressedTupleImpl}}(\mbox{\hyperlink{structabsl_1_1in__place__t}{absl::in\_place\_t}},\ Vs\&\&...\ args)}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage}{Storage}}<Ts,\ I,\ false>(\mbox{\hyperlink{namespaceabsl}{absl}}::in\_place,\ \mbox{\hyperlink{namespacestd}{std}}::forward<Vs>(args))...\ \{\}}
+\DoxyCodeLine{00138\ \ \ \textcolor{keyword}{friend}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}<Ts...>;}
+\DoxyCodeLine{00139\ \};}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ std::false\_type\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a359887dfd788f15fff20ecbf034d256f}{Or}}(std::initializer\_list<std::false\_type>);}
+\DoxyCodeLine{00142\ std::true\_type\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a359887dfd788f15fff20ecbf034d256f}{Or}}(std::initializer\_list<bool>);}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ MSVC\ requires\ this\ to\ be\ done\ separately\ rather\ than\ within\ the\ declaration}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//\ of\ CompressedTuple\ below.}}
+\DoxyCodeLine{00146\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{00147\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a307ca7615a6ff8dcfb84cc0ed6de9df2}{ShouldAnyUseBase}}()\ \{}
+\DoxyCodeLine{00148\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{decltype}(}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a359887dfd788f15fff20ecbf034d256f}{Or}}(\{std::integral\_constant<bool,\ ShouldUseBase<Ts>()>()...\}))\{\};}
+\DoxyCodeLine{00150\ \}}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ V>}
+\DoxyCodeLine{00153\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a4174d49624810a900ab0287e3d0edf95}{TupleElementMoveConstructible}}\ =}
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{keyword}{typename}\ std::conditional<std::is\_reference<T>::value,}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_convertible<V,\ T>,}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_constructible<T,\ V\&\&>>::type;}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ SizeMatches,\ \textcolor{keyword}{class\ }T,\ \textcolor{keyword}{class}...\ Vs>}
+\DoxyCodeLine{00159\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1TupleMoveConstructible}{TupleMoveConstructible}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00161\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Ts,\ \textcolor{keyword}{class}...\ Vs>}
+\DoxyCodeLine{00162\ \textcolor{keyword}{struct\ }TupleMoveConstructible<true,\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}<Ts...>,\ Vs...>}
+\DoxyCodeLine{00163\ \ \ \ \ :\ std::integral\_constant<}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ \ \ \ \ bool,\ absl::conjunction<}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ TupleElementMoveConstructible<Ts,\ Vs\&\&>...>::value>\ \{\};}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00168\ \textcolor{keyword}{struct\ }compressed\_tuple\_size;}
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00170\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Es>}
+\DoxyCodeLine{00171\ \textcolor{keyword}{struct\ }compressed\_tuple\_size<CompressedTuple<Es...>>}
+\DoxyCodeLine{00172\ \ \ \ \ :\ \textcolor{keyword}{public}\ std::integral\_constant<std::size\_t,\ sizeof...(Es)>\ \{\};}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }T,\ \textcolor{keyword}{class}...\ Vs>}
+\DoxyCodeLine{00175\ \textcolor{keyword}{struct\ }TupleItemsMoveConstructible}
+\DoxyCodeLine{00176\ \ \ \ \ :\ std::integral\_constant<}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ \ \ \ \ bool,\ TupleMoveConstructible<compressed\_tuple\_size<T>::value\ ==}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ sizeof...(Vs),}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ T,\ Vs...>::value>\ \{\};}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \}\ \ \textcolor{comment}{//\ namespace\ internal\_compressed\_tuple}}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \textcolor{comment}{//\ Helper\ class\ to\ perform\ the\ Empty\ Base\ Class\ Optimization.}}
+\DoxyCodeLine{00184\ \textcolor{comment}{//\ Ts\ can\ contain\ classes\ and\ non-\/classes,\ empty\ or\ not.\ For\ the\ ones\ that}}
+\DoxyCodeLine{00185\ \textcolor{comment}{//\ are\ empty\ classes,\ we\ perform\ the\ CompressedTuple.\ If\ all\ types\ in\ Ts\ are}}
+\DoxyCodeLine{00186\ \textcolor{comment}{//\ empty\ classes,\ then\ CompressedTuple<Ts...>\ is\ itself\ an\ empty\ class.\ \ (This}}
+\DoxyCodeLine{00187\ \textcolor{comment}{//\ does\ not\ apply\ when\ one\ or\ more\ of\ those\ empty\ classes\ is\ itself\ an\ empty}}
+\DoxyCodeLine{00188\ \textcolor{comment}{//\ CompressedTuple.)}}
+\DoxyCodeLine{00189\ \textcolor{comment}{//}}
+\DoxyCodeLine{00190\ \textcolor{comment}{//\ To\ access\ the\ members,\ use\ member\ .get<N>()\ function.}}
+\DoxyCodeLine{00191\ \textcolor{comment}{//}}
+\DoxyCodeLine{00192\ \textcolor{comment}{//\ Eg:}}
+\DoxyCodeLine{00193\ \textcolor{comment}{//\ \ \ absl::container\_internal::CompressedTuple<int,\ T1,\ T2,\ T3>\ value(7,\ t1,\ t2,}}
+\DoxyCodeLine{00194\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ t3);}}
+\DoxyCodeLine{00195\ \textcolor{comment}{//\ \ \ assert(value.get<0>()\ ==\ 7);}}
+\DoxyCodeLine{00196\ \textcolor{comment}{//\ \ \ T1\&\ t1\ =\ value.get<1>();}}
+\DoxyCodeLine{00197\ \textcolor{comment}{//\ \ \ const\ T2\&\ t2\ =\ value.get<2>();}}
+\DoxyCodeLine{00198\ \textcolor{comment}{//\ \ \ ...}}
+\DoxyCodeLine{00199\ \textcolor{comment}{//}}
+\DoxyCodeLine{00200\ \textcolor{comment}{//\ https://en.cppreference.com/w/cpp/language/ebo}}
+\DoxyCodeLine{00201\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{00202\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2compressed__tuple_8h_a603facfbb644d6bb5e568d5598c23242}{ABSL\_INTERNAL\_COMPRESSED\_TUPLE\_DECLSPEC}}\ CompressedTuple}
+\DoxyCodeLine{00203\ \ \ \ \ :\ \textcolor{keyword}{private}\ internal\_compressed\_tuple::CompressedTupleImpl<}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \ \ \ \ CompressedTuple<Ts...>,\ absl::index\_sequence\_for<Ts...>,}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \ \ \ \ internal\_compressed\_tuple::ShouldAnyUseBase<Ts...>()>\ \{}
+\DoxyCodeLine{00206\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00207\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ I>}
+\DoxyCodeLine{00208\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a8e77adc0a4e53f56fad02413b91cfbad}{ElemT}}\ =\ internal\_compressed\_tuple::ElemT<CompressedTuple,\ I>;}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ I>}
+\DoxyCodeLine{00211\ \ \ \textcolor{keyword}{using\ }StorageT\ =\ internal\_compressed\_tuple::Storage<ElemT<I>,\ I>;}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00214\ \ \ \textcolor{comment}{//\ There\ seems\ to\ be\ a\ bug\ in\ MSVC\ dealing\ in\ which\ using\ '=default'\ here\ will}}
+\DoxyCodeLine{00215\ \ \ \textcolor{comment}{//\ cause\ the\ compiler\ to\ ignore\ the\ body\ of\ other\ constructors.\ The\ work-\/}}
+\DoxyCodeLine{00216\ \ \ \textcolor{comment}{//\ around\ is\ to\ explicitly\ implement\ the\ default\ constructor.}}
+\DoxyCodeLine{00217\ \textcolor{preprocessor}{\#if\ defined(\_MSC\_VER)}}
+\DoxyCodeLine{00218\ \ \ \textcolor{keyword}{constexpr}\ CompressedTuple()\ :\ CompressedTuple::\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__compressed__tuple_a2ef1ba90a45b36f04113d51c6ba0fa22}{CompressedTupleImpl}}()\ \{\}}
+\DoxyCodeLine{00219\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00220\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple_afb485f60c6a979bd7c8cd55ead4cebb6}{CompressedTuple}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00221\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00222\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple_ac72e92f0730d3e0e1d1fa487443ea975}{CompressedTuple}}(\textcolor{keyword}{const}\ Ts\&...\ base)}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}::CompressedTupleImpl(\mbox{\hyperlink{namespaceabsl}{absl}}::in\_place,\ base...)\ \{\}}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00225\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ First,\ \textcolor{keyword}{typename}...\ Vs,}
+\DoxyCodeLine{00226\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1conjunction}{absl::conjunction}}<}
+\DoxyCodeLine{00228\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Ensure\ we\ are\ not\ hiding\ default\ copy/move\ constructors.}}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1negation}{absl::negation}}<std::is\_same<void(\mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}),}
+\DoxyCodeLine{00230\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ void(\mbox{\hyperlink{namespaceabsl_af47101d71bf50fda2b5cb36d43a38f2a}{absl::decay\_t<First>}})>>,}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1TupleItemsMoveConstructible}{internal\_compressed\_tuple::TupleItemsMoveConstructible}}<}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}<Ts...>,\ First,\ Vs...>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}>\ =\ \textcolor{keyword}{true}>}
+\DoxyCodeLine{00234\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple_aa8f04cd2ec2832b3a5b1738e6e3567e0}{CompressedTuple}}(First\&\&\ first,\ Vs\&\&...\ base)}
+\DoxyCodeLine{00235\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{CompressedTuple}}::CompressedTupleImpl(\mbox{\hyperlink{namespaceabsl}{absl}}::in\_place,}
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::forward<First>(first),}
+\DoxyCodeLine{00237\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::forward<Vs>(base)...)\ \{\}}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ I>}
+\DoxyCodeLine{00240\ \ \ \textcolor{keyword}{constexpr}\ ElemT<I>\&\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple_a18ffbe972629186cc777002ae79422e8}{get}}()\ \&\ \{}
+\DoxyCodeLine{00241\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage}{StorageT<I>::get}}();}
+\DoxyCodeLine{00242\ \ \ \}}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ I>}
+\DoxyCodeLine{00245\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ ElemT<I>\&\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple_ae66d4152272d7b0f2ef42117975ae5ed}{get}}()\ const\&\ \{}
+\DoxyCodeLine{00246\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__compressed__tuple_1_1Storage}{StorageT<I>::get}}();}
+\DoxyCodeLine{00247\ \ \ \}}
+\DoxyCodeLine{00248\ }
+\DoxyCodeLine{00249\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ I>}
+\DoxyCodeLine{00250\ \ \ \textcolor{keyword}{constexpr}\ ElemT<I>\&\&\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple_a38cf4026b10d5e989d3e320927fb7aa5}{get}}()\ \&\&\ \{}
+\DoxyCodeLine{00251\ \ \ \ \ \textcolor{keywordflow}{return}\ std::move(*this).StorageT<I>::get();}
+\DoxyCodeLine{00252\ \ \ \}}
+\DoxyCodeLine{00253\ }
+\DoxyCodeLine{00254\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ I>}
+\DoxyCodeLine{00255\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ ElemT<I>\&\&\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple_a5cb2ef7f485f02aaa66145b8623aee3d}{get}}()\ const\&\&\ \{}
+\DoxyCodeLine{00256\ \ \ \ \ \textcolor{keywordflow}{return}\ std::move(*this).StorageT<I>::get();}
+\DoxyCodeLine{00257\ \ \ \}}
+\DoxyCodeLine{00258\ \};}
+\DoxyCodeLine{00259\ }
+\DoxyCodeLine{00260\ \textcolor{comment}{//\ Explicit\ specialization\ for\ a\ zero-\/element\ tuple}}
+\DoxyCodeLine{00261\ \textcolor{comment}{//\ (needed\ to\ avoid\ ambiguous\ overloads\ for\ the\ default\ constructor).}}
+\DoxyCodeLine{00262\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00263\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2compressed__tuple_8h_a603facfbb644d6bb5e568d5598c23242}{ABSL\_INTERNAL\_COMPRESSED\_TUPLE\_DECLSPEC}}\ CompressedTuple<>\ \{\};}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00266\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00267\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00269\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_COMPRESSED\_TUPLE\_DECLSPEC}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CONTAINER\_INTERNAL\_COMPRESSED\_TUPLE\_H\_}}
+
+\end{DoxyCode}

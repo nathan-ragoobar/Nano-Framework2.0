@@ -1,0 +1,1685 @@
+\doxysection{Tensor\+Contraction\+Thread\+Pool.\+h}
+\hypertarget{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorContractionThreadPool_8h_source}{}\label{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorContractionThreadPool_8h_source}\index{eigen/unsupported/Eigen/CXX11/src/Tensor/TensorContractionThreadPool.h@{eigen/unsupported/Eigen/CXX11/src/Tensor/TensorContractionThreadPool.h}}
+\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorContractionThreadPool_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2014\ Benoit\ Steiner\ <benoit.steiner.goog@gmail.com>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_CXX11\_TENSOR\_TENSOR\_CONTRACTION\_THREAD\_POOL\_H}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#define\ EIGEN\_CXX11\_TENSOR\_TENSOR\_CONTRACTION\_THREAD\_POOL\_H}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ evaluator\ for\ thread\ pool\ device}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_THREADS}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Indices,\ \textcolor{keyword}{typename}\ LeftArgType,\ \textcolor{keyword}{typename}\ RightArgType,\ \textcolor{keyword}{typename}\ OutputKernelType>}
+\DoxyCodeLine{00019\ \textcolor{keyword}{struct\ }TensorEvaluator<const\ TensorContractionOp<Indices,\ LeftArgType,\ RightArgType,\ OutputKernelType>,\ ThreadPoolDevice>\ :}
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keyword}{public}\ TensorContractionEvaluatorBase<TensorEvaluator<const\ TensorContractionOp<Indices,\ LeftArgType,\ RightArgType,\ OutputKernelType>,\ ThreadPoolDevice>\ >\ \{}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \ \ \textcolor{keyword}{typedef}\ ThreadPoolDevice\ Device;}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<const\ TensorContractionOp<Indices,\ LeftArgType,\ RightArgType,\ OutputKernelType>}},\ Device>\ Self;}
+\DoxyCodeLine{00025\ \ \ \textcolor{keyword}{typedef}\ TensorContractionEvaluatorBase<Self>\ Base;}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \ \ \textcolor{keyword}{typedef}\ TensorContractionOp<Indices,\ LeftArgType,\ RightArgType,\ OutputKernelType>\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a8eaecc8ebad5944e6b07db62311b4b49}{XprType}};}
+\DoxyCodeLine{00028\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1remove__const_afe3dbb0bdee2ec8eed4416723d75bc90}{internal::remove\_const<typename\ XprType::Scalar>::type}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a163cadb184cc08462355caf1031115a4}{Scalar}};}
+\DoxyCodeLine{00029\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Index\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}};}
+\DoxyCodeLine{00030\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::CoeffReturnType\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a664eb29b0c38061939b400fbc551c580}{CoeffReturnType}};}
+\DoxyCodeLine{00031\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1PacketType_a1eeaa0a6cdf53f6f0fc3eebacf9590ec}{PacketType<CoeffReturnType,\ Device>::type}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_adff49220cea7a3b0f0abb78fbdaf8287}{PacketReturnType}};}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00034\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab5b731db71101dd0e4a8453fa43f9881aad2f498adfc79da8b4728669ac46f653}{Layout}}\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab5b731db71101dd0e4a8453fa43f9881aad2f498adfc79da8b4728669ac46f653}{TensorEvaluator<LeftArgType,\ Device>::Layout}},}
+\DoxyCodeLine{00035\ \ \ \};}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \ \ \textcolor{comment}{//\ Most\ of\ the\ code\ is\ assuming\ that\ both\ input\ tensors\ are\ ColMajor.\ If\ the}}
+\DoxyCodeLine{00038\ \ \ \textcolor{comment}{//\ inputs\ are\ RowMajor,\ we\ will\ "{}cheat"{}\ by\ swapping\ the\ LHS\ and\ RHS:}}
+\DoxyCodeLine{00039\ \ \ \textcolor{comment}{//\ If\ we\ want\ to\ compute\ A\ *\ B\ =\ C,\ where\ A\ is\ LHS\ and\ B\ is\ RHS,\ the\ code}}
+\DoxyCodeLine{00040\ \ \ \textcolor{comment}{//\ will\ pretend\ B\ is\ LHS\ and\ A\ is\ RHS.}}
+\DoxyCodeLine{00041\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ internal::conditional<}
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab5b731db71101dd0e4a8453fa43f9881aad2f498adfc79da8b4728669ac46f653}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}}),\ LeftArgType,\ RightArgType>::type\ EvalLeftArgType;}
+\DoxyCodeLine{00043\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ internal::conditional<}
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab5b731db71101dd0e4a8453fa43f9881aad2f498adfc79da8b4728669ac46f653}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0cbd4bdd0abcfc0224c5fcb5e4f6669a}{ColMajor}}),\ RightArgType,\ LeftArgType>::type\ EvalRightArgType;}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ LDims\ =}
+\DoxyCodeLine{00047\ \ \ \ \ \ \ internal::array\_size<typename\ TensorEvaluator<EvalLeftArgType,\ Device>::Dimensions>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}};}
+\DoxyCodeLine{00048\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ RDims\ =}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ internal::array\_size<typename\ TensorEvaluator<EvalRightArgType,\ Device>::Dimensions>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}};}
+\DoxyCodeLine{00050\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ ContractDims\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1array__size_a04c96105648197d4f5a688b242eb4d72a147cd93a3bcf59f484a3ed2cd458278b}{internal::array\_size<Indices>::value}};}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \ \ \textcolor{keyword}{typedef}\ array<Index,\ LDims>\ left\_dim\_mapper\_t;}
+\DoxyCodeLine{00053\ \ \ \textcolor{keyword}{typedef}\ array<Index,\ RDims>\ right\_dim\_mapper\_t;}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \ \ \textcolor{keyword}{typedef}\ array<Index,\ ContractDims>\ contract\_t;}
+\DoxyCodeLine{00056\ \ \ \textcolor{keyword}{typedef}\ array<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}},\ LDims\ -\/\ ContractDims>\ left\_nocontract\_t;}
+\DoxyCodeLine{00057\ \ \ \textcolor{keyword}{typedef}\ array<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}},\ RDims\ -\/\ ContractDims>\ right\_nocontract\_t;}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ NumDims\ =\ LDims\ +\ RDims\ -\/\ 2\ *\ ContractDims;}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00061\ \ \ \textcolor{keyword}{typedef}\ DSizes<Index,\ NumDims>\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ac4139a59583bb1e6385d3a0195548b6b}{Dimensions}};}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \ \ \textcolor{comment}{//\ typedefs\ needed\ in\ evalTo}}
+\DoxyCodeLine{00064\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1remove__const_afe3dbb0bdee2ec8eed4416723d75bc90}{internal::remove\_const<typename\ EvalLeftArgType::Scalar>::type}}\ LhsScalar;}
+\DoxyCodeLine{00065\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1remove__const_afe3dbb0bdee2ec8eed4416723d75bc90}{internal::remove\_const<typename\ EvalRightArgType::Scalar>::type}}\ RhsScalar;}
+\DoxyCodeLine{00066\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ internal::gebp\_traits<LhsScalar,\ RhsScalar>\ Traits;}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{typedef}\ TensorEvaluator<EvalLeftArgType,\ Device>\ LeftEvaluator;}
+\DoxyCodeLine{00069\ \ \ \textcolor{keyword}{typedef}\ TensorEvaluator<EvalRightArgType,\ Device>\ RightEvaluator;}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a8eaecc8ebad5944e6b07db62311b4b49}{XprType}}\&\ op,\ \textcolor{keyword}{const}\ Device\&\ device)\ :}
+\DoxyCodeLine{00072\ \ \ \ \ \ \ Base(op,\ device)\ \{\}}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{00075\ \ \ \textcolor{keywordtype}{void}\ evalProduct(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a163cadb184cc08462355caf1031115a4}{Scalar}}*\ buffer)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00076\ \ \ \ \ evalProductImpl<NoCallback,\ Alignment>(buffer,\ NoCallback());}
+\DoxyCodeLine{00077\ \ \ \}}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ EvalToCallback,\ \textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{00080\ \ \ \textcolor{keywordtype}{void}\ evalProductAsync(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a163cadb184cc08462355caf1031115a4}{Scalar}}*\ buffer,\ EvalToCallback\ done)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00081\ \ \ \ \ evalProductImpl<EvalToCallback,\ Alignment>(buffer,\ std::move(done));}
+\DoxyCodeLine{00082\ \ \ \}}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ DoneCallback,\ \textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{00085\ \ \ \textcolor{keywordtype}{void}\ evalProductImpl(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a163cadb184cc08462355caf1031115a4}{Scalar}}*\ buffer,\ DoneCallback\ done)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{comment}{//\ This\ function\ computes\ a\ lot\ of\ heuristics\ in\ multiple\ steps,\ and\ it}}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{comment}{//\ also\ has\ multiple\ exit\ points.\ To\ keep\ it\ sane,\ readable\ and\ all\ in\ one}}
+\DoxyCodeLine{00088\ \ \ \ \ \textcolor{comment}{//\ place,\ sync/async\ execution\ decision\ is\ made\ at\ runtime\ at\ the\ very\ end.}}
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{comment}{//\ (1)\ In\ sync\ mode\ we\ allocate\ Context\ on\ the\ stack,\ submit\ computations}}
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ to\ the\ device\ thread\ pool,\ and\ block\ on\ a\ barrier\ until\ it\ is}}
+\DoxyCodeLine{00092\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ completed.}}
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00094\ \ \ \ \ \textcolor{comment}{//\ (2)\ In\ async\ mode\ we\ allocate\ Context\ on\ the\ heap,\ and\ after\ all\ tasks}}
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ are\ finished,\ we\ call\ provided\ the\ done\ callback,\ and\ delete\ a}}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ context\ from\ the\ heap.}}
+\DoxyCodeLine{00097\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{comment}{//\ (*)\ EvalParallelContext\ \&\ EvalShardedByInnerDimContext\ owns\ all\ the\ state}}
+\DoxyCodeLine{00099\ \ \ \ \ \textcolor{comment}{//\ and\ temporary\ buffers,\ requried\ for\ executing\ the\ tensor\ contraction.}}
+\DoxyCodeLine{00100\ \ \ \ \ \textcolor{comment}{//\ They\ are\ responsible\ for\ cleaning\ it\ up\ after\ contraction\ is\ done.}}
+\DoxyCodeLine{00101\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ IsEvalInSyncMode\ =}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ std::is\_same<DoneCallback,\ NoCallback>::value;}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ m\ =\ this-\/>m\_i\_size;}
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ this-\/>m\_j\_size;}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ k\ =\ this-\/>m\_k\_size;}
+\DoxyCodeLine{00107\ \ \ \ \ \textcolor{keywordflow}{if}\ (m\ ==\ 0\ ||\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ ==\ 0\ ||\ k\ ==\ 0)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ \ \ \textcolor{comment}{//\ Compute\ a\ set\ of\ algorithm\ parameters:}}
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{comment}{//\ -\/\ kernel\ block\ sizes\ (bm,\ bn,\ bk)}}
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{comment}{//\ -\/\ task\ grain\ sizes\ (number\ of\ kernels\ executed\ per\ task:\ gm,\ gn)}}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{comment}{//\ -\/\ number\ of\ threads}}
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{comment}{//\ -\/\ sharding\ by\ row/column}}
+\DoxyCodeLine{00114\ \ \ \ \ \textcolor{comment}{//\ -\/\ parallel\ packing\ or\ first\ lhs\ then\ rhs}}
+\DoxyCodeLine{00115\ \ \ \ \ \textcolor{comment}{//\ and\ some\ derived\ parameters:}}
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{comment}{//\ -\/\ number\ of\ tasks\ (nm,\ nn,\ nk)}}
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{comment}{//\ -\/\ number\ of\ kernels\ (nm0,\ nn0)}}
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{comment}{//\ Unfortunately,\ all\ these\ parameters\ are\ tightly\ interdependent.}}
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{comment}{//\ So\ in\ some\ cases\ we\ first\ compute\ approximate\ values,\ then\ compute\ other}}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{comment}{//\ values\ based\ on\ these\ approximations\ and\ then\ refine\ the\ approximations.}}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{comment}{//\ There\ are\ lots\ of\ heuristics\ here.\ There\ is\ some\ reasoning\ behind\ them,}}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{comment}{//\ but\ ultimately\ they\ are\ just\ tuned\ on\ contraction\ benchmarks\ for}}
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{comment}{//\ different\ input\ configurations,\ thread\ counts\ and\ instruction\ sets.}}
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{comment}{//\ So\ feel\ free\ to\ question\ any\ of\ them.}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{comment}{//\ Compute\ whether\ we\ want\ to\ shard\ by\ row\ or\ by\ column.}}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{comment}{//\ This\ is\ a\ first\ approximation,\ it\ will\ be\ refined\ later.\ Since\ we\ don't}}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{comment}{//\ know\ number\ of\ threads\ yet\ we\ use\ 2,\ because\ what's\ we\ are\ most}}
+\DoxyCodeLine{00130\ \ \ \ \ \textcolor{comment}{//\ interested\ in\ at\ this\ point\ is\ whether\ it\ makes\ sense\ to\ use}}
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{comment}{//\ parallelization\ at\ all\ or\ not.}}
+\DoxyCodeLine{00132\ \ \ \ \ \textcolor{keywordtype}{bool}\ shard\_by\_col\ =\ shardByCol(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ 2);}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \ \ \ \ \textcolor{comment}{//\ First\ approximation\ of\ kernel\ blocking\ sizes.}}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{comment}{//\ Again,\ we\ don't\ know\ number\ of\ threads\ yet,\ so\ we\ use\ 2.}}
+\DoxyCodeLine{00136\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bm,\ bn,\ bk;}
+\DoxyCodeLine{00137\ \ \ \ \ \textcolor{keywordflow}{if}\ (shard\_by\_col)\ \{}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ internal::TensorContractionBlocking<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a163cadb184cc08462355caf1031115a4}{Scalar}},\ LhsScalar,\ RhsScalar,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}},}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ad1d0ed30fcc1b3845af992f97d279e0caa17bf5513d5b0e45bee5bb0b215b7641}{internal::ShardByCol}}>}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ \ \ \ \ blocking(k,\ m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ 2);}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ bm\ =\ blocking.mc();}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ bn\ =\ blocking.nc();}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ bk\ =\ blocking.kc();}
+\DoxyCodeLine{00144\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ internal::TensorContractionBlocking<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a163cadb184cc08462355caf1031115a4}{Scalar}},\ LhsScalar,\ RhsScalar,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}},}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ad1d0ed30fcc1b3845af992f97d279e0ca8a403ab7f746ff40e0ee9f7f6630ac73}{internal::ShardByRow}}>}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ \ \ blocking(k,\ m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ 2);}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ bm\ =\ blocking.mc();}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ bn\ =\ blocking.nc();}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ bk\ =\ blocking.kc();}
+\DoxyCodeLine{00151\ \ \ \ \ \}}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \ \ \ \ \textcolor{comment}{//\ Compute\ optimal\ number\ of\ threads.}}
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{comment}{//\ Note:\ we\ use\ bk\ instead\ of\ k\ here\ because\ we\ are\ interested\ in\ amount\ of}}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{comment}{//\ \_parallelizable\_\ computations,\ and\ computations\ are\ not\ parallelizable}}
+\DoxyCodeLine{00156\ \ \ \ \ \textcolor{comment}{//\ across\ k\ dimension.}}
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keyword}{const}\ TensorOpCost\ cost\ =}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ contractionCost(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bm,\ bn,\ bk,\ shard\_by\_col,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keywordtype}{int}\ num\_threads\ =\ \mbox{\hyperlink{classEigen_1_1TensorCostModel_a718b68d6a884d2c862b5dc3c4c3f5ab4}{TensorCostModel<ThreadPoolDevice>::numThreads}}(}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ *\ m,\ cost,\ this-\/>\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.numThreads());}
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keywordtype}{int}\ num\_threads\_by\_k\ =\ numThreadsInnerDim(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k);}
+\DoxyCodeLine{00162\ \ \ \ \ \textcolor{keywordflow}{if}\ (shardByInnerDim(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ num\_threads,\ num\_threads\_by\_k))\ \{}
+\DoxyCodeLine{00163\ \ \ \ \ \ \ \textcolor{comment}{//\ We\ are\ in\ the\ scenario\ where\ it\ is\ more\ effective\ to\ shard\ by\ the}}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ \textcolor{comment}{//\ inner\ dimension.}}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (IsEvalInSyncMode)\ \{}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \ \ EvalShardedByInnerDimContext<DoneCallback>\ ctx(}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{this},\ num\_threads\_by\_k,\ buffer,\ m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ std::move(done));}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ \ \ ctx.template\ run<Alignment>();}
+\DoxyCodeLine{00169\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ \ \ \textcolor{keyword}{auto}*\ ctx\ =\ \textcolor{keyword}{new}\ EvalShardedByInnerDimContext<DoneCallback>(}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{this},\ num\_threads\_by\_k,\ buffer,\ m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ std::move(done));}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ ctx-\/>template\ runAsync<Alignment>();}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00176\ \ \ \ \ \}}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \ \ \ \ \textcolor{comment}{//\ TODO(dvyukov):\ this\ is\ a\ stop-\/gap\ to\ prevent\ regressions\ while\ the\ cost}}
+\DoxyCodeLine{00179\ \ \ \ \ \textcolor{comment}{//\ model\ is\ not\ tuned.\ Remove\ this\ when\ the\ cost\ model\ is\ tuned.}}
+\DoxyCodeLine{00180\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ ==\ 1)\ num\_threads\ =\ 1;}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00182\ \ \ \ \ \textcolor{keywordflow}{if}\ (num\_threads\ ==\ 1)\ \{}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorContraction_8h_a125263decff215ec122bf5c17c7abd67}{TENSOR\_CONTRACTION\_DISPATCH}}(this-\/>\textcolor{keyword}{template}\ evalProductSequential,}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}},\ (buffer));}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!IsEvalInSyncMode)\ done();}
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00187\ \ \ \ \ \}}
+\DoxyCodeLine{00188\ }
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{comment}{//\ Now\ that\ we\ know\ number\ of\ threads,\ recalculate\ sharding\ and\ blocking.}}
+\DoxyCodeLine{00190\ \ \ \ \ shard\_by\_col\ =\ shardByCol(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ num\_threads);}
+\DoxyCodeLine{00191\ \ \ \ \ \textcolor{keywordflow}{if}\ (shard\_by\_col)\ \{}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ internal::TensorContractionBlocking<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a163cadb184cc08462355caf1031115a4}{Scalar}},\ LhsScalar,\ RhsScalar,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}},}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ad1d0ed30fcc1b3845af992f97d279e0caa17bf5513d5b0e45bee5bb0b215b7641}{internal::ShardByCol}}>}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \ \ \ \ blocking(k,\ m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ num\_threads);}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ bm\ =\ blocking.mc();}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ bn\ =\ blocking.nc();}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ bk\ =\ blocking.kc();}
+\DoxyCodeLine{00198\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ internal::TensorContractionBlocking<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a163cadb184cc08462355caf1031115a4}{Scalar}},\ LhsScalar,\ RhsScalar,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}},}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ad1d0ed30fcc1b3845af992f97d279e0ca8a403ab7f746ff40e0ee9f7f6630ac73}{internal::ShardByRow}}>}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \ \ \ \ blocking(k,\ m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ num\_threads);}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ bm\ =\ blocking.mc();}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ bn\ =\ blocking.nc();}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ bk\ =\ blocking.kc();}
+\DoxyCodeLine{00205\ \ \ \ \ \}}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \ \ \ \ \textcolor{comment}{//\ Number\ of\ kernels\ for\ each\ dimension.}}
+\DoxyCodeLine{00208\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nm0\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(m,\ bm);}
+\DoxyCodeLine{00209\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nn0\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bn);}
+\DoxyCodeLine{00210\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nk\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(k,\ bk);}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \ \ \ \ \textcolor{comment}{//\ Calculate\ task\ grain\ size\ (number\ of\ kernels\ executed\ per\ task).}}
+\DoxyCodeLine{00213\ \ \ \ \ \textcolor{comment}{//\ This\ task\ size\ coarsening\ serves\ two\ purposes:}}
+\DoxyCodeLine{00214\ \ \ \ \ \textcolor{comment}{//\ 1.\ It\ reduces\ per-\/task\ overheads\ including\ synchronization\ overheads.}}
+\DoxyCodeLine{00215\ \ \ \ \ \textcolor{comment}{//\ 2.\ It\ allows\ to\ use\ caches\ better\ (reuse\ the\ same\ packed\ rhs\ in\ several}}
+\DoxyCodeLine{00216\ \ \ \ \ \textcolor{comment}{//\ consecutive\ kernels).}}
+\DoxyCodeLine{00217\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gm\ =\ 1;}
+\DoxyCodeLine{00218\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gn\ =\ 1;}
+\DoxyCodeLine{00219\ \ \ \ \ \textcolor{comment}{//\ If\ we\ are\ sharding\ by\ column,\ then\ we\ prefer\ to\ reduce\ rows\ first.}}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{keywordflow}{if}\ (shard\_by\_col)\ \{}
+\DoxyCodeLine{00221\ \ \ \ \ \ \ gm\ =\ coarsenM(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bm,\ bn,\ bk,\ gn,\ num\_threads,\ shard\_by\_col);}
+\DoxyCodeLine{00222\ \ \ \ \ \ \ gn\ =\ coarsenN(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bm,\ bn,\ bk,\ gm,\ num\_threads,\ shard\_by\_col);}
+\DoxyCodeLine{00223\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ gn\ =\ coarsenN(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bm,\ bn,\ bk,\ gm,\ num\_threads,\ shard\_by\_col);}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ gm\ =\ coarsenM(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bm,\ bn,\ bk,\ gn,\ num\_threads,\ shard\_by\_col);}
+\DoxyCodeLine{00226\ \ \ \ \ \}}
+\DoxyCodeLine{00227\ \ \ \ \ \textcolor{comment}{//\ Number\ of\ tasks\ in\ each\ dimension.}}
+\DoxyCodeLine{00228\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nm\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nm0,\ gm);}
+\DoxyCodeLine{00229\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{namespacenn}{nn}}\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nn0,\ gn);}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \ \ \ \ \textcolor{comment}{//\ If\ there\ is\ enough\ concurrency\ in\ the\ sharding\ dimension,\ we\ choose\ not}}
+\DoxyCodeLine{00232\ \ \ \ \ \textcolor{comment}{//\ to\ paralellize\ by\ the\ other\ dimension,\ and\ execute\ all\ kernels\ in\ sync}}
+\DoxyCodeLine{00233\ \ \ \ \ \textcolor{comment}{//\ mode.\ This\ reduces\ parallelism\ from\ the\ nm\ x\ nn\ down\ to\ nn}}
+\DoxyCodeLine{00234\ \ \ \ \ \textcolor{comment}{//\ (shard\_by\_col==true)\ or\ nm\ (shard\_by\_col==false).}}
+\DoxyCodeLine{00235\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ sharding\_dim\_tasks\ =\ shard\_by\_col\ ?\ \mbox{\hyperlink{namespacenn}{nn}}\ :\ nm;}
+\DoxyCodeLine{00236\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_worker\_threads\ =\ this-\/>\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.numThreadsInPool();}
+\DoxyCodeLine{00237\ }
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{comment}{//\ With\ small\ number\ of\ threads\ we\ want\ to\ make\ sure\ that\ we\ do\ not\ reduce}}
+\DoxyCodeLine{00239\ \ \ \ \ \textcolor{comment}{//\ parallelism\ too\ much.\ With\ large\ number\ of\ threads\ we\ trade\ maximum}}
+\DoxyCodeLine{00240\ \ \ \ \ \textcolor{comment}{//\ parallelism\ for\ better\ memory\ locality.}}
+\DoxyCodeLine{00241\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ oversharding\_factor\ =}
+\DoxyCodeLine{00242\ \ \ \ \ \ \ \ \ num\_worker\_threads\ <=\ 4\ \ ?\ 8.0\ :}
+\DoxyCodeLine{00243\ \ \ \ \ \ \ \ \ num\_worker\_threads\ <=\ 8\ \ ?\ 4.0\ :}
+\DoxyCodeLine{00244\ \ \ \ \ \ \ \ \ num\_worker\_threads\ <=\ 16\ ?\ 2.0\ :}
+\DoxyCodeLine{00245\ \ \ \ \ \ \ \ \ num\_worker\_threads\ <=\ 32\ ?\ 1.0\ :}
+\DoxyCodeLine{00246\ \ \ \ \ \ \ \ \ num\_worker\_threads\ <=\ 64\ ?\ 0.8\ :\ \textcolor{comment}{/*\ num\_worker\_threads\ >\ 64\ */}\ 0.6;}
+\DoxyCodeLine{00247\ }
+\DoxyCodeLine{00248\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ parallelize\_by\_sharding\_dim\_only\ =}
+\DoxyCodeLine{00249\ \ \ \ \ \ \ \ \ sharding\_dim\_tasks\ >=\ oversharding\_factor\ *\ num\_worker\_threads;}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00251\ \ \ \ \ \textcolor{comment}{//\ Last\ by\ not\ least,\ decide\ whether\ we\ want\ to\ issue\ both\ lhs\ and\ rhs}}
+\DoxyCodeLine{00252\ \ \ \ \ \textcolor{comment}{//\ packing\ in\ parallel;\ or\ issue\ lhs\ packing\ first,\ and\ then\ issue\ rhs}}
+\DoxyCodeLine{00253\ \ \ \ \ \textcolor{comment}{//\ packing\ when\ lhs\ packing\ completes\ (for\ !shard\_by\_col\ lhs\ and\ rhs\ are}}
+\DoxyCodeLine{00254\ \ \ \ \ \textcolor{comment}{//\ swapped).\ Parallel\ packing\ allows\ more\ parallelism\ (for\ both\ packing\ and}}
+\DoxyCodeLine{00255\ \ \ \ \ \textcolor{comment}{//\ kernels),\ while\ sequential\ packing\ provides\ better\ locality\ (once}}
+\DoxyCodeLine{00256\ \ \ \ \ \textcolor{comment}{//\ a\ thread\ finishes\ rhs\ packing\ it\ proceed\ to\ kernels\ with\ that\ rhs).}}
+\DoxyCodeLine{00257\ \ \ \ \ \textcolor{comment}{//\ First,\ we\ are\ interested\ in\ parallel\ packing\ if\ there\ are\ few\ tasks.}}
+\DoxyCodeLine{00258\ \ \ \ \ \textcolor{keywordtype}{bool}\ parallel\_pack\ =\ num\_threads\ >=\ nm\ *\ \mbox{\hyperlink{namespacenn}{nn}};}
+\DoxyCodeLine{00259\ \ \ \ \ \textcolor{comment}{//\ Also\ do\ parallel\ packing\ if\ all\ data\ fits\ into\ L2\$.}}
+\DoxyCodeLine{00260\ \ \ \ \ \textcolor{keywordflow}{if}\ (m\ *\ bk\ *\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}(\textcolor{keyword}{sizeof}(LhsScalar))\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ bk\ *\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}(\textcolor{keyword}{sizeof}(RhsScalar))\ <=}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a2cfc0330ba567d63a496be1cac8427ae}{l2CacheSize}}()\ *\ num\_threads)}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ parallel\_pack\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00263\ \ \ \ \ \textcolor{comment}{//\ But\ don't\ do\ it\ if\ we\ will\ use\ each\ rhs\ only\ once.\ Locality\ seems\ to\ be}}
+\DoxyCodeLine{00264\ \ \ \ \ \textcolor{comment}{//\ more\ important\ in\ this\ case.}}
+\DoxyCodeLine{00265\ \ \ \ \ \textcolor{keywordflow}{if}\ ((shard\_by\_col\ ?\ nm\ :\ \mbox{\hyperlink{namespacenn}{nn}})\ ==\ 1)\ parallel\_pack\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00266\ \ \ \ \ \textcolor{comment}{//\ Also\ don't\ get\ in\ the\ way\ of\ parallelize\_by\_sharding\_dim\_only}}
+\DoxyCodeLine{00267\ \ \ \ \ \textcolor{comment}{//\ optimization.}}
+\DoxyCodeLine{00268\ \ \ \ \ \textcolor{keywordflow}{if}\ (parallelize\_by\_sharding\_dim\_only)\ parallel\_pack\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00270\ \ \ \ \ \textcolor{comment}{//\ TODO(ezhulnev):\ With\ if\ contexpr\ we\ don't\ need\ SyncEvalParallelContext.}}
+\DoxyCodeLine{00271\ \ \ \ \ \textcolor{keywordflow}{if}\ (IsEvalInSyncMode)\ \{}
+\DoxyCodeLine{00272\ \textcolor{preprocessor}{\#define\ CONTEXT\_ARGS\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00273\ \textcolor{preprocessor}{\ \ (this,\ num\_threads,\ buffer,\ m,\ n,\ k,\ bm,\ bn,\ bk,\ nm,\ nn,\ nk,\ gm,\ gn,\ nm0,\ \(\backslash\)}}
+\DoxyCodeLine{00274\ \textcolor{preprocessor}{\ \ \ nn0,\ shard\_by\_col,\ parallel\_pack,\ parallelize\_by\_sharding\_dim\_only,\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00275\ \textcolor{preprocessor}{\ \ \ NoCallback())\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00276\ \textcolor{preprocessor}{\ \ \ \ \ \ .run()}}
+\DoxyCodeLine{00277\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorContraction_8h_a125263decff215ec122bf5c17c7abd67}{TENSOR\_CONTRACTION\_DISPATCH}}(SyncEvalParallelContext,\ Alignment,}
+\DoxyCodeLine{00278\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ CONTEXT\_ARGS);}
+\DoxyCodeLine{00279\ \textcolor{preprocessor}{\#undef\ CONTEXT\_ARGS}}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00282\ \textcolor{preprocessor}{\#define\ CONTEXT\_ARGS\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00283\ \textcolor{preprocessor}{\ \ (this,\ num\_threads,\ buffer,\ m,\ n,\ k,\ bm,\ bn,\ bk,\ nm,\ nn,\ nk,\ gm,\ gn,\ nm0,\ \(\backslash\)}}
+\DoxyCodeLine{00284\ \textcolor{preprocessor}{\ \ \ nn0,\ shard\_by\_col,\ parallel\_pack,\ parallelize\_by\_sharding\_dim\_only,\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00285\ \textcolor{preprocessor}{\ \ \ std::move(done))}}
+\DoxyCodeLine{00286\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorContraction_8h_af4016386d5d82c4f4a92832d8b256806}{TENSOR\_CONTRACTION\_ASYNC\_DISPATCH}}(EvalParallelContext,\ DoneCallback,}
+\DoxyCodeLine{00287\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Alignment,\ CONTEXT\_ARGS,\ run());}
+\DoxyCodeLine{00288\ \textcolor{preprocessor}{\#undef\ CONTEXT\_ARGS}}
+\DoxyCodeLine{00289\ \ \ \ \ \}}
+\DoxyCodeLine{00290\ \ \ \}}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ //}}
+\DoxyCodeLine{00293\ }
+\DoxyCodeLine{00294\ \ \ \textcolor{comment}{//\ Dummy\ struct\ to\ represent\ an\ empty\ DoneCallback.}}
+\DoxyCodeLine{00295\ }
+\DoxyCodeLine{00296\ \ \ \textcolor{keyword}{struct\ }NoCallback\ \{}
+\DoxyCodeLine{00297\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}()\ \{}
+\DoxyCodeLine{00298\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(\textcolor{keyword}{false}\ \&\&\ \textcolor{stringliteral}{"{}NoCallback\ should\ never\ be\ called"{}});}
+\DoxyCodeLine{00299\ \ \ \ \ \}}
+\DoxyCodeLine{00300\ \ \ \};}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00302\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ //}}
+\DoxyCodeLine{00303\ }
+\DoxyCodeLine{00304\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ DoneCallback,\ \textcolor{keyword}{typename}\ Context>}
+\DoxyCodeLine{00305\ \ \ \textcolor{keyword}{class\ }EvalParallelNotification;}
+\DoxyCodeLine{00306\ }
+\DoxyCodeLine{00307\ \ \ \textcolor{comment}{//\ Synchronous\ evaluation\ notification\ that\ blocks\ caller\ thread\ in\ Wait().}}
+\DoxyCodeLine{00308\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Context>}
+\DoxyCodeLine{00309\ \ \ \textcolor{keyword}{class\ }EvalParallelNotification<NoCallback,\ Context>\ \{}
+\DoxyCodeLine{00310\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00311\ \ \ \ \ EvalParallelNotification(Context*,\ NoCallback)\ \{\}}
+\DoxyCodeLine{00312\ \ \ \ \ \textcolor{keywordtype}{void}\ Notify()\ \{\ done\_.Notify();\ \}}
+\DoxyCodeLine{00313\ \ \ \ \ \textcolor{keywordtype}{void}\ Wait()\ \{\ done\_.Wait();\ \}}
+\DoxyCodeLine{00314\ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00315\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1Notification}{Eigen::Notification}}\ done\_;}
+\DoxyCodeLine{00316\ \ \ \};}
+\DoxyCodeLine{00317\ }
+\DoxyCodeLine{00318\ \ \ \textcolor{comment}{//\ Asynchronous\ evaluation\ notification\ that\ does\ not\ block\ in\ Wait().}}
+\DoxyCodeLine{00319\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ DoneCallback,\ \textcolor{keyword}{typename}\ Context>}
+\DoxyCodeLine{00320\ \ \ \textcolor{keyword}{class\ }EvalParallelNotification\ \{}
+\DoxyCodeLine{00321\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00322\ \ \ \ \ EvalParallelNotification(Context*\ ctx,\ DoneCallback\ done)}
+\DoxyCodeLine{00323\ \ \ \ \ \ \ \ \ :\ ctx\_(ctx),\ done\_(\mbox{\hyperlink{namespacestd}{std}}::move(done))\ \{\}}
+\DoxyCodeLine{00324\ }
+\DoxyCodeLine{00325\ \ \ \ \ \textcolor{keywordtype}{void}\ Notify()\ \{}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \textcolor{comment}{//\ Make\ a\ copy\ of\ done\ callback,\ because\ it\ will\ be\ destructed\ when\ we}}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \textcolor{comment}{//\ will\ delete\ context\ in\ the\ next\ line\ (EvalParallelNotification\ is\ a}}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \textcolor{comment}{//\ data\ member\ of\ EvalParallelContext\ class).}}
+\DoxyCodeLine{00329\ \ \ \ \ \ \ DoneCallback\ done\_copy\ =\ std::move(done\_);}
+\DoxyCodeLine{00330\ }
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \textcolor{comment}{//\ Delete\ parallel\ evaluation\ context.}}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \textcolor{keyword}{delete}\ ctx\_;}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00334\ \ \ \ \ \ \ \textcolor{comment}{//\ Now\ safely\ call\ the\ done\ callback.}}
+\DoxyCodeLine{00335\ \ \ \ \ \ \ done\_copy();}
+\DoxyCodeLine{00336\ \ \ \ \ \}}
+\DoxyCodeLine{00337\ }
+\DoxyCodeLine{00338\ \ \ \ \ \textcolor{keywordtype}{void}\ Wait()\ \{\}}
+\DoxyCodeLine{00339\ }
+\DoxyCodeLine{00340\ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00341\ \ \ \ \ Context*\ ctx\_;}
+\DoxyCodeLine{00342\ \ \ \ \ DoneCallback\ done\_;}
+\DoxyCodeLine{00343\ \ \ \};}
+\DoxyCodeLine{00344\ }
+\DoxyCodeLine{00345\ \ \ \textcolor{comment}{//\ Context\ orchestrates\ sync/async\ parallel\ contraction\ evaluation.\ When\ it\ is}}
+\DoxyCodeLine{00346\ \ \ \textcolor{comment}{//\ executed\ in\ asynchronous\ mode,\ it\ owns\ all\ the\ shared\ state\ that\ might\ be}}
+\DoxyCodeLine{00347\ \ \ \textcolor{comment}{//\ accessible\ by\ block\ packing\ and\ kernel\ tasks.}}
+\DoxyCodeLine{00348\ }
+\DoxyCodeLine{00349\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ DoneCallback,\ \textcolor{keywordtype}{bool}\ lhs\_inner\_dim\_contiguous,}
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ rhs\_inner\_dim\_contiguous,\ \textcolor{keywordtype}{bool}\ rhs\_inner\_dim\_reordered,}
+\DoxyCodeLine{00351\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{00352\ \ \ \textcolor{keyword}{class\ }EvalParallelContext\ \{}
+\DoxyCodeLine{00353\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00354\ \ \ \ \ \textcolor{keyword}{typedef}\ internal::TensorContractionInputMapper<}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \ \ LhsScalar,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}},\ internal::Lhs,\ LeftEvaluator,\ left\_nocontract\_t,}
+\DoxyCodeLine{00356\ \ \ \ \ \ \ \ \ contract\_t,\ internal::packet\_traits<LhsScalar>::size,}
+\DoxyCodeLine{00357\ \ \ \ \ \ \ \ \ lhs\_inner\_dim\_contiguous,\ \textcolor{keyword}{false},\ \mbox{\hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}}>}
+\DoxyCodeLine{00358\ \ \ \ \ \ \ \ \ LhsMapper;}
+\DoxyCodeLine{00359\ \ \ \ \ \textcolor{keyword}{typedef}\ internal::TensorContractionInputMapper<}
+\DoxyCodeLine{00360\ \ \ \ \ \ \ \ \ RhsScalar,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}},\ internal::Rhs,\ RightEvaluator,\ right\_nocontract\_t,}
+\DoxyCodeLine{00361\ \ \ \ \ \ \ \ \ contract\_t,\ internal::packet\_traits<RhsScalar>::size,}
+\DoxyCodeLine{00362\ \ \ \ \ \ \ \ \ rhs\_inner\_dim\_contiguous,\ rhs\_inner\_dim\_reordered,\ \mbox{\hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}}>}
+\DoxyCodeLine{00363\ \ \ \ \ \ \ \ \ RhsMapper;}
+\DoxyCodeLine{00364\ }
+\DoxyCodeLine{00365\ \ \ \ \ \textcolor{keyword}{typedef}\ internal::blas\_data\_mapper<Scalar,\ Index,\ ColMajor>\ OutputMapper;}
+\DoxyCodeLine{00366\ }
+\DoxyCodeLine{00367\ \ \ \ \ \textcolor{keyword}{typedef}\ internal::TensorContractionKernel<}
+\DoxyCodeLine{00368\ \ \ \ \ \ \ \ \ Scalar,\ LhsScalar,\ RhsScalar,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}},\ OutputMapper,\ LhsMapper,\ RhsMapper>}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ \ \ TensorContractionKernel;}
+\DoxyCodeLine{00370\ }
+\DoxyCodeLine{00371\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ TensorContractionKernel::LhsBlock\ LhsBlock;}
+\DoxyCodeLine{00372\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ TensorContractionKernel::RhsBlock\ RhsBlock;}
+\DoxyCodeLine{00373\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ TensorContractionKernel::BlockMemHandle\ BlockMemHandle;}
+\DoxyCodeLine{00374\ }
+\DoxyCodeLine{00375\ \ \ \ \ EvalParallelContext(\textcolor{keyword}{const}\ Self*\ self,\ \textcolor{keywordtype}{int}\ num\_threads,\ Scalar*\ buffer,}
+\DoxyCodeLine{00376\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Index\ tm,\ Index\ tn,\ Index\ tk,\ Index\ bm,\ Index\ bn,}
+\DoxyCodeLine{00377\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Index\ bk,\ Index\ nm,\ Index\ \mbox{\hyperlink{namespacenn}{nn}},\ Index\ nk,\ Index\ gm,}
+\DoxyCodeLine{00378\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Index\ gn,\ Index\ nm0,\ Index\ nn0,\ \textcolor{keywordtype}{bool}\ shard\_by\_col,}
+\DoxyCodeLine{00379\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ parallel\_pack,}
+\DoxyCodeLine{00380\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ parallelize\_by\_sharding\_dim\_only,}
+\DoxyCodeLine{00381\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ DoneCallback\ done)}
+\DoxyCodeLine{00382\ \ \ \ \ \ \ \ \ :\ created\_by\_thread\_id\_(\mbox{\hyperlink{namespacestd}{std}}::this\_thread::get\_id()),}
+\DoxyCodeLine{00383\ \ \ \ \ \ \ \ \ \ \ done\_(this,\ \mbox{\hyperlink{namespacestd}{std}}::move(done)),}
+\DoxyCodeLine{00384\ \ \ \ \ \ \ \ \ \ \ device\_(self-\/>m\_device),}
+\DoxyCodeLine{00385\ \ \ \ \ \ \ \ \ \ \ lhs\_(self-\/>m\_leftImpl,\ self-\/>m\_left\_nocontract\_strides,}
+\DoxyCodeLine{00386\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ self-\/>m\_i\_strides,\ self-\/>m\_left\_contracting\_strides,}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ self-\/>m\_k\_strides),}
+\DoxyCodeLine{00388\ \ \ \ \ \ \ \ \ \ \ rhs\_(self-\/>m\_rightImpl,\ self-\/>m\_right\_nocontract\_strides,}
+\DoxyCodeLine{00389\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ self-\/>m\_j\_strides,\ self-\/>m\_right\_contracting\_strides,}
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ self-\/>m\_k\_strides),}
+\DoxyCodeLine{00391\ \ \ \ \ \ \ \ \ \ \ buffer\_(buffer),}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \ \ \ \ output\_(buffer,\ tm),}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \ \ \ \ output\_kernel\_(self-\/>m\_output\_kernel),}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \ \ \ \ tensor\_contraction\_params\_(self-\/>m\_tensor\_contraction\_params),}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \ \ \ \ num\_threads\_(num\_threads),}
+\DoxyCodeLine{00396\ \ \ \ \ \ \ \ \ \ \ shard\_by\_col\_(shard\_by\_col),}
+\DoxyCodeLine{00397\ \ \ \ \ \ \ \ \ \ \ parallel\_pack\_(parallel\_pack),}
+\DoxyCodeLine{00398\ \ \ \ \ \ \ \ \ \ \ parallelize\_by\_sharding\_dim\_only\_(parallelize\_by\_sharding\_dim\_only),}
+\DoxyCodeLine{00399\ \ \ \ \ \ \ \ \ \ \ m\_(tm),}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ \ \ \ \ n\_(tn),}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \ \ \ \ k\_(tk),}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \ \ bm\_(bm),}
+\DoxyCodeLine{00403\ \ \ \ \ \ \ \ \ \ \ bn\_(bn),}
+\DoxyCodeLine{00404\ \ \ \ \ \ \ \ \ \ \ bk\_(bk),}
+\DoxyCodeLine{00405\ \ \ \ \ \ \ \ \ \ \ nm\_(nm),}
+\DoxyCodeLine{00406\ \ \ \ \ \ \ \ \ \ \ nn\_(\mbox{\hyperlink{namespacenn}{nn}}),}
+\DoxyCodeLine{00407\ \ \ \ \ \ \ \ \ \ \ nk\_(nk),}
+\DoxyCodeLine{00408\ \ \ \ \ \ \ \ \ \ \ gm\_(gm),}
+\DoxyCodeLine{00409\ \ \ \ \ \ \ \ \ \ \ gn\_(gn),}
+\DoxyCodeLine{00410\ \ \ \ \ \ \ \ \ \ \ nm0\_(nm0),}
+\DoxyCodeLine{00411\ \ \ \ \ \ \ \ \ \ \ nn0\_(nn0),}
+\DoxyCodeLine{00412\ \ \ \ \ \ \ \ \ \ \ kernel\_(m\_,\ k\_,\ n\_,\ bm\_,\ bk\_,\ bn\_),}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \ \ \ \ num\_thread\_local\_allocations\_(0),}
+\DoxyCodeLine{00414\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ reserve\ 2X\ more\ capacity\ for\ a\ thread\ local\ values,\ than\ the}}
+\DoxyCodeLine{00415\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ number\ of\ threads\ in\ the\ pool\ to\ efficiently\ handle\ task\ stealing}}
+\DoxyCodeLine{00416\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ by\ threads\ that\ are\ not\ managed\ by\ the\ pool.}}
+\DoxyCodeLine{00417\ \ \ \ \ \ \ \ \ \ \ thread\_local\_capacity(2\ *\ (parallelize\_by\_sharding\_dim\_only\_}
+\DoxyCodeLine{00418\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ device\_.numThreadsInPool()}
+\DoxyCodeLine{00419\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 0)),}
+\DoxyCodeLine{00420\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ will\ use\ only\ one\ of\ the\ Lhs/Rhs\ thread\ local\ storage\ depending}}
+\DoxyCodeLine{00421\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ on\ the\ shard\_by\_col\ value\ and\ we\ parallelize\ by\ sharding\ dim\ ONLY.}}
+\DoxyCodeLine{00422\ \ \ \ \ \ \ \ \ \ \ lhs\_thread\_local\_blocks\_(shard\_by\_col\_\ ?\ 0\ :\ thread\_local\_capacity,}
+\DoxyCodeLine{00423\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{*\textcolor{keyword}{this}\},\ \{*\textcolor{keyword}{this}\}),}
+\DoxyCodeLine{00424\ \ \ \ \ \ \ \ \ \ \ rhs\_thread\_local\_blocks\_(shard\_by\_col\_\ ?\ thread\_local\_capacity\ :\ 0,}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \{*\textcolor{keyword}{this}\},\ \{*\textcolor{keyword}{this}\})\ \{}
+\DoxyCodeLine{00426\ \ \ \ \ \ \ \textcolor{comment}{//\ These\ two\ options\ are\ mutually\ exclusive.}}
+\DoxyCodeLine{00427\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(!(parallel\_pack\ \&\&\ parallelize\_by\_sharding\_dim\_only));}
+\DoxyCodeLine{00428\ }
+\DoxyCodeLine{00429\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ x\ =\ 0;\ \mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}\ <\ P;\ \mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}++)\ \{}
+\DoxyCodeLine{00430\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Normal\ number\ of\ notifications\ for\ k\ slice\ switch\ is}}
+\DoxyCodeLine{00431\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ nm\_\ +\ nn\_\ +\ nm\_\ *\ nn\_.\ However,\ first\ P\ -\/\ 1\ slices\ will\ receive\ only}}
+\DoxyCodeLine{00432\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ nm\_\ +\ nn\_\ notifications,\ because\ they\ will\ not\ receive\ notifications}}
+\DoxyCodeLine{00433\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ from\ preceding\ kernels.}}
+\DoxyCodeLine{00434\ \ \ \ \ \ \ \ \ state\_switch\_[\mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}]\ =}
+\DoxyCodeLine{00435\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}\ ==\ 0}
+\DoxyCodeLine{00436\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 1}
+\DoxyCodeLine{00437\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (parallel\_pack\_\ ?\ nn\_\ +\ nm\_\ :\ (shard\_by\_col\_\ ?\ nn\_\ :\ nm\_))\ +}
+\DoxyCodeLine{00438\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (x\ ==\ P\ -\/\ 1\ ?\ nm\_\ *\ nn\_\ :\ 0);}
+\DoxyCodeLine{00439\ \ \ \ \ \ \ \ \ state\_packing\_ready\_[\mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}]\ =}
+\DoxyCodeLine{00440\ \ \ \ \ \ \ \ \ \ \ \ \ parallel\_pack\_\ ?\ 0\ :\ (shard\_by\_col\_\ ?\ nm\_\ :\ nn\_);}
+\DoxyCodeLine{00441\ \ \ \ \ \ \ \ \ state\_kernel\_[\mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}]\ =\ \textcolor{keyword}{new}\ std::atomic<uint8\_t>*[nm\_];}
+\DoxyCodeLine{00442\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ m\ =\ 0;\ m\ <\ nm\_;\ m++)\ \{}
+\DoxyCodeLine{00443\ \ \ \ \ \ \ \ \ \ \ state\_kernel\_[\mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}][m]\ =\ \textcolor{keyword}{new}\ std::atomic<uint8\_t>[nn\_];}
+\DoxyCodeLine{00444\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Kernels\ generally\ receive\ 3\ notifications\ (previous\ kernel\ +\ 2}}
+\DoxyCodeLine{00445\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ packing),\ but\ the\ first\ slice\ won't\ get\ notifications\ from\ previous}}
+\DoxyCodeLine{00446\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ kernels.}}
+\DoxyCodeLine{00447\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ <\ nn\_;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}++)}
+\DoxyCodeLine{00448\ \ \ \ \ \ \ \ \ \ \ \ \ state\_kernel\_[x][m][\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}].store(}
+\DoxyCodeLine{00449\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (x\ ==\ 0\ ?\ 0\ :\ 1)\ +\ (parallel\_pack\_\ ?\ 2\ :\ 1),}
+\DoxyCodeLine{00450\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00451\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00452\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00453\ }
+\DoxyCodeLine{00454\ \ \ \ \ \ \ \textcolor{comment}{//\ Allocate\ memory\ for\ packed\ rhs/lhs\ matrices.}}
+\DoxyCodeLine{00455\ \ \ \ \ \ \ packed\_mem\_\ =\ kernel\_.allocateSlices(\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00456\ \ \ \ \ \ \ \ \ \ \ device\_,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00457\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_lhs=*/}nm0\_,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00458\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_rhs=*/}nn0\_,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00459\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_slices=*/}std::min<Index>(nk\_,\ P\ -\/\ 1),\ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00460\ \ \ \ \ \ \ \ \ \ \ packed\_lhs\_,\ packed\_rhs\_);}
+\DoxyCodeLine{00461\ }
+\DoxyCodeLine{00462\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (parallelize\_by\_sharding\_dim\_only\_)\ \{}
+\DoxyCodeLine{00463\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_worker\_threads\ =\ device\_.numThreadsInPool();}
+\DoxyCodeLine{00464\ }
+\DoxyCodeLine{00465\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (shard\_by\_col)\ \{}
+\DoxyCodeLine{00466\ \ \ \ \ \ \ \ \ \ \ can\_use\_thread\_local\_packed\_\ =\ \textcolor{keyword}{new}\ std::atomic<bool>[nn\_];}
+\DoxyCodeLine{00467\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ nn\_;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00468\ \ \ \ \ \ \ \ \ \ \ \ \ can\_use\_thread\_local\_packed\_[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}].store(\textcolor{keyword}{true},}
+\DoxyCodeLine{00469\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00470\ }
+\DoxyCodeLine{00471\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ num\_blocks\ =\ num\_worker\_threads\ *\ gn\_;}
+\DoxyCodeLine{00472\ \ \ \ \ \ \ \ \ \ \ thread\_local\_pre\_alocated\_mem\_\ =\ kernel\_.allocateSlices(\ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00473\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ device\_,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00474\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_lhs=*/}0,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00475\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_rhs=*/}num\_blocks,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00476\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_slices=*/}1,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00477\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*lhs\_blocks=*/}\textcolor{keyword}{nullptr},\ \&rhs\_thread\_local\_pre\_allocated\_);}
+\DoxyCodeLine{00478\ }
+\DoxyCodeLine{00479\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00480\ \ \ \ \ \ \ \ \ \ \ can\_use\_thread\_local\_packed\_\ =\ \textcolor{keyword}{new}\ std::atomic<bool>[nm\_];}
+\DoxyCodeLine{00481\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ nm\_;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00482\ \ \ \ \ \ \ \ \ \ \ \ \ can\_use\_thread\_local\_packed\_[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}].store(\textcolor{keyword}{true},}
+\DoxyCodeLine{00483\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00484\ }
+\DoxyCodeLine{00485\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ num\_blocks\ =\ num\_worker\_threads\ *\ gm\_;}
+\DoxyCodeLine{00486\ \ \ \ \ \ \ \ \ \ \ thread\_local\_pre\_alocated\_mem\_\ =\ kernel\_.allocateSlices(\ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00487\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ device\_,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00488\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_lhs=*/}num\_blocks,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00489\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_rhs=*/}0,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00490\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_slices=*/}1,\ \&lhs\_thread\_local\_pre\_allocated\_,\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00491\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*rhs\_blocks=*/}\textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00492\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00493\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00494\ \ \ \ \ \}}
+\DoxyCodeLine{00495\ }
+\DoxyCodeLine{00496\ \ \ \ \ \string~EvalParallelContext()\ \{}
+\DoxyCodeLine{00497\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ x\ =\ 0;\ \mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}\ <\ P;\ \mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}++)\ \{}
+\DoxyCodeLine{00498\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ m\ =\ 0;\ m\ <\ nm\_;\ m++)\ \textcolor{keyword}{delete}[]\ state\_kernel\_[x][m];}
+\DoxyCodeLine{00499\ \ \ \ \ \ \ \ \ \textcolor{keyword}{delete}[]\ state\_kernel\_[\mbox{\hyperlink{namespaceEigen_1_1numext_ac5e96d65e0b577673dd47bfe1068cdd9}{x}}];}
+\DoxyCodeLine{00500\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00501\ \ \ \ \ \ \ kernel\_.deallocate(device\_,\ packed\_mem\_);}
+\DoxyCodeLine{00502\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (parallelize\_by\_sharding\_dim\_only\_)\ \{}
+\DoxyCodeLine{00503\ \ \ \ \ \ \ \ \ kernel\_.deallocate(device\_,\ thread\_local\_pre\_alocated\_mem\_);}
+\DoxyCodeLine{00504\ \ \ \ \ \ \ \ \ \textcolor{keyword}{delete}[]\ can\_use\_thread\_local\_packed\_;}
+\DoxyCodeLine{00505\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00506\ \ \ \ \ \}}
+\DoxyCodeLine{00507\ }
+\DoxyCodeLine{00508\ \ \ \ \ \textcolor{keywordtype}{void}\ run()\ \{}
+\DoxyCodeLine{00509\ \ \ \ \ \ \ \textcolor{comment}{//\ Kick\ off\ packing\ of\ the\ first\ slice.}}
+\DoxyCodeLine{00510\ \ \ \ \ \ \ signal\_switch(0,\ 1);}
+\DoxyCodeLine{00511\ }
+\DoxyCodeLine{00512\ \ \ \ \ \ \ \textcolor{comment}{//\ Wait\ for\ overall\ completion.}}
+\DoxyCodeLine{00513\ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00514\ \ \ \ \ \ \ \textcolor{comment}{//\ If\ parallel\ evaluation\ is\ executed\ in\ async\ mode,\ this\ is\ a\ no-\/op,\ and}}
+\DoxyCodeLine{00515\ \ \ \ \ \ \ \textcolor{comment}{//\ Wait()\ will\ return\ immediately.\ In\ synchronous\ mode\ it\ will\ block\ the}}
+\DoxyCodeLine{00516\ \ \ \ \ \ \ \textcolor{comment}{//\ caller\ thread\ until\ it\ will\ receive\ notification\ from\ last\ task.}}
+\DoxyCodeLine{00517\ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00518\ \ \ \ \ \ \ \textcolor{comment}{//\ In\ async\ mode,\ last\ task\ when\ completed\ will\ call\ done\ callback\ from}}
+\DoxyCodeLine{00519\ \ \ \ \ \ \ \textcolor{comment}{//\ the\ same\ thread,\ and\ will\ delete\ this\ context.}}
+\DoxyCodeLine{00520\ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00521\ \ \ \ \ \ \ \textcolor{comment}{//\ TODO(dvyukov):\ This\ wait\ can\ lead\ to\ deadlock\ if\ contraction\ is}}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ \textcolor{comment}{//\ evaluated\ in\ synchronous\ mode.\ If\ nthreads\ contractions\ are}}
+\DoxyCodeLine{00523\ \ \ \ \ \ \ \textcolor{comment}{//\ concurrently\ submitted\ from\ worker\ threads,\ this\ wait\ will\ block\ all}}
+\DoxyCodeLine{00524\ \ \ \ \ \ \ \textcolor{comment}{//\ worker\ threads\ and\ the\ system\ will\ deadlock.}}
+\DoxyCodeLine{00525\ \ \ \ \ \ \ done\_.Wait();}
+\DoxyCodeLine{00526\ \ \ \ \ \}}
+\DoxyCodeLine{00527\ }
+\DoxyCodeLine{00528\ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00529\ \ \ \ \ std::thread::id\ created\_by\_thread\_id\_;}
+\DoxyCodeLine{00530\ }
+\DoxyCodeLine{00531\ \ \ \ \ \textcolor{comment}{//\ This\ notification\ is\ specialized\ on\ the\ type\ of\ DoneCallback\ and\ can\ be}}
+\DoxyCodeLine{00532\ \ \ \ \ \textcolor{comment}{//\ blocking\ or\ non-\/blocking.}}
+\DoxyCodeLine{00533\ \ \ \ \ EvalParallelNotification<DoneCallback,\ EvalParallelContext>\ done\_;}
+\DoxyCodeLine{00534\ }
+\DoxyCodeLine{00535\ \ \ \ \ \textcolor{keyword}{const}\ Device\&\ device\_;}
+\DoxyCodeLine{00536\ \ \ \ \ LhsMapper\ lhs\_;}
+\DoxyCodeLine{00537\ \ \ \ \ RhsMapper\ rhs\_;}
+\DoxyCodeLine{00538\ \ \ \ \ Scalar*\ \textcolor{keyword}{const}\ buffer\_;}
+\DoxyCodeLine{00539\ \ \ \ \ OutputMapper\ output\_;}
+\DoxyCodeLine{00540\ \ \ \ \ OutputKernelType\ output\_kernel\_;}
+\DoxyCodeLine{00541\ \ \ \ \ TensorContractionParams\ tensor\_contraction\_params\_;}
+\DoxyCodeLine{00542\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_threads\_;}
+\DoxyCodeLine{00543\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ shard\_by\_col\_;}
+\DoxyCodeLine{00544\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ parallel\_pack\_;}
+\DoxyCodeLine{00545\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ parallelize\_by\_sharding\_dim\_only\_;}
+\DoxyCodeLine{00546\ \ \ \ \ \textcolor{comment}{//\ Matrix\ sizes.}}
+\DoxyCodeLine{00547\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ m\_;}
+\DoxyCodeLine{00548\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ n\_;}
+\DoxyCodeLine{00549\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ k\_;}
+\DoxyCodeLine{00550\ \ \ \ \ \textcolor{comment}{//\ Block\ sizes.}}
+\DoxyCodeLine{00551\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ bm\_;}
+\DoxyCodeLine{00552\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ bn\_;}
+\DoxyCodeLine{00553\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ bk\_;}
+\DoxyCodeLine{00554\ \ \ \ \ \textcolor{comment}{//\ Number\ of\ tasks.}}
+\DoxyCodeLine{00555\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ nm\_;}
+\DoxyCodeLine{00556\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ nn\_;}
+\DoxyCodeLine{00557\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ nk\_;}
+\DoxyCodeLine{00558\ \ \ \ \ \textcolor{comment}{//\ Task\ grain\ sizes\ (number\ of\ kernels\ executed\ per\ task).}}
+\DoxyCodeLine{00559\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ gm\_;}
+\DoxyCodeLine{00560\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ gn\_;}
+\DoxyCodeLine{00561\ \ \ \ \ \textcolor{comment}{//\ Number\ of\ blocks\ (this\ is\ different\ from\ ni\_/nn\_\ because\ of\ task\ size}}
+\DoxyCodeLine{00562\ \ \ \ \ \textcolor{comment}{//\ coarsening).}}
+\DoxyCodeLine{00563\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ nm0\_;}
+\DoxyCodeLine{00564\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ nn0\_;}
+\DoxyCodeLine{00565\ \ \ \ \ \textcolor{comment}{//\ Tensor\ contraction\ kernel.}}
+\DoxyCodeLine{00566\ \ \ \ \ TensorContractionKernel\ kernel\_;}
+\DoxyCodeLine{00567\ }
+\DoxyCodeLine{00568\ \ \ \ \ \textcolor{comment}{//\ Parallelization\ strategy.}}
+\DoxyCodeLine{00569\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00570\ \ \ \ \ \textcolor{comment}{//\ Blocks\ related\ to\ the\ same\ k\ block\ can\ run\ in\ parallel\ because\ they\ write}}
+\DoxyCodeLine{00571\ \ \ \ \ \textcolor{comment}{//\ to\ different\ output\ blocks.\ So\ we\ parallelize\ within\ k\ slices,\ this}}
+\DoxyCodeLine{00572\ \ \ \ \ \textcolor{comment}{//\ gives\ us\ parallelism\ level\ of\ m\ x\ n.\ Before\ we\ can\ start\ any\ kernels}}
+\DoxyCodeLine{00573\ \ \ \ \ \textcolor{comment}{//\ related\ to\ k-\/th\ slice,\ we\ need\ to\ issue\ m\ lhs\ packing\ tasks\ and\ n\ rhs}}
+\DoxyCodeLine{00574\ \ \ \ \ \textcolor{comment}{//\ packing\ tasks.}}
+\DoxyCodeLine{00575\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00576\ \ \ \ \ \textcolor{comment}{//\ However,\ there\ is\ a\ bottleneck\ when\ we\ are\ finishing\ kernels\ for\ k-\/th}}
+\DoxyCodeLine{00577\ \ \ \ \ \textcolor{comment}{//\ slice\ (at\ the\ very\ end\ there\ is\ only\ 1\ runnable\ kernel).\ To\ mitigate\ this}}
+\DoxyCodeLine{00578\ \ \ \ \ \textcolor{comment}{//\ bottleneck\ we\ allow\ kernels\ from\ k-\/th\ and\ k+1-\/th\ slices\ to\ run\ in}}
+\DoxyCodeLine{00579\ \ \ \ \ \textcolor{comment}{//\ parallel.\ Note\ that\ (m,\ n,\ k)\ and\ (m,\ n,\ k+1)\ kernels\ write\ to\ the\ same}}
+\DoxyCodeLine{00580\ \ \ \ \ \textcolor{comment}{//\ output\ block,\ so\ they\ must\ not\ run\ in\ parallel.}}
+\DoxyCodeLine{00581\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00582\ \ \ \ \ \textcolor{comment}{//\ This\ gives\ us\ the\ following\ dependency\ graph.}}
+\DoxyCodeLine{00583\ \ \ \ \ \textcolor{comment}{//\ On\ each\ k\ slice\ we\ have\ m\ x\ n\ kernel\ tasks,\ m\ lhs\ paking\ tasks\ and\ n\ rhs}}
+\DoxyCodeLine{00584\ \ \ \ \ \textcolor{comment}{//\ packing\ tasks.}}
+\DoxyCodeLine{00585\ \ \ \ \ \textcolor{comment}{//\ Kernel\ (m,\ n,\ k)\ can\ start\ when:}}
+\DoxyCodeLine{00586\ \ \ \ \ \textcolor{comment}{//\ \ -\/\ kernel\ (m,\ n,\ k-\/1)\ has\ finished}}
+\DoxyCodeLine{00587\ \ \ \ \ \textcolor{comment}{//\ \ -\/\ lhs\ packing\ (m,\ k)\ has\ finished}}
+\DoxyCodeLine{00588\ \ \ \ \ \textcolor{comment}{//\ \ -\/\ rhs\ packing\ (n,\ k)\ has\ finished}}
+\DoxyCodeLine{00589\ \ \ \ \ \textcolor{comment}{//\ Lhs/rhs\ packing\ can\ start\ when:}}
+\DoxyCodeLine{00590\ \ \ \ \ \textcolor{comment}{//\ \ -\/\ all\ k-\/1\ packing\ has\ finished\ (artificially\ imposed\ to\ limit\ amount\ of}}
+\DoxyCodeLine{00591\ \ \ \ \ \textcolor{comment}{//\ \ parallel\ packing)}}
+\DoxyCodeLine{00592\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00593\ \ \ \ \ \textcolor{comment}{//\ On\ top\ of\ that\ we\ limit\ runnable\ tasks\ to\ two\ consecutive\ k\ slices.}}
+\DoxyCodeLine{00594\ \ \ \ \ \textcolor{comment}{//\ This\ is\ done\ to\ limit\ amount\ of\ memory\ we\ need\ for\ packed\ lhs/rhs}}
+\DoxyCodeLine{00595\ \ \ \ \ \textcolor{comment}{//\ (for\ each\ k\ slice\ we\ need\ m*bk\ +\ n*bk\ memory\ in\ packed\_lhs\_/packed\_rhs\_).}}
+\DoxyCodeLine{00596\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00597\ \ \ \ \ \textcolor{comment}{//\ state\_switch\_\ tracks\ when\ we\ are\ ready\ to\ switch\ to\ the\ next\ k\ slice.}}
+\DoxyCodeLine{00598\ \ \ \ \ \textcolor{comment}{//\ state\_kernel\_[m][n]\ tracks\ when\ we\ are\ ready\ to\ kick\ off\ kernel\ (m,\ n).}}
+\DoxyCodeLine{00599\ \ \ \ \ \textcolor{comment}{//\ These\ variable\ are\ rolling\ over\ 3\ consecutive\ k\ slices:\ first\ two\ we\ are}}
+\DoxyCodeLine{00600\ \ \ \ \ \textcolor{comment}{//\ actively\ executing\ +\ one\ to\ track\ completion\ of\ kernels\ in\ the\ second}}
+\DoxyCodeLine{00601\ \ \ \ \ \textcolor{comment}{//\ slice.}}
+\DoxyCodeLine{00602\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ P\ =\ 3;}
+\DoxyCodeLine{00603\ }
+\DoxyCodeLine{00604\ \ \ \ \ \textcolor{comment}{//\ Handle\ to\ the\ allocated\ temporary\ storage\ for\ Lhs/Rhs\ blocks.}}
+\DoxyCodeLine{00605\ \ \ \ \ BlockMemHandle\ packed\_mem\_;}
+\DoxyCodeLine{00606\ \ \ \ \ std::vector<LhsBlock>\ packed\_lhs\_[P\ -\/\ 1];}
+\DoxyCodeLine{00607\ \ \ \ \ std::vector<RhsBlock>\ packed\_rhs\_[P\ -\/\ 1];}
+\DoxyCodeLine{00608\ }
+\DoxyCodeLine{00609\ \ \ \ \ \textcolor{comment}{//\ If\ we\ choose\ to\ parallelize\ only\ by\ the\ sharding\ dimension,\ each\ thread}}
+\DoxyCodeLine{00610\ \ \ \ \ \textcolor{comment}{//\ will\ have\ it's\ own\ "{}thead\ local"{}\ (not\ a\ c++\ thread\ local\ storage)\ memory}}
+\DoxyCodeLine{00611\ \ \ \ \ \textcolor{comment}{//\ for\ packed\_lhs\ or\ packed\_rhs\ (shard\_by\_col\ =\ false\ of\ true).\ This\ memory}}
+\DoxyCodeLine{00612\ \ \ \ \ \textcolor{comment}{//\ can't\ be\ passed\ to\ a\ kernel\ that\ might\ execute\ on\ a\ different\ thread.}}
+\DoxyCodeLine{00613\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00614\ \ \ \ \ \textcolor{comment}{//\ In\ practice\ when\ we\ are\ ready\ to\ pack\ memory\ for\ the\ sharding\ dimension}}
+\DoxyCodeLine{00615\ \ \ \ \ \textcolor{comment}{//\ (rhs\ if\ shard\_by\_col==true)\ of\ the\ K-\/th\ slice,\ all\ kernels\ for\ K-\/1\ slice}}
+\DoxyCodeLine{00616\ \ \ \ \ \textcolor{comment}{//\ already\ computed\ (99\%\ of\ the\ time),\ and\ we\ can\ pack\ data\ into\ the\ thread}}
+\DoxyCodeLine{00617\ \ \ \ \ \textcolor{comment}{//\ local\ storage,\ and\ guarantee\ that\ all\ the\ kernels\ will\ be\ executed}}
+\DoxyCodeLine{00618\ \ \ \ \ \textcolor{comment}{//\ immediately\ in\ the\ same\ thread.\ This\ significantly\ increases\ L1\ cache\ hit}}
+\DoxyCodeLine{00619\ \ \ \ \ \textcolor{comment}{//\ ratio\ and\ reduces\ pressure\ on\ the\ memory\ bus.}}
+\DoxyCodeLine{00620\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00621\ \ \ \ \ \textcolor{comment}{//\ It's\ still\ possible\ that\ kernel\ for\ the\ K-\/th\ slice\ will\ be\ ready\ before}}
+\DoxyCodeLine{00622\ \ \ \ \ \textcolor{comment}{//\ completion\ of\ the\ K-\/1\ kernel,\ so\ we\ have\ to\ allocate\ "{}global"{}\ packed\_lhs\_}}
+\DoxyCodeLine{00623\ \ \ \ \ \textcolor{comment}{//\ and\ packed\_rhs\_\ to\ allow\ kernels\ to\ be\ executed\ later\ on\ a\ thread}}
+\DoxyCodeLine{00624\ \ \ \ \ \textcolor{comment}{//\ different\ from\ the\ thread\ that\ was\ used\ for\ packing.}}
+\DoxyCodeLine{00625\ }
+\DoxyCodeLine{00626\ \ \ \ \ \textcolor{comment}{//\ Handle\ for\ pre-\/allocated\ thread\ local\ memory\ buffers.}}
+\DoxyCodeLine{00627\ \ \ \ \ BlockMemHandle\ thread\_local\_pre\_alocated\_mem\_;}
+\DoxyCodeLine{00628\ }
+\DoxyCodeLine{00629\ \ \ \ \ \textcolor{comment}{//\ Only\ one\ of\ these\ will\ be\ initialized\ depending\ on\ shard\_by\_col\ value}}
+\DoxyCodeLine{00630\ \ \ \ \ \textcolor{comment}{//\ (the\ size\ will\ be\ \`{}num\_worker\_threads\ *\ num\_grains\_in\_the\_sharding\_dim`).}}
+\DoxyCodeLine{00631\ \ \ \ \ std::vector<LhsBlock>\ lhs\_thread\_local\_pre\_allocated\_;}
+\DoxyCodeLine{00632\ \ \ \ \ std::vector<RhsBlock>\ rhs\_thread\_local\_pre\_allocated\_;}
+\DoxyCodeLine{00633\ }
+\DoxyCodeLine{00634\ \ \ \ \ \textcolor{comment}{//\ How\ many\ thread\ local\ blocks\ were\ already\ allocated.}}
+\DoxyCodeLine{00635\ \ \ \ \ std::atomic<int>\ num\_thread\_local\_allocations\_;}
+\DoxyCodeLine{00636\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ thread\_local\_capacity;}
+\DoxyCodeLine{00637\ }
+\DoxyCodeLine{00638\ \ \ \ \ \textcolor{comment}{//\ We\ will\ use\ pre-\/allocated\ Lhs/Rhs\ blocks\ defined\ above,\ if\ the\ number\ of}}
+\DoxyCodeLine{00639\ \ \ \ \ \textcolor{comment}{//\ unique\ threads\ in\ a\ system\ is\ below\ or\ equal\ to\ the\ number\ of\ threads\ in}}
+\DoxyCodeLine{00640\ \ \ \ \ \textcolor{comment}{//\ a\ thread\ pool.\ We\ will\ fallback\ on\ dynamic\ memory\ allocation\ after\ that.}}
+\DoxyCodeLine{00641\ }
+\DoxyCodeLine{00642\ \ \ \ \ \textcolor{comment}{//\ ThreadLocalBlocks\ is\ a\ container\ for\ Lhs\ or\ Rhs\ thread\ local\ buffers.\ Its}}
+\DoxyCodeLine{00643\ \ \ \ \ \textcolor{comment}{//\ size\ is\ equal\ to\ the\ grain\ size\ in\ Lhs/Rhs\ sharding\ dimension.}}
+\DoxyCodeLine{00644\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ BlockType>}
+\DoxyCodeLine{00645\ \ \ \ \ \textcolor{keyword}{class\ }ThreadLocalBlocks\ \{}
+\DoxyCodeLine{00646\ \ \ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00647\ \ \ \ \ \ \ ThreadLocalBlocks()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00648\ }
+\DoxyCodeLine{00649\ \ \ \ \ \ \ ThreadLocalBlocks(BlockType*\ base,\ \textcolor{keywordtype}{size\_t}\ grain\_size)}
+\DoxyCodeLine{00650\ \ \ \ \ \ \ \ \ \ \ :\ is\_pre\_allocated\_(true),}
+\DoxyCodeLine{00651\ \ \ \ \ \ \ \ \ \ \ \ \ thread\_local\_pre\_allocated\_base\_(base),}
+\DoxyCodeLine{00652\ \ \ \ \ \ \ \ \ \ \ \ \ grain\_size\_(grain\_size)\ \{\}}
+\DoxyCodeLine{00653\ }
+\DoxyCodeLine{00654\ \ \ \ \ \ \ ThreadLocalBlocks(BlockMemHandle\ mem\_handle,}
+\DoxyCodeLine{00655\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::vector<BlockType>\ blocks)}
+\DoxyCodeLine{00656\ \ \ \ \ \ \ \ \ \ \ :\ is\_pre\_allocated\_(false),}
+\DoxyCodeLine{00657\ \ \ \ \ \ \ \ \ \ \ \ \ mem\_handle\_(\mbox{\hyperlink{namespacestd}{std}}::move(mem\_handle)),}
+\DoxyCodeLine{00658\ \ \ \ \ \ \ \ \ \ \ \ \ blocks\_(\mbox{\hyperlink{namespacestd}{std}}::move(blocks))\ \{\}}
+\DoxyCodeLine{00659\ }
+\DoxyCodeLine{00660\ \ \ \ \ \ \ BlockType\&\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2BlockMethods_8h_ad90ae68615512ea2a9c7056ef1b34f13}{block}}(\textcolor{keywordtype}{int}\ grain\_index)\ \{}
+\DoxyCodeLine{00661\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(grain\_index\ >=\ 0);}
+\DoxyCodeLine{00662\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(grain\_index)\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}());}
+\DoxyCodeLine{00663\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ is\_pre\_allocated\_\ ?\ thread\_local\_pre\_allocated\_base\_[grain\_index]}
+\DoxyCodeLine{00664\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ blocks\_[grain\_index];}
+\DoxyCodeLine{00665\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00666\ }
+\DoxyCodeLine{00667\ \ \ \ \ \ \ \textcolor{keywordtype}{void}\ Release(EvalParallelContext\&\ ctx)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00668\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!is\_pre\_allocated\_)\ \{}
+\DoxyCodeLine{00669\ \ \ \ \ \ \ \ \ \ \ ctx.kernel\_.deallocate(ctx.device\_,\ mem\_handle\_);}
+\DoxyCodeLine{00670\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00671\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00672\ }
+\DoxyCodeLine{00673\ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00674\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ is\_pre\_allocated\_\ ?\ grain\_size\_\ :\ blocks\_.size();}
+\DoxyCodeLine{00675\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00676\ }
+\DoxyCodeLine{00677\ \ \ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00678\ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ is\_pre\_allocated\_;}
+\DoxyCodeLine{00679\ }
+\DoxyCodeLine{00680\ \ \ \ \ \ \ \textcolor{comment}{//\ Reuse\ pre-\/allocated\ thread\ local\ buffers.}}
+\DoxyCodeLine{00681\ \ \ \ \ \ \ BlockType*\ thread\_local\_pre\_allocated\_base\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00682\ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ grain\_size\_\ =\ 0;}
+\DoxyCodeLine{00683\ }
+\DoxyCodeLine{00684\ \ \ \ \ \ \ \textcolor{comment}{//\ These\ will\ be\ initialized\ only\ if\ \`{}is\_pre\_allocated\ ==\ false`.}}
+\DoxyCodeLine{00685\ \ \ \ \ \ \ BlockMemHandle\ mem\_handle\_\{\};}
+\DoxyCodeLine{00686\ \ \ \ \ \ \ std::vector<BlockType>\ blocks\_;}
+\DoxyCodeLine{00687\ \ \ \ \ \};}
+\DoxyCodeLine{00688\ }
+\DoxyCodeLine{00689\ \ \ \ \ \textcolor{comment}{//\ ThreadLocalBlocksInitialize\ callable\ does\ custom\ thread\ local\ blocks}}
+\DoxyCodeLine{00690\ \ \ \ \ \textcolor{comment}{//\ initialization,\ and\ will\ reuse\ pre-\/allocated\ buffers\ if\ possible,\ or\ will}}
+\DoxyCodeLine{00691\ \ \ \ \ \textcolor{comment}{//\ dynamically\ allocate\ new\ memory.}}
+\DoxyCodeLine{00692\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00693\ \ \ \ \ \textcolor{comment}{//\ Lhs/Rhs\ blocks\ might\ be\ of\ the\ same\ type,\ so\ we\ have\ to\ pass\ explicitly}}
+\DoxyCodeLine{00694\ \ \ \ \ \textcolor{comment}{//\ for\ what\ side\ do\ we\ plan\ to\ do\ block\ allocation.}}
+\DoxyCodeLine{00695\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ BlockType,\ \textcolor{keywordtype}{bool}\ is\_rhs>}
+\DoxyCodeLine{00696\ \ \ \ \ \textcolor{keyword}{class\ }ThreadLocalBlocksInitialize\ \{}
+\DoxyCodeLine{00697\ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ kIsLhs\ =}
+\DoxyCodeLine{00698\ \ \ \ \ \ \ \ \ \ \ !is\_rhs\ \&\&\ std::is\_same<BlockType,\ LhsBlock>::value;}
+\DoxyCodeLine{00699\ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ kIsRhs\ =}
+\DoxyCodeLine{00700\ \ \ \ \ \ \ \ \ \ \ is\_rhs\ \&\&\ std::is\_same<BlockType,\ RhsBlock>::value;}
+\DoxyCodeLine{00701\ \ \ \ \ \ \ \textcolor{keyword}{static\_assert}(kIsLhs\ ||\ kIsRhs,\ \textcolor{stringliteral}{"{}Unkown\ block\ type"{}});}
+\DoxyCodeLine{00702\ }
+\DoxyCodeLine{00703\ \ \ \ \ \ \ \textcolor{keyword}{using\ }Blocks\ =\ ThreadLocalBlocks<BlockType>;}
+\DoxyCodeLine{00704\ }
+\DoxyCodeLine{00705\ \ \ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00706\ \ \ \ \ \ \ ThreadLocalBlocksInitialize(EvalParallelContext\&\ ctx)}
+\DoxyCodeLine{00707\ \ \ \ \ \ \ \ \ \ \ :\ ctx\_(ctx),}
+\DoxyCodeLine{00708\ \ \ \ \ \ \ \ \ \ \ \ \ num\_worker\_threads\_(ctx\_.device\_.numThreadsInPool())\ \{\}}
+\DoxyCodeLine{00709\ }
+\DoxyCodeLine{00710\ \ \ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(Blocks\&\ blocks)\ \{}
+\DoxyCodeLine{00711\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ ctx\_.num\_thread\_local\_allocations\_.fetch\_add(}
+\DoxyCodeLine{00712\ \ \ \ \ \ \ \ \ \ \ \ \ 1,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00713\ }
+\DoxyCodeLine{00714\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ >=\ num\_worker\_threads\_)\ \{}
+\DoxyCodeLine{00715\ \ \ \ \ \ \ \ \ \ \ ThreadLocalBlocksAllocator<is\_rhs>::allocate(ctx\_,\ blocks);}
+\DoxyCodeLine{00716\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00717\ \ \ \ \ \ \ \ \ \ \ ThreadLocalBlocksAllocator<is\_rhs>::reuse(ctx\_,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ blocks);}
+\DoxyCodeLine{00718\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00719\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00720\ }
+\DoxyCodeLine{00721\ \ \ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00722\ \ \ \ \ \ \ \textcolor{comment}{//\ NOTE(ezhulenev):\ Without\ 'if\ constexpr'\ we\ have\ to\ put\ calls\ to}}
+\DoxyCodeLine{00723\ \ \ \ \ \ \ \textcolor{comment}{//\ TensorContractionKernel::allocateSlices\ into\ template\ specializations.}}
+\DoxyCodeLine{00724\ \ \ \ \ \ \ \textcolor{comment}{//\ Also\ explicit\ specializations\ are\ not\ allowed\ at\ class\ scope\ in\ C++03,}}
+\DoxyCodeLine{00725\ \ \ \ \ \ \ \textcolor{comment}{//\ EvalCtx\ type\ parameter\ is\ just\ a\ workaround\ for\ that\ limitation.}}
+\DoxyCodeLine{00726\ \ \ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ pack\_rhs,\ \textcolor{keyword}{typename}\ EvalCtx\ =\ EvalParallelContext>}
+\DoxyCodeLine{00727\ \ \ \ \ \ \ \textcolor{keyword}{struct\ }ThreadLocalBlocksAllocator;}
+\DoxyCodeLine{00728\ }
+\DoxyCodeLine{00729\ \ \ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ EvalCtx>}
+\DoxyCodeLine{00730\ \ \ \ \ \ \ \textcolor{keyword}{struct\ }ThreadLocalBlocksAllocator<\textcolor{comment}{/*pack\_rhs=*/}true,\ EvalCtx>\ \{}
+\DoxyCodeLine{00731\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ allocate(EvalCtx\&\ ctx,\ Blocks\&\ blocks)\ \{}
+\DoxyCodeLine{00732\ \ \ \ \ \ \ \ \ \ \ std::vector<RhsBlock>\ rhs\_blocks;}
+\DoxyCodeLine{00733\ \ \ \ \ \ \ \ \ \ \ BlockMemHandle\ mem\_handle\ =\ ctx.kernel\_.allocateSlices(}
+\DoxyCodeLine{00734\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ctx.device\_,}
+\DoxyCodeLine{00735\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_lhs=*/}0,}
+\DoxyCodeLine{00736\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_rhs=*/}ctx.gn\_,}
+\DoxyCodeLine{00737\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_slices=*/}1,}
+\DoxyCodeLine{00738\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*lhs\_blocks=*/}\textcolor{keyword}{nullptr},\ \textcolor{comment}{/*rhs\_blocks=*/}\&rhs\_blocks);}
+\DoxyCodeLine{00739\ }
+\DoxyCodeLine{00740\ \ \ \ \ \ \ \ \ \ \ blocks\ =\ ThreadLocalBlocks<RhsBlock>(std::move(mem\_handle),}
+\DoxyCodeLine{00741\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::move(rhs\_blocks));}
+\DoxyCodeLine{00742\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00743\ }
+\DoxyCodeLine{00744\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ reuse(EvalCtx\&\ ctx,\ \textcolor{keywordtype}{int}\ index,\ Blocks\&\ blocks)\ \{}
+\DoxyCodeLine{00745\ \ \ \ \ \ \ \ \ \ \ RhsBlock*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}}\ =\ \&ctx.rhs\_thread\_local\_pre\_allocated\_[ctx.gn\_\ *\ index];}
+\DoxyCodeLine{00746\ \ \ \ \ \ \ \ \ \ \ blocks\ =\ ThreadLocalBlocks<RhsBlock>(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}},\ ctx.gn\_);}
+\DoxyCodeLine{00747\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00748\ \ \ \ \ \ \ \};}
+\DoxyCodeLine{00749\ }
+\DoxyCodeLine{00750\ \ \ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ EvalCtx>}
+\DoxyCodeLine{00751\ \ \ \ \ \ \ \textcolor{keyword}{struct\ }ThreadLocalBlocksAllocator<\textcolor{comment}{/*pack\_rhs=*/}false,\ EvalCtx>\ \{}
+\DoxyCodeLine{00752\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ allocate(EvalCtx\&\ ctx,\ Blocks\&\ blocks)\ \{}
+\DoxyCodeLine{00753\ \ \ \ \ \ \ \ \ \ \ std::vector<LhsBlock>\ lhs\_blocks;}
+\DoxyCodeLine{00754\ \ \ \ \ \ \ \ \ \ \ BlockMemHandle\ mem\_handle\ =\ ctx.kernel\_.allocateSlices(}
+\DoxyCodeLine{00755\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ctx.device\_,}
+\DoxyCodeLine{00756\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_lhs=*/}ctx.gm\_,}
+\DoxyCodeLine{00757\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_rhs=*/}0,}
+\DoxyCodeLine{00758\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_slices=*/}1,}
+\DoxyCodeLine{00759\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*lhs\_blocks=*/}\&lhs\_blocks,\ \textcolor{comment}{/*rhs\_blocks=*/}\textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00760\ }
+\DoxyCodeLine{00761\ \ \ \ \ \ \ \ \ \ \ blocks\ =\ ThreadLocalBlocks<LhsBlock>(std::move(mem\_handle),}
+\DoxyCodeLine{00762\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::move(lhs\_blocks));}
+\DoxyCodeLine{00763\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00764\ }
+\DoxyCodeLine{00765\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ reuse(EvalCtx\&\ ctx,\ \textcolor{keywordtype}{int}\ index,\ Blocks\&\ blocks)\ \{}
+\DoxyCodeLine{00766\ \ \ \ \ \ \ \ \ \ \ LhsBlock*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}}\ =\ \&ctx.lhs\_thread\_local\_pre\_allocated\_[ctx.gm\_\ *\ index];}
+\DoxyCodeLine{00767\ \ \ \ \ \ \ \ \ \ \ blocks\ =\ ThreadLocalBlocks<LhsBlock>(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}},\ ctx.gm\_);}
+\DoxyCodeLine{00768\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00769\ \ \ \ \ \ \ \};}
+\DoxyCodeLine{00770\ }
+\DoxyCodeLine{00771\ \ \ \ \ \ \ EvalParallelContext\&\ ctx\_;}
+\DoxyCodeLine{00772\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_worker\_threads\_;}
+\DoxyCodeLine{00773\ \ \ \ \ \};}
+\DoxyCodeLine{00774\ }
+\DoxyCodeLine{00775\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ BlockType>}
+\DoxyCodeLine{00776\ \ \ \ \ \textcolor{keyword}{class\ }ThreadLocalBlocksRelease\ \{}
+\DoxyCodeLine{00777\ \ \ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00778\ \ \ \ \ \ \ \textcolor{keyword}{using\ }Blocks\ =\ ThreadLocalBlocks<BlockType>;}
+\DoxyCodeLine{00779\ \ \ \ \ \ \ ThreadLocalBlocksRelease(EvalParallelContext\&\ ctx)\ :\ ctx\_(ctx)\ \{\}}
+\DoxyCodeLine{00780\ \ \ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{eigen_2Eigen_2src_2plugins_2IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(Blocks\&\ blocks)\ \{\ blocks.Release(ctx\_);\ \}}
+\DoxyCodeLine{00781\ }
+\DoxyCodeLine{00782\ \ \ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00783\ \ \ \ \ \ \ EvalParallelContext\&\ ctx\_;}
+\DoxyCodeLine{00784\ \ \ \ \ \};}
+\DoxyCodeLine{00785\ }
+\DoxyCodeLine{00786\ \ \ \ \ \textcolor{comment}{//\ ThreadLocalBlocks\ initialization\ callables.}}
+\DoxyCodeLine{00787\ \ \ \ \ \textcolor{keyword}{using\ }ThreadLocalLhsInit\ =}
+\DoxyCodeLine{00788\ \ \ \ \ \ \ \ \ ThreadLocalBlocksInitialize<LhsBlock,\ \textcolor{comment}{/*is\_rhs=*/}\textcolor{keyword}{false}>;}
+\DoxyCodeLine{00789\ \ \ \ \ \textcolor{keyword}{using\ }ThreadLocalRhsInit\ =}
+\DoxyCodeLine{00790\ \ \ \ \ \ \ \ \ ThreadLocalBlocksInitialize<RhsBlock,\ \textcolor{comment}{/*is\_rhs=*/}\textcolor{keyword}{true}>;}
+\DoxyCodeLine{00791\ }
+\DoxyCodeLine{00792\ \ \ \ \ \textcolor{comment}{//\ ThreadLocalBlocks\ release\ callables.}}
+\DoxyCodeLine{00793\ \ \ \ \ \textcolor{keyword}{using\ }ThreadLocalLhsRelease\ =\ ThreadLocalBlocksRelease<LhsBlock>;}
+\DoxyCodeLine{00794\ \ \ \ \ \textcolor{keyword}{using\ }ThreadLocalRhsRelease\ =\ ThreadLocalBlocksRelease<RhsBlock>;}
+\DoxyCodeLine{00795\ }
+\DoxyCodeLine{00796\ \ \ \ \ \textcolor{comment}{//\ Thread\ local\ containers\ for\ Lhs/Rhs\ block\ packs.\ In\ practice\ only\ one\ of}}
+\DoxyCodeLine{00797\ \ \ \ \ \textcolor{comment}{//\ them\ will\ be\ used,\ depending\ on\ the\ shard\_by\_col\ value.}}
+\DoxyCodeLine{00798\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1ThreadLocal}{Eigen::ThreadLocal<ThreadLocalBlocks<LhsBlock>}},\ ThreadLocalLhsInit,}
+\DoxyCodeLine{00799\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ThreadLocalLhsRelease>}
+\DoxyCodeLine{00800\ \ \ \ \ \ \ \ \ lhs\_thread\_local\_blocks\_;}
+\DoxyCodeLine{00801\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1ThreadLocal}{Eigen::ThreadLocal<ThreadLocalBlocks<RhsBlock>}},\ ThreadLocalRhsInit,}
+\DoxyCodeLine{00802\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ThreadLocalRhsRelease>}
+\DoxyCodeLine{00803\ \ \ \ \ \ \ \ \ rhs\_thread\_local\_blocks\_;}
+\DoxyCodeLine{00804\ }
+\DoxyCodeLine{00805\ \ \ \ \ \textcolor{comment}{//\ After\ a\ particular\ shard\ for\ Kth\ slice\ missed\ thread\ local\ execution}}
+\DoxyCodeLine{00806\ \ \ \ \ \textcolor{comment}{//\ opportunity\ (K-\/1\ slice\ didn't\ complete\ kernels\ execution),\ we\ can\ no}}
+\DoxyCodeLine{00807\ \ \ \ \ \textcolor{comment}{//\ longer\ schedule\ K+1\ and\ following\ slices\ in\ thread\ local\ mode,\ because}}
+\DoxyCodeLine{00808\ \ \ \ \ \textcolor{comment}{//\ there\ is\ no\ more\ guarantee\ that\ previous\ kernels\ were\ executed}}
+\DoxyCodeLine{00809\ \ \ \ \ \textcolor{comment}{//\ sequentially\ in\ the\ same\ thread\ (size\ is\ nn\_\ or\ nm\_).}}
+\DoxyCodeLine{00810\ \ \ \ \ std::atomic<bool>*\ can\_use\_thread\_local\_packed\_;}
+\DoxyCodeLine{00811\ }
+\DoxyCodeLine{00812\ \ \ \ \ std::atomic<uint8\_t>**\ state\_kernel\_[P];}
+\DoxyCodeLine{00813\ \ \ \ \ \textcolor{comment}{//\ state\_switch\_\ is\ frequently\ modified\ by\ worker\ threads,\ while\ other}}
+\DoxyCodeLine{00814\ \ \ \ \ \textcolor{comment}{//\ fields\ are\ read-\/only\ after\ constructor.\ Let's\ move\ it\ to\ a\ separate\ cache}}
+\DoxyCodeLine{00815\ \ \ \ \ \textcolor{comment}{//\ line\ to\ reduce\ cache-\/coherency\ traffic.}}
+\DoxyCodeLine{00816\ \ \ \ \ \textcolor{keywordtype}{char}\ pad\_[128];}
+\DoxyCodeLine{00817\ \ \ \ \ std::atomic<Index>\ state\_packing\_ready\_[P];}
+\DoxyCodeLine{00818\ \ \ \ \ std::atomic<Index>\ state\_switch\_[P];}
+\DoxyCodeLine{00819\ }
+\DoxyCodeLine{00820\ \ \ \ \ LhsBlock\&\ packed\_lhs(Index\ m,\ Index\ k,\ Index\ m1,\ \textcolor{keywordtype}{bool}\ use\_thread\_local)\ \{}
+\DoxyCodeLine{00821\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (use\_thread\_local)\ \{}
+\DoxyCodeLine{00822\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(!shard\_by\_col\_);}
+\DoxyCodeLine{00823\ \ \ \ \ \ \ \ \ ThreadLocalBlocks<LhsBlock>\&\ blocks\ =\ lhs\_thread\_local\_blocks\_.\mbox{\hyperlink{classEigen_1_1ThreadLocal_a916680e179e4d45038c1557320507f89}{local}}();}
+\DoxyCodeLine{00824\ }
+\DoxyCodeLine{00825\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ grain\_index\ =\ m1\ -\/\ m\ *\ gm\_;}
+\DoxyCodeLine{00826\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ blocks.block(internal::convert\_index<int>(grain\_index));\ \textcolor{comment}{//\ FIXME\ better\ make\ ThreadLocalBlocks\ use\ Eigen::Index?}}
+\DoxyCodeLine{00827\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00828\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ packed\_lhs\_[k\ \%\ (P\ -\/\ 1)][m1];}
+\DoxyCodeLine{00829\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00830\ \ \ \ \ \}}
+\DoxyCodeLine{00831\ }
+\DoxyCodeLine{00832\ \ \ \ \ RhsBlock\&\ packed\_rhs(Index\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ Index\ k,\ Index\ n1,\ \textcolor{keywordtype}{bool}\ use\_thread\_local)\ \{}
+\DoxyCodeLine{00833\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (use\_thread\_local)\ \{}
+\DoxyCodeLine{00834\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(shard\_by\_col\_);}
+\DoxyCodeLine{00835\ \ \ \ \ \ \ \ \ ThreadLocalBlocks<RhsBlock>\&\ blocks\ =\ rhs\_thread\_local\_blocks\_.\mbox{\hyperlink{classEigen_1_1ThreadLocal_a916680e179e4d45038c1557320507f89}{local}}();}
+\DoxyCodeLine{00836\ }
+\DoxyCodeLine{00837\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ grain\_index\ =\ n1\ -\/\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ gn\_;}
+\DoxyCodeLine{00838\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ blocks.block(internal::convert\_index<int>(grain\_index));\ \textcolor{comment}{//\ FIXME\ better\ make\ ThreadLocalBlocks\ use\ Eigen::Index?}}
+\DoxyCodeLine{00839\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00840\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ packed\_rhs\_[k\ \%\ (P\ -\/\ 1)][n1];}
+\DoxyCodeLine{00841\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00842\ \ \ \ \ \}}
+\DoxyCodeLine{00843\ }
+\DoxyCodeLine{00844\ \ \ \ \ \textcolor{comment}{//\ In\ following\ two\ methods\ (pack\_lhs\ and\ pack\_rhs),\ if\ we\ know\ for\ sure}}
+\DoxyCodeLine{00845\ \ \ \ \ \textcolor{comment}{//\ that\ we'll\ be\ able\ to\ immediately\ call\ a\ kernel\ with\ packed\ data,\ and\ do}}
+\DoxyCodeLine{00846\ \ \ \ \ \textcolor{comment}{//\ not\ submit\ it\ to\ the\ thread\ pool,\ we\ can\ use\ thread\ local\ memory\ for}}
+\DoxyCodeLine{00847\ \ \ \ \ \textcolor{comment}{//\ packed\ data.}}
+\DoxyCodeLine{00848\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00849\ \ \ \ \ \textcolor{comment}{//\ We\ can\ only\ reliably\ check\ it\ if\ we\ are\ running\ all\ kernels\ in\ sync\ mode}}
+\DoxyCodeLine{00850\ \ \ \ \ \textcolor{comment}{//\ (parallelize\ only\ by\ sharding\ dim).\ If\ kernel\ for\ m==0\ (n==0)\ is\ ready\ to}}
+\DoxyCodeLine{00851\ \ \ \ \ \textcolor{comment}{//\ run,\ it's\ guaranteed\ that\ all\ kernels\ with\ larger\ values\ of\ m\ (n)\ are}}
+\DoxyCodeLine{00852\ \ \ \ \ \textcolor{comment}{//\ also\ ready,\ because\ we\ execute\ them\ in\ the\ same\ order\ for\ all\ K\ slices.}}
+\DoxyCodeLine{00853\ }
+\DoxyCodeLine{00854\ \ \ \ \ \textcolor{keywordtype}{void}\ pack\_lhs(Index\ m,\ Index\ k)\ \{}
+\DoxyCodeLine{00855\ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ use\_thread\_local\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00856\ }
+\DoxyCodeLine{00857\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (parallelize\_by\_sharding\_dim\_only\_\ \&\&\ !shard\_by\_col\_\ \&\&}
+\DoxyCodeLine{00858\ \ \ \ \ \ \ \ \ \ \ can\_use\_thread\_local\_packed\_[m].load(std::memory\_order\_relaxed))\ \{}
+\DoxyCodeLine{00859\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (state\_kernel\_[k\ \%\ P][m][0].load(std::memory\_order\_relaxed)\ ==\ 1)\ \{}
+\DoxyCodeLine{00860\ \ \ \ \ \ \ \ \ \ \ use\_thread\_local\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00861\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00862\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ we\ can't\ guarantee\ that\ all\ kernels\ in\ \`{}k`\ slice\ will\ be}}
+\DoxyCodeLine{00863\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ executed\ sequentially\ in\ current\ thread,\ it's\ no\ longer\ safe\ to\ use}}
+\DoxyCodeLine{00864\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ thread\ local\ memory\ in\ following\ slices\ along\ the\ k\ dimensions.}}
+\DoxyCodeLine{00865\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(k\ >\ 0);}
+\DoxyCodeLine{00866\ \ \ \ \ \ \ \ \ \ \ can\_use\_thread\_local\_packed\_[m].store(\textcolor{keyword}{false},}
+\DoxyCodeLine{00867\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00868\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00869\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00870\ }
+\DoxyCodeLine{00871\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ mend\ =\ m\ *\ gm\_\ +\ gm(m);}
+\DoxyCodeLine{00872\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ m1\ =\ m\ *\ gm\_;\ m1\ <\ mend;\ m1++)}
+\DoxyCodeLine{00873\ \ \ \ \ \ \ \ \ kernel\_.packLhs(\&packed\_lhs(m,\ k,\ m1,\ use\_thread\_local),}
+\DoxyCodeLine{00874\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lhs\_.getSubMapper(m1\ *\ bm\_,\ k\ *\ bk\_),\ bk(k),\ bm(m1));}
+\DoxyCodeLine{00875\ }
+\DoxyCodeLine{00876\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!parallel\_pack\_\ \&\&\ shard\_by\_col\_)\ \{}
+\DoxyCodeLine{00877\ \ \ \ \ \ \ \ \ assert(!use\_thread\_local);}
+\DoxyCodeLine{00878\ \ \ \ \ \ \ \ \ signal\_packing(k);}
+\DoxyCodeLine{00879\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00880\ \ \ \ \ \ \ \ \ signal\_switch(k\ +\ 1);}
+\DoxyCodeLine{00881\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ nn\_\ -\/\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ >=\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}-\/-\/)\ \{}
+\DoxyCodeLine{00882\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ sync\ =\ parallelize\_by\_sharding\_dim\_only\_\ ||\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ ==\ 0;}
+\DoxyCodeLine{00883\ \ \ \ \ \ \ \ \ \ \ signal\_kernel(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ sync,\ use\_thread\_local);}
+\DoxyCodeLine{00884\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00885\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00886\ \ \ \ \ \}}
+\DoxyCodeLine{00887\ }
+\DoxyCodeLine{00888\ \ \ \ \ \textcolor{keywordtype}{void}\ pack\_rhs(Index\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ Index\ k)\ \{}
+\DoxyCodeLine{00889\ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ use\_thread\_local\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00890\ }
+\DoxyCodeLine{00891\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (parallelize\_by\_sharding\_dim\_only\_\ \&\&\ shard\_by\_col\_\ \&\&}
+\DoxyCodeLine{00892\ \ \ \ \ \ \ \ \ \ \ can\_use\_thread\_local\_packed\_[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}].load(std::memory\_order\_relaxed))\ \{}
+\DoxyCodeLine{00893\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (state\_kernel\_[k\ \%\ P][0][\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}].load(std::memory\_order\_relaxed)\ ==\ 1)\ \{}
+\DoxyCodeLine{00894\ \ \ \ \ \ \ \ \ \ \ use\_thread\_local\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00895\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00896\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ we\ can't\ guarantee\ that\ all\ kernels\ in\ \`{}k`\ slice\ will\ be}}
+\DoxyCodeLine{00897\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ executed\ sequentially\ in\ current\ thread,\ it's\ no\ longer\ safe\ to\ use}}
+\DoxyCodeLine{00898\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ thread\ local\ memory\ in\ followig\ slices\ along\ the\ k\ dimensions.}}
+\DoxyCodeLine{00899\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(k\ >\ 0);}
+\DoxyCodeLine{00900\ \ \ \ \ \ \ \ \ \ \ can\_use\_thread\_local\_packed\_[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}].store(\textcolor{keyword}{false},}
+\DoxyCodeLine{00901\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00902\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00903\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00904\ }
+\DoxyCodeLine{00905\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ nend\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ gn\_\ +\ gn(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00906\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ n1\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ gn\_;\ n1\ <\ nend;\ n1++)\ \{}
+\DoxyCodeLine{00907\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!TensorContractionKernel::HasBeta\ \&\&\ k\ ==\ 0)\ \{}
+\DoxyCodeLine{00908\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Zero\ the\ output\ memory\ in\ parallel,\ only\ if\ contraction\ kernel\ does}}
+\DoxyCodeLine{00909\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ not\ support\ \`{}beta`.\ Otherwise\ we\ will\ pass\ beta\ 0.0\ to\ the\ first}}
+\DoxyCodeLine{00910\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ call\ to\ the\ \`{}TensorContractionKernel::invoke()`.}}
+\DoxyCodeLine{00911\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00912\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ On\ 10000x2x10000\ mm\ zeroing\ can\ easily\ take\ half\ of\ time.\ Zero\ (bn}}
+\DoxyCodeLine{00913\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ x\ m)\ row.\ Safe\ to\ do\ here\ because\ all\ kernels\ that\ will\ write\ to}}
+\DoxyCodeLine{00914\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ this\ memory\ depend\ on\ completion\ of\ this\ task.\ Note:\ don't\ call}}
+\DoxyCodeLine{00915\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ device\_.memset()\ here.\ device\_.memset()\ blocks\ on\ thread\ pool}}
+\DoxyCodeLine{00916\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ worker\ thread,\ which\ can\ lead\ to\ underutilization\ and\ deadlocks.}}
+\DoxyCodeLine{00917\ \ \ \ \ \ \ \ \ \ \ memset(buffer\_\ +\ n1\ *\ bn\_\ *\ m\_,\ 0,\ bn(n1)\ *\ m\_\ *\ \textcolor{keyword}{sizeof}(Scalar));}
+\DoxyCodeLine{00918\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00919\ \ \ \ \ \ \ \ \ kernel\_.packRhs(\&packed\_rhs(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ n1,\ use\_thread\_local),}
+\DoxyCodeLine{00920\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ rhs\_.getSubMapper(k\ *\ bk\_,\ n1\ *\ bn\_),\ bk(k),\ bn(n1));}
+\DoxyCodeLine{00921\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00922\ }
+\DoxyCodeLine{00923\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (parallel\_pack\_\ ||\ shard\_by\_col\_)\ \{}
+\DoxyCodeLine{00924\ \ \ \ \ \ \ \ \ signal\_switch(k\ +\ 1);}
+\DoxyCodeLine{00925\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ m\ =\ nm\_\ -\/\ 1;\ m\ >=\ 0;\ m-\/-\/)\ \{}
+\DoxyCodeLine{00926\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ sync\ =\ parallelize\_by\_sharding\_dim\_only\_\ ||\ m\ ==\ 0;}
+\DoxyCodeLine{00927\ \ \ \ \ \ \ \ \ \ \ signal\_kernel(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ sync,\ use\_thread\_local);}
+\DoxyCodeLine{00928\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00929\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00930\ \ \ \ \ \ \ \ \ assert(!use\_thread\_local);}
+\DoxyCodeLine{00931\ \ \ \ \ \ \ \ \ signal\_packing(k);}
+\DoxyCodeLine{00932\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00933\ \ \ \ \ \}}
+\DoxyCodeLine{00934\ }
+\DoxyCodeLine{00935\ \ \ \ \ \textcolor{keywordtype}{void}\ kernel(Index\ m,\ Index\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ Index\ k,\ \textcolor{keywordtype}{bool}\ use\_thread\_local)\ \{}
+\DoxyCodeLine{00936\ \ \ \ \ \ \ \textcolor{comment}{//\ Note:\ order\ of\ iteration\ matters\ here.\ Iteration\ over\ m\ is\ innermost}}
+\DoxyCodeLine{00937\ \ \ \ \ \ \ \textcolor{comment}{//\ because\ we\ want\ to\ reuse\ the\ same\ packed\ rhs\ in\ consecutive\ tasks}}
+\DoxyCodeLine{00938\ \ \ \ \ \ \ \textcolor{comment}{//\ (rhs\ fits\ into\ L2\$\ while\ lhs\ only\ into\ L3\$).}}
+\DoxyCodeLine{00939\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ nend\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ gn\_\ +\ gn(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00940\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ mend\ =\ m\ *\ gm\_\ +\ gm(m);}
+\DoxyCodeLine{00941\ }
+\DoxyCodeLine{00942\ \ \ \ \ \ \ \textcolor{comment}{//\ NOTE:\ output\ =\ alpha\ *\ LHS\ *\ RHS\ +\ beta\ *\ output.}}
+\DoxyCodeLine{00943\ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ alpha\ =\ Scalar(1);}
+\DoxyCodeLine{00944\ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a757b935530079a684b8f67688ce6b356}{beta}}\ =}
+\DoxyCodeLine{00945\ \ \ \ \ \ \ \ \ \ \ (TensorContractionKernel::HasBeta\ \&\&\ k\ ==\ 0)\ ?\ Scalar(0)\ :\ Scalar(1);}
+\DoxyCodeLine{00946\ }
+\DoxyCodeLine{00947\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (shard\_by\_col\_)\ \{}
+\DoxyCodeLine{00948\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ n1\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ gn\_;\ n1\ <\ nend;\ n1++)\ \{}
+\DoxyCodeLine{00949\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ m1\ =\ m\ *\ gm\_;\ m1\ <\ mend;\ m1++)\ \{}
+\DoxyCodeLine{00950\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ output\_mapper\ =\ output\_.getSubMapper(m1\ *\ bm\_,\ n1\ *\ bn\_);}
+\DoxyCodeLine{00951\ \ \ \ \ \ \ \ \ \ \ \ \ kernel\_.invoke(}
+\DoxyCodeLine{00952\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ output\_mapper,}
+\DoxyCodeLine{00953\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ packed\_lhs(m,\ k,\ m1,\ !shard\_by\_col\_\ \&\&\ use\_thread\_local),}
+\DoxyCodeLine{00954\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ packed\_rhs(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ n1,\ shard\_by\_col\_\ \&\&\ use\_thread\_local),\ bm(m1),}
+\DoxyCodeLine{00955\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bk(k),\ bn(n1),\ alpha,\ beta);}
+\DoxyCodeLine{00956\ }
+\DoxyCodeLine{00957\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ are\ done\ with\ the\ last\ task\ for\ the\ [m1,\ n1]\ block.}}
+\DoxyCodeLine{00958\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (k\ +\ 1\ ==\ nk\_)\ \{}
+\DoxyCodeLine{00959\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ output\_kernel\_(output\_mapper,\ tensor\_contraction\_params\_,}
+\DoxyCodeLine{00960\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m1\ *\ bm\_,\ n1\ *\ bn\_,\ bm(m1),\ bn(n1));}
+\DoxyCodeLine{00961\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00962\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00963\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00964\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00965\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ m1\ =\ m\ *\ gm\_;\ m1\ <\ mend;\ m1++)}
+\DoxyCodeLine{00966\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ n1\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ gn\_;\ n1\ <\ nend;\ n1++)\ \{}
+\DoxyCodeLine{00967\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ output\_mapper\ =\ output\_.getSubMapper(m1\ *\ bm\_,\ n1\ *\ bn\_);}
+\DoxyCodeLine{00968\ \ \ \ \ \ \ \ \ \ \ \ \ kernel\_.invoke(}
+\DoxyCodeLine{00969\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ output\_mapper,}
+\DoxyCodeLine{00970\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ packed\_lhs(m,\ k,\ m1,\ !shard\_by\_col\_\ \&\&\ use\_thread\_local),}
+\DoxyCodeLine{00971\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ packed\_rhs(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ n1,\ shard\_by\_col\_\ \&\&\ use\_thread\_local),\ bm(m1),}
+\DoxyCodeLine{00972\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bk(k),\ bn(n1),\ alpha,\ beta);}
+\DoxyCodeLine{00973\ }
+\DoxyCodeLine{00974\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ are\ done\ with\ the\ last\ task\ for\ the\ [m1,\ n1]\ block.}}
+\DoxyCodeLine{00975\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (k\ +\ 1\ ==\ nk\_)\ \{}
+\DoxyCodeLine{00976\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ output\_kernel\_(output\_mapper,\ tensor\_contraction\_params\_,}
+\DoxyCodeLine{00977\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m1\ *\ bm\_,\ n1\ *\ bn\_,\ bm(m1),\ bn(n1));}
+\DoxyCodeLine{00978\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00979\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00980\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00981\ \ \ \ \ \ \ signal\_kernel(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k\ +\ 1,\ \textcolor{comment}{/*sync=*/}\textcolor{keyword}{false},\ \textcolor{comment}{/*use\_thread\_local=*/}\textcolor{keyword}{false});}
+\DoxyCodeLine{00982\ \ \ \ \ \ \ signal\_switch(k\ +\ 2);}
+\DoxyCodeLine{00983\ \ \ \ \ \}}
+\DoxyCodeLine{00984\ }
+\DoxyCodeLine{00985\ \ \ \ \ \textcolor{keywordtype}{void}\ signal\_packing(Index\ k)\ \{}
+\DoxyCodeLine{00986\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(!parallel\_pack\_);}
+\DoxyCodeLine{00987\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ state\_packing\_ready\_[k\ \%\ P].fetch\_sub(1);}
+\DoxyCodeLine{00988\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(s\ >\ 0);}
+\DoxyCodeLine{00989\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (s\ !=\ 1)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00990\ \ \ \ \ \ \ state\_packing\_ready\_[k\ \%\ P]\ =\ shard\_by\_col\_\ ?\ nm\_\ :\ nn\_;}
+\DoxyCodeLine{00991\ \ \ \ \ \ \ enqueue\_packing(k,\ shard\_by\_col\_);}
+\DoxyCodeLine{00992\ \ \ \ \ \}}
+\DoxyCodeLine{00993\ }
+\DoxyCodeLine{00994\ \ \ \ \ \textcolor{keywordtype}{void}\ signal\_kernel(Index\ m,\ Index\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ Index\ k,\ \textcolor{keywordtype}{bool}\ sync,}
+\DoxyCodeLine{00995\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ use\_thread\_local)\ \{}
+\DoxyCodeLine{00996\ \ \ \ \ \ \ std::atomic<uint8\_t>*\ state\ =\ \&state\_kernel\_[k\ \%\ P][m][\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}];}
+\DoxyCodeLine{00997\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ state-\/>load();}
+\DoxyCodeLine{00998\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(s\ >\ 0);}
+\DoxyCodeLine{00999\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (s\ !=\ 1\ \&\&\ state-\/>fetch\_sub(1)\ !=\ 1)\ \{}
+\DoxyCodeLine{01000\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(!use\_thread\_local);}
+\DoxyCodeLine{01001\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{01002\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01003\ \ \ \ \ \ \ state-\/>store(parallel\_pack\_\ ?\ 3\ :\ 2,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{01004\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (sync)\ \{}
+\DoxyCodeLine{01005\ \ \ \ \ \ \ \ \ kernel(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ use\_thread\_local);}
+\DoxyCodeLine{01006\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01007\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(!use\_thread\_local);}
+\DoxyCodeLine{01008\ \ \ \ \ \ \ \ \ device\_.enqueueNoNotification(}
+\DoxyCodeLine{01009\ \ \ \ \ \ \ \ \ \ \ \ \ [=]()\ \{\ kernel(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k,\ use\_thread\_local);\ \});}
+\DoxyCodeLine{01010\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01011\ \ \ \ \ \}}
+\DoxyCodeLine{01012\ }
+\DoxyCodeLine{01013\ \ \ \ \ \textcolor{keywordtype}{void}\ signal\_switch(Index\ k,\ Index\ v\ =\ 1)\ \{}
+\DoxyCodeLine{01014\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ state\_switch\_[k\ \%\ P].fetch\_sub(v);}
+\DoxyCodeLine{01015\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(s\ >=\ v);}
+\DoxyCodeLine{01016\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (s\ !=\ v)\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{01017\ }
+\DoxyCodeLine{01018\ \ \ \ \ \ \ \textcolor{comment}{//\ Ready\ to\ switch\ to\ the\ next\ k\ slice.}}
+\DoxyCodeLine{01019\ \ \ \ \ \ \ \textcolor{comment}{//\ Reset\ counter\ for\ the\ next\ iteration.}}
+\DoxyCodeLine{01020\ \ \ \ \ \ \ state\_switch\_[k\ \%\ P]\ =}
+\DoxyCodeLine{01021\ \ \ \ \ \ \ \ \ \ \ (parallel\_pack\_\ ?\ nm\_\ +\ nn\_\ :\ (shard\_by\_col\_\ ?\ nn\_\ :\ nm\_))\ +}
+\DoxyCodeLine{01022\ \ \ \ \ \ \ \ \ \ \ nm\_\ *\ nn\_;}
+\DoxyCodeLine{01023\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (k\ <\ nk\_)\ \{}
+\DoxyCodeLine{01024\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Issue\ lhs/rhs\ packing.\ Their\ completion\ will\ in\ turn\ kick\ off}}
+\DoxyCodeLine{01025\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ kernels.}}
+\DoxyCodeLine{01026\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (parallel\_pack\_)\ \{}
+\DoxyCodeLine{01027\ \ \ \ \ \ \ \ \ \ \ enqueue\_packing(k,\ !shard\_by\_col\_);}
+\DoxyCodeLine{01028\ \ \ \ \ \ \ \ \ \ \ enqueue\_packing(k,\ shard\_by\_col\_);}
+\DoxyCodeLine{01029\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (shard\_by\_col\_)\ \{}
+\DoxyCodeLine{01030\ \ \ \ \ \ \ \ \ \ \ enqueue\_packing(k,\ \textcolor{keyword}{false});}
+\DoxyCodeLine{01031\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01032\ \ \ \ \ \ \ \ \ \ \ enqueue\_packing(k,\ \textcolor{keyword}{true});}
+\DoxyCodeLine{01033\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01034\ }
+\DoxyCodeLine{01035\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Termination\ handling.}}
+\DoxyCodeLine{01036\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Because\ kernel\ completion\ signals\ k\ +\ 2\ switch,\ we\ need\ to\ finish\ nk}}
+\DoxyCodeLine{01037\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ +\ 2\ slices\ without\ issuing\ any\ tasks\ on\ nk\ +\ 1\ slice.\ So\ here\ we}}
+\DoxyCodeLine{01038\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ pretend\ that\ all\ nk\ +\ 1\ packing\ tasks\ just\ finish\ instantly;\ so\ that}}
+\DoxyCodeLine{01039\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ nk\ +\ 2\ switch\ only\ waits\ for\ completion\ of\ nk\ kernels.}}
+\DoxyCodeLine{01040\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (k\ ==\ nk\_)\ \{}
+\DoxyCodeLine{01041\ \ \ \ \ \ \ \ \ signal\_switch(k\ +\ 1,}
+\DoxyCodeLine{01042\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ parallel\_pack\_\ ?\ nm\_\ +\ nn\_\ :\ (shard\_by\_col\_\ ?\ nn\_\ :\ nm\_));}
+\DoxyCodeLine{01043\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01044\ \ \ \ \ \ \ \ \ done\_.Notify();}
+\DoxyCodeLine{01045\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01046\ \ \ \ \ \}}
+\DoxyCodeLine{01047\ }
+\DoxyCodeLine{01048\ \ \ \ \ \textcolor{comment}{//\ Enqueue\ all\ rhs/lhs\ packing\ for\ k-\/th\ slice.}}
+\DoxyCodeLine{01049\ \ \ \ \ \textcolor{keywordtype}{void}\ enqueue\_packing(Index\ k,\ \textcolor{keywordtype}{bool}\ rhs)\ \{}
+\DoxyCodeLine{01050\ \ \ \ \ \ \ enqueue\_packing\_helper(0,\ rhs\ ?\ nn\_\ :\ nm\_,\ k,\ rhs);}
+\DoxyCodeLine{01051\ \ \ \ \ \}}
+\DoxyCodeLine{01052\ }
+\DoxyCodeLine{01053\ \ \ \ \ \textcolor{keywordtype}{void}\ enqueue\_packing\_helper(Index\ start,\ Index\ end,\ Index\ k,\ \textcolor{keywordtype}{bool}\ rhs)\ \{}
+\DoxyCodeLine{01054\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (end\ -\/\ start\ ==\ 1)\ \{}
+\DoxyCodeLine{01055\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (rhs)}
+\DoxyCodeLine{01056\ \ \ \ \ \ \ \ \ \ \ pack\_rhs(start,\ k);}
+\DoxyCodeLine{01057\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{01058\ \ \ \ \ \ \ \ \ \ \ pack\_lhs(start,\ k);}
+\DoxyCodeLine{01059\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01060\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (end\ -\/\ start\ >\ 1)\ \{}
+\DoxyCodeLine{01061\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ mid\ =\ (start\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}})\ /\ 2;}
+\DoxyCodeLine{01062\ \ \ \ \ \ \ \ \ \ \ device\_.enqueueNoNotification(}
+\DoxyCodeLine{01063\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [=]()\ \{\ enqueue\_packing\_helper(mid,\ end,\ k,\ rhs);\ \});}
+\DoxyCodeLine{01064\ \ \ \ \ \ \ \ \ \ \ end\ =\ mid;}
+\DoxyCodeLine{01065\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01066\ }
+\DoxyCodeLine{01067\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Decide\ if\ we\ want\ to\ run\ first\ packing\ task\ (start\ ==\ 0)\ in}}
+\DoxyCodeLine{01068\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ async\ mode\ if\ we\ parallelize\ only\ by\ sharding\ dim:}}
+\DoxyCodeLine{01069\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ (1)\ pack\_lhs\ and\ pack\_rhs\ call\ signal\_switch\ before\ completing}}
+\DoxyCodeLine{01070\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ all\ calls\ to\ signal\_kernel,\ which\ in\ sync\ mode\ might\ lead}}
+\DoxyCodeLine{01071\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ to\ the\ execution\ of\ the\ first\ kernel\ of\ the\ k+1\ slice,\ before}}
+\DoxyCodeLine{01072\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ completing\ a\ call\ to\ the\ last\ kernel\ of\ the\ k\ slice.}}
+\DoxyCodeLine{01073\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ (2)\ all\ pack\ tasks\ for\ sharded\ dim\ must\ be\ executed\ in\ a\ thread}}
+\DoxyCodeLine{01074\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ pool\ to\ get\ pre-\/allocated\ thead\ local\ buffers.}}
+\DoxyCodeLine{01075\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ pack\_async\ =}
+\DoxyCodeLine{01076\ \ \ \ \ \ \ \ \ \ \ (start\ ==\ 0)\ \&\&}
+\DoxyCodeLine{01077\ \ \ \ \ \ \ \ \ \ \ (parallelize\_by\_sharding\_dim\_only\_\&\&\ shard\_by\_col\_\ ==\ rhs)\ \&\&}
+\DoxyCodeLine{01078\ \ \ \ \ \ \ \ \ \ \ (k\ >\ 0\ ||\ std::this\_thread::get\_id()\ ==\ created\_by\_thread\_id\_);}
+\DoxyCodeLine{01079\ }
+\DoxyCodeLine{01080\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (pack\_async)\ \{}
+\DoxyCodeLine{01081\ \ \ \ \ \ \ \ \ \ \ device\_.enqueueNoNotification(}
+\DoxyCodeLine{01082\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [=]()\ \{\ enqueue\_packing\_helper(start,\ end,\ k,\ rhs);\ \});}
+\DoxyCodeLine{01083\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01084\ \ \ \ \ \ \ \ \ \ \ enqueue\_packing\_helper(start,\ end,\ k,\ rhs);}
+\DoxyCodeLine{01085\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01086\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01087\ \ \ \ \ \}}
+\DoxyCodeLine{01088\ }
+\DoxyCodeLine{01089\ \ \ \ \ \textcolor{comment}{//\ Block\ sizes\ with\ accounting\ for\ potentially\ incomplete\ last\ block.}}
+\DoxyCodeLine{01090\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ bm(Index\ m)\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\ +\ 1\ <\ nm0\_\ ?\ bm\_\ :\ m\_\ +\ bm\_\ -\/\ bm\_\ *\ nm0\_;\ \}}
+\DoxyCodeLine{01091\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ bn(Index\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ +\ 1\ <\ nn0\_\ ?\ bn\_\ :\ n\_\ +\ bn\_\ -\/\ bn\_\ *\ nn0\_;\ \}}
+\DoxyCodeLine{01092\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ bk(Index\ k)\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ k\ +\ 1\ <\ nk\_\ ?\ bk\_\ :\ k\_\ +\ bk\_\ -\/\ bk\_\ *\ nk\_;\ \}}
+\DoxyCodeLine{01093\ \ \ \ \ \textcolor{comment}{//\ Task\ grain\ sizes\ accounting\ for\ potentially\ incomplete\ last\ task.}}
+\DoxyCodeLine{01094\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ gm(Index\ m)\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\ +\ 1\ <\ nm\_\ ?\ gm\_\ :\ nm0\_\ +\ gm\_\ -\/\ gm\_\ *\ nm\_;\ \}}
+\DoxyCodeLine{01095\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ gn(Index\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ +\ 1\ <\ nn\_\ ?\ gn\_\ :\ nn0\_\ +\ gn\_\ -\/\ gn\_\ *\ nn\_;\ \}}
+\DoxyCodeLine{01096\ }
+\DoxyCodeLine{01097\ \ \ \ \ EvalParallelContext(\textcolor{keyword}{const}\ EvalParallelContext\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01098\ \ \ \ \ \textcolor{keywordtype}{void}\ operator=(\textcolor{keyword}{const}\ EvalParallelContext\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01099\ \ \ \};}
+\DoxyCodeLine{01100\ }
+\DoxyCodeLine{01101\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ lhs\_inner\_dim\_contiguous,\ \textcolor{keywordtype}{bool}\ rhs\_inner\_dim\_contiguous,}
+\DoxyCodeLine{01102\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ rhs\_inner\_dim\_reordered,\ \textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{01103\ \ \ \textcolor{keyword}{using\ }SyncEvalParallelContext\ =}
+\DoxyCodeLine{01104\ \ \ \ \ \ \ EvalParallelContext<NoCallback,\ lhs\_inner\_dim\_contiguous,}
+\DoxyCodeLine{01105\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ rhs\_inner\_dim\_contiguous,\ rhs\_inner\_dim\_reordered,}
+\DoxyCodeLine{01106\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Alignment>;}
+\DoxyCodeLine{01107\ }
+\DoxyCodeLine{01108\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ //}}
+\DoxyCodeLine{01109\ }
+\DoxyCodeLine{01110\ \ \ \textcolor{comment}{//\ EvalShardedByInnerDimContext\ orchestrates\ sync/async\ contraction}}
+\DoxyCodeLine{01111\ \ \ \textcolor{comment}{//\ evaluation,\ when\ we\ shard\ by\ inner\ dimension.\ When\ it\ is\ executed\ in}}
+\DoxyCodeLine{01112\ \ \ \textcolor{comment}{//\ asynchronous\ mode,\ it\ owns\ all\ the\ shared\ state\ that\ might\ be\ accessible\ by}}
+\DoxyCodeLine{01113\ \ \ \textcolor{comment}{//\ block\ processing\ tasks.}}
+\DoxyCodeLine{01114\ }
+\DoxyCodeLine{01115\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ DoneCallback>}
+\DoxyCodeLine{01116\ \ \ \textcolor{keyword}{struct\ }EvalShardedByInnerDimContext\ \{}
+\DoxyCodeLine{01117\ \ \ \ \ EvalShardedByInnerDimContext(\textcolor{keyword}{const}\ Self*\ self,\ \textcolor{keywordtype}{int}\ num\_threads,}
+\DoxyCodeLine{01118\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Scalar*\ result\_buffer,}
+\DoxyCodeLine{01119\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Index\ m\_size,\ Index\ n\_size,\ Index\ k\_size,}
+\DoxyCodeLine{01120\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ DoneCallback\ done\_callback)}
+\DoxyCodeLine{01121\ \ \ \ \ \ \ \ \ :\ evaluator(self),}
+\DoxyCodeLine{01122\ \ \ \ \ \ \ \ \ \ \ m\_lhs\_inner\_dim\_contiguous(evaluator-\/>m\_lhs\_inner\_dim\_contiguous),}
+\DoxyCodeLine{01123\ \ \ \ \ \ \ \ \ \ \ m\_rhs\_inner\_dim\_contiguous(evaluator-\/>m\_rhs\_inner\_dim\_contiguous),}
+\DoxyCodeLine{01124\ \ \ \ \ \ \ \ \ \ \ m\_rhs\_inner\_dim\_reordered(evaluator-\/>m\_rhs\_inner\_dim\_reordered),}
+\DoxyCodeLine{01125\ \ \ \ \ \ \ \ \ \ \ result(result\_buffer),}
+\DoxyCodeLine{01126\ \ \ \ \ \ \ \ \ \ \ m(m\_size),}
+\DoxyCodeLine{01127\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}(n\_size),}
+\DoxyCodeLine{01128\ \ \ \ \ \ \ \ \ \ \ k(k\_size),}
+\DoxyCodeLine{01129\ \ \ \ \ \ \ \ \ \ \ done(\mbox{\hyperlink{namespacestd}{std}}::move(done\_callback)),}
+\DoxyCodeLine{01130\ \ \ \ \ \ \ \ \ \ \ buffer\_size\_bytes(m\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ sizeof(Scalar)),}
+\DoxyCodeLine{01131\ \ \ \ \ \ \ \ \ \ \ block\_size(blockSize(k,\ num\_threads)),}
+\DoxyCodeLine{01132\ \ \ \ \ \ \ \ \ \ \ num\_blocks(\mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}<\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}>(k,\ block\_size)),}
+\DoxyCodeLine{01133\ \ \ \ \ \ \ \ \ \ \ num\_pending\_blocks(\mbox{\hyperlink{namespaceinternal}{internal}}::\mbox{\hyperlink{namespaceEigen_1_1internal_a66f17ef65b1821965dcb8ad9a660b064}{convert\_index}}<\mbox{\hyperlink{namespacefineweb_a7ab32de24971f7d1f91cd2edca351e06}{int}}>(num\_blocks)),}
+\DoxyCodeLine{01134\ \ \ \ \ \ \ \ \ \ \ l0\_ranges(\mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}<\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}>(num\_blocks,\ l0\_size)),}
+\DoxyCodeLine{01135\ \ \ \ \ \ \ \ \ \ \ l0\_state(l0\_ranges),}
+\DoxyCodeLine{01136\ \ \ \ \ \ \ \ \ \ \ block\_buffers(num\_blocks)\ \{}
+\DoxyCodeLine{01137\ \ \ \ \ \ \ \textcolor{comment}{//\ Keep\ count\ of\ pending\ gemm\ tasks\ for\ each\ l0\ range.}}
+\DoxyCodeLine{01138\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ l0\_ranges;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{01139\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ num\_pending\_tasks\ =\ actualRangeSize(l0\_ranges,\ l0\_size,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{01140\ \ \ \ \ \ \ \ \ l0\_state.emplace\_back(internal::convert\_index<int>(num\_pending\_tasks));}
+\DoxyCodeLine{01141\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01142\ }
+\DoxyCodeLine{01143\ \ \ \ \ \ \ \textcolor{comment}{//\ Allocate\ temporary\ buffers\ for\ each\ block.}}
+\DoxyCodeLine{01144\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ block\_idx\ =\ 0;\ block\_idx\ <\ num\_blocks;\ ++block\_idx)\ \{}
+\DoxyCodeLine{01145\ \ \ \ \ \ \ \ \ Scalar*\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}}\ =\ block\_idx\ ==\ 0}
+\DoxyCodeLine{01146\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ result}
+\DoxyCodeLine{01147\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \textcolor{keyword}{static\_cast<}Scalar*\textcolor{keyword}{>}(evaluator-\/>m\_device.allocate(}
+\DoxyCodeLine{01148\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ buffer\_size\_bytes));}
+\DoxyCodeLine{01149\ \ \ \ \ \ \ \ \ block\_buffers.emplace\_back(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}});}
+\DoxyCodeLine{01150\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01151\ \ \ \ \ \}}
+\DoxyCodeLine{01152\ }
+\DoxyCodeLine{01153\ \ \ \ \ \string~EvalShardedByInnerDimContext()\ \{}
+\DoxyCodeLine{01154\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Index\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ num\_blocks;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{01155\ \ \ \ \ \ \ \ \ evaluator-\/>m\_device.deallocate(block\_buffers[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]);}
+\DoxyCodeLine{01156\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01157\ \ \ \ \ \}}
+\DoxyCodeLine{01158\ }
+\DoxyCodeLine{01159\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{01160\ \ \ \ \ \textcolor{keywordtype}{void}\ run()\ \{}
+\DoxyCodeLine{01161\ \ \ \ \ \ \ Barrier\ barrier(internal::convert\_index<int>(num\_blocks));}
+\DoxyCodeLine{01162\ \ \ \ \ \ \ eval<Alignment>(barrier,\ 0,\ num\_blocks);}
+\DoxyCodeLine{01163\ \ \ \ \ \ \ barrier.Wait();}
+\DoxyCodeLine{01164\ }
+\DoxyCodeLine{01165\ \ \ \ \ \ \ \textcolor{comment}{//\ Aggregate\ partial\ sums\ from\ l0\ ranges.}}
+\DoxyCodeLine{01166\ \ \ \ \ \ \ aggregateL0Blocks<Alignment>();}
+\DoxyCodeLine{01167\ }
+\DoxyCodeLine{01168\ \ \ \ \ \ \ \textcolor{comment}{//\ Apply\ output\ kernel.}}
+\DoxyCodeLine{01169\ \ \ \ \ \ \ applyOutputKernel();}
+\DoxyCodeLine{01170\ \ \ \ \ \}}
+\DoxyCodeLine{01171\ }
+\DoxyCodeLine{01172\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{01173\ \ \ \ \ \textcolor{keywordtype}{void}\ runAsync()\ \{}
+\DoxyCodeLine{01174\ \ \ \ \ \ \ evalAsync<Alignment>(0,\ num\_blocks);}
+\DoxyCodeLine{01175\ \ \ \ \ \}}
+\DoxyCodeLine{01176\ }
+\DoxyCodeLine{01177\ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{01178\ \ \ \ \ \textcolor{comment}{//\ The\ underlying\ GEMM\ kernel\ assumes\ that\ k\ is\ a\ multiple\ of}}
+\DoxyCodeLine{01179\ \ \ \ \ \textcolor{comment}{//\ the\ packet\ size\ and\ subtle\ breakage\ occurs\ if\ this\ is\ violated.}}
+\DoxyCodeLine{01180\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ packet\_size\ =\ internal::packet\_traits<RhsScalar>::size;}
+\DoxyCodeLine{01181\ }
+\DoxyCodeLine{01182\ \ \ \ \ \textcolor{keyword}{const}\ Self*\ evaluator;\ \ \textcolor{comment}{//\ TensorContraction\ evaluator}}
+\DoxyCodeLine{01183\ }
+\DoxyCodeLine{01184\ \ \ \ \ \textcolor{comment}{//\ These\ fields\ required\ fromTENSOR\_CONTRACTION\_DISPATCH\ macro.}}
+\DoxyCodeLine{01185\ \ \ \ \ \textcolor{keywordtype}{bool}\ m\_lhs\_inner\_dim\_contiguous;}
+\DoxyCodeLine{01186\ \ \ \ \ \textcolor{keywordtype}{bool}\ m\_rhs\_inner\_dim\_contiguous;}
+\DoxyCodeLine{01187\ \ \ \ \ \textcolor{keywordtype}{bool}\ m\_rhs\_inner\_dim\_reordered;}
+\DoxyCodeLine{01188\ }
+\DoxyCodeLine{01189\ \ \ \ \ Scalar*\ result;}
+\DoxyCodeLine{01190\ }
+\DoxyCodeLine{01191\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ m;}
+\DoxyCodeLine{01192\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{01193\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ k;}
+\DoxyCodeLine{01194\ }
+\DoxyCodeLine{01195\ \ \ \ \ DoneCallback\ done;}
+\DoxyCodeLine{01196\ }
+\DoxyCodeLine{01197\ \ \ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\///}}
+\DoxyCodeLine{01198\ \ \ \ \ \textcolor{comment}{//\ Algorithm\ parameters.}}
+\DoxyCodeLine{01199\ }
+\DoxyCodeLine{01200\ \ \ \ \ \textcolor{comment}{//\ We\ will\ compute\ partial\ results\ into\ the\ buffers\ of\ this\ size.}}
+\DoxyCodeLine{01201\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ buffer\_size\_bytes;}
+\DoxyCodeLine{01202\ }
+\DoxyCodeLine{01203\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ block\_size;}
+\DoxyCodeLine{01204\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ num\_blocks;}
+\DoxyCodeLine{01205\ }
+\DoxyCodeLine{01206\ \ \ \ \ \textcolor{comment}{//\ Keep\ track\ of\ pending\ tasks\ when\ evaluate\ in\ async\ mode.}}
+\DoxyCodeLine{01207\ \ \ \ \ std::atomic<int>\ num\_pending\_blocks;}
+\DoxyCodeLine{01208\ }
+\DoxyCodeLine{01209\ \ \ \ \ \textcolor{comment}{//\ We\ compute\ partial\ gemm\ results\ in\ parallel,\ and\ to\ get\ the\ final\ result}}
+\DoxyCodeLine{01210\ \ \ \ \ \textcolor{comment}{//\ we\ need\ to\ add\ them\ all\ together.\ For\ the\ large\ number\ of\ threads\ (>=\ 48)}}
+\DoxyCodeLine{01211\ \ \ \ \ \textcolor{comment}{//\ this\ adds\ a\ very\ expensive\ sequential\ step\ at\ the\ end.}}
+\DoxyCodeLine{01212\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{01213\ \ \ \ \ \textcolor{comment}{//\ We\ split\ the\ [0,\ num\_blocks)\ into\ small\ ranges,\ and\ when\ a\ task\ for\ the}}
+\DoxyCodeLine{01214\ \ \ \ \ \textcolor{comment}{//\ block\ finishes\ its\ partial\ gemm\ computation,\ it\ checks\ if\ it\ was\ the\ last}}
+\DoxyCodeLine{01215\ \ \ \ \ \textcolor{comment}{//\ gemm\ in\ the\ range,\ and\ if\ so,\ it\ will\ add\ all\ blocks\ of\ the\ range.}}
+\DoxyCodeLine{01216\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{01217\ \ \ \ \ \textcolor{comment}{//\ After\ all\ tasks\ done,\ we\ need\ to\ add\ only\ these\ pre-\/aggregated\ blocks.}}
+\DoxyCodeLine{01218\ }
+\DoxyCodeLine{01219\ \ \ \ \ \textcolor{comment}{//\ For\ now\ we\ use\ just\ a\ single\ level\ of\ ranges\ to\ compute\ pre-\/aggregated}}
+\DoxyCodeLine{01220\ \ \ \ \ \textcolor{comment}{//\ partial\ sums,\ but\ in\ general\ we\ can\ use\ more\ layers\ to\ compute\ tree}}
+\DoxyCodeLine{01221\ \ \ \ \ \textcolor{comment}{//\ aggregation\ in\ parallel\ and\ reduce\ the\ size\ of\ the\ sequential\ step.}}
+\DoxyCodeLine{01222\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{01223\ \ \ \ \ \textcolor{comment}{//\ TODO(ezhulenev):\ Add\ multilevel\ tree\ aggregation?\ Probably\ will\ make}}
+\DoxyCodeLine{01224\ \ \ \ \ \textcolor{comment}{//\ sense\ only\ if\ number\ of\ threads\ >=\ \string~128?}}
+\DoxyCodeLine{01225\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ l0\_size\ =\ 4;}
+\DoxyCodeLine{01226\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ l0\_ranges;}
+\DoxyCodeLine{01227\ }
+\DoxyCodeLine{01228\ \ \ \ \ \textcolor{comment}{//\ Keep\ count\ of\ pending\ gemm\ tasks\ for\ each\ l0\ range.}}
+\DoxyCodeLine{01229\ \ \ \ \ MaxSizeVector<std::atomic<int>>\ l0\_state;\ \ \textcolor{comment}{//\ [0,\ l0\_ranges)}}
+\DoxyCodeLine{01230\ }
+\DoxyCodeLine{01231\ \ \ \ \ \textcolor{comment}{//\ Buffers\ allocated\ for\ each\ temporary\ block\ computation.}}
+\DoxyCodeLine{01232\ \ \ \ \ MaxSizeVector<Scalar*>\ block\_buffers;\ \ \textcolor{comment}{//\ [0,\ num\_blocks)}}
+\DoxyCodeLine{01233\ }
+\DoxyCodeLine{01234\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{01235\ \ \ \ \ \textcolor{keywordtype}{void}\ processBlock(Index\ block\_idx,\ Index\ begin,\ Index\ end)\ \{}
+\DoxyCodeLine{01236\ \ \ \ \ \ \ Scalar*\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}}\ =\ block\_buffers[block\_idx];}
+\DoxyCodeLine{01237\ }
+\DoxyCodeLine{01238\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorContraction_8h_a125263decff215ec122bf5c17c7abd67}{TENSOR\_CONTRACTION\_DISPATCH}}(}
+\DoxyCodeLine{01239\ \ \ \ \ \ \ \ \ \ \ evaluator-\/>template\ evalGemmPartialWithoutOutputKernel,\ Alignment,}
+\DoxyCodeLine{01240\ \ \ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}},\ begin,\ end,}
+\DoxyCodeLine{01241\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*num\_threads=*/}internal::convert\_index<int>(num\_blocks)));}
+\DoxyCodeLine{01242\ }
+\DoxyCodeLine{01243\ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ if\ it\ was\ the\ last\ task\ in\ l0\ range.}}
+\DoxyCodeLine{01244\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ l0\_index\ =\ block\_idx\ /\ l0\_size;}
+\DoxyCodeLine{01245\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ =\ l0\_state[l0\_index].fetch\_sub(1);}
+\DoxyCodeLine{01246\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(v\ >=\ 1);}
+\DoxyCodeLine{01247\ }
+\DoxyCodeLine{01248\ \ \ \ \ \ \ \textcolor{comment}{//\ If\ we\ processed\ the\ last\ block\ of\ the\ range,\ we\ can\ aggregate\ all}}
+\DoxyCodeLine{01249\ \ \ \ \ \ \ \textcolor{comment}{//\ partial\ results\ into\ the\ first\ block\ of\ the\ range.}}
+\DoxyCodeLine{01250\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (v\ ==\ 1)\ \{}
+\DoxyCodeLine{01251\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ rng\_size\ =\ actualRangeSize(l0\_ranges,\ l0\_size,\ l0\_index);}
+\DoxyCodeLine{01252\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ dst\_block\_idx\ =\ l0\_index\ *\ l0\_size;}
+\DoxyCodeLine{01253\ }
+\DoxyCodeLine{01254\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (rng\_size\ ==\ l0\_size)\ \{}
+\DoxyCodeLine{01255\ \ \ \ \ \ \ \ \ \ \ addAllToBuffer<Alignment>(}
+\DoxyCodeLine{01256\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},}
+\DoxyCodeLine{01257\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*src\_buf0=*/}block\_buffers[dst\_block\_idx\ +\ 1],}
+\DoxyCodeLine{01258\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*src\_buf1=*/}block\_buffers[dst\_block\_idx\ +\ 2],}
+\DoxyCodeLine{01259\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*src\_buf2=*/}block\_buffers[dst\_block\_idx\ +\ 3],}
+\DoxyCodeLine{01260\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*dst\_buf=\ */}\ block\_buffers[dst\_block\_idx]);}
+\DoxyCodeLine{01261\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01262\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Aggregate\ blocks\ of\ potentially\ incomplete\ last\ range.}}
+\DoxyCodeLine{01263\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ rng\_size;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{01264\ \ \ \ \ \ \ \ \ \ \ \ \ addToBuffer<Alignment>(m\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},}
+\DoxyCodeLine{01265\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*src\_buf=*/}block\_buffers[dst\_block\_idx\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}],}
+\DoxyCodeLine{01266\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*dst\_buf=*/}block\_buffers[dst\_block\_idx]);}
+\DoxyCodeLine{01267\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01268\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01269\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01270\ \ \ \ \ \}}
+\DoxyCodeLine{01271\ }
+\DoxyCodeLine{01272\ \ \ \ \ \textcolor{comment}{//\ Aggregate\ partial\ sums\ from\ l0\ ranges.}}
+\DoxyCodeLine{01273\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{01274\ \ \ \ \ \textcolor{keywordtype}{void}\ aggregateL0Blocks()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01275\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ l0\_index\ =\ 1;}
+\DoxyCodeLine{01276\ }
+\DoxyCodeLine{01277\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ l0\_index\ +\ 2\ <\ l0\_ranges;\ l0\_index\ +=\ 3)\ \{}
+\DoxyCodeLine{01278\ \ \ \ \ \ \ \ \ addAllToBuffer<Alignment>(}
+\DoxyCodeLine{01279\ \ \ \ \ \ \ \ \ \ \ \ \ m\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},}
+\DoxyCodeLine{01280\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*src\_buf0=*/}block\_buffers[(l0\_index\ +\ 0)\ *\ l0\_size],}
+\DoxyCodeLine{01281\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*src\_buf1=*/}block\_buffers[(l0\_index\ +\ 1)\ *\ l0\_size],}
+\DoxyCodeLine{01282\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*src\_buf2=*/}block\_buffers[(l0\_index\ +\ 2)\ *\ l0\_size],}
+\DoxyCodeLine{01283\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*dst\_buf=\ */}\ block\_buffers[0]);}
+\DoxyCodeLine{01284\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01285\ }
+\DoxyCodeLine{01286\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ l0\_index\ <\ l0\_ranges;\ ++l0\_index)\ \{}
+\DoxyCodeLine{01287\ \ \ \ \ \ \ \ \ addToBuffer<Alignment>(m\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ block\_buffers[l0\_index\ *\ l0\_size],}
+\DoxyCodeLine{01288\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ block\_buffers[0]);}
+\DoxyCodeLine{01289\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01290\ \ \ \ \ \}}
+\DoxyCodeLine{01291\ }
+\DoxyCodeLine{01292\ \ \ \ \ \textcolor{keywordtype}{void}\ applyOutputKernel()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01293\ \ \ \ \ \ \ \textcolor{keyword}{typedef}\ internal::blas\_data\_mapper<Scalar,\ Index,\ ColMajor>\ OutputMapper;}
+\DoxyCodeLine{01294\ \ \ \ \ \ \ evaluator-\/>m\_output\_kernel(}
+\DoxyCodeLine{01295\ \ \ \ \ \ \ \ \ \ \ OutputMapper(result,\ m),\ evaluator-\/>m\_tensor\_contraction\_params,}
+\DoxyCodeLine{01296\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Eigen::Index}}\textcolor{keyword}{>}(0),\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Eigen::Index}}\textcolor{keyword}{>}(0),\ m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{01297\ \ \ \ \ \}}
+\DoxyCodeLine{01298\ }
+\DoxyCodeLine{01299\ \ \ \ \ \textcolor{comment}{//\ Compute\ block\ size\ with\ accounting\ for\ potentially\ incomplete\ last\ block.}}
+\DoxyCodeLine{01300\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ actualBlockSize(Index\ block\_idx)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01301\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ block\_idx\ +\ 1\ <\ num\_blocks}
+\DoxyCodeLine{01302\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ block\_size}
+\DoxyCodeLine{01303\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ k\ +\ block\_size\ -\/\ block\_size\ *\ num\_blocks;}
+\DoxyCodeLine{01304\ \ \ \ \ \};}
+\DoxyCodeLine{01305\ }
+\DoxyCodeLine{01306\ \ \ \ \ \textcolor{comment}{//\ Compute\ range\ size\ with\ accounting\ for\ potentially\ incomplete\ last\ range.}}
+\DoxyCodeLine{01307\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ actualRangeSize(Index\ num\_ranges,\ Index\ range\_size,}
+\DoxyCodeLine{01308\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Index\ range\_idx)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01309\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(range\_idx\ <\ num\_ranges);}
+\DoxyCodeLine{01310\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ range\_idx\ +\ 1\ <\ num\_ranges}
+\DoxyCodeLine{01311\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ range\_size}
+\DoxyCodeLine{01312\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ num\_blocks\ +\ range\_size\ -\/\ range\_size\ *\ num\_ranges;}
+\DoxyCodeLine{01313\ \ \ \ \ \};}
+\DoxyCodeLine{01314\ }
+\DoxyCodeLine{01315\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{01316\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ addToBuffer(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \textcolor{keyword}{const}\ Scalar*\ src\_buf,}
+\DoxyCodeLine{01317\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Scalar*\ tgt\_buf)\ \{}
+\DoxyCodeLine{01318\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ output\_packet\_size\ =}
+\DoxyCodeLine{01319\ \ \ \ \ \ \ \ \ \ \ internal::unpacket\_traits<PacketReturnType>::size;}
+\DoxyCodeLine{01320\ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;}
+\DoxyCodeLine{01321\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ num\_packets\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ /\ output\_packet\_size;}
+\DoxyCodeLine{01322\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ output\_packet\_size\ *\ num\_packets;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +=\ output\_packet\_size)\ \{}
+\DoxyCodeLine{01323\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ PacketReturnType\ src\_val\ =}
+\DoxyCodeLine{01324\ \ \ \ \ \ \ \ \ \ \ \ \ internal::pload<PacketReturnType>(src\_buf\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{01325\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ PacketReturnType\ tgt\_val\ =}
+\DoxyCodeLine{01326\ \ \ \ \ \ \ \ \ \ \ \ \ internal::ploadt<PacketReturnType,\ Alignment>(tgt\_buf\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{01327\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ PacketReturnType\ sum\ =\ internal::padd(src\_val,\ tgt\_val);}
+\DoxyCodeLine{01328\ \ \ \ \ \ \ \ \ internal::pstoret<Scalar,\ PacketReturnType,\ Alignment>(tgt\_buf\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},}
+\DoxyCodeLine{01329\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ sum);}
+\DoxyCodeLine{01330\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01331\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{01332\ \ \ \ \ \ \ \ \ tgt\_buf[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ +=\ src\_buf[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{01333\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01334\ \ \ \ \ \}}
+\DoxyCodeLine{01335\ }
+\DoxyCodeLine{01336\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{01337\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ addAllToBuffer(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},}
+\DoxyCodeLine{01338\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar*\ src\_buf0,}
+\DoxyCodeLine{01339\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar*\ src\_buf1,}
+\DoxyCodeLine{01340\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Scalar*\ src\_buf2,}
+\DoxyCodeLine{01341\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Scalar*\ dst\_buf)\ \{}
+\DoxyCodeLine{01342\ \ \ \ \ \ \ using\ ::Eigen::internal::padd;}
+\DoxyCodeLine{01343\ \ \ \ \ \ \ using\ ::Eigen::internal::pload;}
+\DoxyCodeLine{01344\ \ \ \ \ \ \ using\ ::Eigen::internal::ploadt;}
+\DoxyCodeLine{01345\ \ \ \ \ \ \ using\ ::Eigen::internal::pstoret;}
+\DoxyCodeLine{01346\ }
+\DoxyCodeLine{01347\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ output\_packet\_size\ =}
+\DoxyCodeLine{01348\ \ \ \ \ \ \ \ \ \ \ internal::unpacket\_traits<PacketReturnType>::size;}
+\DoxyCodeLine{01349\ }
+\DoxyCodeLine{01350\ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;}
+\DoxyCodeLine{01351\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ num\_packets\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ /\ output\_packet\_size;}
+\DoxyCodeLine{01352\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ output\_packet\_size\ *\ num\_packets;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +=\ output\_packet\_size)\ \{}
+\DoxyCodeLine{01353\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ src\_val0\ =\ pload<PacketReturnType>(src\_buf0\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{01354\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ src\_val1\ =\ pload<PacketReturnType>(src\_buf1\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{01355\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ src\_val2\ =\ pload<PacketReturnType>(src\_buf2\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{01356\ }
+\DoxyCodeLine{01357\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ dst\_val\ =\ ploadt<PacketReturnType,\ Alignment>(dst\_buf\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{01358\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ sum\ =}
+\DoxyCodeLine{01359\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(dst\_val,\ src\_val0),\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(src\_val1,\ src\_val2));}
+\DoxyCodeLine{01360\ }
+\DoxyCodeLine{01361\ \ \ \ \ \ \ \ \ pstoret<Scalar,\ PacketReturnType,\ Alignment>(dst\_buf\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ sum);}
+\DoxyCodeLine{01362\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01363\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{01364\ \ \ \ \ \ \ \ \ dst\_buf[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ +=\ src\_buf0[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ +\ src\_buf1[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ +\ src\_buf2[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{01365\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01366\ \ \ \ \ \}}
+\DoxyCodeLine{01367\ }
+\DoxyCodeLine{01368\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{01369\ \ \ \ \ \textcolor{keywordtype}{void}\ eval(Barrier\&\ barrier,\ Index\ start\_block\_idx,\ Index\ end\_block\_idx)\ \{}
+\DoxyCodeLine{01370\ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (end\_block\_idx\ -\/\ start\_block\_idx\ >\ 1)\ \{}
+\DoxyCodeLine{01371\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ mid\_block\_idx\ =\ (start\_block\_idx\ +\ end\_block\_idx)\ /\ 2;}
+\DoxyCodeLine{01372\ \ \ \ \ \ \ \ \ evaluator-\/>m\_device.enqueueNoNotification(}
+\DoxyCodeLine{01373\ \ \ \ \ \ \ \ \ \ \ \ \ [\textcolor{keyword}{this},\ \&barrier,\ mid\_block\_idx,\ end\_block\_idx]()\ \{}
+\DoxyCodeLine{01374\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ eval<Alignment>(barrier,\ mid\_block\_idx,\ end\_block\_idx);}
+\DoxyCodeLine{01375\ \ \ \ \ \ \ \ \ \ \ \ \ \});}
+\DoxyCodeLine{01376\ \ \ \ \ \ \ \ \ end\_block\_idx\ =\ mid\_block\_idx;}
+\DoxyCodeLine{01377\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01378\ }
+\DoxyCodeLine{01379\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ block\_idx\ =\ start\_block\_idx;}
+\DoxyCodeLine{01380\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ block\_start\ =\ block\_idx\ *\ block\_size;}
+\DoxyCodeLine{01381\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ block\_end\ =\ block\_start\ +\ actualBlockSize(block\_idx);}
+\DoxyCodeLine{01382\ }
+\DoxyCodeLine{01383\ \ \ \ \ \ \ processBlock<Alignment>(block\_idx,\ block\_start,\ block\_end);}
+\DoxyCodeLine{01384\ \ \ \ \ \ \ barrier.Notify();}
+\DoxyCodeLine{01385\ \ \ \ \ \}}
+\DoxyCodeLine{01386\ }
+\DoxyCodeLine{01387\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ Alignment>}
+\DoxyCodeLine{01388\ \ \ \ \ \textcolor{keywordtype}{void}\ evalAsync(Index\ start\_block\_idx,\ Index\ end\_block\_idx)\ \{}
+\DoxyCodeLine{01389\ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (end\_block\_idx\ -\/\ start\_block\_idx\ >\ 1)\ \{}
+\DoxyCodeLine{01390\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ mid\_block\_idx\ =\ (start\_block\_idx\ +\ end\_block\_idx)\ /\ 2;}
+\DoxyCodeLine{01391\ \ \ \ \ \ \ \ \ evaluator-\/>m\_device.enqueueNoNotification(}
+\DoxyCodeLine{01392\ \ \ \ \ \ \ \ \ \ \ \ \ [\textcolor{keyword}{this},\ mid\_block\_idx,\ end\_block\_idx]()\ \{}
+\DoxyCodeLine{01393\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ evalAsync<Alignment>(mid\_block\_idx,\ end\_block\_idx);}
+\DoxyCodeLine{01394\ \ \ \ \ \ \ \ \ \ \ \ \ \});}
+\DoxyCodeLine{01395\ \ \ \ \ \ \ \ \ end\_block\_idx\ =\ mid\_block\_idx;}
+\DoxyCodeLine{01396\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01397\ }
+\DoxyCodeLine{01398\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ block\_idx\ =\ start\_block\_idx;}
+\DoxyCodeLine{01399\ }
+\DoxyCodeLine{01400\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ block\_start\ =\ block\_idx\ *\ block\_size;}
+\DoxyCodeLine{01401\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ block\_end\ =\ block\_start\ +\ actualBlockSize(block\_idx);}
+\DoxyCodeLine{01402\ }
+\DoxyCodeLine{01403\ \ \ \ \ \ \ processBlock<Alignment>(block\_idx,\ block\_start,\ block\_end);}
+\DoxyCodeLine{01404\ }
+\DoxyCodeLine{01405\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ =\ num\_pending\_blocks.fetch\_sub(1);}
+\DoxyCodeLine{01406\ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(v\ >=\ 1);}
+\DoxyCodeLine{01407\ }
+\DoxyCodeLine{01408\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (v\ ==\ 1)\ \{}
+\DoxyCodeLine{01409\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Aggregate\ partial\ sums\ from\ l0\ ranges.}}
+\DoxyCodeLine{01410\ \ \ \ \ \ \ \ \ aggregateL0Blocks<Alignment>();}
+\DoxyCodeLine{01411\ }
+\DoxyCodeLine{01412\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Apply\ output\ kernel.}}
+\DoxyCodeLine{01413\ \ \ \ \ \ \ \ \ applyOutputKernel();}
+\DoxyCodeLine{01414\ }
+\DoxyCodeLine{01415\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOTE:\ If\ we\ call\ \`{}done`\ callback\ before\ deleting\ this\ (context),}}
+\DoxyCodeLine{01416\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ it\ might\ deallocate\ Self*\ pointer\ captured\ by\ context,\ and\ we'll}}
+\DoxyCodeLine{01417\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ fail\ in\ destructor\ trying\ to\ deallocate\ temporary\ buffers.}}
+\DoxyCodeLine{01418\ }
+\DoxyCodeLine{01419\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Move\ done\ call\ back\ from\ context\ before\ it\ will\ be\ destructed.}}
+\DoxyCodeLine{01420\ \ \ \ \ \ \ \ \ DoneCallback\ done\_copy\ =\ std::move(done);}
+\DoxyCodeLine{01421\ }
+\DoxyCodeLine{01422\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ are\ confident\ that\ we\ are\ the\ last\ one\ who\ touches\ context.}}
+\DoxyCodeLine{01423\ \ \ \ \ \ \ \ \ \textcolor{keyword}{delete}\ \textcolor{keyword}{this};}
+\DoxyCodeLine{01424\ }
+\DoxyCodeLine{01425\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Now\ safely\ call\ the\ done\ callback.}}
+\DoxyCodeLine{01426\ \ \ \ \ \ \ \ \ done\_copy();}
+\DoxyCodeLine{01427\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01428\ \ \ \ \ \}}
+\DoxyCodeLine{01429\ }
+\DoxyCodeLine{01430\ \ \ \ \ \textcolor{comment}{//\ Cost\ model\ doesn't\ capture\ well\ the\ cost\ associated\ with\ constructing}}
+\DoxyCodeLine{01431\ \ \ \ \ \textcolor{comment}{//\ tensor\ contraction\ mappers\ and\ computing\ loop\ bounds\ in\ gemm\_pack\_lhs}}
+\DoxyCodeLine{01432\ \ \ \ \ \textcolor{comment}{//\ and\ gemm\_pack\_rhs,\ so\ we\ specify\ minimum\ desired\ block\ size.}}
+\DoxyCodeLine{01433\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ blockSize(Index\ k,\ \textcolor{keywordtype}{int}\ num\_threads)\ \{}
+\DoxyCodeLine{01434\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ round\_up\ =\ [=](\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index)\ -\/>\ Index\ \{}
+\DoxyCodeLine{01435\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ kmultiple\ =\ packet\_size\ <=\ 8\ ?\ 8\ :\ packet\_size;}
+\DoxyCodeLine{01436\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ divup<Index>(index,\ kmultiple)\ *\ kmultiple;}
+\DoxyCodeLine{01437\ \ \ \ \ \ \ \};}
+\DoxyCodeLine{01438\ }
+\DoxyCodeLine{01439\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ target\_block\_size\ =\ round\_up(divup<Index>(k,\ num\_threads));}
+\DoxyCodeLine{01440\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ desired\_min\_block\_size\ =\ 12\ *\ packet\_size;}
+\DoxyCodeLine{01441\ }
+\DoxyCodeLine{01442\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ numext::mini<Index>(}
+\DoxyCodeLine{01443\ \ \ \ \ \ \ \ \ \ \ k,\ numext::maxi<Index>(desired\_min\_block\_size,\ target\_block\_size));}
+\DoxyCodeLine{01444\ \ \ \ \ \}}
+\DoxyCodeLine{01445\ }
+\DoxyCodeLine{01446\ \ \ \ \ EvalShardedByInnerDimContext(\textcolor{keyword}{const}\ EvalShardedByInnerDimContext\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01447\ \ \ \ \ \textcolor{keywordtype}{void}\ operator=(\textcolor{keyword}{const}\ EvalShardedByInnerDimContext\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01448\ \ \ \};}
+\DoxyCodeLine{01449\ }
+\DoxyCodeLine{01450\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/\ //}}
+\DoxyCodeLine{01451\ }
+\DoxyCodeLine{01452\ \ \ \textcolor{comment}{//\ Below\ are\ the\ function\ used\ by\ evalProductImpl\ heuristics,\ trying\ to\ select}}
+\DoxyCodeLine{01453\ \ \ \textcolor{comment}{//\ optimcal\ parameters\ for\ parallelization\ algorithm.}}
+\DoxyCodeLine{01454\ }
+\DoxyCodeLine{01455\ \ \ \textcolor{comment}{//\ Decide\ whether\ we\ want\ to\ shard\ m\ x\ n\ contraction\ by\ columns\ or\ by\ rows.}}
+\DoxyCodeLine{01456\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ shardByCol(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ m,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ num\_threads)\ \{}
+\DoxyCodeLine{01457\ \ \ \ \ \textcolor{comment}{//\ Note:\ we\ are\ comparing\ both\ n\ and\ m\ against\ Traits::nr,\ it\ is\ not}}
+\DoxyCodeLine{01458\ \ \ \ \ \textcolor{comment}{//\ a\ mistake.\ We\ are\ trying\ to\ figure\ out\ how\ both\ n\ and\ m\ will\ fit\ into}}
+\DoxyCodeLine{01459\ \ \ \ \ \textcolor{comment}{//\ the\ main\ sharding\ dimension.}}
+\DoxyCodeLine{01460\ }
+\DoxyCodeLine{01461\ \ \ \ \ \textcolor{comment}{//\ Sharding\ by\ column\ is\ the\ default}}
+\DoxyCodeLine{01462\ \ \ \ \ \textcolor{comment}{//\ ...\ unless\ there\ is\ enough\ data\ for\ vectorization\ over\ rows}}
+\DoxyCodeLine{01463\ \ \ \ \ \textcolor{keywordflow}{if}\ (m\ /\ num\_threads\ >=\ Traits::nr\ \&\&}
+\DoxyCodeLine{01464\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ and\ not\ enough\ data\ for\ vectorization\ over\ columns}}
+\DoxyCodeLine{01465\ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ /\ num\_threads\ <\ Traits::nr\ ||}
+\DoxyCodeLine{01466\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ ...\ or\ barely\ enough\ data\ for\ vectorization\ over\ columns,}}
+\DoxyCodeLine{01467\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ but\ it\ is\ not\ evenly\ dividable\ across\ threads}}
+\DoxyCodeLine{01468\ \ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ /\ num\_threads\ <\ 4\ *\ Traits::nr\ \&\&}
+\DoxyCodeLine{01469\ \ \ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ \%\ (num\_threads\ *\ Traits::nr))\ !=\ 0\ \&\&}
+\DoxyCodeLine{01470\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ ...\ and\ it\ is\ evenly\ dividable\ across\ threads\ for\ rows}}
+\DoxyCodeLine{01471\ \ \ \ \ \ \ \ \ \ \ ((m\ \%\ (num\_threads\ *\ Traits::nr))\ ==\ 0\ ||}
+\DoxyCodeLine{01472\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ ..\ or\ it\ is\ not\ evenly\ dividable\ for\ both\ dimensions\ but}}
+\DoxyCodeLine{01473\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ there\ is\ much\ more\ data\ over\ rows\ so\ that\ corner\ effects\ are}}
+\DoxyCodeLine{01474\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ mitigated.}}
+\DoxyCodeLine{01475\ \ \ \ \ \ \ \ \ \ \ \ (m\ /\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ >=\ 6)))))}
+\DoxyCodeLine{01476\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01477\ \ \ \ \ \textcolor{comment}{//\ Wait,\ or\ if\ matrices\ are\ just\ substantially\ prolonged\ over\ the\ other}}
+\DoxyCodeLine{01478\ \ \ \ \ \textcolor{comment}{//\ dimension.}}
+\DoxyCodeLine{01479\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ /\ num\_threads\ <\ 16\ *\ Traits::nr\ \&\&\ m\ >\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ 32)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01480\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{01481\ \ \ \}}
+\DoxyCodeLine{01482\ }
+\DoxyCodeLine{01483\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ coarsenM(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ m,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bm,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bn,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bk,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gn,}
+\DoxyCodeLine{01484\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ num\_threads,\ \textcolor{keywordtype}{bool}\ shard\_by\_col)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01485\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gm\ =\ 1;}
+\DoxyCodeLine{01486\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gm1\ =\ 1;}
+\DoxyCodeLine{01487\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nm0\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(m,\ bm);}
+\DoxyCodeLine{01488\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nm1\ =\ nm0;}
+\DoxyCodeLine{01489\ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \{}
+\DoxyCodeLine{01490\ \ \ \ \ \ \ \textcolor{comment}{//\ Find\ the\ next\ candidate\ for\ m\ grain\ size.\ It\ needs\ to\ result\ in}}
+\DoxyCodeLine{01491\ \ \ \ \ \ \ \textcolor{comment}{//\ different\ number\ of\ blocks.\ E.g.\ if\ we\ have\ 10\ kernels,\ we\ want\ to\ try}}
+\DoxyCodeLine{01492\ \ \ \ \ \ \ \textcolor{comment}{//\ 5\ and\ 10,\ but\ not\ 6,\ 7,\ 8\ and\ 9.}}
+\DoxyCodeLine{01493\ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (gm1\ <=\ nm0\ \&\&\ nm1\ ==\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nm0,\ gm1))\ gm1++;}
+\DoxyCodeLine{01494\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (gm1\ >\ nm0)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01495\ \ \ \ \ \ \ \textcolor{comment}{//\ Check\ the\ candidate.}}
+\DoxyCodeLine{01496\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ res\ =\ checkGrain(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bm,\ bn,\ bk,\ gm1,\ gn,\ gm,\ gn,\ num\_threads,}
+\DoxyCodeLine{01497\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ shard\_by\_col);}
+\DoxyCodeLine{01498\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (res\ <\ 0)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01499\ \ \ \ \ \ \ nm1\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nm0,\ gm1);}
+\DoxyCodeLine{01500\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (res\ ==\ 0)\ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{01501\ \ \ \ \ \ \ \textcolor{comment}{//\ Commit\ new\ grain\ size.}}
+\DoxyCodeLine{01502\ \ \ \ \ \ \ gm\ =\ gm1;}
+\DoxyCodeLine{01503\ \ \ \ \ \}}
+\DoxyCodeLine{01504\ \ \ \ \ \textcolor{keywordflow}{return}\ gm;}
+\DoxyCodeLine{01505\ \ \ \}}
+\DoxyCodeLine{01506\ }
+\DoxyCodeLine{01507\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ coarsenN(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ m,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bm,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bn,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bk,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gm,}
+\DoxyCodeLine{01508\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ num\_threads,\ \textcolor{keywordtype}{bool}\ shard\_by\_col)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01509\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gn\ =\ 1;}
+\DoxyCodeLine{01510\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gn1\ =\ 1;}
+\DoxyCodeLine{01511\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nn0\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bn);}
+\DoxyCodeLine{01512\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nn1\ =\ nn0;}
+\DoxyCodeLine{01513\ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \{}
+\DoxyCodeLine{01514\ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (gn1\ <=\ nn0\ \&\&\ nn1\ ==\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nn0,\ gn1))\ gn1++;}
+\DoxyCodeLine{01515\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (gn1\ >\ nn0)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01516\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ res\ =\ checkGrain(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bm,\ bn,\ bk,\ gm,\ gn1,\ gm,\ gn,\ num\_threads,}
+\DoxyCodeLine{01517\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ shard\_by\_col);}
+\DoxyCodeLine{01518\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (res\ <\ 0)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01519\ \ \ \ \ \ \ nn1\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nn0,\ gn1);}
+\DoxyCodeLine{01520\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (res\ ==\ 0)\ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{01521\ \ \ \ \ \ \ gn\ =\ gn1;}
+\DoxyCodeLine{01522\ \ \ \ \ \}}
+\DoxyCodeLine{01523\ \ \ \ \ \textcolor{keywordflow}{return}\ gn;}
+\DoxyCodeLine{01524\ \ \ \}}
+\DoxyCodeLine{01525\ }
+\DoxyCodeLine{01526\ \ \ \textcolor{comment}{//\ checkGrain\ checks\ whether\ grain\ (gm,\ gn)\ is\ suitable\ and\ is\ better\ than}}
+\DoxyCodeLine{01527\ \ \ \textcolor{comment}{//\ (oldgm,\ oldgn).}}
+\DoxyCodeLine{01528\ \ \ \textcolor{keywordtype}{int}\ checkGrain(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ m,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bm,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bn,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bk,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gm,}
+\DoxyCodeLine{01529\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ gn,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ oldgm,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ oldgn,\ \textcolor{keywordtype}{int}\ num\_threads,}
+\DoxyCodeLine{01530\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ shard\_by\_col)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01531\ \ \ \ \ \textcolor{keyword}{const}\ TensorOpCost\ cost\ =}
+\DoxyCodeLine{01532\ \ \ \ \ \ \ \ \ contractionCost(bm\ *\ gm,\ bn\ *\ gn,\ bm,\ bn,\ bk,\ shard\_by\_col,\ \textcolor{keyword}{true});}
+\DoxyCodeLine{01533\ \ \ \ \ \textcolor{keywordtype}{double}\ taskSize\ =\ \mbox{\hyperlink{classEigen_1_1TensorCostModel_aaae32b6af60750622e87ac1f34766c1b}{TensorCostModel<ThreadPoolDevice>::taskSize}}(}
+\DoxyCodeLine{01534\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(bm)\ *\ gm\ *\ bn\ *\ gn,\ cost);}
+\DoxyCodeLine{01535\ \ \ \ \ \textcolor{comment}{//\ If\ the\ task\ is\ too\ small,\ then\ we\ agree\ on\ it\ regardless\ of\ anything}}
+\DoxyCodeLine{01536\ \ \ \ \ \textcolor{comment}{//\ else.\ Otherwise\ synchronization\ overheads\ will\ dominate.}}
+\DoxyCodeLine{01537\ \ \ \ \ \textcolor{keywordflow}{if}\ (taskSize\ <\ 1)\ \textcolor{keywordflow}{return}\ 1;}
+\DoxyCodeLine{01538\ \ \ \ \ \textcolor{comment}{//\ If\ it\ is\ too\ large,\ then\ we\ reject\ it\ and\ all\ larger\ tasks.}}
+\DoxyCodeLine{01539\ \ \ \ \ \textcolor{keywordflow}{if}\ (taskSize\ >\ 2)\ \textcolor{keywordflow}{return}\ -\/1;}
+\DoxyCodeLine{01540\ \ \ \ \ \textcolor{comment}{//\ Now\ we\ are\ in\ presumably\ good\ task\ size\ range.}}
+\DoxyCodeLine{01541\ \ \ \ \ \textcolor{comment}{//\ The\ main\ deciding\ factor\ here\ is\ parallelism.\ Consider\ that\ we\ have\ 12}}
+\DoxyCodeLine{01542\ \ \ \ \ \textcolor{comment}{//\ kernels\ and\ 4\ threads.\ Grains\ of\ 2,\ 3\ and\ 4\ all\ yield\ good\ task\ sizes.}}
+\DoxyCodeLine{01543\ \ \ \ \ \textcolor{comment}{//\ But\ 2/4\ yield\ 6/3\ tasks,\ which\ gives\ us\ parallelism\ of\ 0.75\ (at\ most\ 3/4}}
+\DoxyCodeLine{01544\ \ \ \ \ \textcolor{comment}{//\ of\ cores\ will\ be\ busy).\ While\ grain\ size\ 3\ gives\ us\ 4\ tasks,\ which\ gives}}
+\DoxyCodeLine{01545\ \ \ \ \ \textcolor{comment}{//\ us\ parallelism\ of\ 1\ (we\ can\ load\ all\ cores).}}
+\DoxyCodeLine{01546\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nm0\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(m,\ bm);}
+\DoxyCodeLine{01547\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ nn0\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ bn);}
+\DoxyCodeLine{01548\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ new\_tasks\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nm0,\ gm)\ *\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nn0,\ gn);}
+\DoxyCodeLine{01549\ \ \ \ \ \textcolor{keywordtype}{double}\ new\_parallelism\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(new\_tasks)\ /}
+\DoxyCodeLine{01550\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup<int>}}(new\_tasks,\ num\_threads)\ *\ num\_threads);}
+\DoxyCodeLine{01551\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ old\_tasks\ =\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nm0,\ oldgm)\ *\ \mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup}}(nn0,\ oldgn);}
+\DoxyCodeLine{01552\ \ \ \ \ \textcolor{keywordtype}{double}\ old\_parallelism\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(old\_tasks)\ /}
+\DoxyCodeLine{01553\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{namespaceEigen_a13ec9832931270b80961236d30f6d2e3}{divup<int>}}(old\_tasks,\ num\_threads)\ *\ num\_threads);}
+\DoxyCodeLine{01554\ \ \ \ \ \textcolor{keywordflow}{if}\ (new\_parallelism\ >\ old\_parallelism\ ||\ new\_parallelism\ ==\ 1)\ \textcolor{keywordflow}{return}\ 1;}
+\DoxyCodeLine{01555\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{01556\ \ \ \}}
+\DoxyCodeLine{01557\ }
+\DoxyCodeLine{01558\ \ \ TensorOpCost\ contractionCost(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ m,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bm,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bn,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bk,}
+\DoxyCodeLine{01559\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ shard\_by\_col,\ \textcolor{keywordtype}{bool}\ prepacked)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01560\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ packed\_size\ =\ std::min<int>(\mbox{\hyperlink{structEigen_1_1internal_1_1packet__traits_a9fce3b012e6a350f2bd9163d7820fefaa0e933e5c1966ffb2dccec1f29678a1ed}{PacketType<LhsScalar,\ Device>::size}},}
+\DoxyCodeLine{01561\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1packet__traits_a9fce3b012e6a350f2bd9163d7820fefaa0e933e5c1966ffb2dccec1f29678a1ed}{PacketType<RhsScalar,\ Device>::size}});}
+\DoxyCodeLine{01562\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ output\_packet\_size\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits_a5b21fd9722aa194d08fc43ec7efa4094a816f6f9ad61a2e49d4cb7c6c786d56d0}{internal::unpacket\_traits<PacketReturnType>::size}};}
+\DoxyCodeLine{01563\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ kd\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{double}\textcolor{keyword}{>}(bk);}
+\DoxyCodeLine{01564\ \ \ \ \ \textcolor{keywordtype}{double}\ compute\_bandwidth\ =\ computeBandwidth(\textcolor{keyword}{false},\ bm,\ bn,\ bk);}
+\DoxyCodeLine{01565\ \ \ \ \ \textcolor{comment}{//\ Computations.}}
+\DoxyCodeLine{01566\ \ \ \ \ TensorOpCost\ cost\ =\ TensorOpCost(0,\ 0,\ kd\ *\ compute\_bandwidth,\ \textcolor{keyword}{true},\ packed\_size);}
+\DoxyCodeLine{01567\ \ \ \ \ \textcolor{comment}{//\ Output\ stores.}}
+\DoxyCodeLine{01568\ \ \ \ \ cost\ +=\ TensorOpCost(0,\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a664eb29b0c38061939b400fbc551c580}{CoeffReturnType}}),\ 0,\ \textcolor{keyword}{true},\ output\_packet\_size);}
+\DoxyCodeLine{01569\ \ \ \ \ \textcolor{keywordflow}{if}\ (prepacked)\ \{}
+\DoxyCodeLine{01570\ \ \ \ \ \ \ \textcolor{comment}{//\ Packing\ and\ kernels\ are\ executed\ in\ different\ tasks.\ When\ we\ calculate}}
+\DoxyCodeLine{01571\ \ \ \ \ \ \ \textcolor{comment}{//\ task\ grain\ size\ we\ look\ only\ at\ kernel\ cost\ assuming\ that\ kernel}}
+\DoxyCodeLine{01572\ \ \ \ \ \ \ \textcolor{comment}{//\ is\ more\ expensive\ than\ packing.}}
+\DoxyCodeLine{01573\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ cost;}
+\DoxyCodeLine{01574\ \ \ \ \ \}}
+\DoxyCodeLine{01575\ \ \ \ \ \textcolor{comment}{//\ Lhs/rhs\ loads\ +\ computations.}}
+\DoxyCodeLine{01576\ \ \ \ \ TensorOpCost\ lhsCost\ =\ this-\/>m\_leftImpl.costPerCoeff(\textcolor{keyword}{true})\ *\ (kd\ /\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{01577\ \ \ \ \ TensorOpCost\ rhsCost\ =\ this-\/>m\_rightImpl.costPerCoeff(\textcolor{keyword}{true})\ *\ (kd\ /\ m);}
+\DoxyCodeLine{01578\ \ \ \ \ \textcolor{comment}{//\ Lhs\ packing\ memory\ cost\ does\ not\ contribute\ considerably\ to\ overall}}
+\DoxyCodeLine{01579\ \ \ \ \ \textcolor{comment}{//\ execution\ time\ because\ lhs\ is\ prefetched\ early\ and\ accessed\ sequentially.}}
+\DoxyCodeLine{01580\ \ \ \ \ \textcolor{keywordflow}{if}\ (shard\_by\_col)}
+\DoxyCodeLine{01581\ \ \ \ \ \ \ lhsCost.dropMemoryCost();}
+\DoxyCodeLine{01582\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{01583\ \ \ \ \ \ \ rhsCost.dropMemoryCost();}
+\DoxyCodeLine{01584\ \ \ \ \ \textcolor{keywordflow}{return}\ cost\ +\ lhsCost\ +\ rhsCost;}
+\DoxyCodeLine{01585\ \ \ \}}
+\DoxyCodeLine{01586\ }
+\DoxyCodeLine{01587\ \ \ \textcolor{comment}{//\ Decide\ whether\ we\ want\ to\ shard\ m\ x\ k\ x\ n\ contraction\ over\ the\ inner}}
+\DoxyCodeLine{01588\ \ \ \textcolor{comment}{//\ (contraction)\ dimension\ (k).}}
+\DoxyCodeLine{01589\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ shardByInnerDim(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ m,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ k,\ \textcolor{keywordtype}{int}\ num\_threads,}
+\DoxyCodeLine{01590\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ num\_threads\_by\_k)\ \{}
+\DoxyCodeLine{01591\ \ \ \ \ std::ptrdiff\_t\ bufsize\ =\ m\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a163cadb184cc08462355caf1031115a4}{Scalar}});}
+\DoxyCodeLine{01592\ \ \ \ \ \textcolor{keywordtype}{bool}\ shard\_by\_k\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01593\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ ==\ 1\ ||\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ If\ mat*vec\ or...}}
+\DoxyCodeLine{01594\ \ \ \ \ \ \ \ \ num\_threads\_by\_k\ <\ 2\ ||\ \ \textcolor{comment}{//\ running\ single\ threaded\ or...}}
+\DoxyCodeLine{01595\ \ \ \ \ \ \ \ \ num\_threads\_by\_k\ <}
+\DoxyCodeLine{01596\ \ \ \ \ \ \ \ \ \ \ \ \ num\_threads\ ||\ \ \textcolor{comment}{//\ sharding\ by\ k\ gives\ less\ parallelism\ or...}}
+\DoxyCodeLine{01597\ \ \ \ \ \ \ \ \ bufsize\ >\ \mbox{\hyperlink{namespaceEigen_ae2efa4852ea90c2d47b7dcec5b40ba2b}{l3CacheSize}}()\ /\ num\_threads\_by\_k\ ||\ \ \textcolor{comment}{//\ need\ more\ buffer\ space}}
+\DoxyCodeLine{01598\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ than\ L3\ cache\ or...}}
+\DoxyCodeLine{01599\ \ \ \ \ \ \ \ \ k\ /\ num\_threads\_by\_k\ <\ 2\ *\ Traits::nr)\ \{\ \ \textcolor{comment}{//\ k\ per\ thread\ is\ tiny.}}
+\DoxyCodeLine{01600\ \ \ \ \ \ \ shard\_by\_k\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01601\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{namespaceEigen_1_1numext_a29d502349f2ec9897c808e65e0f96eb4}{numext::maxi}}(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ /\ num\_threads\ <}
+\DoxyCodeLine{01602\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Traits::nr\ ||\ \ \textcolor{comment}{//\ both\ other\ dimensions\ are\ tiny\ or...}}
+\DoxyCodeLine{01603\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ k\ per\ thread\ is\ not\ small\ and...}}
+\DoxyCodeLine{01604\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (k\ /\ num\_threads\_by\_k\ >\ 8\ *\ Traits::nr\ \&\&}
+\DoxyCodeLine{01605\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ one\ of\ the\ outer\ dimensions\ is\ tiny\ or\ sharding\ by\ k\ offers}}
+\DoxyCodeLine{01606\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ more\ parallelism.}}
+\DoxyCodeLine{01607\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini}}(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ <\ 2\ *\ Traits::nr\ ||}
+\DoxyCodeLine{01608\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ num\_threads\_by\_k\ >\ num\_threads)))\ \{}
+\DoxyCodeLine{01609\ \ \ \ \ \ \ shard\_by\_k\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{01610\ \ \ \ \ \}}
+\DoxyCodeLine{01611\ \ \ \ \ \textcolor{keywordflow}{return}\ shard\_by\_k;}
+\DoxyCodeLine{01612\ \ \ \}}
+\DoxyCodeLine{01613\ }
+\DoxyCodeLine{01614\ \ \ TensorOpCost\ contractionCostPerInnerDim(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ m,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ k)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01615\ \ \ \ \ \textcolor{comment}{//\ Compute\ cost.}}
+\DoxyCodeLine{01616\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ output\_packet\_size\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits_a5b21fd9722aa194d08fc43ec7efa4094a816f6f9ad61a2e49d4cb7c6c786d56d0}{internal::unpacket\_traits<PacketReturnType>::size}};}
+\DoxyCodeLine{01617\ \ \ \ \ TensorOpCost\ cost(0,\ 0,\ (computeBandwidth(\textcolor{keyword}{true},\ m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k)\ *\ m)\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \textcolor{keyword}{true},\ output\_packet\_size);}
+\DoxyCodeLine{01618\ \ \ \ \ \textcolor{comment}{//\ Output\ stores.}}
+\DoxyCodeLine{01619\ \ \ \ \ cost\ +=\ TensorOpCost(0,\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a664eb29b0c38061939b400fbc551c580}{CoeffReturnType}}),\ 0,\ \textcolor{keyword}{true},\ output\_packet\_size);}
+\DoxyCodeLine{01620\ \ \ \ \ TensorOpCost\ lhsCost\ =\ this-\/>m\_leftImpl.costPerCoeff(\textcolor{keyword}{true})\ *\ m;}
+\DoxyCodeLine{01621\ \ \ \ \ TensorOpCost\ rhsCost\ =\ this-\/>m\_rightImpl.costPerCoeff(\textcolor{keyword}{true})\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{01622\ \ \ \ \ \textcolor{comment}{//\ Since\ the\ inner\ gemm\ kernel\ is\ always\ sharded\ by\ column,\ the\ lhs}}
+\DoxyCodeLine{01623\ \ \ \ \ \textcolor{comment}{//\ load\ cost\ is\ negligible.}}
+\DoxyCodeLine{01624\ \ \ \ \ lhsCost.dropMemoryCost();}
+\DoxyCodeLine{01625\ \ \ \ \ \textcolor{keywordflow}{return}\ cost\ +\ lhsCost\ +\ rhsCost;}
+\DoxyCodeLine{01626\ \ \ \}}
+\DoxyCodeLine{01627\ }
+\DoxyCodeLine{01628\ \ \ \textcolor{keywordtype}{int}\ numThreadsInnerDim(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ m,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ k)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01629\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ output\_packet\_size\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits_a5b21fd9722aa194d08fc43ec7efa4094a816f6f9ad61a2e49d4cb7c6c786d56d0}{internal::unpacket\_traits<PacketReturnType>::size}};}
+\DoxyCodeLine{01630\ \ \ \ \ TensorOpCost\ cost\ =\ contractionCostPerInnerDim(m,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ k);}
+\DoxyCodeLine{01631\ \ \ \ \ \textcolor{keywordtype}{double}\ total\_parallel\_cost\ =}
+\DoxyCodeLine{01632\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1TensorCostModel_ac277d7bf1fa2ba3b54c8dd3edeff0064}{TensorCostModel<ThreadPoolDevice>::totalCost}}(k,\ cost);}
+\DoxyCodeLine{01633\ \ \ \ \ \textcolor{comment}{//\ Cost\ of\ reduction\ step\ accumulating\ the\ m*n\ per-\/thread\ buffers\ into\ the}}
+\DoxyCodeLine{01634\ \ \ \ \ \textcolor{comment}{//\ result.}}
+\DoxyCodeLine{01635\ \ \ \ \ \textcolor{keywordtype}{double}\ reduction\_cost\ =\ \mbox{\hyperlink{classEigen_1_1TensorCostModel_ac277d7bf1fa2ba3b54c8dd3edeff0064}{TensorCostModel<ThreadPoolDevice>::totalCost}}(}
+\DoxyCodeLine{01636\ \ \ \ \ \ \ \ \ m\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ TensorOpCost(2,\ 1,\ 1,\ \textcolor{keyword}{true},\ output\_packet\_size));}
+\DoxyCodeLine{01637\ \ \ \ \ \textcolor{keywordtype}{int}\ num\_threads\ =\ 1;}
+\DoxyCodeLine{01638\ \ \ \ \ \textcolor{keywordtype}{double}\ min\_cost\ =\ total\_parallel\_cost;}
+\DoxyCodeLine{01639\ \ \ \ \ \textcolor{keywordtype}{double}\ kPerThreadOverHead\ =\ 3000;}
+\DoxyCodeLine{01640\ \ \ \ \ \textcolor{keywordtype}{double}\ kFixedOverHead\ =\ 100000;}
+\DoxyCodeLine{01641\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ nt\ =\ 2;\ nt\ <=\ this-\/>\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.numThreads();\ nt\ +=\ 2)\ \{}
+\DoxyCodeLine{01642\ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ sequential\_cost\ =}
+\DoxyCodeLine{01643\ \ \ \ \ \ \ \ \ \ \ kFixedOverHead\ +\ nt\ *\ (reduction\_cost\ +\ kPerThreadOverHead);}
+\DoxyCodeLine{01644\ \ \ \ \ \ \ \textcolor{keywordtype}{double}\ parallel\_cost\ =\ total\_parallel\_cost\ /\ nt\ +\ sequential\_cost;}
+\DoxyCodeLine{01645\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (parallel\_cost\ <\ min\_cost)\ \{}
+\DoxyCodeLine{01646\ \ \ \ \ \ \ \ \ num\_threads\ =\ nt;}
+\DoxyCodeLine{01647\ \ \ \ \ \ \ \ \ min\_cost\ =\ parallel\_cost;}
+\DoxyCodeLine{01648\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01649\ \ \ \ \ \}}
+\DoxyCodeLine{01650\ \ \ \ \ \textcolor{keywordflow}{return}\ num\_threads;}
+\DoxyCodeLine{01651\ \ \ \}}
+\DoxyCodeLine{01652\ }
+\DoxyCodeLine{01653\ \ \ \textcolor{keywordtype}{double}\ computeBandwidth(\textcolor{keywordtype}{bool}\ shard\_by\_col,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bm,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bn,}
+\DoxyCodeLine{01654\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a932b320bc0d4f0c027d28f6f9918bbc6}{Index}}\ bk)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01655\ \ \ \ \ \textcolor{comment}{//\ Peak\ VFMA\ bandwidth\ is\ 0.5.\ However\ if\ we\ have\ not\ enough\ data\ for}}
+\DoxyCodeLine{01656\ \ \ \ \ \textcolor{comment}{//\ vectorization\ bandwidth\ drops.\ The\ 4.0\ and\ 2.0\ bandwidth\ is\ determined}}
+\DoxyCodeLine{01657\ \ \ \ \ \textcolor{comment}{//\ experimentally.}}
+\DoxyCodeLine{01658\ \ \ \ \ \textcolor{keywordtype}{double}\ computeBandwidth\ =}
+\DoxyCodeLine{01659\ \ \ \ \ \ \ \ \ bk\ ==\ 1\ ?\ 4.0}
+\DoxyCodeLine{01660\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (shard\_by\_col\ ?\ bn\ :\ bm)\ <\ Traits::nr\ ||}
+\DoxyCodeLine{01661\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (shard\_by\_col\ ?\ bm\ :\ bn)\ <\ Traits::mr}
+\DoxyCodeLine{01662\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 2.0}
+\DoxyCodeLine{01663\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 0.5;}
+\DoxyCodeLine{01664\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_VECTORIZE\_FMA}}
+\DoxyCodeLine{01665\ \ \ \ \ \textcolor{comment}{//\ Bandwidth\ of\ all\ of\ VFMA/MULPS/ADDPS\ is\ 0.5\ on\ latest\ Intel\ processors.}}
+\DoxyCodeLine{01666\ \ \ \ \ \textcolor{comment}{//\ However\ for\ MULPS/ADDPS\ we\ have\ dependent\ sequence\ of\ 2\ such}}
+\DoxyCodeLine{01667\ \ \ \ \ \textcolor{comment}{//\ instructions,}}
+\DoxyCodeLine{01668\ \ \ \ \ \textcolor{comment}{//\ so\ overall\ bandwidth\ is\ 1.0.}}
+\DoxyCodeLine{01669\ \ \ \ \ \textcolor{keywordflow}{if}\ (computeBandwidth\ ==\ 0.5)\ computeBandwidth\ =\ 1.0;}
+\DoxyCodeLine{01670\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01671\ \ \ \ \ \textcolor{keywordflow}{return}\ computeBandwidth;}
+\DoxyCodeLine{01672\ \ \ \}}
+\DoxyCodeLine{01673\ }
+\DoxyCodeLine{01674\ \};}
+\DoxyCodeLine{01675\ }
+\DoxyCodeLine{01676\ \}\ \textcolor{comment}{//\ end\ namespace\ Eigen}}
+\DoxyCodeLine{01677\ }
+\DoxyCodeLine{01678\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ EIGEN\_USE\_THREADS}}
+\DoxyCodeLine{01679\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ EIGEN\_CXX11\_TENSOR\_TENSOR\_CONTRACTION\_THREAD\_POOL\_H}}
+
+\end{DoxyCode}

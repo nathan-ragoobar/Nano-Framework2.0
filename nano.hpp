@@ -12,5 +12,7 @@
 
 #include "absl/strings/string_view.h"
 
+#include "NanoDash/NanoDash.hpp"
+
 
 #endif  // NANO_HEAD_LLM_CPP_HPP_

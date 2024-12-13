@@ -1,0 +1,158 @@
+\doxysection{benchmark\+\_\+on\+\_\+modal Namespace Reference}
+\hypertarget{namespacebenchmark__on__modal}{}\label{namespacebenchmark__on__modal}\index{benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{namespacebenchmark__on__modal_a7fc2e1552d060f0ab4e10a25e04eefb2}{execute\+\_\+command}} (str command)
+\item 
+\mbox{\hyperlink{namespacebenchmark__on__modal_a963438d3feffd124090974f2f3ea8c28}{run\+\_\+benchmark}} (str compile\+\_\+command, str run\+\_\+command)
+\item 
+\mbox{\hyperlink{namespacebenchmark__on__modal_a5fc57b205e225088553b42b65e3050cf}{inference\+\_\+main}} (str compile\+\_\+command, str run\+\_\+command)
+\end{DoxyCompactItemize}
+\doxysubsubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+dict \mbox{\hyperlink{namespacebenchmark__on__modal_a653f20beef441cfb5b73a8797298eacd}{GPU\+\_\+\+NAME\+\_\+\+TO\+\_\+\+MODAL\+\_\+\+CLASS\+\_\+\+MAP}}
+\item 
+\mbox{\hyperlink{namespacebenchmark__on__modal_abaac90d2682f2bc92ef401986f543f73}{N\+\_\+\+GPUS}} = int(os.\+environ.\+get("{}N\+\_\+\+GPUS"{}, 1))
+\item 
+\mbox{\hyperlink{namespacebenchmark__on__modal_a7de59e476a81ba6683f5aaceda794bb8}{GPU\+\_\+\+MEM}} = int(os.\+environ.\+get("{}GPU\+\_\+\+MEM"{}, 40))
+\item 
+\mbox{\hyperlink{namespacebenchmark__on__modal_ac506b2b190d7ef5235f502c191ae1905}{GPU\+\_\+\+NAME}} = os.\+environ.\+get("{}GPU\+\_\+\+NAME"{}, "{}A100"{})
+\item 
+dict \mbox{\hyperlink{namespacebenchmark__on__modal_aee2918d7d8dc6345de4106aa02cb27a2}{GPU\+\_\+\+CONFIG}} = \mbox{\hyperlink{namespacebenchmark__on__modal_a653f20beef441cfb5b73a8797298eacd}{GPU\+\_\+\+NAME\+\_\+\+TO\+\_\+\+MODAL\+\_\+\+CLASS\+\_\+\+MAP}}\mbox{[}\mbox{\hyperlink{namespacebenchmark__on__modal_ac506b2b190d7ef5235f502c191ae1905}{GPU\+\_\+\+NAME}}\mbox{]}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}=\mbox{\hyperlink{namespacebenchmark__on__modal_abaac90d2682f2bc92ef401986f543f73}{N\+\_\+\+GPUS}}, \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}=str(\mbox{\hyperlink{namespacebenchmark__on__modal_a7de59e476a81ba6683f5aaceda794bb8}{GPU\+\_\+\+MEM}}) + \textquotesingle{}GB\textquotesingle{})
+\item 
+str \mbox{\hyperlink{namespacebenchmark__on__modal_a2c3c3c5267a411e447251790919af7b1}{APP\+\_\+\+NAME}} = "{}llm.\+c benchmark run"{}
+\item 
+tuple \mbox{\hyperlink{namespacebenchmark__on__modal_ad61d42a61d98d64f8350942391af3f4a}{image}}
+\item 
+\mbox{\hyperlink{namespacebenchmark__on__modal_a03d7a0c856cb97238711cfbd86671d16}{stub}} = modal.\+App(\mbox{\hyperlink{namespacebenchmark__on__modal_a2c3c3c5267a411e447251790919af7b1}{APP\+\_\+\+NAME}})
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+\begin{DoxyVerb}Script for running benchmarks on the Modal platform.
+This is useful for folks who do not have access to expensive GPUs locally.
+Example usage for cuda kernels:
+GPU_MEM=80 modal run benchmark_on_modal.py \
+    --compile-command "nvcc -O3 --use_fast_math attention_forward.cu -o attention_forward -lcublas" \
+    --run-command "./attention_forward 1"
+OR if you want to use cuDNN etc.
+
+
+For training the gpt2 model with cuDNN use:
+GPU_MEM=80 modal run dev/cuda/benchmark_on_modal.py \
+    --compile-command "make train_gpt2cu USE_CUDNN=1"
+    --run-command "./train_gpt2cu -i dev/data/tinyshakespeare/tiny_shakespeare_train.bin -j dev/data/tinyshakespeare/tiny_shakespeare_val.bin -v 250 -s 250 -g 144 -f shakespeare.log -b 4"
+
+
+For profiling using nsight system:
+GPU_MEM=80 modal run dev/cuda/benchmark_on_modal.py \
+    --compile-command "make train_gpt2cu USE_CUDNN=1" \
+    --run-command "nsys profile --cuda-graph-trace=graph --python-backtrace=cuda --cuda-memory-usage=true \
+    ./train_gpt2cu -i dev/data/tinyshakespeare/tiny_shakespeare_train.bin \
+    -j dev/data/tinyshakespeare/tiny_shakespeare_val.bin -v 250 -s 250 -g 144 -f shakespeare.log -b 4"
+
+For more nsys profiling specifics and command options, take a look at: https://docs.nvidia.com/nsight-systems/2024.2/UserGuide/
+-> To profile the report using a GUI, download NVIDIA NSight System GUI version (this software can run on all OS, so you download it locally)
+
+NOTE: Currently there is a bug in the profiling using nsight system which produces a unrecognized GPU UUId error on the command line but it
+does not actually interfere with the model training and validation. The report (that you download) is still generated and can be viewed from Nsight Systems
+\end{DoxyVerb}
+ 
+
+\doxysubsection{Function Documentation}
+\Hypertarget{namespacebenchmark__on__modal_a7fc2e1552d060f0ab4e10a25e04eefb2}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!execute\_command@{execute\_command}}
+\index{execute\_command@{execute\_command}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{execute\_command()}{execute\_command()}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_a7fc2e1552d060f0ab4e10a25e04eefb2} 
+benchmark\+\_\+on\+\_\+modal.\+execute\+\_\+command (\begin{DoxyParamCaption}\item[{str}]{command}{}\end{DoxyParamCaption})}
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacebenchmark__on__modal_a7fc2e1552d060f0ab4e10a25e04eefb2_icgraph}
+\end{center}
+\end{figure}
+\Hypertarget{namespacebenchmark__on__modal_a5fc57b205e225088553b42b65e3050cf}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!inference\_main@{inference\_main}}
+\index{inference\_main@{inference\_main}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{inference\_main()}{inference\_main()}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_a5fc57b205e225088553b42b65e3050cf} 
+benchmark\+\_\+on\+\_\+modal.\+inference\+\_\+main (\begin{DoxyParamCaption}\item[{str}]{compile\+\_\+command}{, }\item[{str}]{run\+\_\+command}{}\end{DoxyParamCaption})}
+
+\Hypertarget{namespacebenchmark__on__modal_a963438d3feffd124090974f2f3ea8c28}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!run\_benchmark@{run\_benchmark}}
+\index{run\_benchmark@{run\_benchmark}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{run\_benchmark()}{run\_benchmark()}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_a963438d3feffd124090974f2f3ea8c28} 
+benchmark\+\_\+on\+\_\+modal.\+run\+\_\+benchmark (\begin{DoxyParamCaption}\item[{str}]{compile\+\_\+command}{, }\item[{str}]{run\+\_\+command}{}\end{DoxyParamCaption})}
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{namespacebenchmark__on__modal_a963438d3feffd124090974f2f3ea8c28_cgraph}
+\end{center}
+\end{figure}
+
+
+\doxysubsection{Variable Documentation}
+\Hypertarget{namespacebenchmark__on__modal_a2c3c3c5267a411e447251790919af7b1}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!APP\_NAME@{APP\_NAME}}
+\index{APP\_NAME@{APP\_NAME}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{APP\_NAME}{APP\_NAME}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_a2c3c3c5267a411e447251790919af7b1} 
+str benchmark\+\_\+on\+\_\+modal.\+APP\+\_\+\+NAME = "{}llm.\+c benchmark run"{}}
+
+\Hypertarget{namespacebenchmark__on__modal_aee2918d7d8dc6345de4106aa02cb27a2}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!GPU\_CONFIG@{GPU\_CONFIG}}
+\index{GPU\_CONFIG@{GPU\_CONFIG}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{GPU\_CONFIG}{GPU\_CONFIG}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_aee2918d7d8dc6345de4106aa02cb27a2} 
+dict benchmark\+\_\+on\+\_\+modal.\+GPU\+\_\+\+CONFIG = \mbox{\hyperlink{namespacebenchmark__on__modal_a653f20beef441cfb5b73a8797298eacd}{GPU\+\_\+\+NAME\+\_\+\+TO\+\_\+\+MODAL\+\_\+\+CLASS\+\_\+\+MAP}}\mbox{[}\mbox{\hyperlink{namespacebenchmark__on__modal_ac506b2b190d7ef5235f502c191ae1905}{GPU\+\_\+\+NAME}}\mbox{]}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}=\mbox{\hyperlink{namespacebenchmark__on__modal_abaac90d2682f2bc92ef401986f543f73}{N\+\_\+\+GPUS}}, \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}=str(\mbox{\hyperlink{namespacebenchmark__on__modal_a7de59e476a81ba6683f5aaceda794bb8}{GPU\+\_\+\+MEM}}) + \textquotesingle{}GB\textquotesingle{})}
+
+\Hypertarget{namespacebenchmark__on__modal_a7de59e476a81ba6683f5aaceda794bb8}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!GPU\_MEM@{GPU\_MEM}}
+\index{GPU\_MEM@{GPU\_MEM}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{GPU\_MEM}{GPU\_MEM}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_a7de59e476a81ba6683f5aaceda794bb8} 
+benchmark\+\_\+on\+\_\+modal.\+GPU\+\_\+\+MEM = int(os.\+environ.\+get("{}GPU\+\_\+\+MEM"{}, 40))}
+
+\Hypertarget{namespacebenchmark__on__modal_ac506b2b190d7ef5235f502c191ae1905}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!GPU\_NAME@{GPU\_NAME}}
+\index{GPU\_NAME@{GPU\_NAME}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{GPU\_NAME}{GPU\_NAME}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_ac506b2b190d7ef5235f502c191ae1905} 
+benchmark\+\_\+on\+\_\+modal.\+GPU\+\_\+\+NAME = os.\+environ.\+get("{}GPU\+\_\+\+NAME"{}, "{}A100"{})}
+
+\Hypertarget{namespacebenchmark__on__modal_a653f20beef441cfb5b73a8797298eacd}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!GPU\_NAME\_TO\_MODAL\_CLASS\_MAP@{GPU\_NAME\_TO\_MODAL\_CLASS\_MAP}}
+\index{GPU\_NAME\_TO\_MODAL\_CLASS\_MAP@{GPU\_NAME\_TO\_MODAL\_CLASS\_MAP}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{GPU\_NAME\_TO\_MODAL\_CLASS\_MAP}{GPU\_NAME\_TO\_MODAL\_CLASS\_MAP}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_a653f20beef441cfb5b73a8797298eacd} 
+dict benchmark\+\_\+on\+\_\+modal.\+GPU\+\_\+\+NAME\+\_\+\+TO\+\_\+\+MODAL\+\_\+\+CLASS\+\_\+\+MAP}
+
+{\bfseries Initial value\+:}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ =\ \ \{}
+\DoxyCodeLine{00002\ \ \ \ \ \textcolor{stringliteral}{"{}H100"{}}:\ modal.gpu.H100,}
+\DoxyCodeLine{00003\ \ \ \ \ \textcolor{stringliteral}{"{}A100"{}}:\ modal.gpu.A100,}
+\DoxyCodeLine{00004\ \ \ \ \ \textcolor{stringliteral}{"{}A10G"{}}:\ modal.gpu.A10G,}
+\DoxyCodeLine{00005\ \}}
+
+\end{DoxyCode}
+\Hypertarget{namespacebenchmark__on__modal_ad61d42a61d98d64f8350942391af3f4a}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!image@{image}}
+\index{image@{image}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{image}{image}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_ad61d42a61d98d64f8350942391af3f4a} 
+tuple benchmark\+\_\+on\+\_\+modal.\+image}
+
+\Hypertarget{namespacebenchmark__on__modal_abaac90d2682f2bc92ef401986f543f73}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!N\_GPUS@{N\_GPUS}}
+\index{N\_GPUS@{N\_GPUS}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{N\_GPUS}{N\_GPUS}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_abaac90d2682f2bc92ef401986f543f73} 
+benchmark\+\_\+on\+\_\+modal.\+N\+\_\+\+GPUS = int(os.\+environ.\+get("{}N\+\_\+\+GPUS"{}, 1))}
+
+\Hypertarget{namespacebenchmark__on__modal_a03d7a0c856cb97238711cfbd86671d16}\index{benchmark\_on\_modal@{benchmark\_on\_modal}!stub@{stub}}
+\index{stub@{stub}!benchmark\_on\_modal@{benchmark\_on\_modal}}
+\doxysubsubsection{\texorpdfstring{stub}{stub}}
+{\footnotesize\ttfamily \label{namespacebenchmark__on__modal_a03d7a0c856cb97238711cfbd86671d16} 
+benchmark\+\_\+on\+\_\+modal.\+stub = modal.\+App(\mbox{\hyperlink{namespacebenchmark__on__modal_a2c3c3c5267a411e447251790919af7b1}{APP\+\_\+\+NAME}})}
+

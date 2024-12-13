@@ -1,0 +1,245 @@
+\doxysection{conditions.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2log_2internal_2conditions_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2log_2internal_2conditions_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/log/internal/conditions.h@{OriginalStuff/abseil-\/cpp/absl/log/internal/conditions.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2log_2internal_2conditions_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2022\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ log/internal/conditions.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ file\ contains\ implementation\ of\ conditional\ log\ statements,\ like\ LOG\_IF}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ including\ all\ the\ ABSL\_LOG\_INTERNAL\_...\_CONDITION\_...\ macros\ and}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ various\ condition\ classes\ like\ LogEveryNState.}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#ifndef\ ABSL\_LOG\_INTERNAL\_CONDITIONS\_H\_}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITIONS\_H\_}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#if\ defined(\_WIN32)\ ||\ defined(\_\_hexagon\_\_)}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <cstdlib>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <unistd.h>}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/log/internal/voidify.h"{}}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ \`{}ABSL\_LOG\_INTERNAL\_CONDITION`\ prefixes\ another\ macro\ that\ expands\ to\ a}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ temporary\ \`{}LogMessage`\ instantiation\ followed\ by\ zero\ or\ more\ streamed}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ expressions.\ \ This\ definition\ is\ tricky\ to\ read\ correctly.\ \ It\ evaluates\ to}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ either}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ \ \ (void)0;}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ or}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ \ \ ::absl::log\_internal::Voidify()\ \&\&}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ \ \ \ \ \ \ ::absl::log\_internal::LogMessage(...)\ <<\ "{}the\ user's\ message"{};}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ If\ the\ condition\ is\ evaluable\ at\ compile\ time,\ as\ is\ often\ the\ case,\ it}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ compiles\ away\ to\ just\ one\ side\ or\ the\ other.}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ Although\ this\ is\ not\ used\ anywhere\ a\ statement\ (e.g.\ \`{}if`)\ could\ not\ go,}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ the\ ternary\ expression\ does\ a\ better\ job\ avoiding\ spurious\ diagnostics}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ (dangling\ else,\ missing\ switch\ case)\ and\ preserving\ noreturn\ semantics\ (e.g.}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ on\ \`{}LOG(FATAL)`)\ without\ requiring\ braces.}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ The\ \`{}switch`\ ensures\ that\ this\ expansion\ is\ the\ beginning\ of\ a\ statement\ (as}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ opposed\ to\ an\ expression)\ and\ prevents\ shenanigans\ like}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ \`{}AFunction(LOG(INFO))`\ and\ \`{}decltype(LOG(INFO))`.\ \ The\ apparently-\/redundant}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ \`{}default`\ case\ makes\ the\ condition\ more\ amenable\ to\ Clang\ dataflow\ analysis.}}
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_STATELESS\_CONDITION(condition)\ \(\backslash\)}}
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\ \ switch\ (0)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\ \ case\ 0:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00067\ \textcolor{preprocessor}{\ \ default:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\ \ \ \ !(condition)\ ?\ (void)0\ :\ ::absl::log\_internal::Voidify()\&\&}}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \`{}ABSL\_LOG\_INTERNAL\_STATEFUL\_CONDITION`\ applies\ a\ condition\ like}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \`{}ABSL\_LOG\_INTERNAL\_STATELESS\_CONDITION`\ but\ adds\ to\ that\ a\ series\ of\ variable}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ declarations,\ including\ a\ local\ static\ object\ which\ stores\ the\ state\ needed}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ to\ implement\ the\ stateful\ macros\ like\ \`{}LOG\_EVERY\_N`.}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ \`{}for`-\/loops\ are\ used\ to\ declare\ scoped\ variables\ without\ braces\ (to\ permit}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ streaming\ into\ the\ macro's\ expansion)\ and\ without\ the\ dangling-\/`else`}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ problems/diagnostics\ that\ come\ with\ \`{}if`.}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ Two\ more\ variables\ are\ declared\ in\ separate\ \`{}for`-\/loops:}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ *\ \`{}COUNTER`\ implements\ a\ streamable\ token\ whose\ value\ when\ streamed\ is\ the}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ \ \ number\ of\ times\ execution\ has\ passed\ through\ the\ macro.}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ *\ A\ boolean\ flag\ is\ used\ to\ prevent\ any\ of\ the\ \`{}for`-\/loops\ from\ ever\ actually}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ \ \ looping.}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_STATEFUL\_CONDITION(condition)\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00086\ \textcolor{preprocessor}{\ \ for\ (bool\ absl\_log\_internal\_stateful\_condition\_do\_log(condition);\ \(\backslash\)}}
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_stateful\_condition\_do\_log;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_stateful\_condition\_do\_log\ =\ false)\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00089\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_STATEFUL\_CONDITION\_IMPL}}
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_STATEFUL\_CONDITION\_IMPL(kind,\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00091\ \textcolor{preprocessor}{\ \ for\ (static\ ::absl::log\_internal::Log\#\#kind\#\#State\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00092\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ absl\_log\_internal\_stateful\_condition\_state;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00093\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_stateful\_condition\_do\_log\ \&\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00094\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_stateful\_condition\_state.ShouldLog(\_\_VA\_ARGS\_\_);\ \(\backslash\)}}
+\DoxyCodeLine{00095\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_stateful\_condition\_do\_log\ =\ false)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00096\ \textcolor{preprocessor}{\ \ \ \ for\ (const\ uint32\_t\ COUNTER\ ABSL\_ATTRIBUTE\_UNUSED\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ absl\_log\_internal\_stateful\_condition\_state.counter();\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ absl\_log\_internal\_stateful\_condition\_do\_log;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00099\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ absl\_log\_internal\_stateful\_condition\_do\_log\ =\ false)}}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \textcolor{comment}{//\ \`{}ABSL\_LOG\_INTERNAL\_CONDITION\_*`\ serve\ to\ combine\ any\ conditions\ from\ the}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ macro\ (e.g.\ \`{}LOG\_IF`\ or\ \`{}VLOG`)\ with\ inherent\ conditions\ (e.g.}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//\ \`{}ABSL\_MIN\_LOG\_LEVEL`)\ into\ a\ single\ boolean\ expression.\ \ We\ could\ chain}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ ternary\ operators\ instead,\ however\ some\ versions\ of\ Clang\ sometimes\ issue}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ spurious\ diagnostics\ after\ such\ expressions\ due\ to\ a\ control\ flow\ analysis}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ bug.}}
+\DoxyCodeLine{00107\ \textcolor{preprocessor}{\#ifdef\ ABSL\_MIN\_LOG\_LEVEL}}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00109\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\ \ \ \ \ \ (condition)\ \&\&\ ::absl::LogSeverity::kInfo\ >=\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00111\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ static\_cast<::absl::LogSeverity>(ABSL\_MIN\_LOG\_LEVEL))}}
+\DoxyCodeLine{00112\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_WARNING(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00113\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00114\ \textcolor{preprocessor}{\ \ \ \ \ \ (condition)\ \&\&\ ::absl::LogSeverity::kWarning\ >=\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00115\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ static\_cast<::absl::LogSeverity>(ABSL\_MIN\_LOG\_LEVEL))}}
+\DoxyCodeLine{00116\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_ERROR(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00117\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00118\ \textcolor{preprocessor}{\ \ \ \ \ \ (condition)\ \&\&\ ::absl::LogSeverity::kError\ >=\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00119\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ static\_cast<::absl::LogSeverity>(ABSL\_MIN\_LOG\_LEVEL))}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ NOTE:\ Use\ ternary\ operators\ instead\ of\ short-\/circuiting\ to\ mitigate}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ https://bugs.llvm.org/show\_bug.cgi?id=51928.}}
+\DoxyCodeLine{00122\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_FATAL(type,\ condition)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00123\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00124\ \textcolor{preprocessor}{\ \ \ \ \ \ ((condition)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00125\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ ?\ (::absl::LogSeverity::kFatal\ >=\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00126\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ static\_cast<::absl::LogSeverity>(ABSL\_MIN\_LOG\_LEVEL)\ \(\backslash\)}}
+\DoxyCodeLine{00127\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ true\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00128\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (::absl::log\_internal::AbortQuietly(),\ false))\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00129\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ :\ false))}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ NOTE:\ Use\ ternary\ operators\ instead\ of\ short-\/circuiting\ to\ mitigate}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ https://bugs.llvm.org/show\_bug.cgi?id=51928.}}
+\DoxyCodeLine{00132\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_QFATAL(type,\ condition)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00133\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00134\ \textcolor{preprocessor}{\ \ \ \ \ \ ((condition)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00135\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ ?\ (::absl::LogSeverity::kFatal\ >=\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00136\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ static\_cast<::absl::LogSeverity>(ABSL\_MIN\_LOG\_LEVEL)\ \(\backslash\)}}
+\DoxyCodeLine{00137\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ true\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00138\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (::absl::log\_internal::ExitQuietly(),\ false))\ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00139\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ :\ false))}}
+\DoxyCodeLine{00140\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_DFATAL(type,\ condition)\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00141\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00142\ \textcolor{preprocessor}{\ \ \ \ \ \ (ABSL\_ASSUME(absl::kLogDebugFatal\ ==\ absl::LogSeverity::kError\ ||\ \(\backslash\)}}
+\DoxyCodeLine{00143\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::kLogDebugFatal\ ==\ absl::LogSeverity::kFatal),\ \ \(\backslash\)}}
+\DoxyCodeLine{00144\ \textcolor{preprocessor}{\ \ \ \ \ \ \ (condition)\ \&\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00145\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ (::absl::kLogDebugFatal\ >=\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00146\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ static\_cast<::absl::LogSeverity>(ABSL\_MIN\_LOG\_LEVEL)\ ||\ \(\backslash\)}}
+\DoxyCodeLine{00147\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ (::absl::kLogDebugFatal\ ==\ ::absl::LogSeverity::kFatal\ \&\&\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00148\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ (::absl::log\_internal::AbortQuietly(),\ false)))))}}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_LEVEL(severity)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00151\ \textcolor{preprocessor}{\ \ for\ (int\ absl\_log\_internal\_severity\_loop\ =\ 1;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00152\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_severity\_loop;\ absl\_log\_internal\_severity\_loop\ =\ 0)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00153\ \textcolor{preprocessor}{\ \ \ \ for\ (const\ absl::LogSeverity\ absl\_log\_internal\_severity\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00154\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::NormalizeLogSeverity(severity);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00155\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ absl\_log\_internal\_severity\_loop;\ absl\_log\_internal\_severity\_loop\ =\ 0)\ \(\backslash\)}}
+\DoxyCodeLine{00156\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_LEVEL\_IMPL}}
+\DoxyCodeLine{00157\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_LEVEL\_IMPL(type,\ condition)\ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00158\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION((\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00159\ \textcolor{preprocessor}{\ \ \ \ \ \ (condition)\ \&\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00160\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ (absl\_log\_internal\_severity\ >=\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00161\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ static\_cast<::absl::LogSeverity>(ABSL\_MIN\_LOG\_LEVEL)\ ||\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00162\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ (absl\_log\_internal\_severity\ ==\ ::absl::LogSeverity::kFatal\ \&\&\ \(\backslash\)}}
+\DoxyCodeLine{00163\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ (::absl::log\_internal::AbortQuietly(),\ false)))))}}
+\DoxyCodeLine{00164\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ ndef\ ABSL\_MIN\_LOG\_LEVEL}}
+\DoxyCodeLine{00165\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00166\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(condition)}}
+\DoxyCodeLine{00167\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_WARNING(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00168\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(condition)}}
+\DoxyCodeLine{00169\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_ERROR(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00170\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(condition)}}
+\DoxyCodeLine{00171\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_FATAL(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00172\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(condition)}}
+\DoxyCodeLine{00173\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_QFATAL(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00174\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(condition)}}
+\DoxyCodeLine{00175\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_DFATAL(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00176\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(condition)}}
+\DoxyCodeLine{00177\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_LEVEL(severity)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00178\ \textcolor{preprocessor}{\ \ for\ (int\ absl\_log\_internal\_severity\_loop\ =\ 1;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00179\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_severity\_loop;\ absl\_log\_internal\_severity\_loop\ =\ 0)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00180\ \textcolor{preprocessor}{\ \ \ \ for\ (const\ absl::LogSeverity\ absl\_log\_internal\_severity\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00181\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::NormalizeLogSeverity(severity);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00182\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ absl\_log\_internal\_severity\_loop;\ absl\_log\_internal\_severity\_loop\ =\ 0)\ \(\backslash\)}}
+\DoxyCodeLine{00183\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_LEVEL\_IMPL}}
+\DoxyCodeLine{00184\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CONDITION\_LEVEL\_IMPL(type,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00185\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_\#\#type\#\#\_CONDITION(condition)}}
+\DoxyCodeLine{00186\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ndef\ ABSL\_MIN\_LOG\_LEVEL}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00189\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00190\ \textcolor{keyword}{namespace\ }log\_internal\ \{}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \textcolor{comment}{//\ Stateful\ condition\ class\ name\ should\ be\ "{}Log"{}\ +\ name\ +\ "{}State"{}.}}
+\DoxyCodeLine{00193\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogEveryNState}{LogEveryNState}}\ final\ \{}
+\DoxyCodeLine{00194\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00195\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogEveryNState_ab1254978aa4dd939bc912e590976f1d5}{ShouldLog}}(\textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}});}
+\DoxyCodeLine{00196\ \ \ uint32\_t\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogEveryNState_a41d41936926fad7702ebdf5384bb8925}{counter}}()\ \{\ \textcolor{keywordflow}{return}\ counter\_.load(std::memory\_order\_relaxed);\ \}}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00199\ \ \ std::atomic<uint32\_t>\ counter\_\{0\};}
+\DoxyCodeLine{00200\ \};}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogFirstNState}{LogFirstNState}}\ final\ \{}
+\DoxyCodeLine{00203\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00204\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogFirstNState_a57ca550651e9f5c740208a1c6e936f8b}{ShouldLog}}(\textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}});}
+\DoxyCodeLine{00205\ \ \ uint32\_t\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogFirstNState_a9e2996c313dd47e4edabcb2df1caf325}{counter}}()\ \{\ \textcolor{keywordflow}{return}\ counter\_.load(std::memory\_order\_relaxed);\ \}}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00208\ \ \ std::atomic<uint32\_t>\ counter\_\{0\};}
+\DoxyCodeLine{00209\ \};}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogEveryPow2State}{LogEveryPow2State}}\ final\ \{}
+\DoxyCodeLine{00212\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00213\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogEveryPow2State_a384cb1dc2b616d82315ef745a60281b6}{ShouldLog}}();}
+\DoxyCodeLine{00214\ \ \ uint32\_t\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogEveryPow2State_a100c7d760b9bd6c478809bfbd8906672}{counter}}()\ \{\ \textcolor{keywordflow}{return}\ counter\_.load(std::memory\_order\_relaxed);\ \}}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00217\ \ \ std::atomic<uint32\_t>\ counter\_\{0\};}
+\DoxyCodeLine{00218\ \};}
+\DoxyCodeLine{00219\ }
+\DoxyCodeLine{00220\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogEveryNSecState}{LogEveryNSecState}}\ final\ \{}
+\DoxyCodeLine{00221\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00222\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogEveryNSecState_a028f46a99353ca90b1af33ab3210d0b3}{ShouldLog}}(\textcolor{keywordtype}{double}\ seconds);}
+\DoxyCodeLine{00223\ \ \ uint32\_t\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogEveryNSecState_a9a86c83653f17367c4ffb07a34888bb5}{counter}}()\ \{\ \textcolor{keywordflow}{return}\ counter\_.load(std::memory\_order\_relaxed);\ \}}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00225\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00226\ \ \ std::atomic<uint32\_t>\ counter\_\{0\};}
+\DoxyCodeLine{00227\ \ \ \textcolor{comment}{//\ Cycle\ count\ according\ to\ CycleClock\ that\ we\ should\ next\ log\ at.}}
+\DoxyCodeLine{00228\ \ \ std::atomic<int64\_t>\ next\_log\_time\_cycles\_\{0\};}
+\DoxyCodeLine{00229\ \};}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \textcolor{comment}{//\ Helper\ routines\ to\ abort\ the\ application\ quietly}}
+\DoxyCodeLine{00232\ }
+\DoxyCodeLine{00233\ [[noreturn]]\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a84336d395d9f51dc309245b2872a1ff9}{AbortQuietly}}()\ \{\ abort();\ \}}
+\DoxyCodeLine{00234\ [[noreturn]]\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_abba70b6e64d2afe83b7129174250fd28}{ExitQuietly}}()\ \{\ \_exit(1);\ \}}
+\DoxyCodeLine{00235\ \}\ \ \textcolor{comment}{//\ namespace\ log\_internal}}
+\DoxyCodeLine{00236\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00237\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_LOG\_INTERNAL\_CONDITIONS\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,623 @@
+\doxysection{str\+\_\+cat.\+h}
+\hypertarget{abseil-cpp_2absl_2strings_2str__cat_8h_source}{}\label{abseil-cpp_2absl_2strings_2str__cat_8h_source}\index{abseil-\/cpp/absl/strings/str\_cat.h@{abseil-\/cpp/absl/strings/str\_cat.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2strings_2str__cat_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ File:\ str\_cat.h}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ This\ package\ contains\ functions\ for\ efficiently\ concatenating\ and\ appending}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ strings:\ \`{}StrCat()`\ and\ \`{}StrAppend()`.\ Most\ of\ the\ work\ within\ these\ routines}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ is\ actually\ handled\ through\ use\ of\ a\ special\ AlphaNum\ type,\ which\ was}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ designed\ to\ be\ used\ as\ a\ parameter\ type\ that\ efficiently\ manages\ conversion}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ to\ strings\ and\ avoids\ copies\ in\ the\ above\ operations.}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ Any\ routine\ accepting\ either\ a\ string\ or\ a\ number\ may\ accept\ \`{}AlphaNum`.}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ The\ basic\ idea\ is\ that\ by\ accepting\ a\ \`{}const\ AlphaNum\ \&`\ as\ an\ argument}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ to\ your\ function,\ your\ callers\ will\ automagically\ convert\ bools,\ integers,}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ and\ floating\ point\ values\ to\ strings\ for\ you.}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ NOTE:\ Use\ of\ \`{}AlphaNum`\ outside\ of\ the\ //absl/strings\ package\ is\ unsupported}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ except\ for\ the\ specific\ case\ of\ function\ parameters\ of\ type\ \`{}AlphaNum`\ or}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ \`{}const\ AlphaNum\ \&`.\ In\ particular,\ instantiating\ \`{}AlphaNum`\ directly\ as\ a}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ stack\ variable\ is\ not\ supported.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ Conversion\ from\ 8-\/bit\ values\ is\ not\ accepted\ because,\ if\ it\ were,\ then\ an}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ attempt\ to\ pass\ ':'\ instead\ of\ "{}:"{}\ might\ result\ in\ a\ 58\ ending\ up\ in\ your}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ result.}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ Bools\ convert\ to\ "{}0"{}\ or\ "{}1"{}.\ Pointers\ to\ types\ other\ than\ \`{}char\ *`\ are\ not}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ valid\ inputs.\ No\ output\ is\ generated\ for\ null\ \`{}char\ *`\ pointers.}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ Floating\ point\ numbers\ are\ formatted\ with\ six-\/digit\ precision,\ which\ is}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ the\ default\ for\ "{}std::cout\ <<"{}\ or\ printf\ "{}\%g"{}\ (the\ same\ as\ "{}\%.6g"{}).}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ You\ can\ convert\ to\ hexadecimal\ output\ rather\ than\ decimal\ output\ using\ the}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ \`{}Hex`\ type\ contained\ here.\ To\ do\ so,\ pass\ \`{}Hex(my\_int)`\ as\ a\ parameter\ to}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \`{}StrCat()`\ or\ \`{}StrAppend()`.\ You\ may\ specify\ a\ minimum\ hex\ field\ width\ using}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ a\ \`{}PadSpec`\ enum.}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ User-\/defined\ types\ can\ be\ formatted\ with\ the\ \`{}AbslStringify()`\ customization}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ point.\ The\ API\ relies\ on\ detecting\ an\ overload\ in\ the\ user-\/defined\ type's}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ namespace\ of\ a\ free\ (non-\/member)\ \`{}AbslStringify()`\ function\ as\ a\ definition}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ (typically\ declared\ as\ a\ friend\ and\ implemented\ in-\/line.}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ with\ the\ following\ signature:}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ class\ MyClass\ \{\ ...\ \};}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ template\ <typename\ Sink>}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ void\ AbslStringify(Sink\&\ sink,\ const\ MyClass\&\ value);}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ An\ \`{}AbslStringify()`\ overload\ for\ a\ type\ should\ only\ be\ declared\ in\ the\ same}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ file\ and\ namespace\ as\ said\ type.}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ Note\ that\ \`{}AbslStringify()`\ also\ supports\ use\ with\ \`{}absl::StrFormat()`\ and}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ \`{}absl::Substitute()`.}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ struct\ Point\ \{}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ \ //\ To\ add\ formatting\ support\ to\ \`{}Point`,\ we\ simply\ need\ to\ add\ a\ free}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ \ \ //\ (non-\/member)\ function\ \`{}AbslStringify()`.\ This\ method\ specifies\ how}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ \ //\ Point\ should\ be\ printed\ when\ absl::StrCat()\ is\ called\ on\ it.\ You\ can\ add}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ \ \ //\ such\ a\ free\ function\ using\ a\ friend\ declaration\ within\ the\ body\ of\ the}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ \ \ //\ class.\ The\ sink\ parameter\ is\ a\ templated\ type\ to\ avoid\ requiring}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ \ \ //\ dependencies.}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ \ \ template\ <typename\ Sink>\ friend\ void\ AbslStringify(Sink\&}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ \ \ sink,\ const\ Point\&\ p)\ \{}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ \ \ \ \ absl::Format(\&sink,\ "{}(\%v,\ \%v)"{},\ p.x,\ p.y);}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ \ \ int\ x;}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ \ \ int\ y;}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ \};}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_STR\_CAT\_H\_}}
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_STR\_CAT\_H\_}}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00091\ \textcolor{preprocessor}{\#include\ <array>}}
+\DoxyCodeLine{00092\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00093\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00094\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00095\ \textcolor{preprocessor}{\#include\ <cstring>}}
+\DoxyCodeLine{00096\ \textcolor{preprocessor}{\#include\ <initializer\_list>}}
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00099\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00100\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00101\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00104\ \textcolor{preprocessor}{\#include\ "{}absl/base/nullability.h"{}}}
+\DoxyCodeLine{00105\ \textcolor{preprocessor}{\#include\ "{}absl/base/port.h"{}}}
+\DoxyCodeLine{00106\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00107\ \textcolor{preprocessor}{\#include\ "{}absl/strings/has\_absl\_stringify.h"{}}}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/resize\_uninitialized.h"{}}}
+\DoxyCodeLine{00109\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/stringify\_sink.h"{}}}
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\#include\ "{}absl/strings/numbers.h"{}}}
+\DoxyCodeLine{00111\ \textcolor{preprocessor}{\#include\ "{}absl/strings/string\_view.h"{}}}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00114\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \textcolor{keyword}{namespace\ }strings\_internal\ \{}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ AlphaNumBuffer\ allows\ a\ way\ to\ pass\ a\ string\ to\ StrCat\ without\ having\ to\ do}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ memory\ allocation.\ \ It\ is\ simply\ a\ pair\ of\ a\ fixed-\/size\ character\ array,\ and}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ a\ size.\ \ Please\ don't\ use\ outside\ of\ absl,\ yet.}}
+\DoxyCodeLine{00120\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ max\_size>}
+\DoxyCodeLine{00121\ \textcolor{keyword}{struct\ }AlphaNumBuffer\ \{}
+\DoxyCodeLine{00122\ \ \ std::array<char,\ max\_size>\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumBuffer_ad0ac32f8c9e09c781e6d1442920dadad}{data}};}
+\DoxyCodeLine{00123\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumBuffer_af8179c68eac02cd5a79b1e79735c6597}{size}};}
+\DoxyCodeLine{00124\ \};}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \}\ \ \textcolor{comment}{//\ namespace\ strings\_internal}}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ Enum\ that\ specifies\ the\ number\ of\ significant\ digits\ to\ return\ in\ a\ \`{}Hex`\ or}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//\ \`{}Dec`\ conversion\ and\ fill\ character\ to\ use.\ A\ \`{}kZeroPad2`\ value,\ for\ example,}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ would\ produce\ hexadecimal\ strings\ such\ as\ "{}0a"{},"{}0f"{}\ and\ a\ 'kSpacePad5'\ value}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ would\ produce\ hexadecimal\ strings\ such\ as\ "{}\ \ \ \ a"{},"{}\ \ \ \ f"{}.}}
+\DoxyCodeLine{00132\ \textcolor{keyword}{enum}\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4}{PadSpec}}\ :\ uint8\_t\ \{}
+\DoxyCodeLine{00133\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a21565bec8f1bc14a629f87cef0be783c}{kNoPad}}\ =\ 1,}
+\DoxyCodeLine{00134\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a41d8cf125d6972b3b488e207f66bb0c1}{kZeroPad2}},}
+\DoxyCodeLine{00135\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4adb168d4a932ac408ec874ef088c3e506}{kZeroPad3}},}
+\DoxyCodeLine{00136\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a6048737cd5a50f3ea1409a198c34aa13}{kZeroPad4}},}
+\DoxyCodeLine{00137\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a7c28535cae8f2d7a29a9f634a2197ee1}{kZeroPad5}},}
+\DoxyCodeLine{00138\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a56a0bf79f676e1fe403e864dc4eb64b9}{kZeroPad6}},}
+\DoxyCodeLine{00139\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a6086e4b33766c8731917296b5949b4ea}{kZeroPad7}},}
+\DoxyCodeLine{00140\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4adda323b4271ebd872611ea69a2d65161}{kZeroPad8}},}
+\DoxyCodeLine{00141\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4ad291b0fff9f55a481521a0619f24719e}{kZeroPad9}},}
+\DoxyCodeLine{00142\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4aa3d5732860e939503f345691069e71b1}{kZeroPad10}},}
+\DoxyCodeLine{00143\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a729598e486c7613cecf13aa0b91a3b57}{kZeroPad11}},}
+\DoxyCodeLine{00144\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4afe629b621d785cca4d2f50fa68b8bc03}{kZeroPad12}},}
+\DoxyCodeLine{00145\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a34394de0e16b71f27e68cfa5073f7050}{kZeroPad13}},}
+\DoxyCodeLine{00146\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a8c0e01054213f45e782bf7170e813ab7}{kZeroPad14}},}
+\DoxyCodeLine{00147\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a57075b726736097f07f20e697e7cbd6e}{kZeroPad15}},}
+\DoxyCodeLine{00148\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a67cb744c3cbe3c9365d9b33f817da15d}{kZeroPad16}},}
+\DoxyCodeLine{00149\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a9f6fd593ad9ecc322b9525941646e525}{kZeroPad17}},}
+\DoxyCodeLine{00150\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4aeed74dd501366e46b861b06834c552a1}{kZeroPad18}},}
+\DoxyCodeLine{00151\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a83f21fe3199ff7dd39089c30cfd4f72c}{kZeroPad19}},}
+\DoxyCodeLine{00152\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4abad9f0e89c74b68de8bb8d863fd44b0a}{kZeroPad20}},}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a161af8899578b404642dedac380ab500}{kSpacePad2}}\ =\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a41d8cf125d6972b3b488e207f66bb0c1}{kZeroPad2}}\ +\ 64,}
+\DoxyCodeLine{00155\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a8e68f4e0c329daf824955284ea31cf29}{kSpacePad3}},}
+\DoxyCodeLine{00156\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a756e9a9ada7d4ee195363427f9fc8115}{kSpacePad4}},}
+\DoxyCodeLine{00157\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4adcc8d0cd554db84206890dc9a26644b2}{kSpacePad5}},}
+\DoxyCodeLine{00158\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a2bd55b5cf57a8cda46bab9095a8180eb}{kSpacePad6}},}
+\DoxyCodeLine{00159\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a427d4633f3be703453367859bda8275a}{kSpacePad7}},}
+\DoxyCodeLine{00160\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a1f633ea25a4c68d7855618660b9e8c62}{kSpacePad8}},}
+\DoxyCodeLine{00161\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4ae86eedc15d28ed42d8e92ca5c1f04631}{kSpacePad9}},}
+\DoxyCodeLine{00162\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a20d4b9e67bf9510c82b2ec23c2db9c3e}{kSpacePad10}},}
+\DoxyCodeLine{00163\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4aa768d67b6986e9f1dc534c80159d2093}{kSpacePad11}},}
+\DoxyCodeLine{00164\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4adc7a2c93b5d3397a850bca215e8c54ad}{kSpacePad12}},}
+\DoxyCodeLine{00165\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a26fd978da159d62ab5c26bf70a4da9b2}{kSpacePad13}},}
+\DoxyCodeLine{00166\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a8468975772a362926b4d108af1377e66}{kSpacePad14}},}
+\DoxyCodeLine{00167\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a482231b5226839f16df6c089a7e59e93}{kSpacePad15}},}
+\DoxyCodeLine{00168\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a29dc33bec0dbcf51f472bb98ce7b11c5}{kSpacePad16}},}
+\DoxyCodeLine{00169\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a04d74dc654f51891e9b1a013e5d11a3a}{kSpacePad17}},}
+\DoxyCodeLine{00170\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a86e8ebcb57efcd97a596ab726285295a}{kSpacePad18}},}
+\DoxyCodeLine{00171\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a2bc6976801fe23702cf4892b105e161f}{kSpacePad19}},}
+\DoxyCodeLine{00172\ \ \ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4adbdebe9d3a16f208ed4abbd56a2fcf89}{kSpacePad20}},}
+\DoxyCodeLine{00173\ \};}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00176\ \textcolor{comment}{//\ Hex}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00178\ \textcolor{comment}{//}}
+\DoxyCodeLine{00179\ \textcolor{comment}{//\ \`{}Hex`\ stores\ a\ set\ of\ hexadecimal\ string\ conversion\ parameters\ for\ use}}
+\DoxyCodeLine{00180\ \textcolor{comment}{//\ within\ \`{}AlphaNum`\ string\ conversions.}}
+\DoxyCodeLine{00181\ \textcolor{keyword}{struct\ }Hex\ \{}
+\DoxyCodeLine{00182\ \ \ uint64\_t\ \mbox{\hyperlink{structabsl_1_1Hex_a12e3c8e0e913ff63d54b673c258fca2d}{value}};}
+\DoxyCodeLine{00183\ \ \ uint8\_t\ \mbox{\hyperlink{structabsl_1_1Hex_a98999994fe7ed9ae8df2d03612639f36}{width}};}
+\DoxyCodeLine{00184\ \ \ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{structabsl_1_1Hex_ae52dfd171013e318c27fed850c25bea7}{fill}};}
+\DoxyCodeLine{00185\ }
+\DoxyCodeLine{00186\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Int>}
+\DoxyCodeLine{00187\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structabsl_1_1Hex_ab87105adf6e76beb5bacd964f9d5f1a7}{Hex}}(}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ Int\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4}{PadSpec}}\ spec\ =\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a21565bec8f1bc14a629f87cef0be783c}{absl::kNoPad}},}
+\DoxyCodeLine{00189\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<\textcolor{keyword}{sizeof}(Int)\ ==\ 1\ \&\&}
+\DoxyCodeLine{00190\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_pointer<Int>::value>::type*\ =\ \textcolor{keyword}{nullptr})}
+\DoxyCodeLine{00191\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1Hex}{Hex}}(spec,\ static\_cast<uint8\_t>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))\ \{\}}
+\DoxyCodeLine{00192\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Int>}
+\DoxyCodeLine{00193\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structabsl_1_1Hex_aefef03dfd317112c1e43cca03a02a412}{Hex}}(}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ Int\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4}{PadSpec}}\ spec\ =\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a21565bec8f1bc14a629f87cef0be783c}{absl::kNoPad}},}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<\textcolor{keyword}{sizeof}(Int)\ ==\ 2\ \&\&}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_pointer<Int>::value>::type*\ =\ \textcolor{keyword}{nullptr})}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1Hex}{Hex}}(spec,\ static\_cast<uint16\_t>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))\ \{\}}
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Int>}
+\DoxyCodeLine{00199\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structabsl_1_1Hex_a02db877d78896febadc5d99367ef8542}{Hex}}(}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ Int\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4}{PadSpec}}\ spec\ =\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a21565bec8f1bc14a629f87cef0be783c}{absl::kNoPad}},}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<\textcolor{keyword}{sizeof}(Int)\ ==\ 4\ \&\&}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_pointer<Int>::value>::type*\ =\ \textcolor{keyword}{nullptr})}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1Hex}{Hex}}(spec,\ static\_cast<uint32\_t>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))\ \{\}}
+\DoxyCodeLine{00204\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Int>}
+\DoxyCodeLine{00205\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structabsl_1_1Hex_a4287c1665e6d9990ee8968e1382990fd}{Hex}}(}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ Int\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4}{PadSpec}}\ spec\ =\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a21565bec8f1bc14a629f87cef0be783c}{absl::kNoPad}},}
+\DoxyCodeLine{00207\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<\textcolor{keyword}{sizeof}(Int)\ ==\ 8\ \&\&}
+\DoxyCodeLine{00208\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_pointer<Int>::value>::type*\ =\ \textcolor{keyword}{nullptr})}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1Hex}{Hex}}(spec,\ static\_cast<uint64\_t>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))\ \{\}}
+\DoxyCodeLine{00210\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Po\textcolor{keywordtype}{int}ee>}
+\DoxyCodeLine{00211\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structabsl_1_1Hex_a083739176aa7dd2f037a924af8e4cd78}{Hex}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<Pointee*>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4}{PadSpec}}\ spec\ =\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a21565bec8f1bc14a629f87cef0be783c}{absl::kNoPad}})}
+\DoxyCodeLine{00212\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1Hex}{Hex}}(spec,\ reinterpret\_cast<uintptr\_t>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))\ \{\}}
+\DoxyCodeLine{00213\ }
+\DoxyCodeLine{00214\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ S>}
+\DoxyCodeLine{00215\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1Hex_a822f46329e55fae03ddb1bc4604e8bee}{AbslStringify}}(S\&\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}},\ \mbox{\hyperlink{structabsl_1_1Hex}{Hex}}\ \mbox{\hyperlink{namespaceabsl_a4ae07815086d5639b7936e4eba290089ab8d1b43eae73587ba56baef574709ecb}{hex}})\ \{}
+\DoxyCodeLine{00216\ \ \ \ \ \textcolor{keyword}{static\_assert}(}
+\DoxyCodeLine{00217\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a04c5358e0ed5212fcf7cecea8fb2ed11}{numbers\_internal::kFastToBufferSize}}\ >=\ 32,}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}This\ function\ only\ works\ when\ output\ buffer\ >=\ 32\ bytes\ long"{}});}
+\DoxyCodeLine{00219\ \ \ \ \ \textcolor{keywordtype}{char}\ buffer[\mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a04c5358e0ed5212fcf7cecea8fb2ed11}{numbers\_internal::kFastToBufferSize}}];}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}\ end\ =\ \&buffer[\mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a04c5358e0ed5212fcf7cecea8fb2ed11}{numbers\_internal::kFastToBufferSize}}];}
+\DoxyCodeLine{00221\ \ \ \ \ \textcolor{keyword}{auto}\ real\_width\ =}
+\DoxyCodeLine{00222\ \ \ \ \ \ \ \ \ absl::numbers\_internal::FastHexToBufferZeroPad16(\mbox{\hyperlink{namespaceabsl_a4ae07815086d5639b7936e4eba290089ab8d1b43eae73587ba56baef574709ecb}{hex}}.value,\ end\ -\/\ 16);}
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{keywordflow}{if}\ (real\_width\ >=\ \mbox{\hyperlink{namespaceabsl_a4ae07815086d5639b7936e4eba290089ab8d1b43eae73587ba56baef574709ecb}{hex}}.width)\ \{}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}.Append(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}(end\ -\/\ real\_width,\ real\_width));}
+\DoxyCodeLine{00225\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00226\ \ \ \ \ \ \ \textcolor{comment}{//\ Pad\ first\ 16\ chars\ because\ FastHexToBufferZeroPad16\ pads\ only\ to\ 16\ and}}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \textcolor{comment}{//\ max\ pad\ width\ can\ be\ up\ to\ 20.}}
+\DoxyCodeLine{00228\ \ \ \ \ \ \ std::memset(end\ -\/\ 32,\ \mbox{\hyperlink{namespaceabsl_a4ae07815086d5639b7936e4eba290089ab8d1b43eae73587ba56baef574709ecb}{hex}}.fill,\ 16);}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \textcolor{comment}{//\ Patch\ up\ everything\ else\ up\ to\ the\ real\_width.}}
+\DoxyCodeLine{00230\ \ \ \ \ \ \ std::memset(end\ -\/\ real\_width\ -\/\ 16,\ \mbox{\hyperlink{namespaceabsl_a4ae07815086d5639b7936e4eba290089ab8d1b43eae73587ba56baef574709ecb}{hex}}.fill,\ 16);}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}.Append(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}(end\ -\/\ \mbox{\hyperlink{namespaceabsl_a4ae07815086d5639b7936e4eba290089ab8d1b43eae73587ba56baef574709ecb}{hex}}.width,\ \mbox{\hyperlink{namespaceabsl_a4ae07815086d5639b7936e4eba290089ab8d1b43eae73587ba56baef574709ecb}{hex}}.width));}
+\DoxyCodeLine{00232\ \ \ \ \ \}}
+\DoxyCodeLine{00233\ \ \ \}}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00235\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00236\ \ \ \mbox{\hyperlink{structabsl_1_1Hex_ab87105adf6e76beb5bacd964f9d5f1a7}{Hex}}(\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4}{PadSpec}}\ spec,\ uint64\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})}
+\DoxyCodeLine{00237\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1Hex_a12e3c8e0e913ff63d54b673c258fca2d}{value}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}),}
+\DoxyCodeLine{00238\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1Hex_a98999994fe7ed9ae8df2d03612639f36}{width}}(spec\ ==\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a21565bec8f1bc14a629f87cef0be783c}{kNoPad}}}
+\DoxyCodeLine{00239\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 1}
+\DoxyCodeLine{00240\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ spec\ >=\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a161af8899578b404642dedac380ab500}{kSpacePad2}}\ ?\ spec\ -\/\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a161af8899578b404642dedac380ab500}{kSpacePad2}}\ +\ 2}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ spec\ -\/\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a41d8cf125d6972b3b488e207f66bb0c1}{kZeroPad2}}\ +\ 2),}
+\DoxyCodeLine{00242\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1Hex_ae52dfd171013e318c27fed850c25bea7}{fill}}(spec\ >=\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a161af8899578b404642dedac380ab500}{kSpacePad2}}\ ?\ \textcolor{stringliteral}{'\ '}\ :\ \textcolor{stringliteral}{'0'})\ \{\}}
+\DoxyCodeLine{00243\ \};}
+\DoxyCodeLine{00244\ }
+\DoxyCodeLine{00245\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00246\ \textcolor{comment}{//\ Dec}}
+\DoxyCodeLine{00247\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00248\ \textcolor{comment}{//}}
+\DoxyCodeLine{00249\ \textcolor{comment}{//\ \`{}Dec`\ stores\ a\ set\ of\ decimal\ string\ conversion\ parameters\ for\ use}}
+\DoxyCodeLine{00250\ \textcolor{comment}{//\ within\ \`{}AlphaNum`\ string\ conversions.\ \ Dec\ is\ slower\ than\ the\ default}}
+\DoxyCodeLine{00251\ \textcolor{comment}{//\ integer\ conversion,\ so\ use\ it\ only\ if\ you\ need\ padding.}}
+\DoxyCodeLine{00252\ \textcolor{keyword}{struct\ }Dec\ \{}
+\DoxyCodeLine{00253\ \ \ uint64\_t\ \mbox{\hyperlink{structabsl_1_1Dec_abc7f92a01fcdcd93348baf06ca34821a}{value}};}
+\DoxyCodeLine{00254\ \ \ uint8\_t\ \mbox{\hyperlink{structabsl_1_1Dec_ac72c50cc77ede024a1d98d698b2b36f6}{width}};}
+\DoxyCodeLine{00255\ \ \ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{structabsl_1_1Dec_a78bd3f1642f8403768b1f6fb822a8834}{fill}};}
+\DoxyCodeLine{00256\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1Dec_a99eac81b27bff26b978ac29535de1dc7}{neg}};}
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00258\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Int>}
+\DoxyCodeLine{00259\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structabsl_1_1Dec_a130c78bf641e2b58824eb2276d0bafdd}{Dec}}(Int\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4}{PadSpec}}\ spec\ =\ \mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a21565bec8f1bc14a629f87cef0be783c}{absl::kNoPad}},}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<(\textcolor{keyword}{sizeof}(Int)\ <=\ 8)>::type*\ =\ \textcolor{keyword}{nullptr})}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1Dec_abc7f92a01fcdcd93348baf06ca34821a}{value}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ >=\ 0\ ?\ static\_cast<uint64\_t>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ uint64\_t\{0\}\ -\/\ static\_cast<uint64\_t>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})),}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1Dec_ac72c50cc77ede024a1d98d698b2b36f6}{width}}(spec\ ==\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a21565bec8f1bc14a629f87cef0be783c}{kNoPad}}\ \ \ \ \ \ \ ?\ 1}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ spec\ >=\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a161af8899578b404642dedac380ab500}{kSpacePad2}}\ ?\ spec\ -\/\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a161af8899578b404642dedac380ab500}{kSpacePad2}}\ +\ 2}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ spec\ -\/\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a41d8cf125d6972b3b488e207f66bb0c1}{kZeroPad2}}\ +\ 2),}
+\DoxyCodeLine{00266\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1Dec_a78bd3f1642f8403768b1f6fb822a8834}{fill}}(spec\ >=\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aefd8a7740ccc1016ebf53194d71fcee4a161af8899578b404642dedac380ab500}{kSpacePad2}}\ ?\ \textcolor{stringliteral}{'\ '}\ :\ \textcolor{stringliteral}{'0'}),}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1Dec_a99eac81b27bff26b978ac29535de1dc7}{neg}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ <\ 0)\ \{\}}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00269\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ S>}
+\DoxyCodeLine{00270\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1Dec_a788f290d26465562233078cdeb81b511}{AbslStringify}}(S\&\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}},\ \mbox{\hyperlink{structabsl_1_1Dec}{Dec}}\ dec)\ \{}
+\DoxyCodeLine{00271\ \ \ \ \ assert(dec.width\ <=\ \mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a04c5358e0ed5212fcf7cecea8fb2ed11}{numbers\_internal::kFastToBufferSize}});}
+\DoxyCodeLine{00272\ \ \ \ \ \textcolor{keywordtype}{char}\ buffer[\mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a04c5358e0ed5212fcf7cecea8fb2ed11}{numbers\_internal::kFastToBufferSize}}];}
+\DoxyCodeLine{00273\ \ \ \ \ \textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}\ end\ =\ \&buffer[\mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a04c5358e0ed5212fcf7cecea8fb2ed11}{numbers\_internal::kFastToBufferSize}}];}
+\DoxyCodeLine{00274\ \ \ \ \ \textcolor{keywordtype}{char}*\ \textcolor{keyword}{const}\ minfill\ =\ end\ -\/\ dec.width;}
+\DoxyCodeLine{00275\ \ \ \ \ \textcolor{keywordtype}{char}*\ writer\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}};}
+\DoxyCodeLine{00276\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ =\ dec.value;}
+\DoxyCodeLine{00277\ \ \ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ >\ 9)\ \{}
+\DoxyCodeLine{00278\ \ \ \ \ \ \ *-\/-\/writer\ =\ \textcolor{charliteral}{'0'}\ +\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ \%\ 10);}
+\DoxyCodeLine{00279\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ /=\ 10;}
+\DoxyCodeLine{00280\ \ \ \ \ \}}
+\DoxyCodeLine{00281\ \ \ \ \ *-\/-\/writer\ =\ \textcolor{charliteral}{'0'}\ +\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{char}\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}});}
+\DoxyCodeLine{00282\ \ \ \ \ \textcolor{keywordflow}{if}\ (dec.neg)\ *-\/-\/writer\ =\ \textcolor{charliteral}{'-\/'};}
+\DoxyCodeLine{00283\ }
+\DoxyCodeLine{00284\ \ \ \ \ ptrdiff\_t\ fillers\ =\ writer\ -\/\ minfill;}
+\DoxyCodeLine{00285\ \ \ \ \ \textcolor{keywordflow}{if}\ (fillers\ >\ 0)\ \{}
+\DoxyCodeLine{00286\ \ \ \ \ \ \ \textcolor{comment}{//\ Tricky:\ if\ the\ fill\ character\ is\ '\ ',\ then\ it's\ <fill><+/-\/><digits>}}
+\DoxyCodeLine{00287\ \ \ \ \ \ \ \textcolor{comment}{//\ But...:\ if\ the\ fill\ character\ is\ '0',\ then\ it's\ <+/-\/><fill><digits>}}
+\DoxyCodeLine{00288\ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ add\_sign\_again\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00289\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (dec.neg\ \&\&\ dec.fill\ ==\ \textcolor{charliteral}{'0'})\ \{\ \ \textcolor{comment}{//\ If\ filling\ with\ '0',}}
+\DoxyCodeLine{00290\ \ \ \ \ \ \ \ \ ++writer;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ ignore\ the\ sign\ we\ just\ added}}
+\DoxyCodeLine{00291\ \ \ \ \ \ \ \ \ add\_sign\_again\ =\ \textcolor{keyword}{true};\ \ \ \ \ \ \ \textcolor{comment}{//\ and\ re-\/add\ the\ sign\ later.}}
+\DoxyCodeLine{00292\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00293\ \ \ \ \ \ \ writer\ -\/=\ fillers;}
+\DoxyCodeLine{00294\ \ \ \ \ \ \ std::fill\_n(writer,\ fillers,\ dec.fill);}
+\DoxyCodeLine{00295\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (add\_sign\_again)\ *-\/-\/writer\ =\ \textcolor{charliteral}{'-\/'};}
+\DoxyCodeLine{00296\ \ \ \ \ \}}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00298\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}.Append(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}(writer,\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(end\ -\/\ writer)));}
+\DoxyCodeLine{00299\ \ \ \}}
+\DoxyCodeLine{00300\ \};}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00302\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00303\ \textcolor{comment}{//\ AlphaNum}}
+\DoxyCodeLine{00304\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00305\ \textcolor{comment}{//}}
+\DoxyCodeLine{00306\ \textcolor{comment}{//\ The\ \`{}AlphaNum`\ class\ acts\ as\ the\ main\ parameter\ type\ for\ \`{}StrCat()`\ and}}
+\DoxyCodeLine{00307\ \textcolor{comment}{//\ \`{}StrAppend()`,\ providing\ efficient\ conversion\ of\ numeric,\ boolean,\ decimal,}}
+\DoxyCodeLine{00308\ \textcolor{comment}{//\ and\ hexadecimal\ values\ (through\ the\ \`{}Dec`\ and\ \`{}Hex`\ types)\ into\ strings.}}
+\DoxyCodeLine{00309\ \textcolor{comment}{//\ \`{}AlphaNum`\ should\ only\ be\ used\ as\ a\ function\ parameter.\ Do\ not\ instantiate}}
+\DoxyCodeLine{00310\ \textcolor{comment}{//\ \ \`{}AlphaNum`\ directly\ as\ a\ stack\ variable.}}
+\DoxyCodeLine{00311\ }
+\DoxyCodeLine{00312\ \textcolor{keyword}{class\ }AlphaNum\ \{}
+\DoxyCodeLine{00313\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00314\ \ \ \textcolor{comment}{//\ No\ bool\ ctor\ -\/-\/\ bools\ convert\ to\ an\ integral\ type.}}
+\DoxyCodeLine{00315\ \ \ \textcolor{comment}{//\ A\ bool\ ctor\ would\ also\ convert\ incoming\ pointers\ (bletch).}}
+\DoxyCodeLine{00316\ }
+\DoxyCodeLine{00317\ \ \ \textcolor{comment}{//\ Prevent\ brace\ initialization}}
+\DoxyCodeLine{00318\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00319\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_ab4e56531923ee51345e0bd57bef260fc}{AlphaNum}}(std::initializer\_list<T>)\ =\ \textcolor{keyword}{delete};\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00320\ }
+\DoxyCodeLine{00321\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a3808e004fd5c4ae6a367e10e4d50be75}{AlphaNum}}(\textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00322\ \ \ \ \ \ \ :\ piece\_(digits\_,\ static\_cast<size\_t>(}
+\DoxyCodeLine{00323\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ numbers\_internal::FastIntToBuffer(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ digits\_)\ -\/}
+\DoxyCodeLine{00324\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&digits\_[0]))\ \{\}}
+\DoxyCodeLine{00325\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a0600d8d942cd4620583c9b993a936489}{AlphaNum}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ :\ piece\_(digits\_,\ static\_cast<size\_t>(}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ numbers\_internal::FastIntToBuffer(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ digits\_)\ -\/}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&digits\_[0]))\ \{\}}
+\DoxyCodeLine{00329\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a8c4b562983a4b3a51f6a544ca62f4ee6}{AlphaNum}}(\textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \ \textcolor{comment}{//\ NOLINT(*)}}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ :\ piece\_(digits\_,\ static\_cast<size\_t>(}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ numbers\_internal::FastIntToBuffer(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ digits\_)\ -\/}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&digits\_[0]))\ \{\}}
+\DoxyCodeLine{00333\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_ae8c981e161113c767d378d63ff29075a}{AlphaNum}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \ \textcolor{comment}{//\ NOLINT(*)}}
+\DoxyCodeLine{00334\ \ \ \ \ \ \ :\ piece\_(digits\_,\ static\_cast<size\_t>(}
+\DoxyCodeLine{00335\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ numbers\_internal::FastIntToBuffer(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ digits\_)\ -\/}
+\DoxyCodeLine{00336\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&digits\_[0]))\ \{\}}
+\DoxyCodeLine{00337\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a44fcc4ca8326758f54e1596af0c21de2}{AlphaNum}}(\textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \ \textcolor{comment}{//\ NOLINT(*)}}
+\DoxyCodeLine{00338\ \ \ \ \ \ \ :\ piece\_(digits\_,\ static\_cast<size\_t>(}
+\DoxyCodeLine{00339\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ numbers\_internal::FastIntToBuffer(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ digits\_)\ -\/}
+\DoxyCodeLine{00340\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&digits\_[0]))\ \{\}}
+\DoxyCodeLine{00341\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a94fc95fb27677c8b35d2a2f2d097020f}{AlphaNum}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \ \textcolor{comment}{//\ NOLINT(*)}}
+\DoxyCodeLine{00342\ \ \ \ \ \ \ :\ piece\_(digits\_,\ static\_cast<size\_t>(}
+\DoxyCodeLine{00343\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ numbers\_internal::FastIntToBuffer(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ digits\_)\ -\/}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&digits\_[0]))\ \{\}}
+\DoxyCodeLine{00345\ }
+\DoxyCodeLine{00346\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a30f9707a4a35fd77d104fd09d16b46df}{AlphaNum}}(\textcolor{keywordtype}{float}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00347\ \ \ \ \ \ \ :\ piece\_(digits\_,\ numbers\_internal::SixDigitsToBuffer(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ digits\_))\ \{\}}
+\DoxyCodeLine{00348\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_aaffd12f4aa51273df8b5ddd6935dd764}{AlphaNum}}(\textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00349\ \ \ \ \ \ \ :\ piece\_(digits\_,\ numbers\_internal::SixDigitsToBuffer(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ digits\_))\ \{\}}
+\DoxyCodeLine{00350\ }
+\DoxyCodeLine{00351\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ size>}
+\DoxyCodeLine{00352\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a4f61cc468955d988282fef3dc2cc463e}{AlphaNum}}(\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00353\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumBuffer}{strings\_internal::AlphaNumBuffer<size>}}\&\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}}}
+\DoxyCodeLine{00354\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ :\ piece\_(\&\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}}.\mbox{\hyperlink{classabsl_1_1AlphaNum_ad1a1dcc6cd5bf5003a7a5c02ab971543}{data}}[0],\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}}.\mbox{\hyperlink{classabsl_1_1AlphaNum_a8561e22f60424a91c4ed50f96c7a81c3}{size}})\ \{\}}
+\DoxyCodeLine{00356\ }
+\DoxyCodeLine{00357\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a911a12f23b4f5f4934d4c648d331df12}{AlphaNum}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ char*>}}\ c\_str\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00358\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})}
+\DoxyCodeLine{00359\ \ \ \ \ \ \ :\ piece\_(\mbox{\hyperlink{namespaceabsl_ad6b5fe321f9b65eeee906b806b71a7c9}{NullSafeStringView}}(c\_str))\ \{\}}
+\DoxyCodeLine{00360\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a1694f10a0db2efd0ca739825564b56cc}{AlphaNum}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ pc\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00361\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})}
+\DoxyCodeLine{00362\ \ \ \ \ \ \ :\ piece\_(pc)\ \{\}}
+\DoxyCodeLine{00363\ }
+\DoxyCodeLine{00364\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ =\ \textcolor{keyword}{typename}\ std::enable\_if<}
+\DoxyCodeLine{00365\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1HasAbslStringify}{HasAbslStringify<T>::value}}>::type>}
+\DoxyCodeLine{00366\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_ac98ed7704f2b3cd98679d036f326b526}{AlphaNum}}(\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00367\ \ \ \ \ \ \ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}},}
+\DoxyCodeLine{00368\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1StringifySink}{strings\_internal::StringifySink}}\&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}}\ =\ \{\})}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ :\ piece\_(strings\_internal::ExtractStringification(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}},\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))\ \{\}}
+\DoxyCodeLine{00370\ }
+\DoxyCodeLine{00371\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Allocator>}
+\DoxyCodeLine{00372\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_a29276377632850969db0731e6843a963}{AlphaNum}}(\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::basic\_string<\textcolor{keywordtype}{char},\ std::char\_traits<char>,\ Allocator>\&\ str}
+\DoxyCodeLine{00374\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})}
+\DoxyCodeLine{00375\ \ \ \ \ \ \ :\ piece\_(str)\ \{\}}
+\DoxyCodeLine{00376\ }
+\DoxyCodeLine{00377\ \ \ \textcolor{comment}{//\ Use\ string\ literals\ "{}:"{}\ instead\ of\ character\ literals\ ':'.}}
+\DoxyCodeLine{00378\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_acc82ec55a0ff473552430b0eb825e7eb}{AlphaNum}}(\textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}})\ =\ \textcolor{keyword}{delete};\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00379\ }
+\DoxyCodeLine{00380\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_aa007d3c5028ac7d269b267ea7ed9387b}{AlphaNum}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00381\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{classabsl_1_1AlphaNum_ae81ae0e4fb93abf14286368cafd7761b}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00382\ }
+\DoxyCodeLine{00383\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{absl::string\_view::size\_type}}\ \mbox{\hyperlink{classabsl_1_1AlphaNum_a8561e22f60424a91c4ed50f96c7a81c3}{size}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ piece\_.\mbox{\hyperlink{classabsl_1_1string__view_a3950f228eccec8f88e34b9a90ad94428}{size}}();\ \}}
+\DoxyCodeLine{00384\ \ \ \mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ char*>}}\ \mbox{\hyperlink{classabsl_1_1AlphaNum_ad1a1dcc6cd5bf5003a7a5c02ab971543}{data}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ piece\_.\mbox{\hyperlink{classabsl_1_1string__view_acdd63d87adecc9cb89e3bb2c4efedf47}{data}}();\ \}}
+\DoxyCodeLine{00385\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1AlphaNum_a7a2cc1086a263b005342127293eee60d}{Piece}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ piece\_;\ \}}
+\DoxyCodeLine{00386\ }
+\DoxyCodeLine{00387\ \ \ \textcolor{comment}{//\ Match\ unscoped\ enums.\ \ Use\ integral\ promotion\ so\ that\ a\ \`{}char`-\/backed}}
+\DoxyCodeLine{00388\ \ \ \textcolor{comment}{//\ enum\ becomes\ a\ wider\ integral\ type\ AlphaNum\ will\ accept.}}
+\DoxyCodeLine{00389\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ \textcolor{keyword}{typename}\ std::enable\_if<}
+\DoxyCodeLine{00391\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_enum<T>\{\}\ \&\&\ std::is\_convertible<T,\ int>\{\}\ \&\&}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !HasAbslStringify<T>::value>::type>}
+\DoxyCodeLine{00393\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_af08ec77292ad0dddf85fae08b9460350}{AlphaNum}}(T\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}})\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}(+\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}})\ \{\}}
+\DoxyCodeLine{00395\ }
+\DoxyCodeLine{00396\ \ \ \textcolor{comment}{//\ This\ overload\ matches\ scoped\ enums.\ \ We\ must\ explicitly\ cast\ to\ the}}
+\DoxyCodeLine{00397\ \ \ \textcolor{comment}{//\ underlying\ type,\ but\ use\ integral\ promotion\ for\ the\ same\ reason\ as\ above.}}
+\DoxyCodeLine{00398\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00399\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<std::is\_enum<T>\{\}\ \&\&}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_convertible<T,\ int>\{\}\ \&\&}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !HasAbslStringify<T>::value,}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}*>::type\ =\ \textcolor{keyword}{nullptr}>}
+\DoxyCodeLine{00403\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_af08ec77292ad0dddf85fae08b9460350}{AlphaNum}}(T\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}})\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00404\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}(+static\_cast<typename\ \mbox{\hyperlink{namespacestd}{std}}::underlying\_type<T>::type>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}}))\ \{\}}
+\DoxyCodeLine{00405\ }
+\DoxyCodeLine{00406\ \ \ \textcolor{comment}{//\ vector<bool>::reference\ and\ const\_reference\ require\ special\ help\ to}}
+\DoxyCodeLine{00407\ \ \ \textcolor{comment}{//\ convert\ to\ \`{}AlphaNum`\ because\ it\ requires\ two\ user\ defined\ conversions.}}
+\DoxyCodeLine{00408\ \ \ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00409\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00410\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<}
+\DoxyCodeLine{00411\ \ \ \ \ \ \ \ \ \ \ std::is\_class<T>::value\ \&\&}
+\DoxyCodeLine{00412\ \ \ \ \ \ \ \ \ \ \ (std::is\_same<T,\ std::vector<bool>::reference>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ ||}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<T,\ std::vector<bool>::const\_reference>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}})>::type*\ =}
+\DoxyCodeLine{00414\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{nullptr}>}
+\DoxyCodeLine{00415\ \ \ \mbox{\hyperlink{classabsl_1_1AlphaNum_af08ec77292ad0dddf85fae08b9460350}{AlphaNum}}(T\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}})\ :\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}(static\_cast<bool>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}}))\ \{\}\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00416\ }
+\DoxyCodeLine{00417\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00418\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ piece\_;}
+\DoxyCodeLine{00419\ \ \ \textcolor{keywordtype}{char}\ digits\_[\mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a04c5358e0ed5212fcf7cecea8fb2ed11}{numbers\_internal::kFastToBufferSize}}];}
+\DoxyCodeLine{00420\ \};}
+\DoxyCodeLine{00421\ }
+\DoxyCodeLine{00422\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00423\ \textcolor{comment}{//\ StrCat()}}
+\DoxyCodeLine{00424\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00425\ \textcolor{comment}{//}}
+\DoxyCodeLine{00426\ \textcolor{comment}{//\ Merges\ given\ strings\ or\ numbers,\ using\ no\ delimiter(s),\ returning\ the\ merged}}
+\DoxyCodeLine{00427\ \textcolor{comment}{//\ result\ as\ a\ string.}}
+\DoxyCodeLine{00428\ \textcolor{comment}{//}}
+\DoxyCodeLine{00429\ \textcolor{comment}{//\ \`{}StrCat()`\ is\ designed\ to\ be\ the\ fastest\ possible\ way\ to\ construct\ a\ string}}
+\DoxyCodeLine{00430\ \textcolor{comment}{//\ out\ of\ a\ mix\ of\ raw\ C\ strings,\ string\_views,\ strings,\ bool\ values,}}
+\DoxyCodeLine{00431\ \textcolor{comment}{//\ and\ numeric\ values.}}
+\DoxyCodeLine{00432\ \textcolor{comment}{//}}
+\DoxyCodeLine{00433\ \textcolor{comment}{//\ Don't\ use\ \`{}StrCat()`\ for\ user-\/visible\ strings.\ The\ localization\ process}}
+\DoxyCodeLine{00434\ \textcolor{comment}{//\ works\ poorly\ on\ strings\ built\ up\ out\ of\ fragments.}}
+\DoxyCodeLine{00435\ \textcolor{comment}{//}}
+\DoxyCodeLine{00436\ \textcolor{comment}{//\ For\ clarity\ and\ performance,\ don't\ use\ \`{}StrCat()`\ when\ appending\ to\ a}}
+\DoxyCodeLine{00437\ \textcolor{comment}{//\ string.\ Use\ \`{}StrAppend()`\ instead.\ In\ particular,\ avoid\ using\ any\ of\ these}}
+\DoxyCodeLine{00438\ \textcolor{comment}{//\ (anti-\/)patterns:}}
+\DoxyCodeLine{00439\ \textcolor{comment}{//}}
+\DoxyCodeLine{00440\ \textcolor{comment}{//\ \ \ str.append(StrCat(...))}}
+\DoxyCodeLine{00441\ \textcolor{comment}{//\ \ \ str\ +=\ StrCat(...)}}
+\DoxyCodeLine{00442\ \textcolor{comment}{//\ \ \ str\ =\ StrCat(str,\ ...)}}
+\DoxyCodeLine{00443\ \textcolor{comment}{//}}
+\DoxyCodeLine{00444\ \textcolor{comment}{//\ The\ last\ case\ is\ the\ worst,\ with\ a\ potential\ to\ change\ a\ loop}}
+\DoxyCodeLine{00445\ \textcolor{comment}{//\ from\ a\ linear\ time\ operation\ with\ O(1)\ dynamic\ allocations\ into\ a}}
+\DoxyCodeLine{00446\ \textcolor{comment}{//\ quadratic\ time\ operation\ with\ O(n)\ dynamic\ allocations.}}
+\DoxyCodeLine{00447\ \textcolor{comment}{//}}
+\DoxyCodeLine{00448\ \textcolor{comment}{//\ See\ \`{}StrAppend()`\ below\ for\ more\ information.}}
+\DoxyCodeLine{00449\ }
+\DoxyCodeLine{00450\ \textcolor{keyword}{namespace\ }strings\_internal\ \{}
+\DoxyCodeLine{00451\ }
+\DoxyCodeLine{00452\ \textcolor{comment}{//\ Do\ not\ call\ directly\ -\/\ this\ is\ not\ part\ of\ the\ public\ API.}}
+\DoxyCodeLine{00453\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ab4d640d2a7cf91e3b63f84a330f01ced}{CatPieces}}(std::initializer\_list<absl::string\_view>\ pieces);}
+\DoxyCodeLine{00454\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ab8966c5ce36251e9d8fa23aa720b9fe3}{AppendPieces}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::string*>}}\ dest,}
+\DoxyCodeLine{00455\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::initializer\_list<absl::string\_view>\ pieces);}
+\DoxyCodeLine{00456\ }
+\DoxyCodeLine{00457\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Integer>}
+\DoxyCodeLine{00458\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ac27edfeb2cd60654095b648524b22963}{IntegerToString}}(Integer\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}})\ \{}
+\DoxyCodeLine{00459\ \ \ \textcolor{comment}{//\ Any\ integer\ (signed/unsigned)\ up\ to\ 64\ bits\ can\ be\ formatted\ into\ a\ buffer}}
+\DoxyCodeLine{00460\ \ \ \textcolor{comment}{//\ with\ 22\ bytes\ (including\ NULL\ at\ the\ end).}}
+\DoxyCodeLine{00461\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ kMaxDigits10\ =\ 22;}
+\DoxyCodeLine{00462\ \ \ std::string\ result;}
+\DoxyCodeLine{00463\ \ \ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_a3b42e58848e7dba9408671c18d53ea6e}{strings\_internal::STLStringResizeUninitialized}}(\&result,\ kMaxDigits10);}
+\DoxyCodeLine{00464\ \ \ \textcolor{keywordtype}{char}*\ start\ =\ \&result[0];}
+\DoxyCodeLine{00465\ \ \ \textcolor{comment}{//\ note:\ this\ can\ be\ optimized\ to\ not\ write\ last\ zero.}}
+\DoxyCodeLine{00466\ \ \ \textcolor{keywordtype}{char}*\ end\ =\ \mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a23948cb77433178aad8b070285e2fcd5}{numbers\_internal::FastIntToBuffer}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}},\ start);}
+\DoxyCodeLine{00467\ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(end\ -\/\ start);}
+\DoxyCodeLine{00468\ \ \ assert((\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ <\ result.size())\ \&\&}
+\DoxyCodeLine{00469\ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}StrCat(Integer)\ does\ not\ fit\ into\ kMaxDigits10"{}});}
+\DoxyCodeLine{00470\ \ \ result.erase(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00471\ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00472\ \}}
+\DoxyCodeLine{00473\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Float>}
+\DoxyCodeLine{00474\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_a9f6c4847e4554d53b035d0f6e14cfa63}{FloatToString}}(Float\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \{}
+\DoxyCodeLine{00475\ \ \ std::string\ result;}
+\DoxyCodeLine{00476\ \ \ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_a3b42e58848e7dba9408671c18d53ea6e}{strings\_internal::STLStringResizeUninitialized}}(}
+\DoxyCodeLine{00477\ \ \ \ \ \ \ \&result,\ \mbox{\hyperlink{namespaceabsl_1_1numbers__internal_aa708f77563fcef442d3b0049e3aa20f1}{numbers\_internal::kSixDigitsToBufferSize}});}
+\DoxyCodeLine{00478\ \ \ \textcolor{keywordtype}{char}*\ start\ =\ \&result[0];}
+\DoxyCodeLine{00479\ \ \ result.erase(\mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a90978030a6df50d9e4c9c49fc2381e1a}{numbers\_internal::SixDigitsToBuffer}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ start));}
+\DoxyCodeLine{00480\ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00481\ \}}
+\DoxyCodeLine{00482\ }
+\DoxyCodeLine{00483\ \textcolor{comment}{//\ \`{}SingleArgStrCat`\ overloads\ take\ built-\/in\ \`{}int`,\ \`{}long`\ and\ \`{}long\ long`\ types}}
+\DoxyCodeLine{00484\ \textcolor{comment}{//\ (signed\ /\ unsigned)\ to\ avoid\ ambiguity\ on\ the\ call\ side.\ If\ we\ used\ int32\_t}}
+\DoxyCodeLine{00485\ \textcolor{comment}{//\ and\ int64\_t,\ then\ at\ least\ one\ of\ the\ three\ (`int`\ /\ \`{}long`\ /\ \`{}long\ long`)}}
+\DoxyCodeLine{00486\ \textcolor{comment}{//\ would\ have\ been\ ambiguous\ when\ passed\ to\ \`{}SingleArgStrCat`.}}
+\DoxyCodeLine{00487\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ae26f2efab362406d662b1640cecd2a40}{SingleArgStrCat}}(\textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ac27edfeb2cd60654095b648524b22963}{IntegerToString}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});\ \}}
+\DoxyCodeLine{00488\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ae26f2efab362406d662b1640cecd2a40}{SingleArgStrCat}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{}
+\DoxyCodeLine{00489\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ac27edfeb2cd60654095b648524b22963}{IntegerToString}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});}
+\DoxyCodeLine{00490\ \}}
+\DoxyCodeLine{00491\ \textcolor{comment}{//\ NOLINTNEXTLINE}}
+\DoxyCodeLine{00492\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ae26f2efab362406d662b1640cecd2a40}{SingleArgStrCat}}(\textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ac27edfeb2cd60654095b648524b22963}{IntegerToString}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});\ \}}
+\DoxyCodeLine{00493\ \textcolor{comment}{//\ NOLINTNEXTLINE}}
+\DoxyCodeLine{00494\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ae26f2efab362406d662b1640cecd2a40}{SingleArgStrCat}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{}
+\DoxyCodeLine{00495\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ac27edfeb2cd60654095b648524b22963}{IntegerToString}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});}
+\DoxyCodeLine{00496\ \}}
+\DoxyCodeLine{00497\ \textcolor{comment}{//\ NOLINTNEXTLINE}}
+\DoxyCodeLine{00498\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ae26f2efab362406d662b1640cecd2a40}{SingleArgStrCat}}(\textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ac27edfeb2cd60654095b648524b22963}{IntegerToString}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});\ \}}
+\DoxyCodeLine{00499\ \textcolor{comment}{//\ NOLINTNEXTLINE}}
+\DoxyCodeLine{00500\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ae26f2efab362406d662b1640cecd2a40}{SingleArgStrCat}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{}
+\DoxyCodeLine{00501\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ac27edfeb2cd60654095b648524b22963}{IntegerToString}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});}
+\DoxyCodeLine{00502\ \}}
+\DoxyCodeLine{00503\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ae26f2efab362406d662b1640cecd2a40}{SingleArgStrCat}}(\textcolor{keywordtype}{float}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_a9f6c4847e4554d53b035d0f6e14cfa63}{FloatToString}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});\ \}}
+\DoxyCodeLine{00504\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ae26f2efab362406d662b1640cecd2a40}{SingleArgStrCat}}(\textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_a9f6c4847e4554d53b035d0f6e14cfa63}{FloatToString}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});\ \}}
+\DoxyCodeLine{00505\ }
+\DoxyCodeLine{00506\ \textcolor{comment}{//\ As\ of\ September\ 2023,\ the\ SingleArgStrCat()\ optimization\ is\ only\ enabled\ for}}
+\DoxyCodeLine{00507\ \textcolor{comment}{//\ libc++.\ The\ reasons\ for\ this\ are:}}
+\DoxyCodeLine{00508\ \textcolor{comment}{//\ 1)\ The\ SSO\ size\ for\ libc++\ is\ 23,\ while\ libstdc++\ and\ MSSTL\ have\ an\ SSO\ size}}
+\DoxyCodeLine{00509\ \textcolor{comment}{//\ of\ 15.\ Since\ IntegerToString\ unconditionally\ resizes\ the\ string\ to\ 22\ bytes,}}
+\DoxyCodeLine{00510\ \textcolor{comment}{//\ this\ causes\ both\ libstdc++\ and\ MSSTL\ to\ allocate.}}
+\DoxyCodeLine{00511\ \textcolor{comment}{//\ 2)\ strings\_internal::STLStringResizeUninitialized()\ only\ has\ an}}
+\DoxyCodeLine{00512\ \textcolor{comment}{//\ implementation\ that\ avoids\ initialization\ when\ using\ libc++.\ This\ isn't\ as}}
+\DoxyCodeLine{00513\ \textcolor{comment}{//\ relevant\ as\ (1),\ and\ the\ cost\ should\ be\ benchmarked\ if\ (1)\ ever\ changes\ on}}
+\DoxyCodeLine{00514\ \textcolor{comment}{//\ libstc++\ or\ MSSTL.}}
+\DoxyCodeLine{00515\ \textcolor{preprocessor}{\#ifdef\ \_LIBCPP\_VERSION}}
+\DoxyCodeLine{00516\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_STRCAT\_ENABLE\_FAST\_CASE\ true}}
+\DoxyCodeLine{00517\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00518\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_STRCAT\_ENABLE\_FAST\_CASE\ false}}
+\DoxyCodeLine{00519\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00520\ }
+\DoxyCodeLine{00521\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ =\ std::enable\_if\_t<}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2str__cat_8h_a4c11354d633a1f4551303d571e82cedc}{ABSL\_INTERNAL\_STRCAT\_ENABLE\_FAST\_CASE}}\ \&\&}
+\DoxyCodeLine{00523\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_arithmetic<T>\{\}\ \&\&\ !std::is\_same<T,\ char>\{\}>>}
+\DoxyCodeLine{00524\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1strings__internal_ad8b6a3542e085c65d0ef53f44d074fb6}{EnableIfFastCase}}\ =\ T;}
+\DoxyCodeLine{00525\ }
+\DoxyCodeLine{00526\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_STRCAT\_ENABLE\_FAST\_CASE}}
+\DoxyCodeLine{00527\ }
+\DoxyCodeLine{00528\ \}\ \ \textcolor{comment}{//\ namespace\ strings\_internal}}
+\DoxyCodeLine{00529\ }
+\DoxyCodeLine{00530\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_a0a9abdb6ee6367339931d4cab29d50df}{StrCat}}()\ \{\ \textcolor{keywordflow}{return}\ std::string();\ \}}
+\DoxyCodeLine{00531\ }
+\DoxyCodeLine{00532\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00533\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_a0a9abdb6ee6367339931d4cab29d50df}{StrCat}}(}
+\DoxyCodeLine{00534\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ad8b6a3542e085c65d0ef53f44d074fb6}{strings\_internal::EnableIfFastCase<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}})\ \{}
+\DoxyCodeLine{00535\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ae26f2efab362406d662b1640cecd2a40}{strings\_internal::SingleArgStrCat}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}});}
+\DoxyCodeLine{00536\ \}}
+\DoxyCodeLine{00537\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_a0a9abdb6ee6367339931d4cab29d50df}{StrCat}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}})\ \{}
+\DoxyCodeLine{00538\ \ \ \textcolor{keywordflow}{return}\ std::string(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.data(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.size());}
+\DoxyCodeLine{00539\ \}}
+\DoxyCodeLine{00540\ }
+\DoxyCodeLine{00541\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ std::string\ \mbox{\hyperlink{namespaceabsl_a0a9abdb6ee6367339931d4cab29d50df}{StrCat}}(\textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00542\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ std::string\ \mbox{\hyperlink{namespaceabsl_a0a9abdb6ee6367339931d4cab29d50df}{StrCat}}(\textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},}
+\DoxyCodeLine{00543\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}});}
+\DoxyCodeLine{00544\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ std::string\ \mbox{\hyperlink{namespaceabsl_a0a9abdb6ee6367339931d4cab29d50df}{StrCat}}(\textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},}
+\DoxyCodeLine{00545\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}});}
+\DoxyCodeLine{00546\ }
+\DoxyCodeLine{00547\ \textcolor{comment}{//\ Support\ 5\ or\ more\ arguments}}
+\DoxyCodeLine{00548\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ AV>}
+\DoxyCodeLine{00549\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ \textcolor{keyword}{inline}\ std::string\ \mbox{\hyperlink{namespaceabsl_a0a9abdb6ee6367339931d4cab29d50df}{StrCat}}(}
+\DoxyCodeLine{00550\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}},}
+\DoxyCodeLine{00551\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}},\ \textcolor{keyword}{const}\ AV\&...\ args)\ \{}
+\DoxyCodeLine{00552\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ab4d640d2a7cf91e3b63f84a330f01ced}{strings\_internal::CatPieces}}(}
+\DoxyCodeLine{00553\ \ \ \ \ \ \ \{\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.Piece(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.Piece(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}}.Piece(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}}.Piece(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}}.Piece(),}
+\DoxyCodeLine{00554\ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keyword}{const\ }\mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\textcolor{keyword}{>}(args).Piece()...\});}
+\DoxyCodeLine{00555\ \}}
+\DoxyCodeLine{00556\ }
+\DoxyCodeLine{00557\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00558\ \textcolor{comment}{//\ StrAppend()}}
+\DoxyCodeLine{00559\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00560\ \textcolor{comment}{//}}
+\DoxyCodeLine{00561\ \textcolor{comment}{//\ Appends\ a\ string\ or\ set\ of\ strings\ to\ an\ existing\ string,\ in\ a\ similar}}
+\DoxyCodeLine{00562\ \textcolor{comment}{//\ fashion\ to\ \`{}StrCat()`.}}
+\DoxyCodeLine{00563\ \textcolor{comment}{//}}
+\DoxyCodeLine{00564\ \textcolor{comment}{//\ WARNING:\ \`{}StrAppend(\&str,\ a,\ b,\ c,\ ...)`\ requires\ that\ none\ of\ the}}
+\DoxyCodeLine{00565\ \textcolor{comment}{//\ a,\ b,\ c,\ parameters\ be\ a\ reference\ into\ str.\ For\ speed,\ \`{}StrAppend()`\ does}}
+\DoxyCodeLine{00566\ \textcolor{comment}{//\ not\ try\ to\ check\ each\ of\ its\ input\ arguments\ to\ be\ sure\ that\ they\ are\ not}}
+\DoxyCodeLine{00567\ \textcolor{comment}{//\ a\ subset\ of\ the\ string\ being\ appended\ to.\ That\ is,\ while\ this\ will\ work:}}
+\DoxyCodeLine{00568\ \textcolor{comment}{//}}
+\DoxyCodeLine{00569\ \textcolor{comment}{//\ \ \ std::string\ s\ =\ "{}foo"{};}}
+\DoxyCodeLine{00570\ \textcolor{comment}{//\ \ \ s\ +=\ s;}}
+\DoxyCodeLine{00571\ \textcolor{comment}{//}}
+\DoxyCodeLine{00572\ \textcolor{comment}{//\ This\ output\ is\ undefined:}}
+\DoxyCodeLine{00573\ \textcolor{comment}{//}}
+\DoxyCodeLine{00574\ \textcolor{comment}{//\ \ \ std::string\ s\ =\ "{}foo"{};}}
+\DoxyCodeLine{00575\ \textcolor{comment}{//\ \ \ StrAppend(\&s,\ s);}}
+\DoxyCodeLine{00576\ \textcolor{comment}{//}}
+\DoxyCodeLine{00577\ \textcolor{comment}{//\ This\ output\ is\ undefined\ as\ well,\ since\ \`{}absl::string\_view`\ does\ not\ own\ its}}
+\DoxyCodeLine{00578\ \textcolor{comment}{//\ data:}}
+\DoxyCodeLine{00579\ \textcolor{comment}{//}}
+\DoxyCodeLine{00580\ \textcolor{comment}{//\ \ \ std::string\ s\ =\ "{}foobar"{};}}
+\DoxyCodeLine{00581\ \textcolor{comment}{//\ \ \ absl::string\_view\ p\ =\ s;}}
+\DoxyCodeLine{00582\ \textcolor{comment}{//\ \ \ StrAppend(\&s,\ p);}}
+\DoxyCodeLine{00583\ }
+\DoxyCodeLine{00584\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{StrAppend}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::string*>}})\ \{\}}
+\DoxyCodeLine{00585\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{StrAppend}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::string*>}}\ dest,\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}});}
+\DoxyCodeLine{00586\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{StrAppend}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::string*>}}\ dest,\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00587\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00588\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{StrAppend}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::string*>}}\ dest,\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00589\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}});}
+\DoxyCodeLine{00590\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{StrAppend}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::string*>}}\ dest,\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00591\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ \textcolor{keyword}{const}\ AlphaNum\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}});}
+\DoxyCodeLine{00592\ }
+\DoxyCodeLine{00593\ \textcolor{comment}{//\ Support\ 5\ or\ more\ arguments}}
+\DoxyCodeLine{00594\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ AV>}
+\DoxyCodeLine{00595\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{StrAppend}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::string*>}}\ dest,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00596\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}},}
+\DoxyCodeLine{00597\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}},\ \textcolor{keyword}{const}\ AV\&...\ args)\ \{}
+\DoxyCodeLine{00598\ \ \ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ab8966c5ce36251e9d8fa23aa720b9fe3}{strings\_internal::AppendPieces}}(}
+\DoxyCodeLine{00599\ \ \ \ \ \ \ dest,\ \{\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.Piece(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.Piece(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}}.Piece(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}}.Piece(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acae1671797c52e15f763380b45e841ec32}{e}}.Piece(),}
+\DoxyCodeLine{00600\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keyword}{const\ }\mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\textcolor{keyword}{>}(args).Piece()...\});}
+\DoxyCodeLine{00601\ \}}
+\DoxyCodeLine{00602\ }
+\DoxyCodeLine{00603\ \textcolor{comment}{//\ Helper\ function\ for\ the\ future\ StrCat\ default\ floating-\/point\ format,\ \%.6g}}
+\DoxyCodeLine{00604\ \textcolor{comment}{//\ This\ is\ fast.}}
+\DoxyCodeLine{00605\ \textcolor{keyword}{inline}\ strings\_internal::AlphaNumBuffer<}
+\DoxyCodeLine{00606\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1numbers__internal_aa708f77563fcef442d3b0049e3aa20f1}{numbers\_internal::kSixDigitsToBufferSize}}>}
+\DoxyCodeLine{00607\ \mbox{\hyperlink{namespaceabsl_af876c82258e97c3d7d2d1054a833b00c}{SixDigits}}(\textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}})\ \{}
+\DoxyCodeLine{00608\ \ \ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumBuffer}{strings\_internal::AlphaNumBuffer<numbers\_internal::kSixDigitsToBufferSize>}}}
+\DoxyCodeLine{00609\ \ \ \ \ \ \ result;}
+\DoxyCodeLine{00610\ \ \ result.\mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumBuffer_af8179c68eac02cd5a79b1e79735c6597}{size}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1numbers__internal_a90978030a6df50d9e4c9c49fc2381e1a}{numbers\_internal::SixDigitsToBuffer}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}},\ \&result.\mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumBuffer_ad0ac32f8c9e09c781e6d1442920dadad}{data}}[0]);}
+\DoxyCodeLine{00611\ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00612\ \}}
+\DoxyCodeLine{00613\ }
+\DoxyCodeLine{00614\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00615\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00616\ }
+\DoxyCodeLine{00617\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_STR\_CAT\_H\_}}
+
+\end{DoxyCode}

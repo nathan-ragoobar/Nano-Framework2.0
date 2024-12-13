@@ -1,0 +1,213 @@
+\doxysection{hash\+\_\+policy\+\_\+traits.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2hash__policy__traits_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2hash__policy__traits_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/container/internal/hash\_policy\_traits.h@{OriginalStuff/abseil-\/cpp/absl/container/internal/hash\_policy\_traits.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2hash__policy__traits_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CONTAINER\_INTERNAL\_HASH\_POLICY\_TRAITS\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_CONTAINER\_INTERNAL\_HASH\_POLICY\_TRAITS\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <new>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/container/internal/common\_policy\_traits.h"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00028\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00029\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ Defines\ how\ slots\ are\ initialized/destroyed/moved.}}
+\DoxyCodeLine{00032\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Policy,\ \textcolor{keyword}{class}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00033\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits}{hash\_policy\_traits}}\ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1common__policy__traits}{common\_policy\_traits}}<Policy>\ \{}
+\DoxyCodeLine{00034\ \ \ \textcolor{comment}{//\ The\ type\ of\ the\ keys\ stored\ in\ the\ hashtable.}}
+\DoxyCodeLine{00035\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_a89d582cffaf6d52f41eb4000aa592a86}{key\_type}}\ =\ \textcolor{keyword}{typename}\ Policy::key\_type;}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00038\ \ \ \textcolor{keyword}{struct\ }ReturnKey\ \{}
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{comment}{//\ When\ C++17\ is\ available,\ we\ can\ use\ std::launder\ to\ provide\ mutable}}
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{comment}{//\ access\ to\ the\ key\ for\ use\ in\ node\ handle.}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#if\ defined(\_\_cpp\_lib\_launder)\ \&\&\ \_\_cpp\_lib\_launder\ >=\ 201606}}
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Key,}
+\DoxyCodeLine{00043\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t<std::is\_lvalue\_reference<Key>::value}},\ \textcolor{keywordtype}{int}>\ =\ 0>}
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_a89d582cffaf6d52f41eb4000aa592a86}{key\_type}}\&\ Impl(Key\&\&\ k,\ \textcolor{keywordtype}{int})\ \{}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *std::launder(}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const\_cast<}\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_a89d582cffaf6d52f41eb4000aa592a86}{key\_type}}*\textcolor{keyword}{>}(std::addressof(std::forward<Key>(k))));}
+\DoxyCodeLine{00047\ \ \ \ \ \}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Key>}
+\DoxyCodeLine{00051\ \ \ \ \ \textcolor{keyword}{static}\ Key\ Impl(Key\&\&\ k,\ \textcolor{keywordtype}{char})\ \{}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ std::forward<Key>(k);}
+\DoxyCodeLine{00053\ \ \ \ \ \}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{comment}{//\ When\ Key=T\&,\ we\ forward\ the\ lvalue\ reference.}}
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{comment}{//\ When\ Key=T,\ we\ return\ by\ value\ to\ avoid\ a\ dangling\ reference.}}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{comment}{//\ eg,\ for\ string\_hash\_map.}}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Key,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keyword}{auto}\ operator()(Key\&\&\ k,\ \textcolor{keyword}{const}\ Args\&...)\ \textcolor{keyword}{const}}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ -\/>\ \textcolor{keyword}{decltype}(Impl(std::forward<Key>(k),\ 0))\ \{}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Impl(std::forward<Key>(k),\ 0);}
+\DoxyCodeLine{00062\ \ \ \ \ \}}
+\DoxyCodeLine{00063\ \ \ \};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P\ =\ Policy,\ \textcolor{keyword}{class}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00066\ \ \ \textcolor{keyword}{struct\ }ConstantIteratorsImpl\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P>}
+\DoxyCodeLine{00069\ \ \ \textcolor{keyword}{struct\ }ConstantIteratorsImpl<P,\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}<typename\ P::constant\_iterators>>}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ :\ P::constant\_iterators\ \{\};}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ The\ actual\ object\ stored\ in\ the\ hash\ table.}}
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_afcfc9aa6619a2a6502cd0abc57daabb2}{slot\_type}}\ =\ \textcolor{keyword}{typename}\ Policy::slot\_type;}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ The\ argument\ type\ for\ insertions\ into\ the\ hashtable.\ This\ is\ different}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ from\ value\_type\ for\ increased\ performance.\ See\ initializer\_list\ constructor}}
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ and\ insert()\ member\ functions\ for\ more\ details.}}
+\DoxyCodeLine{00079\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_a739f13535a447283bd69f2c908e4e1e5}{init\_type}}\ =\ \textcolor{keyword}{typename}\ Policy::init\_type;}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_a414d54d3262f75764c7e0c9332e8bd2b}{reference}}\ =\ \textcolor{keyword}{decltype}(Policy::element(std::declval<slot\_type*>()));}
+\DoxyCodeLine{00082\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_a468a34e5cf49ec11ccd4a9e1d2705f7c}{pointer}}\ =\ \textcolor{keyword}{typename}\ std::remove\_reference<reference>::type*;}
+\DoxyCodeLine{00083\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_aabefca84b3df6a9235d7b7c430bf7ed5}{value\_type}}\ =\ \textcolor{keyword}{typename}\ std::remove\_reference<reference>::type;}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \ \ \textcolor{comment}{//\ Policies\ can\ set\ this\ variable\ to\ tell\ raw\_hash\_set\ that\ all\ iterators}}
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//\ should\ be\ constant,\ even\ \`{}iterator`.\ This\ is\ useful\ for\ set-\/like}}
+\DoxyCodeLine{00087\ \ \ \textcolor{comment}{//\ containers.}}
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ Defaults\ to\ false\ if\ not\ provided\ by\ the\ policy.}}
+\DoxyCodeLine{00089\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_aa1625c0f1cbe866342d08734ace17dec}{constant\_iterators}}\ =\ ConstantIteratorsImpl<>;}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ Returns\ the\ amount\ of\ memory\ owned\ by\ \`{}slot`,\ exclusive\ of\ \`{}sizeof(*slot)`.}}
+\DoxyCodeLine{00092\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00093\ \ \ \textcolor{comment}{//\ If\ \`{}slot`\ is\ nullptr,\ returns\ the\ constant\ amount\ of\ memory\ owned\ by\ any}}
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//\ full\ slot\ or\ -\/1\ if\ slots\ own\ variable\ amounts\ of\ memory.}}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//\ PRECONDITION:\ \`{}slot`\ is\ INITIALIZED\ or\ nullptr}}
+\DoxyCodeLine{00097\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P\ =\ Policy>}
+\DoxyCodeLine{00098\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_a3f094e2a33b21df9d791723dc8f276ab}{space\_used}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_afcfc9aa6619a2a6502cd0abc57daabb2}{slot\_type}}*\ slot)\ \{}
+\DoxyCodeLine{00099\ \ \ \ \ \textcolor{keywordflow}{return}\ P::space\_used(slot);}
+\DoxyCodeLine{00100\ \ \ \}}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ Provides\ generalized\ access\ to\ the\ key\ for\ elements,\ both\ for\ elements\ in}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ the\ table\ and\ for\ elements\ that\ have\ not\ yet\ been\ inserted\ (or\ even}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ constructed).\ \ We\ would\ like\ an\ API\ that\ allows\ us\ to\ say:\ \`{}key(args...)`}}
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ but\ we\ cannot\ do\ that\ for\ all\ cases,\ so\ we\ use\ this\ more\ general\ API\ that}}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ can\ be\ used\ for\ many\ things,\ including\ the\ following:}}
+\DoxyCodeLine{00107\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//\ \ \ -\/\ Given\ an\ element\ in\ a\ table,\ get\ its\ key.}}
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ \ \ -\/\ Given\ an\ element\ initializer,\ get\ its\ key.}}
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ \ \ -\/\ Given\ \`{}emplace()`\ arguments,\ get\ the\ element\ key.}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//\ Implementations\ of\ this\ must\ adhere\ to\ a\ very\ strict\ technical}}
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ specification\ around\ aliasing\ and\ consuming\ arguments:}}
+\DoxyCodeLine{00114\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//\ Let\ \`{}value\_type`\ be\ the\ result\ type\ of\ \`{}element()`\ without\ ref-\/\ and}}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ cv-\/qualifiers.\ The\ first\ argument\ is\ a\ functor,\ the\ rest\ are\ constructor}}
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//\ arguments\ for\ \`{}value\_type`.\ Returns\ \`{}std::forward<F>(f)(k,\ xs...)`,\ where}}
+\DoxyCodeLine{00118\ \ \ \textcolor{comment}{//\ \`{}k`\ is\ the\ element\ key,\ and\ \`{}xs...`\ are\ the\ new\ constructor\ arguments\ for}}
+\DoxyCodeLine{00119\ \ \ \textcolor{comment}{//\ \`{}value\_type`.\ It's\ allowed\ for\ \`{}k`\ to\ alias\ \`{}xs...`,\ and\ for\ both\ to\ alias}}
+\DoxyCodeLine{00120\ \ \ \textcolor{comment}{//\ \`{}ts...`.\ The\ key\ won't\ be\ touched\ once\ \`{}xs...`\ are\ used\ to\ construct\ an}}
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//\ element;\ \`{}ts...`\ won't\ be\ touched\ at\ all,\ which\ allows\ \`{}apply()`\ to\ consume}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//\ any\ rvalues\ among\ them.}}
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00124\ \ \ \textcolor{comment}{//\ If\ \`{}value\_type`\ is\ constructible\ from\ \`{}Ts\&\&...`,\ \`{}Policy::apply()`\ must\ not}}
+\DoxyCodeLine{00125\ \ \ \textcolor{comment}{//\ trigger\ a\ hard\ compile\ error\ unless\ it\ originates\ from\ \`{}f`.\ In\ other\ words,}}
+\DoxyCodeLine{00126\ \ \ \textcolor{comment}{//\ \`{}Policy::apply()`\ must\ be\ SFINAE-\/friendly.\ If\ \`{}value\_type`\ is\ not}}
+\DoxyCodeLine{00127\ \ \ \textcolor{comment}{//\ constructible\ from\ \`{}Ts\&\&...`,\ either\ SFINAE\ or\ a\ hard\ compile\ error\ is\ OK.}}
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ If\ \`{}Ts...`\ is\ \`{}[cv]\ value\_type[\&]`\ or\ \`{}[cv]\ init\_type[\&]`,}}
+\DoxyCodeLine{00130\ \ \ \textcolor{comment}{//\ \`{}Policy::apply()`\ must\ work.\ A\ compile\ error\ is\ not\ allowed,\ SFINAE\ or\ not.}}
+\DoxyCodeLine{00131\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ \textcolor{keyword}{class}...\ Ts,\ \textcolor{keyword}{class\ }P\ =\ Policy>}
+\DoxyCodeLine{00132\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_acc8bd50ba75e668837b9a269831e84a6}{apply}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}}\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ Ts\&\&...\ ts)}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ -\/>\ \textcolor{keyword}{decltype}(P::apply(std::forward<F>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}),\ std::forward<Ts>(ts)...))\ \{}
+\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keywordflow}{return}\ P::apply(std::forward<F>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}),\ std::forward<Ts>(ts)...);}
+\DoxyCodeLine{00135\ \ \ \}}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00137\ \ \ \textcolor{comment}{//\ Returns\ the\ "{}key"{}\ portion\ of\ the\ slot.}}
+\DoxyCodeLine{00138\ \ \ \textcolor{comment}{//\ Used\ for\ node\ handle\ manipulation.}}
+\DoxyCodeLine{00139\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P\ =\ Policy>}
+\DoxyCodeLine{00140\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_ac1144456c09d0c749e5f6c3da4810900}{mutable\_key}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_afcfc9aa6619a2a6502cd0abc57daabb2}{slot\_type}}*\ slot)}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ -\/>\ \textcolor{keyword}{decltype}(P::apply(ReturnKey(),\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1common__policy__traits_aadb9e52b5647d62d21e4836a89eb5934}{hash\_policy\_traits::element}}(slot)))\ \{}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keywordflow}{return}\ P::apply(ReturnKey(),\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1common__policy__traits_aadb9e52b5647d62d21e4836a89eb5934}{hash\_policy\_traits::element}}(slot));}
+\DoxyCodeLine{00143\ \ \ \}}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \ \ \textcolor{comment}{//\ Returns\ the\ "{}value"{}\ (as\ opposed\ to\ the\ "{}key"{})\ portion\ of\ the\ element.\ Used}}
+\DoxyCodeLine{00146\ \ \ \textcolor{comment}{//\ by\ maps\ to\ implement\ \`{}operator[]`,\ \`{}at()`\ and\ \`{}insert\_or\_assign()`.}}
+\DoxyCodeLine{00147\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ P\ =\ Policy>}
+\DoxyCodeLine{00148\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_a2c3d9b23babbf7d522ea8fcb97c46ae3}{value}}(T*\ elem)\ -\/>\ \textcolor{keyword}{decltype}(P::value(elem))\ \{}
+\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keywordflow}{return}\ P::value(elem);}
+\DoxyCodeLine{00150\ \ \ \}}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_af43403b3a7498b774c3ee46c850d1ec1}{HashSlotFn}}\ =\ size\_t\ (*)(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ hash\_fn,\ \textcolor{keywordtype}{void}*\ slot);}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Hash>}
+\DoxyCodeLine{00155\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_a444f3b152a8d36490f492ba6a38be2a8}{HashSlotFn}}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_aa07bf0d67ac88e9358b27f29d5528d83}{get\_hash\_slot\_fn}}()\ \{}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ get\_hash\_slot\_fn\ may\ return\ nullptr\ to\ signal\ that\ non\ type\ erased\ function}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//\ should\ be\ used.\ GCC\ warns\ against\ comparing\ function\ address\ with\ nullptr.}}
+\DoxyCodeLine{00158\ \textcolor{preprocessor}{\#if\ defined(\_\_GNUC\_\_)\ \&\&\ !defined(\_\_clang\_\_)}}
+\DoxyCodeLine{00159\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ push}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ silent\ error:\ the\ address\ of\ *\ will\ never\ be\ NULL\ [-\/Werror=address]}}
+\DoxyCodeLine{00161\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ ignored\ "{}-\/Waddress"{}}}
+\DoxyCodeLine{00162\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keywordflow}{return}\ Policy::template\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_aa07bf0d67ac88e9358b27f29d5528d83}{get\_hash\_slot\_fn<Hash>}}()\ ==\ \textcolor{keyword}{nullptr}}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ \&hash\_slot\_fn\_non\_type\_erased<Hash>}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ Policy::template\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_aa07bf0d67ac88e9358b27f29d5528d83}{get\_hash\_slot\_fn<Hash>}}();}
+\DoxyCodeLine{00166\ \textcolor{preprocessor}{\#if\ defined(\_\_GNUC\_\_)\ \&\&\ !defined(\_\_clang\_\_)}}
+\DoxyCodeLine{00167\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ pop}}
+\DoxyCodeLine{00168\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00169\ \ \ \}}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \ \ \textcolor{comment}{//\ Whether\ small\ object\ optimization\ is\ enabled.\ True\ by\ default.}}
+\DoxyCodeLine{00172\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_ab37ccb1eb4142f8002f20b0d6728ee02}{soo\_enabled}}()\ \{\ \textcolor{keywordflow}{return}\ soo\_enabled\_impl(Rank1\{\});\ \}}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00175\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Hash>}
+\DoxyCodeLine{00176\ \ \ \textcolor{keyword}{struct\ }HashElement\ \{}
+\DoxyCodeLine{00177\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }K,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00178\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ operator()(\textcolor{keyword}{const}\ K\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a35af0be900467fedbb610bd6ea65ed78}{key}},\ Args\&\&...)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ h(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a35af0be900467fedbb610bd6ea65ed78}{key}});}
+\DoxyCodeLine{00180\ \ \ \ \ \}}
+\DoxyCodeLine{00181\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1hash__internal_1_1Hash}{Hash}}\&\ h;}
+\DoxyCodeLine{00182\ \ \ \};}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Hash>}
+\DoxyCodeLine{00185\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{size\_t}\ hash\_slot\_fn\_non\_type\_erased(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ hash\_fn,\ \textcolor{keywordtype}{void}*\ slot)\ \{}
+\DoxyCodeLine{00186\ \ \ \ \ \textcolor{keywordflow}{return}\ Policy::apply(HashElement<Hash>\{*\textcolor{keyword}{static\_cast<}\textcolor{keyword}{const\ }\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2hash__function__defaults__test_8cc_a86b49a5b68c9a0e829d44647a771f651}{Hash}}*\textcolor{keyword}{>}(hash\_fn)\},}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Policy::element(\textcolor{keyword}{static\_cast<}\mbox{\hyperlink{structabsl_1_1container__internal_1_1hash__policy__traits_afcfc9aa6619a2a6502cd0abc57daabb2}{slot\_type}}*\textcolor{keyword}{>}(slot)));}
+\DoxyCodeLine{00188\ \ \ \}}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00190\ \ \ \textcolor{comment}{//\ Use\ go/ranked-\/overloads\ for\ dispatching.\ Rank1\ is\ preferred.}}
+\DoxyCodeLine{00191\ \ \ \textcolor{keyword}{struct\ }Rank0\ \{\};}
+\DoxyCodeLine{00192\ \ \ \textcolor{keyword}{struct\ }Rank1\ :\ Rank0\ \{\};}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \ \ \textcolor{comment}{//\ Use\ auto\ -\/>\ decltype\ as\ an\ enabler.}}
+\DoxyCodeLine{00195\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ P\ =\ Policy>}
+\DoxyCodeLine{00196\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{auto}\ soo\_enabled\_impl(Rank1)\ -\/>\ \textcolor{keyword}{decltype}(P::soo\_enabled())\ \{}
+\DoxyCodeLine{00197\ \ \ \ \ \textcolor{keywordflow}{return}\ P::soo\_enabled();}
+\DoxyCodeLine{00198\ \ \ \}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ soo\_enabled\_impl(Rank0)\ \{\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};\ \}}
+\DoxyCodeLine{00201\ \};}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00204\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00205\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CONTAINER\_INTERNAL\_HASH\_POLICY\_TRAITS\_H\_}}
+
+\end{DoxyCode}

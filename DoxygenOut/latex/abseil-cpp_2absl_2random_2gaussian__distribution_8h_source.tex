@@ -1,0 +1,281 @@
+\doxysection{gaussian\+\_\+distribution.\+h}
+\hypertarget{abseil-cpp_2absl_2random_2gaussian__distribution_8h_source}{}\label{abseil-cpp_2absl_2random_2gaussian__distribution_8h_source}\index{abseil-\/cpp/absl/random/gaussian\_distribution.h@{abseil-\/cpp/absl/random/gaussian\_distribution.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2random_2gaussian__distribution_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_RANDOM\_GAUSSIAN\_DISTRIBUTION\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_RANDOM\_GAUSSIAN\_DISTRIBUTION\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ absl::gaussian\_distribution\ implements\ the\ Ziggurat\ algorithm}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ for\ generating\ random\ gaussian\ numbers.}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ Implementation\ based\ on\ "{}The\ Ziggurat\ Method\ for\ Generating\ Random\ Variables"{}}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ by\ George\ Marsaglia\ and\ Wai\ Wan\ Tsang:\ http://www.jstatsoft.org/v05/i08/}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <cmath>}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <istream>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}absl/random/internal/fast\_uniform\_bits.h"{}}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ "{}absl/random/internal/generate\_real.h"{}}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/random/internal/iostream\_state\_saver.h"{}}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00037\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00038\ \textcolor{keyword}{namespace\ }random\_internal\ \{}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ absl::gaussian\_distribution\_base\ implements\ the\ underlying\ ziggurat\ algorithm}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ using\ the\ ziggurat\ tables\ generated\ by\ the\ gaussian\_distribution\_gentables}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ binary.}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ The\ specific\ algorithm\ has\ some\ of\ the\ improvements\ suggested\ by\ the}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ 2005\ paper,\ "{}An\ Improved\ Ziggurat\ Method\ to\ Generate\ Normal\ Random\ Samples"{},}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ Jurgen\ A\ Doornik.\ \ (https://www.doornik.com/research/ziggurat.pdf)}}
+\DoxyCodeLine{00047\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a806e23ebe4fd3a16cd6d752dc7931c77}{ABSL\_DLL}}\ gaussian\_distribution\_base\ \{}
+\DoxyCodeLine{00048\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00049\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ URBG>}
+\DoxyCodeLine{00050\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{double}\ zignor(URBG\&\ g);\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00053\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1random__internal_1_1TableGenerator}{TableGenerator}};}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ URBG>}
+\DoxyCodeLine{00056\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{double}\ zignor\_fallback(URBG\&\ g,\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ neg);}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \ \ \textcolor{comment}{//\ Constants\ used\ for\ the\ gaussian\ distribution.}}
+\DoxyCodeLine{00060\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ kR\ =\ 3.442619855899;\ \ \textcolor{comment}{//\ Start\ of\ the\ tail.}}
+\DoxyCodeLine{00061\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ kRInv\ =\ 0.29047645161474317;\ \ \textcolor{comment}{//\ \string~=\ (1.0\ /\ kR)\ .}}
+\DoxyCodeLine{00062\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ kV\ =\ 9.91256303526217e-\/3;}
+\DoxyCodeLine{00063\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ uint64\_t\ kMask\ =\ 0x07f;}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \ \ \textcolor{comment}{//\ The\ ziggurat\ tables\ store\ the\ pdf(f)\ and\ inverse-\/pdf(x)\ for\ equal-\/area}}
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ points\ on\ one-\/half\ of\ the\ normal\ distribution,\ where\ the\ pdf\ function,}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ pdf\ =\ e\ \string^\ (-\/1/2\ *x\string^2),\ assumes\ that\ the\ mean\ =\ 0\ \&\ stddev\ =\ 1.}}
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ These\ tables\ are\ just\ over\ 2kb\ in\ size;\ larger\ tables\ might\ improve\ the}}
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//\ distributions,\ but\ also\ lead\ to\ more\ cache\ pollution.}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ x\ =\ \{3.71308,\ 3.44261,\ 3.22308,\ ...,\ 0\}}}
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ f\ =\ \{0.00101,\ 0.00266,\ 0.00554,\ ...,\ 1\}}}
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{struct\ }Tables\ \{}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keywordtype}{double}\ x[kMask\ +\ 2];}
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}[kMask\ +\ 2];}
+\DoxyCodeLine{00077\ \ \ \};}
+\DoxyCodeLine{00078\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ Tables\ zg\_;}
+\DoxyCodeLine{00079\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1FastUniformBits}{random\_internal::FastUniformBits<uint64\_t>}}\ fast\_u64\_;}
+\DoxyCodeLine{00080\ \};}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \}\ \ \textcolor{comment}{//\ namespace\ random\_internal}}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ absl::gaussian\_distribution:}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ Generates\ a\ number\ conforming\ to\ a\ Gaussian\ distribution.}}
+\DoxyCodeLine{00086\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ RealType\ =\ \textcolor{keywordtype}{double}>}
+\DoxyCodeLine{00087\ \textcolor{keyword}{class\ }gaussian\_distribution\ :\ random\_internal::gaussian\_distribution\_base\ \{}
+\DoxyCodeLine{00088\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00089\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ =\ RealType;}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{param\_type}}\ \{}
+\DoxyCodeLine{00092\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1gaussian__distribution}{distribution\_type}}\ =\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a0b803435a39ecbc32edbd4b64aee5ce2}{gaussian\_distribution}};}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a5e365d57508584d7b9b917c4069558a2}{param\_type}}(\mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a35c7e2225a8ffa70b22d6eef4ed3f6fa}{mean}}\ =\ 0,\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a246571b4c13a5ad79470964805d51b13}{stddev}}\ =\ 1)}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ :\ mean\_(\mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a35c7e2225a8ffa70b22d6eef4ed3f6fa}{mean}}),\ stddev\_(\mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a246571b4c13a5ad79470964805d51b13}{stddev}})\ \{\}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{comment}{//\ Returns\ the\ mean\ distribution\ parameter.\ \ The\ mean\ specifies\ the\ location}}
+\DoxyCodeLine{00099\ \ \ \ \ \textcolor{comment}{//\ of\ the\ peak.\ \ The\ default\ value\ is\ 0.0.}}
+\DoxyCodeLine{00100\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a35c7e2225a8ffa70b22d6eef4ed3f6fa}{mean}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ mean\_;\ \}}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{comment}{//\ Returns\ the\ deviation\ distribution\ parameter.\ \ The\ default\ value\ is\ 1.0.}}
+\DoxyCodeLine{00103\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a246571b4c13a5ad79470964805d51b13}{stddev}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ stddev\_;\ \}}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a5083e602a560a166abe0e60a0b2f8772}{operator==}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{param\_type}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{param\_type}}\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.mean\_\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.mean\_\ \&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.stddev\_\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.stddev\_;}
+\DoxyCodeLine{00107\ \ \ \ \ \}}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_add50e50ecb26b39f5b97dd98c3229f16}{operator!=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{param\_type}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{param\_type}}\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00111\ \ \ \ \ \}}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00114\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ mean\_;}
+\DoxyCodeLine{00115\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ stddev\_;}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{keyword}{static\_assert}(}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ \ \ std::is\_floating\_point<RealType>::value,}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Class-\/template\ absl::gaussian\_distribution<>\ must\ be\ parameterized\ "{}}}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}using\ a\ floating-\/point\ type."{}});}
+\DoxyCodeLine{00121\ \ \ \};}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a0b803435a39ecbc32edbd4b64aee5ce2}{gaussian\_distribution}}()\ :\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution}{gaussian\_distribution}}(0)\ \{\}}
+\DoxyCodeLine{00124\ }
+\DoxyCodeLine{00125\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a2e6ac2ad099de400e5b5413bea52d5d7}{gaussian\_distribution}}(\mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a384012f0cb2c73a4ab633b52e3e0d623}{mean}},\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a9c0ccc383dd0647771172ee5ca523130}{stddev}}\ =\ 1)}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ :\ param\_(\mbox{\hyperlink{classabsl_1_1gaussian__distribution_a384012f0cb2c73a4ab633b52e3e0d623}{mean}},\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a9c0ccc383dd0647771172ee5ca523130}{stddev}})\ \{\}}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a31f7631336bcb32a95330fa4cd2b27a2}{gaussian\_distribution}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{param\_type}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ :\ param\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \{\}}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a0eeca27ee347bed1e27672bf8ef66b92}{reset}}()\ \{\}}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ Generating\ functions}}
+\DoxyCodeLine{00133\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ URBG>}
+\DoxyCodeLine{00134\ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_abf3d7859dfc4ef952a54e60a1fb594a6}{operator()}}(URBG\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}})\ \{\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordflow}{return}\ (*\textcolor{keyword}{this})(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}},\ param\_);}
+\DoxyCodeLine{00136\ \ \ \}}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ URBG>}
+\DoxyCodeLine{00139\ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_abf3d7859dfc4ef952a54e60a1fb594a6}{operator()}}(URBG\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}},\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ param\_type\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}});}
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00142\ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{param\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_afa1b026db0dce2965bc92d3f8081a019}{param}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ param\_;\ \}}
+\DoxyCodeLine{00143\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_ac874527d23441a56f01f9e112c4a7b64}{param}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{param\_type}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \{\ param\_\ =\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}};\ \}}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}(\mbox{\hyperlink{classabsl_1_1gaussian__distribution_a9c10140989876b00d6c1264d04fcf20e}{min}})()\ \textcolor{keyword}{const}\ \{}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keywordflow}{return}\ -\/std::numeric\_limits<result\_type>::infinity();}
+\DoxyCodeLine{00147\ \ \ \}}
+\DoxyCodeLine{00148\ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}(\mbox{\hyperlink{classabsl_1_1gaussian__distribution_a1a2ee96f99fc0954a3d3374a2a88449e}{max}})()\ \textcolor{keyword}{const}\ \{}
+\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keywordflow}{return}\ std::numeric\_limits<result\_type>::infinity();}
+\DoxyCodeLine{00150\ \ \ \}}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a384012f0cb2c73a4ab633b52e3e0d623}{mean}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ param\_.\mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a35c7e2225a8ffa70b22d6eef4ed3f6fa}{mean}}();\ \}}
+\DoxyCodeLine{00153\ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a9c0ccc383dd0647771172ee5ca523130}{stddev}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ param\_.\mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type_a246571b4c13a5ad79470964805d51b13}{stddev}}();\ \}}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_ab32888f445914a44d9138853951dd669}{operator==}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution}{gaussian\_distribution}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution}{gaussian\_distribution}}\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.param\_\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.param\_;}
+\DoxyCodeLine{00158\ \ \ \}}
+\DoxyCodeLine{00159\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_ac669650244a8bad7c80733b120ddfd34}{operator!=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution}{gaussian\_distribution}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution}{gaussian\_distribution}}\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.param\_\ !=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.param\_;}
+\DoxyCodeLine{00162\ \ \ \}}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00165\ \ \ param\_type\ param\_;}
+\DoxyCodeLine{00166\ \};}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00169\ \textcolor{comment}{//\ Implementation\ details\ only\ below}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00172\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ RealType>}
+\DoxyCodeLine{00173\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ URBG>}
+\DoxyCodeLine{00174\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{gaussian\_distribution<RealType>::result\_type}}}
+\DoxyCodeLine{00175\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_abf3d7859dfc4ef952a54e60a1fb594a6}{gaussian\_distribution<RealType>::operator()}}(}
+\DoxyCodeLine{00176\ \ \ \ \ URBG\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}},\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00177\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{param\_type}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \{}
+\DoxyCodeLine{00178\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}.mean()\ +\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}.stddev()\ *\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{result\_type}}\textcolor{keyword}{>}(zignor(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}}));}
+\DoxyCodeLine{00179\ \}}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ CharT,\ \textcolor{keyword}{typename}\ Traits,\ \textcolor{keyword}{typename}\ RealType>}
+\DoxyCodeLine{00182\ std::basic\_ostream<CharT,\ Traits>\&\ \mbox{\hyperlink{namespaceabsl_a28a291a3fe339195acfaae93e38b9573}{operator<<}}(}
+\DoxyCodeLine{00183\ \ \ \ \ std::basic\_ostream<CharT,\ Traits>\&\ os,\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00184\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution}{gaussian\_distribution<RealType>}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{}
+\DoxyCodeLine{00185\ \ \ \textcolor{keyword}{auto}\ saver\ =\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a04da1d5318d386d8186b77635581772e}{random\_internal::make\_ostream\_state\_saver}}(os);}
+\DoxyCodeLine{00186\ \ \ os.precision(\mbox{\hyperlink{structabsl_1_1random__internal_1_1stream__precision__helper}{random\_internal::stream\_precision\_helper<RealType>::kPrecision}});}
+\DoxyCodeLine{00187\ \ \ os\ <<\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.mean()\ <<\ os.fill()\ <<\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.stddev();}
+\DoxyCodeLine{00188\ \ \ \textcolor{keywordflow}{return}\ os;}
+\DoxyCodeLine{00189\ \}}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ CharT,\ \textcolor{keyword}{typename}\ Traits,\ \textcolor{keyword}{typename}\ RealType>}
+\DoxyCodeLine{00192\ std::basic\_istream<CharT,\ Traits>\&\ \mbox{\hyperlink{namespaceabsl_ad018445b58659d6c0839df223a2ac3a5}{operator>>}}(}
+\DoxyCodeLine{00193\ \ \ \ \ std::basic\_istream<CharT,\ Traits>\&\ is,\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00194\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1gaussian__distribution}{gaussian\_distribution<RealType>}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ \{\ \ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00195\ \ \ \textcolor{keyword}{using\ }result\_type\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_a262a1295f2ceddecba9f57482c67a6d8}{gaussian\_distribution<RealType>::result\_type}};}
+\DoxyCodeLine{00196\ \ \ \textcolor{keyword}{using\ }param\_type\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classabsl_1_1gaussian__distribution_1_1param__type}{gaussian\_distribution<RealType>::param\_type}};}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{auto}\ saver\ =\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a8cbee2e68d48599a1d2fe727d31a4cc7}{random\_internal::make\_istream\_state\_saver}}(is);}
+\DoxyCodeLine{00199\ \ \ \textcolor{keyword}{auto}\ mean\ =\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a59f357f5be30c3730184c7336dc65bb2}{random\_internal::read\_floating\_point<result\_type>}}(is);}
+\DoxyCodeLine{00200\ \ \ \textcolor{keywordflow}{if}\ (is.fail())\ \textcolor{keywordflow}{return}\ is;}
+\DoxyCodeLine{00201\ \ \ \textcolor{keyword}{auto}\ stddev\ =\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a59f357f5be30c3730184c7336dc65bb2}{random\_internal::read\_floating\_point<result\_type>}}(is);}
+\DoxyCodeLine{00202\ \ \ \textcolor{keywordflow}{if}\ (!is.fail())\ \{}
+\DoxyCodeLine{00203\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.param(param\_type(mean,\ stddev));}
+\DoxyCodeLine{00204\ \ \ \}}
+\DoxyCodeLine{00205\ \ \ \textcolor{keywordflow}{return}\ is;}
+\DoxyCodeLine{00206\ \}}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \textcolor{keyword}{namespace\ }random\_internal\ \{}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ URBG>}
+\DoxyCodeLine{00211\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{double}\ gaussian\_distribution\_base::zignor\_fallback(URBG\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}},\ \textcolor{keywordtype}{bool}\ neg)\ \{}
+\DoxyCodeLine{00212\ \ \ \textcolor{keyword}{using\ }random\_internal::GeneratePositiveTag;}
+\DoxyCodeLine{00213\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1random__internal_a704a9d01eac231cfa29d24e63daaec37}{random\_internal::GenerateRealFromBits}};}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \ \ \textcolor{comment}{//\ This\ fallback\ path\ happens\ approximately\ 0.05\%\ of\ the\ time.}}
+\DoxyCodeLine{00216\ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ y;}
+\DoxyCodeLine{00217\ \ \ \textcolor{keywordflow}{do}\ \{}
+\DoxyCodeLine{00218\ \ \ \ \ \textcolor{comment}{//\ kRInv\ =\ 1/r,\ U(0,\ 1)}}
+\DoxyCodeLine{00219\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}\ =\ kRInv\ *}
+\DoxyCodeLine{00220\ \ \ \ \ \ \ \ \ std::log(GenerateRealFromBits<double,\ GeneratePositiveTag,\ false>(}
+\DoxyCodeLine{00221\ \ \ \ \ \ \ \ \ \ \ \ \ fast\_u64\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}})));}
+\DoxyCodeLine{00222\ \ \ \ \ y\ =\ -\/std::log(}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ \ \ GenerateRealFromBits<double,\ GeneratePositiveTag,\ false>(fast\_u64\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}})));}
+\DoxyCodeLine{00224\ \ \ \}\ \textcolor{keywordflow}{while}\ ((y\ +\ y)\ <\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}\ *\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}));}
+\DoxyCodeLine{00225\ \ \ \textcolor{keywordflow}{return}\ neg\ ?\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}\ -\/\ kR)\ :\ (kR\ -\/\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});}
+\DoxyCodeLine{00226\ \}}
+\DoxyCodeLine{00227\ }
+\DoxyCodeLine{00228\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ URBG>}
+\DoxyCodeLine{00229\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1gaussian__distribution__base_ab5adf2f68ac7dd4da14efea2f4412501}{gaussian\_distribution\_base::zignor}}(}
+\DoxyCodeLine{00230\ \ \ \ \ URBG\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}})\ \{\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00231\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1GeneratePositiveTag}{random\_internal::GeneratePositiveTag}};}
+\DoxyCodeLine{00232\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1random__internal_a704a9d01eac231cfa29d24e63daaec37}{random\_internal::GenerateRealFromBits}};}
+\DoxyCodeLine{00233\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1GenerateSignedTag}{random\_internal::GenerateSignedTag}};}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00235\ \ \ \textcolor{keywordflow}{while}\ (\textcolor{keyword}{true})\ \{}
+\DoxyCodeLine{00236\ \ \ \ \ \textcolor{comment}{//\ We\ use\ a\ single\ uint64\_t\ to\ generate\ both\ a\ double\ and\ a\ strip.}}
+\DoxyCodeLine{00237\ \ \ \ \ \textcolor{comment}{//\ These\ bits\ are\ unused\ when\ the\ generated\ double\ is\ >\ 1/2\string^5.}}
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{comment}{//\ This\ may\ introduce\ some\ bias\ from\ the\ duplicated\ low\ bits\ of\ small}}
+\DoxyCodeLine{00239\ \ \ \ \ \textcolor{comment}{//\ values\ (those\ smaller\ than\ 1/2\string^5,\ which\ all\ end\ up\ on\ the\ left\ tail).}}
+\DoxyCodeLine{00240\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}\ =\ fast\_u64\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}});}
+\DoxyCodeLine{00241\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}\ \&\ kMask);\ \ \textcolor{comment}{//\ pick\ a\ random\ strip}}
+\DoxyCodeLine{00242\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a704a9d01eac231cfa29d24e63daaec37}{GenerateRealFromBits<double,\ GenerateSignedTag,\ false>}}(}
+\DoxyCodeLine{00243\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}});\ \ \textcolor{comment}{//\ U(-\/1,\ 1)}}
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}\ =\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ *\ zg\_.x[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}];}
+\DoxyCodeLine{00245\ }
+\DoxyCodeLine{00246\ \ \ \ \ \textcolor{comment}{//\ Retangular\ box.\ Handles\ >97\%\ of\ all\ cases.}}
+\DoxyCodeLine{00247\ \ \ \ \ \textcolor{comment}{//\ For\ any\ given\ box,\ this\ handles\ between\ 75\%\ and\ 99\%\ of\ values.}}
+\DoxyCodeLine{00248\ \ \ \ \ \textcolor{comment}{//\ Equivalent\ to\ U(01)\ <\ (x[i+1]\ /\ x[i]),\ and\ when\ i\ ==\ 0,\ \string~93.5\%}}
+\DoxyCodeLine{00249\ \ \ \ \ \textcolor{keywordflow}{if}\ (std::abs(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}})\ <\ zg\_.x[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ +\ 1])\ \{}
+\DoxyCodeLine{00250\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}};}
+\DoxyCodeLine{00251\ \ \ \ \ \}}
+\DoxyCodeLine{00252\ }
+\DoxyCodeLine{00253\ \ \ \ \ \textcolor{comment}{//\ i\ ==\ 0:\ Base\ box.\ Sample\ using\ a\ ratio\ of\ uniforms.}}
+\DoxyCodeLine{00254\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ ==\ 0)\ \{}
+\DoxyCodeLine{00255\ \ \ \ \ \ \ \textcolor{comment}{//\ This\ path\ happens\ about\ 0.05\%\ of\ the\ time.}}
+\DoxyCodeLine{00256\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ zignor\_fallback(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}},\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ <\ 0);}
+\DoxyCodeLine{00257\ \ \ \ \ \}}
+\DoxyCodeLine{00258\ }
+\DoxyCodeLine{00259\ \ \ \ \ \textcolor{comment}{//\ i\ >\ 0:\ Wedge\ samples\ using\ precomputed\ values.}}
+\DoxyCodeLine{00260\ \ \ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a704a9d01eac231cfa29d24e63daaec37}{GenerateRealFromBits<double,\ GeneratePositiveTag,\ false>}}(}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ fast\_u64\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acab2f5ff47436671b6e533d8dc3614845d}{g}}));\ \ \textcolor{comment}{//\ U(0,\ 1)}}
+\DoxyCodeLine{00262\ \ \ \ \ \textcolor{keywordflow}{if}\ ((zg\_.f[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ +\ 1]\ +\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ *\ (zg\_.f[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}]\ -\/\ zg\_.f[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ +\ 1]))\ <}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ std::exp(-\/0.5\ *\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}\ *\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}))\ \{}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}};}
+\DoxyCodeLine{00265\ \ \ \ \ \}}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \ \ \ \ \textcolor{comment}{//\ The\ wedge\ was\ missed;\ reject\ the\ value\ and\ try\ again.}}
+\DoxyCodeLine{00268\ \ \ \}}
+\DoxyCodeLine{00269\ \}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \}\ \ \textcolor{comment}{//\ namespace\ random\_internal}}
+\DoxyCodeLine{00272\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00273\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00275\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_RANDOM\_GAUSSIAN\_DISTRIBUTION\_H\_}}
+
+\end{DoxyCode}

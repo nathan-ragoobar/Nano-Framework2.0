@@ -1,0 +1,85 @@
+\doxysection{barrier.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2synchronization_2barrier_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2synchronization_2barrier_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/synchronization/barrier.h@{OriginalStuff/abseil-\/cpp/absl/synchronization/barrier.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2synchronization_2barrier_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ barrier.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#ifndef\ ABSL\_SYNCHRONIZATION\_BARRIER\_H\_}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#define\ ABSL\_SYNCHRONIZATION\_BARRIER\_H\_}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/base/thread\_annotations.h"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/mutex.h"{}}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00026\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ Barrier}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ This\ class\ creates\ a\ barrier\ which\ blocks\ threads\ until\ a\ prespecified}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ threshold\ of\ threads\ (`num\_threads`)\ utilizes\ the\ barrier.\ A\ thread\ utilizes}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ the\ \`{}Barrier`\ by\ calling\ \`{}Block()`\ on\ the\ barrier,\ which\ will\ block\ that}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ thread;\ no\ call\ to\ \`{}Block()`\ will\ return\ until\ \`{}num\_threads`\ threads\ have}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ called\ it.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ Exactly\ one\ call\ to\ \`{}Block()`\ will\ return\ \`{}true`,\ which\ is\ then\ responsible}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ for\ destroying\ the\ barrier;\ because\ stack\ allocation\ will\ cause\ the\ barrier}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ to\ be\ deleted\ when\ it\ is\ out\ of\ scope,\ barriers\ should\ not\ be\ stack}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ allocated.}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ //\ Main\ thread\ creates\ a\ \`{}Barrier`:}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \ \ barrier\ =\ new\ Barrier(num\_threads);}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \ \ //\ Each\ participating\ thread\ could\ then\ call:}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ \ \ if\ (barrier-\/>Block())\ delete\ barrier;\ \ //\ Exactly\ one\ call\ to\ \`{}Block()`}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ //\ returns\ \`{}true`;\ that\ call}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ //\ deletes\ the\ barrier.}}
+\DoxyCodeLine{00050\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1Barrier}{Barrier}}\ \{}
+\DoxyCodeLine{00051\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00052\ \ \ \textcolor{comment}{//\ \`{}num\_threads`\ is\ the\ number\ of\ threads\ that\ will\ participate\ in\ the\ barrier}}
+\DoxyCodeLine{00053\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1Barrier_a6db7c1d2657239ab9fb7f126e3fe1239}{Barrier}}(\textcolor{keywordtype}{int}\ num\_threads)}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ :\ num\_to\_block\_(num\_threads),\ num\_to\_exit\_(num\_threads)\ \{\}}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \ \ \mbox{\hyperlink{classabsl_1_1Barrier_a787583797d5b23154adf78581e8c9c0d}{Barrier}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1Barrier}{Barrier}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00057\ \ \ \mbox{\hyperlink{classabsl_1_1Barrier}{Barrier}}\&\ \mbox{\hyperlink{classabsl_1_1Barrier_a24060e7f4327a742c4fb5d0903368715}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1Barrier}{Barrier}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \ \ \textcolor{comment}{//\ Barrier::Block()}}
+\DoxyCodeLine{00060\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00061\ \ \ \textcolor{comment}{//\ Blocks\ the\ current\ thread,\ and\ returns\ only\ when\ the\ \`{}num\_threads`}}
+\DoxyCodeLine{00062\ \ \ \textcolor{comment}{//\ threshold\ of\ threads\ utilizing\ this\ barrier\ has\ been\ reached.\ \`{}Block()`}}
+\DoxyCodeLine{00063\ \ \ \textcolor{comment}{//\ returns\ \`{}true`\ for\ precisely\ one\ caller,\ which\ may\ then\ destroy\ the}}
+\DoxyCodeLine{00064\ \ \ \textcolor{comment}{//\ barrier.}}
+\DoxyCodeLine{00065\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ Memory\ ordering:\ For\ any\ threads\ X\ and\ Y,\ any\ action\ taken\ by\ X}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ before\ X\ calls\ \`{}Block()`\ will\ be\ visible\ to\ Y\ after\ Y\ returns\ from}}
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//\ \`{}Block()`.}}
+\DoxyCodeLine{00069\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1Barrier_a028c40cca1a6ccbf82764a1dbadfabdf}{Block}}();}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00072\ \ \ \mbox{\hyperlink{classabsl_1_1Mutex}{Mutex}}\ lock\_;}
+\DoxyCodeLine{00073\ \ \ \textcolor{keywordtype}{int}\ num\_to\_block\_\ \mbox{\hyperlink{namespaceabsl_aeded9ba309a6d56e3d4016f8e566abcc}{ABSL\_GUARDED\_BY}}(lock\_);}
+\DoxyCodeLine{00074\ \ \ \textcolor{keywordtype}{int}\ num\_to\_exit\_\ \mbox{\hyperlink{namespaceabsl_aeded9ba309a6d56e3d4016f8e566abcc}{ABSL\_GUARDED\_BY}}(lock\_);}
+\DoxyCodeLine{00075\ \};}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00078\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_SYNCHRONIZATION\_BARRIER\_H\_}}
+
+\end{DoxyCode}

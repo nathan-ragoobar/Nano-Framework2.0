@@ -1,0 +1,206 @@
+\doxysection{Block.\+hpp}
+\hypertarget{Block_8hpp_source}{}\label{Block_8hpp_source}\index{nn/Block.hpp@{nn/Block.hpp}}
+\mbox{\hyperlink{Block_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ LLM\_CPP\_\_BLOCK\_HPP\_}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ LLM\_CPP\_\_BLOCK\_HPP\_}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{nn_2nn_8hpp}{nn.hpp}}"{}}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{AttentionLayer_8hpp}{AttentionLayer.hpp}}"{}}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{MLP_8hpp}{MLP.hpp}}"{}}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespacegpt}{gpt}}\ \{}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{keyword}{struct\ }Block\ \{}
+\DoxyCodeLine{00011\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \ \ \mbox{\hyperlink{structgpt_1_1Block_a30b2ec3f5c7add9044a221a07974cec0}{Block}}(\textcolor{keywordtype}{int}\ block\_size,\ \textcolor{keywordtype}{int}\ n\_head,\ \textcolor{keywordtype}{int}\ n\_embed)\ \{}
+\DoxyCodeLine{00014\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_addcca6675382f063772bc44febbb7937}{ln1\_}}\ =\ std::make\_unique<nn::LayerNorm>(n\_embed);}
+\DoxyCodeLine{00015\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1f72f8d3232b4ea1a4f004e3a9e57f4a}{attn\_}}\ =\ std::make\_unique<CausalSelfAttention>(block\_size,\ n\_head,\ n\_embed);}
+\DoxyCodeLine{00016\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1b679ee56fd30e973310a31be94871a5}{ln2\_}}\ =\ std::make\_unique<nn::LayerNorm>(n\_embed);}
+\DoxyCodeLine{00017\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_ac5a6c20034edcfc9f9874f6a76347130}{mlp\_}}\ =\ std::make\_unique<MLP>(n\_embed);}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \ \ \ \ \textcolor{comment}{//\ activation}}
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keyword}{auto}\ dtype\ =\ \mbox{\hyperlink{structnn_1_1DataTypeToEnum}{nn::DataTypeToEnum<Type>::value}};}
+\DoxyCodeLine{00021\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}}\ =\ std::make\_unique<nn::Activation>(dtype);\ \ \ \ \ \ \textcolor{comment}{//\ [B*T,\ C]}}
+\DoxyCodeLine{00022\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_ac01d58790105ae0a62a0f3741d66e724}{ln1\_mean\_}}\ =\ std::make\_unique<nn::Activation>(dtype);\ \ \ \textcolor{comment}{//\ [B*T]}}
+\DoxyCodeLine{00023\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a30b17c70e1558072a16298f809792db8}{ln1\_rstd\_}}\ =\ std::make\_unique<nn::Activation>(dtype);\ \ \ \textcolor{comment}{//\ [B*T]}}
+\DoxyCodeLine{00024\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}\ =\ std::make\_unique<nn::Activation>(dtype);\ \ \ \ \ \ \textcolor{comment}{//\ [B,\ T,\ C]}}
+\DoxyCodeLine{00025\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}\ =\ std::make\_unique<nn::Activation>(dtype);\ \ \textcolor{comment}{//\ [B,\ T,\ C]}}
+\DoxyCodeLine{00026\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}\ =\ std::make\_unique<nn::Activation>(dtype);\ \ \ \ \ \ \textcolor{comment}{//\ [B*T,\ C]}}
+\DoxyCodeLine{00027\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a0ab344e553383c60e52128e6d72d7e8b}{ln2\_mean\_}}\ =\ std::make\_unique<nn::Activation>(dtype);\ \ \ \textcolor{comment}{//\ [B*T]}}
+\DoxyCodeLine{00028\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_aca5663a87ecb65cc02c30c46ef304d4b}{ln2\_rstd\_}}\ =\ std::make\_unique<nn::Activation>(dtype);\ \ \ \textcolor{comment}{//\ [B*T]}}
+\DoxyCodeLine{00029\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}\ =\ std::make\_unique<nn::Activation>(dtype);\ \ \ \ \ \ \textcolor{comment}{//\ [B,\ T,\ C]}}
+\DoxyCodeLine{00030\ \ \ \}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt_1_1Block_ad9712a6b61b1a964101c23cc7a715e1d}{Forward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<Type,\ 3>::ConstTensor}}\ x,}
+\DoxyCodeLine{00033\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<Type,\ 3>::Tensor}}\ y)\ \{}
+\DoxyCodeLine{00034\ \ \ \ \ \mbox{\hyperlink{AttentionLayer_8hpp_a55d80b5525abdb6c4403e3c4052edb84}{PROFILE\_TRACE\_FN}}(\textcolor{stringliteral}{"{}Block"{}});}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{comment}{//\ x:\ [B,\ T,\ C],\ y:\ [B,\ T,\ C]}}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ B\ =\ x.dimension(0);\ \ \textcolor{comment}{//\ batch\ size}}
+\DoxyCodeLine{00038\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ T\ =\ x.dimension(1);\ \ \textcolor{comment}{//\ sequence\ length}}
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ x.dimension(2);\ \ \textcolor{comment}{//\ embedding\ dimensionality\ (n\_embd)}}
+\DoxyCodeLine{00040\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(B,\ y.dimension(0));}
+\DoxyCodeLine{00041\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(T,\ y.dimension(1));}
+\DoxyCodeLine{00042\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ y.dimension(2));}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}}-\/>LazyAllocate(B\ *\ T\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00045\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_ac01d58790105ae0a62a0f3741d66e724}{ln1\_mean\_}}-\/>LazyAllocate(B\ *\ T);}
+\DoxyCodeLine{00046\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a30b17c70e1558072a16298f809792db8}{ln1\_rstd\_}}-\/>LazyAllocate(B\ *\ T);}
+\DoxyCodeLine{00047\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}-\/>LazyAllocate(B\ *\ T\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00048\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>LazyAllocate(B\ *\ T\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00049\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}-\/>LazyAllocate(B\ *\ T\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00050\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a0ab344e553383c60e52128e6d72d7e8b}{ln2\_mean\_}}-\/>LazyAllocate(B\ *\ T);}
+\DoxyCodeLine{00051\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_aca5663a87ecb65cc02c30c46ef304d4b}{ln2\_rstd\_}}-\/>LazyAllocate(B\ *\ T);}
+\DoxyCodeLine{00052\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}-\/>LazyAllocate(B\ *\ T\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{comment}{//\ LN1}}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{keyword}{auto}\ x\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_ae8e963613cb1e2fe5d606c04433078fe}{MakeConstMatrix}}(x.data(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{keyword}{auto}\ ln1\_y\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a30c79fba785f603a86fa02252305fbed}{MakeMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keyword}{auto}\ ln1\_mean\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structgpt_1_1Block_ac01d58790105ae0a62a0f3741d66e724}{ln1\_mean\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T);}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keyword}{auto}\ ln1\_rstd\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a30b17c70e1558072a16298f809792db8}{ln1\_rstd\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T);}
+\DoxyCodeLine{00059\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_addcca6675382f063772bc44febbb7937}{ln1\_}}-\/>Forward(x\_2d,\ ln1\_y\_2d,\ ln1\_mean\_1d,\ ln1\_rstd\_1d);}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{comment}{//\ Attention}}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{auto}\ ln1\_y\_3d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a83376511964dada7d9134ac8a54a4c99}{MakeConst3DTensor}}(ln1\_y\_2d.data(),\ B,\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{auto}\ att\_y\_3d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a3bde9957ede93fa72beb44296e6ce586}{Make3DTensor}}(\mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B,\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00064\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1f72f8d3232b4ea1a4f004e3a9e57f4a}{attn\_}}-\/>Forward(ln1\_y\_3d,\ att\_y\_3d);}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \ \ \textcolor{comment}{//\ Residual}}
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{keyword}{auto}\ x\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(x.data(),\ B\ *\ T\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00068\ \ \ \ \ \textcolor{keyword}{auto}\ att\_y\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{keyword}{auto}\ residual1\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>size());}
+\DoxyCodeLine{00070\ \ \ \ \ \mbox{\hyperlink{structnn_1_1Residual_a4891550c91057f4f56dd81242f62893d}{nn::Residual::Forward}}(x\_1d,\ att\_y\_1d,\ residual1\_1d);}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{comment}{//\ LN2}}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keyword}{auto}\ ln2\_y\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a30c79fba785f603a86fa02252305fbed}{MakeMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keyword}{auto}\ ln2\_y\_2d\_const\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_ae8e963613cb1e2fe5d606c04433078fe}{MakeConstMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keyword}{auto}\ ln2\_mean\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a0ab344e553383c60e52128e6d72d7e8b}{ln2\_mean\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T);}
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keyword}{auto}\ ln2\_rstd\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structgpt_1_1Block_aca5663a87ecb65cc02c30c46ef304d4b}{ln2\_rstd\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T);}
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{keyword}{auto}\ residual1\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_ae8e963613cb1e2fe5d606c04433078fe}{MakeConstMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00078\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1b679ee56fd30e973310a31be94871a5}{ln2\_}}-\/>Forward(residual1\_2d,\ ln2\_y\_2d,\ ln2\_mean\_1d,\ ln2\_rstd\_1d);}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{comment}{//\ MLP}}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keyword}{auto}\ mlp\_y\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a30c79fba785f603a86fa02252305fbed}{MakeMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00082\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_ac5a6c20034edcfc9f9874f6a76347130}{mlp\_}}-\/>Forward(ln2\_y\_2d\_const,\ mlp\_y\_2d);}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{comment}{//\ Residual}}
+\DoxyCodeLine{00085\ \ \ \ \ \textcolor{keyword}{auto}\ residual1\_1d\_const\ =}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>size());}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keyword}{auto}\ mlp\_y\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00088\ \ \ \ \ \textcolor{keyword}{auto}\ y\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(y.data(),\ y.size());}
+\DoxyCodeLine{00089\ \ \ \ \ \mbox{\hyperlink{structnn_1_1Residual_a4891550c91057f4f56dd81242f62893d}{nn::Residual::Forward}}(residual1\_1d\_const,\ mlp\_y\_1d,\ y\_1d);}
+\DoxyCodeLine{00090\ \ \ \}}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt_1_1Block_ab1bd3774f03803c1c7f9dd97aad65287}{Backward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<Type,\ 3>::ConstTensor}}\ x,}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<Type,\ 3>::ConstTensor}}\ y\_grad,}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<Type,\ 3>::Tensor}}\ x\_grad)\ \{}
+\DoxyCodeLine{00095\ \ \ \ \ \mbox{\hyperlink{AttentionLayer_8hpp_a55d80b5525abdb6c4403e3c4052edb84}{PROFILE\_TRACE\_FN}}(\textcolor{stringliteral}{"{}Block"{}});}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \ \ \ \ \textcolor{comment}{//\ x:\ [B,\ T,\ C],\ y\_grad:\ [B,\ T,\ C],\ x\_grad:\ [B,\ T,\ C]}}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ B\ =\ x.dimension(0);\ \ \textcolor{comment}{//\ batch\ size}}
+\DoxyCodeLine{00099\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ T\ =\ x.dimension(1);\ \ \textcolor{comment}{//\ sequence\ length}}
+\DoxyCodeLine{00100\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ x.dimension(2);\ \ \textcolor{comment}{//\ embedding\ dimensionality\ (n\_embd)}}
+\DoxyCodeLine{00101\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(B,\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00102\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(T,\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00103\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(2));}
+\DoxyCodeLine{00104\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(B,\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00105\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(T,\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00106\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(2));}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00109\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00110\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00111\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00112\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00113\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}}-\/>ZeroGrad();}
+\DoxyCodeLine{00114\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}-\/>ZeroGrad();}
+\DoxyCodeLine{00115\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>ZeroGrad();}
+\DoxyCodeLine{00116\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}-\/>ZeroGrad();}
+\DoxyCodeLine{00117\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}-\/>ZeroGrad();}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{comment}{//\ backward\ residual}}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keyword}{auto}\ y\_grad\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a735ad83edfacfcb9173e59ed861e6bbf}{data}}(),\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keyword}{auto}\ residual1\_grad\_1d\ =}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>size());}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keyword}{auto}\ mlp\_y\_grad\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ \mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}-\/>size());}
+\DoxyCodeLine{00124\ \ \ \ \ \mbox{\hyperlink{structnn_1_1Residual_a99d49a6ebe5268051e6de48f423e2a43}{nn::Residual::Backward}}(y\_grad\_1d,\ residual1\_grad\_1d,\ mlp\_y\_grad\_1d);}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{comment}{//\ backward\ MLP}}
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{keyword}{auto}\ ln2\_y\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_ae8e963613cb1e2fe5d606c04433078fe}{MakeConstMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keyword}{auto}\ ln2\_y\_grad\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a30c79fba785f603a86fa02252305fbed}{MakeMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keyword}{auto}\ mlp\_y\_grad\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_ae8e963613cb1e2fe5d606c04433078fe}{MakeConstMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00130\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_ac5a6c20034edcfc9f9874f6a76347130}{mlp\_}}-\/>Backward(ln2\_y\_2d,\ mlp\_y\_grad\_2d,\ ln2\_y\_grad\_2d);}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \ \ \ \ \textcolor{comment}{//\ backward\ LN2}}
+\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keyword}{auto}\ ln2\_mean\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a0ab344e553383c60e52128e6d72d7e8b}{ln2\_mean\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T);}
+\DoxyCodeLine{00134\ \ \ \ \ \textcolor{keyword}{auto}\ ln2\_rstd\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(\mbox{\hyperlink{structgpt_1_1Block_aca5663a87ecb65cc02c30c46ef304d4b}{ln2\_rstd\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T);}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keyword}{auto}\ residual1\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_ae8e963613cb1e2fe5d606c04433078fe}{MakeConstMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{keyword}{auto}\ ln2\_y\_grad\_2d\_const\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_ae8e963613cb1e2fe5d606c04433078fe}{MakeConstMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00137\ \ \ \ \ \textcolor{keyword}{auto}\ residual1\_grad\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a30c79fba785f603a86fa02252305fbed}{MakeMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00138\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1b679ee56fd30e973310a31be94871a5}{ln2\_}}-\/>Backward(residual1\_2d,\ ln2\_y\_grad\_2d\_const,\ ln2\_mean\_1d,\ ln2\_rstd\_1d,}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ residual1\_grad\_2d);}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{comment}{//\ backward\ residual}}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keyword}{auto}\ residual1\_grad\_1d\_const\ =}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>size());}
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{keyword}{auto}\ x\_grad\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a735ad83edfacfcb9173e59ed861e6bbf}{data}}(),\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a715f830bbfa94beb8b2deb053530afd6}{size}}());}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keyword}{auto}\ att\_y\_grad\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ \mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}-\/>size());}
+\DoxyCodeLine{00146\ \ \ \ \ \mbox{\hyperlink{structnn_1_1Residual_a99d49a6ebe5268051e6de48f423e2a43}{nn::Residual::Backward}}(residual1\_grad\_1d\_const,\ x\_grad\_1d,\ att\_y\_grad\_1d);}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \ \ \ \ \textcolor{comment}{//\ backward\ attention}}
+\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keyword}{auto}\ ln1\_y\_3d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a83376511964dada7d9134ac8a54a4c99}{MakeConst3DTensor}}(\mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B,\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00150\ \ \ \ \ \textcolor{keyword}{auto}\ ln1\_y\_grad\_3d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a3bde9957ede93fa72beb44296e6ce586}{Make3DTensor}}(\mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B,\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keyword}{auto}\ att\_y\_grad\_3d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a83376511964dada7d9134ac8a54a4c99}{MakeConst3DTensor}}(\mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B,\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00152\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1f72f8d3232b4ea1a4f004e3a9e57f4a}{attn\_}}-\/>Backward(ln1\_y\_3d,\ att\_y\_grad\_3d,\ ln1\_y\_grad\_3d);}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{comment}{//\ backward\ LN1}}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keyword}{auto}\ x\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_ae8e963613cb1e2fe5d606c04433078fe}{MakeConstMatrix}}(x.data(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00156\ \ \ \ \ \textcolor{keyword}{auto}\ ln1\_mean\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(\mbox{\hyperlink{structgpt_1_1Block_ac01d58790105ae0a62a0f3741d66e724}{ln1\_mean\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T);}
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keyword}{auto}\ ln1\_rstd\_1d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(\mbox{\hyperlink{structgpt_1_1Block_a30b17c70e1558072a16298f809792db8}{ln1\_rstd\_}}-\/>data<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T);}
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keyword}{auto}\ ln1\_y\_grad\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_ae8e963613cb1e2fe5d606c04433078fe}{MakeConstMatrix}}(\mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}}-\/>grad<\mbox{\hyperlink{structgpt_1_1Block_a13e2f37fd65eb1b0ac62992a69d2a585}{Type}}>(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keyword}{auto}\ x\_grad\_2d\ =\ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a30c79fba785f603a86fa02252305fbed}{MakeMatrix}}(x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_a735ad83edfacfcb9173e59ed861e6bbf}{data}}(),\ B\ *\ T,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00160\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_addcca6675382f063772bc44febbb7937}{ln1\_}}-\/>Backward(x\_2d,\ ln1\_y\_grad\_2d,\ ln1\_mean\_1d,\ ln1\_rstd\_1d,\ x\_grad\_2d);}
+\DoxyCodeLine{00161\ \ \ \}}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structgpt_1_1Block_a728747c2b41770ffeee4dc3805373600}{NumParameters}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00164\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structgpt_1_1Block_addcca6675382f063772bc44febbb7937}{ln1\_}}-\/>NumParameters()\ +\ \mbox{\hyperlink{structgpt_1_1Block_a1f72f8d3232b4ea1a4f004e3a9e57f4a}{attn\_}}-\/>NumParameters()\ +}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1b679ee56fd30e973310a31be94871a5}{ln2\_}}-\/>NumParameters()\ +\ \mbox{\hyperlink{structgpt_1_1Block_ac5a6c20034edcfc9f9874f6a76347130}{mlp\_}}-\/>NumParameters();}
+\DoxyCodeLine{00166\ \ \ \}}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structgpt_1_1Block_a5dcb3e5812cd016cb7681e49bbe8d73e}{NumActivations}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00169\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structgpt_1_1Block_addcca6675382f063772bc44febbb7937}{ln1\_}}-\/>NumActivations()\ +\ \mbox{\hyperlink{structgpt_1_1Block_a1f72f8d3232b4ea1a4f004e3a9e57f4a}{attn\_}}-\/>NumActivations()\ +}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1b679ee56fd30e973310a31be94871a5}{ln2\_}}-\/>NumActivations()\ +\ \mbox{\hyperlink{structgpt_1_1Block_ac5a6c20034edcfc9f9874f6a76347130}{mlp\_}}-\/>NumActivations()\ +\ \mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}}-\/>size()\ +}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_ac01d58790105ae0a62a0f3741d66e724}{ln1\_mean\_}}-\/>size()\ +\ \mbox{\hyperlink{structgpt_1_1Block_aca5663a87ecb65cc02c30c46ef304d4b}{ln2\_rstd\_}}-\/>size()\ +\ \mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}}-\/>size()\ +}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}}-\/>size()\ +\ \mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}}-\/>size()\ +\ \mbox{\hyperlink{structgpt_1_1Block_a0ab344e553383c60e52128e6d72d7e8b}{ln2\_mean\_}}-\/>size()\ +}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_aca5663a87ecb65cc02c30c46ef304d4b}{ln2\_rstd\_}}-\/>size()\ +\ \mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}}-\/>size();}
+\DoxyCodeLine{00174\ \ \ \}}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt_1_1Block_afa4329e2154faa8748039b6f51a95fe9}{Parameters}}(std::vector<nn::Parameter*>*\ parameters)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00177\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_addcca6675382f063772bc44febbb7937}{ln1\_}}-\/>Parameters(parameters);}
+\DoxyCodeLine{00178\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1f72f8d3232b4ea1a4f004e3a9e57f4a}{attn\_}}-\/>Parameters(parameters);}
+\DoxyCodeLine{00179\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_a1b679ee56fd30e973310a31be94871a5}{ln2\_}}-\/>Parameters(parameters);}
+\DoxyCodeLine{00180\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1Block_ac5a6c20034edcfc9f9874f6a76347130}{mlp\_}}-\/>Parameters(parameters);}
+\DoxyCodeLine{00181\ \ \ \}}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \ \ std::unique\_ptr<nn::LayerNorm>\ \mbox{\hyperlink{structgpt_1_1Block_addcca6675382f063772bc44febbb7937}{ln1\_}};}
+\DoxyCodeLine{00184\ \ \ std::unique\_ptr<CausalSelfAttention>\ \mbox{\hyperlink{structgpt_1_1Block_a1f72f8d3232b4ea1a4f004e3a9e57f4a}{attn\_}};}
+\DoxyCodeLine{00185\ \ \ std::unique\_ptr<nn::LayerNorm>\ \mbox{\hyperlink{structgpt_1_1Block_a1b679ee56fd30e973310a31be94871a5}{ln2\_}};}
+\DoxyCodeLine{00186\ \ \ std::unique\_ptr<MLP>\ \mbox{\hyperlink{structgpt_1_1Block_ac5a6c20034edcfc9f9874f6a76347130}{mlp\_}};}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ \textcolor{comment}{//\ activation\ tensors}}
+\DoxyCodeLine{00189\ \ \ std::unique\_ptr<nn::Activation>\ \mbox{\hyperlink{structgpt_1_1Block_a02392d4c2723704e536dfc309fdd760c}{ln1\_y\_}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ [B*T,\ C]}}
+\DoxyCodeLine{00190\ \ \ std::unique\_ptr<nn::Activation>\ \mbox{\hyperlink{structgpt_1_1Block_ac01d58790105ae0a62a0f3741d66e724}{ln1\_mean\_}},\ \mbox{\hyperlink{structgpt_1_1Block_a30b17c70e1558072a16298f809792db8}{ln1\_rstd\_}};\ \ \textcolor{comment}{//\ [B*T]}}
+\DoxyCodeLine{00191\ \ \ std::unique\_ptr<nn::Activation>\ \mbox{\hyperlink{structgpt_1_1Block_a8e7ec8a31d424d092aec1f0495f53009}{att\_y\_}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ [B,\ T,\ C]}}
+\DoxyCodeLine{00192\ \ \ std::unique\_ptr<nn::Activation>\ \mbox{\hyperlink{structgpt_1_1Block_a1e3d8106de3c457575965df44943c8c2}{residual1\_}};\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ [B,\ T,\ C]}}
+\DoxyCodeLine{00193\ \ \ std::unique\_ptr<nn::Activation>\ \mbox{\hyperlink{structgpt_1_1Block_a44d990110f428fabe38db1a8b1e1ff1e}{ln2\_y\_}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ [B*T,\ C]}}
+\DoxyCodeLine{00194\ \ \ std::unique\_ptr<nn::Activation>\ \mbox{\hyperlink{structgpt_1_1Block_a0ab344e553383c60e52128e6d72d7e8b}{ln2\_mean\_}},\ \mbox{\hyperlink{structgpt_1_1Block_aca5663a87ecb65cc02c30c46ef304d4b}{ln2\_rstd\_}};\ \ \textcolor{comment}{//\ [B*T]}}
+\DoxyCodeLine{00195\ \ \ std::unique\_ptr<nn::Activation>\ \mbox{\hyperlink{structgpt_1_1Block_a9838dbcc1657349ee7d4ce005cfb8878}{mlp\_y\_}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ [B,\ T,\ C]}}
+\DoxyCodeLine{00196\ \};}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \}\ \ \textcolor{comment}{//\ namespace\ gpt}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ LLM\_CPP\_\_BLOCK\_HPP\_}}
+
+\end{DoxyCode}

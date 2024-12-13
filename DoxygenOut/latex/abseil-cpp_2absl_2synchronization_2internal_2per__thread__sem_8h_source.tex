@@ -1,0 +1,125 @@
+\doxysection{per\+\_\+thread\+\_\+sem.\+h}
+\hypertarget{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8h_source}{}\label{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8h_source}\index{abseil-\/cpp/absl/synchronization/internal/per\_thread\_sem.h@{abseil-\/cpp/absl/synchronization/internal/per\_thread\_sem.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ PerThreadSem\ is\ a\ low-\/level\ synchronization\ primitive\ controlling\ the}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ runnability\ of\ a\ single\ thread,\ used\ internally\ by\ Mutex\ and\ CondVar.}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ is\ NOT\ a\ general-\/purpose\ synchronization\ mechanism,\ and\ should\ not\ be}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ used\ directly\ by\ applications.\ \ Applications\ should\ use\ Mutex\ and\ CondVar.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ The\ semantics\ of\ PerThreadSem\ are\ the\ same\ as\ that\ of\ a\ counting\ semaphore.}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ Each\ thread\ maintains\ an\ abstract\ "{}count"{}\ value\ associated\ with\ its\ identity.}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#ifndef\ ABSL\_SYNCHRONIZATION\_INTERNAL\_PER\_THREAD\_SEM\_H\_}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#define\ ABSL\_SYNCHRONIZATION\_INTERNAL\_PER\_THREAD\_SEM\_H\_}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/thread\_identity.h"{}}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/internal/create\_thread\_identity.h"{}}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/internal/kernel\_timeout.h"{}}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00035\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \textcolor{keyword}{class\ }Mutex;}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{keyword}{namespace\ }synchronization\_internal\ \{}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{keyword}{class\ }PerThreadSem\ \{}
+\DoxyCodeLine{00042\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00043\ \ \ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem_a4d1cc9ec621d2e5d34478efd75e4e78a}{PerThreadSem}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00044\ \ \ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem_ab5fefc2ebf01f69f836d6b83fa7ec0b2}{PerThreadSem}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem}{PerThreadSem}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00045\ \ \ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem}{PerThreadSem}}\&\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem_acba47ece1a758f8a82c3f33e040ca384}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem}{PerThreadSem}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \ \ \textcolor{comment}{//\ Routine\ invoked\ periodically\ (once\ a\ second)\ by\ a\ background\ thread.}}
+\DoxyCodeLine{00048\ \ \ \textcolor{comment}{//\ Has\ no\ effect\ on\ user-\/visible\ state.}}
+\DoxyCodeLine{00049\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem_afc83250e517c45807e0328bae99beee0}{Tick}}(\mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{base\_internal::ThreadIdentity}}*\ identity);}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00052\ \ \ \textcolor{comment}{//\ Routines\ used\ by\ autosizing\ threadpools\ to\ detect\ when\ threads\ are}}
+\DoxyCodeLine{00053\ \ \ \textcolor{comment}{//\ blocked.\ \ Each\ thread\ has\ a\ counter\ pointer,\ initially\ zero.\ \ If\ non-\/zero,}}
+\DoxyCodeLine{00054\ \ \ \textcolor{comment}{//\ the\ implementation\ atomically\ increments\ the\ counter\ when\ it\ blocks\ on\ a}}
+\DoxyCodeLine{00055\ \ \ \textcolor{comment}{//\ semaphore,\ a\ decrements\ it\ again\ when\ it\ wakes.\ \ This\ allows\ a\ threadpool}}
+\DoxyCodeLine{00056\ \ \ \textcolor{comment}{//\ to\ keep\ track\ of\ how\ many\ of\ its\ threads\ are\ blocked.}}
+\DoxyCodeLine{00057\ \ \ \textcolor{comment}{//\ SetThreadBlockedCounter()\ should\ be\ used\ only\ by\ threadpool}}
+\DoxyCodeLine{00058\ \ \ \textcolor{comment}{//\ implementations.\ \ GetThreadBlockedCounter()\ should\ be\ used\ by\ modules\ that}}
+\DoxyCodeLine{00059\ \ \ \textcolor{comment}{//\ block\ threads;\ if\ the\ pointer\ returned\ is\ non-\/zero,\ the\ location\ should\ be}}
+\DoxyCodeLine{00060\ \ \ \textcolor{comment}{//\ incremented\ before\ the\ thread\ blocks,\ and\ decremented\ after\ it\ wakes.}}
+\DoxyCodeLine{00061\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem_a55f5ac350b571fde2c8febf884ab4573}{SetThreadBlockedCounter}}(std::atomic<int>\ *\mbox{\hyperlink{abseil-cpp_2absl_2flags_2reflection__test_8cc_a617a47c70795bcff659815ad0efd2266}{counter}});}
+\DoxyCodeLine{00062\ \ \ \textcolor{keyword}{static}\ std::atomic<int>\ *\mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem_a5c99b821ad22cebce72886141d78a6b4}{GetThreadBlockedCounter}}();}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00065\ \ \ \textcolor{comment}{//\ Create\ the\ PerThreadSem\ associated\ with\ "{}identity"{}.\ \ Initializes\ count=0.}}
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ REQUIRES:\ May\ only\ be\ called\ by\ ThreadIdentity.}}
+\DoxyCodeLine{00067\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ Init(\mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{base\_internal::ThreadIdentity}}*\ identity);}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ Increments\ "{}identity"{}'s\ count.}}
+\DoxyCodeLine{00070\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ Post(\mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{base\_internal::ThreadIdentity}}*\ identity);}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ Waits\ until\ either\ our\ count\ >\ 0\ or\ t\ has\ expired.}}
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ If\ count\ >\ 0,\ decrements\ count\ and\ returns\ true.\ \ Otherwise\ returns\ false.}}
+\DoxyCodeLine{00074\ \ \ \textcolor{comment}{//\ !t.has\_timeout()\ =>\ Wait(t)\ will\ return\ true.}}
+\DoxyCodeLine{00075\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ Wait(\mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1KernelTimeout}{KernelTimeout}}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}});}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ Permitted\ callers.}}
+\DoxyCodeLine{00078\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSemTest}{PerThreadSemTest}};}
+\DoxyCodeLine{00079\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1Mutex}{absl::Mutex}};}
+\DoxyCodeLine{00080\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1PerThreadSem_ac1847517be298ae6e863dc422b59f90e}{OneTimeInitThreadIdentity}}(\mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{absl::base\_internal::ThreadIdentity}}*);}
+\DoxyCodeLine{00081\ \};}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \}\ \ \textcolor{comment}{//\ namespace\ synchronization\_internal}}
+\DoxyCodeLine{00084\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00085\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ In\ some\ build\ configurations\ we\ pass\ -\/-\/detect-\/odr-\/violations\ to\ the}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ gold\ linker.\ \ This\ causes\ it\ to\ flag\ weak\ symbol\ overrides\ as\ ODR}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ violations.\ \ Because\ ODR\ only\ applies\ to\ C++\ and\ not\ C,}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ -\/-\/detect-\/odr-\/violations\ ignores\ symbols\ not\ mangled\ with\ C++\ names.}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ By\ changing\ our\ extension\ points\ to\ be\ extern\ "{}C"{},\ we\ dodge\ this}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ check.}}
+\DoxyCodeLine{00093\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00094\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8h_ad809c8a1d1f661ae92cc6836740a3577}{AbslInternalPerThreadSemInit}})(}
+\DoxyCodeLine{00095\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{absl::base\_internal::ThreadIdentity}}*\ identity);}
+\DoxyCodeLine{00096\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8h_a6d658c5f06c22d868edeee1b3128e362}{AbslInternalPerThreadSemPost}})(}
+\DoxyCodeLine{00097\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{absl::base\_internal::ThreadIdentity}}*\ identity);}
+\DoxyCodeLine{00098\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8h_acae9a060b2509b6219c69cd1898bd29b}{AbslInternalPerThreadSemWait}})(}
+\DoxyCodeLine{00099\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1KernelTimeout}{absl::synchronization\_internal::KernelTimeout}}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}});}
+\DoxyCodeLine{00100\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8h_a9e7d633fcbb5f79d9ecd88a021e7cc4f}{AbslInternalPerThreadSemPoke}})(}
+\DoxyCodeLine{00101\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{absl::base\_internal::ThreadIdentity}}*\ identity);}
+\DoxyCodeLine{00102\ \}\ \ \textcolor{comment}{//\ extern\ "{}C"{}}}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \textcolor{keywordtype}{void}\ absl::synchronization\_internal::PerThreadSem::Init(}
+\DoxyCodeLine{00105\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{absl::base\_internal::ThreadIdentity}}*\ identity)\ \{}
+\DoxyCodeLine{00106\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8cc_aba2b317c7fec433eef92cd358347cdf0}{AbslInternalPerThreadSemInit}})(identity);}
+\DoxyCodeLine{00107\ \}}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \textcolor{keywordtype}{void}\ absl::synchronization\_internal::PerThreadSem::Post(}
+\DoxyCodeLine{00110\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{absl::base\_internal::ThreadIdentity}}*\ identity)\ \{}
+\DoxyCodeLine{00111\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8cc_a8a5074e7eab934f662aa5f8089c8e0fa}{AbslInternalPerThreadSemPost}})(identity);}
+\DoxyCodeLine{00112\ \}}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00114\ \textcolor{keywordtype}{bool}\ absl::synchronization\_internal::PerThreadSem::Wait(}
+\DoxyCodeLine{00115\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1synchronization__internal_1_1KernelTimeout}{absl::synchronization\_internal::KernelTimeout}}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{}
+\DoxyCodeLine{00116\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2per__thread__sem_8cc_a9f2879556f0b7a7e4e5776db78255aaa}{AbslInternalPerThreadSemWait}})(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}});}
+\DoxyCodeLine{00117\ \}}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_SYNCHRONIZATION\_INTERNAL\_PER\_THREAD\_SEM\_H\_}}
+
+\end{DoxyCode}

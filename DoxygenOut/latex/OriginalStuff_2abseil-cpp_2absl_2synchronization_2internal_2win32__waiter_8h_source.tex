@@ -1,0 +1,78 @@
+\doxysection{win32\+\_\+waiter.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2synchronization_2internal_2win32__waiter_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2synchronization_2internal_2win32__waiter_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/synchronization/internal/win32\_waiter.h@{OriginalStuff/abseil-\/cpp/absl/synchronization/internal/win32\_waiter.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2synchronization_2internal_2win32__waiter_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2023\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#ifndef\ ABSL\_SYNCHRONIZATION\_INTERNAL\_WIN32\_WAITER\_H\_}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#define\ ABSL\_SYNCHRONIZATION\_INTERNAL\_WIN32\_WAITER\_H\_}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#ifdef\ \_WIN32}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <sdkddkver.h>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#if\ defined(\_WIN32)\ \&\&\ !defined(\_\_MINGW32\_\_)\ \&\&\ \(\backslash\)}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\ \ \ \ \_WIN32\_WINNT\ >=\ \_WIN32\_WINNT\_VISTA}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/internal/kernel\_timeout.h"{}}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/internal/waiter\_base.h"{}}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00031\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00032\ \textcolor{keyword}{namespace\ }synchronization\_internal\ \{}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_HAVE\_WIN32\_WAITER\ 1}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{keyword}{class\ }Win32Waiter\ :\ \textcolor{keyword}{public}\ WaiterCrtp<Win32Waiter>\ \{}
+\DoxyCodeLine{00037\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00038\ \ \ Win32Waiter();}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \ \ \textcolor{keywordtype}{bool}\ Wait(KernelTimeout\ t);}
+\DoxyCodeLine{00041\ \ \ \textcolor{keywordtype}{void}\ Post();}
+\DoxyCodeLine{00042\ \ \ \textcolor{keywordtype}{void}\ Poke();}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{char}\ kName[]\ =\ \textcolor{stringliteral}{"{}Win32Waiter"{}};}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00047\ \ \ \textcolor{comment}{//\ WinHelper\ -\/\ Used\ to\ define\ utilities\ for\ accessing\ the\ lock\ and}}
+\DoxyCodeLine{00048\ \ \ \textcolor{comment}{//\ condition\ variable\ storage\ once\ the\ types\ are\ complete.}}
+\DoxyCodeLine{00049\ \ \ \textcolor{keyword}{class\ }WinHelper;}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \textcolor{comment}{//\ REQUIRES:\ WinHelper::GetLock(this)\ must\ be\ held.}}
+\DoxyCodeLine{00052\ \ \ \textcolor{keywordtype}{void}\ InternalCondVarPoke();}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \ \ \textcolor{comment}{//\ We\ can't\ include\ Windows.h\ in\ our\ headers,\ so\ we\ use\ aligned\ character}}
+\DoxyCodeLine{00055\ \ \ \textcolor{comment}{//\ buffers\ to\ define\ the\ storage\ of\ SRWLOCK\ and\ CONDITION\_VARIABLE.}}
+\DoxyCodeLine{00056\ \ \ \textcolor{comment}{//\ SRW\ locks\ and\ condition\ variables\ do\ not\ need\ to\ be\ explicitly\ destroyed.}}
+\DoxyCodeLine{00057\ \ \ \textcolor{comment}{//\ https://docs.microsoft.com/en-\/us/windows/win32/api/synchapi/nf-\/synchapi-\/initializesrwlock}}
+\DoxyCodeLine{00058\ \ \ \textcolor{comment}{//\ https://stackoverflow.com/questions/28975958/why-\/does-\/windows-\/have-\/no-\/deleteconditionvariable-\/function-\/to-\/go-\/together-\/with}}
+\DoxyCodeLine{00059\ \ \ \textcolor{keyword}{alignas}(\textcolor{keywordtype}{void}*)\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ mu\_storage\_[\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{void}*)];}
+\DoxyCodeLine{00060\ \ \ \textcolor{keyword}{alignas}(\textcolor{keywordtype}{void}*)\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ cv\_storage\_[\textcolor{keyword}{sizeof}(\textcolor{keywordtype}{void}*)];}
+\DoxyCodeLine{00061\ \ \ \textcolor{keywordtype}{int}\ waiter\_count\_;}
+\DoxyCodeLine{00062\ \ \ \textcolor{keywordtype}{int}\ wakeup\_count\_;}
+\DoxyCodeLine{00063\ \};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \}\ \ \textcolor{comment}{//\ namespace\ synchronization\_internal}}
+\DoxyCodeLine{00066\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00067\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ defined(\_WIN32)\ \&\&\ !defined(\_\_MINGW32\_\_)\ \&\&}}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ \_WIN32\_WINNT\ >=\ \_WIN32\_WINNT\_VISTA}}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_SYNCHRONIZATION\_INTERNAL\_WIN32\_WAITER\_H\_}}
+
+\end{DoxyCode}

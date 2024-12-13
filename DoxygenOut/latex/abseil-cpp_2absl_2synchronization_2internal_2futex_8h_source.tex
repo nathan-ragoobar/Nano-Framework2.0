@@ -1,0 +1,183 @@
+\doxysection{futex.\+h}
+\hypertarget{abseil-cpp_2absl_2synchronization_2internal_2futex_8h_source}{}\label{abseil-cpp_2absl_2synchronization_2internal_2futex_8h_source}\index{abseil-\/cpp/absl/synchronization/internal/futex.h@{abseil-\/cpp/absl/synchronization/internal/futex.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2futex_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2020\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#ifndef\ ABSL\_SYNCHRONIZATION\_INTERNAL\_FUTEX\_H\_}}
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#define\ ABSL\_SYNCHRONIZATION\_INTERNAL\_FUTEX\_H\_}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#ifndef\ \_WIN32}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <sys/time.h>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <unistd.h>}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#ifdef\ \_\_linux\_\_}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <linux/futex.h>}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <sys/syscall.h>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <errno.h>}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <time.h>}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/internal/kernel\_timeout.h"{}}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#ifdef\ ABSL\_INTERNAL\_HAVE\_FUTEX}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#error\ ABSL\_INTERNAL\_HAVE\_FUTEX\ may\ not\ be\ set\ on\ the\ command\ line}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#elif\ defined(\_\_BIONIC\_\_)}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ Bionic\ supports\ all\ the\ futex\ operations\ we\ need\ even\ when\ some\ of\ the\ futex}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ definitions\ are\ missing.}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_HAVE\_FUTEX}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#elif\ defined(\_\_linux\_\_)\ \&\&\ defined(FUTEX\_CLOCK\_REALTIME)}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ FUTEX\_CLOCK\_REALTIME\ requires\ Linux\ >=\ 2.6.28.}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_HAVE\_FUTEX}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#ifdef\ ABSL\_INTERNAL\_HAVE\_FUTEX}}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00054\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00055\ \textcolor{keyword}{namespace\ }synchronization\_internal\ \{}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ Some\ Android\ headers\ are\ missing\ these\ definitions\ even\ though\ they}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ support\ these\ futex\ operations.}}
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#ifdef\ \_\_BIONIC\_\_}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#ifndef\ SYS\_futex}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\#define\ SYS\_futex\ \_\_NR\_futex}}
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\#ifndef\ FUTEX\_WAIT\_BITSET}}
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\#define\ FUTEX\_WAIT\_BITSET\ 9}}
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\#ifndef\ FUTEX\_PRIVATE\_FLAG}}
+\DoxyCodeLine{00067\ \textcolor{preprocessor}{\#define\ FUTEX\_PRIVATE\_FLAG\ 128}}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\#ifndef\ FUTEX\_CLOCK\_REALTIME}}
+\DoxyCodeLine{00070\ \textcolor{preprocessor}{\#define\ FUTEX\_CLOCK\_REALTIME\ 256}}
+\DoxyCodeLine{00071\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00072\ \textcolor{preprocessor}{\#ifndef\ FUTEX\_BITSET\_MATCH\_ANY}}
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\#define\ FUTEX\_BITSET\_MATCH\_ANY\ 0xFFFFFFFF}}
+\DoxyCodeLine{00074\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \textcolor{preprocessor}{\#if\ defined(\_\_NR\_futex\_time64)\ \&\&\ !defined(SYS\_futex\_time64)}}
+\DoxyCodeLine{00078\ \textcolor{preprocessor}{\#define\ SYS\_futex\_time64\ \_\_NR\_futex\_time64}}
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \textcolor{preprocessor}{\#if\ defined(SYS\_futex\_time64)\ \&\&\ !defined(SYS\_futex)}}
+\DoxyCodeLine{00082\ \textcolor{preprocessor}{\#define\ SYS\_futex\ SYS\_futex\_time64}}
+\DoxyCodeLine{00083\ \textcolor{keyword}{using\ }FutexTimespec\ =\ \textcolor{keyword}{struct\ }timespec;}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ Some\ libc\ implementations\ have\ switched\ to\ an\ unconditional\ 64-\/bit\ \`{}time\_t`}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ definition.\ This\ means\ that\ \`{}struct\ timespec`\ may\ not\ match\ the\ layout}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ expected\ by\ the\ kernel\ ABI\ on\ 32-\/bit\ platforms.\ So\ we\ define\ the}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ FutexTimespec\ that\ matches\ the\ kernel\ timespec\ definition.\ It\ should\ be\ safe}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ to\ use\ this\ struct\ for\ 64-\/bit\ userspace\ builds\ too,\ since\ it\ will\ use\ another}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ SYS\_futex\ kernel\ call\ with\ 64-\/bit\ tv\_sec\ inside\ timespec.}}
+\DoxyCodeLine{00091\ \textcolor{keyword}{struct\ }FutexTimespec\ \{}
+\DoxyCodeLine{00092\ \ \ \textcolor{keywordtype}{long}\ tv\_sec;\ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00093\ \ \ \textcolor{keywordtype}{long}\ tv\_nsec;\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00094\ \};}
+\DoxyCodeLine{00095\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \textcolor{keyword}{class\ }FutexImpl\ \{}
+\DoxyCodeLine{00098\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ Atomically\ check\ that\ \`{}*v\ ==\ val`,\ and\ if\ it\ is,\ then\ sleep\ until\ the\ until}}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ woken\ by\ \`{}Wake()`.}}
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{int}\ Wait(std::atomic<int32\_t>*\ v,\ int32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}})\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{keywordflow}{return}\ WaitAbsoluteTimeout(v,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}},\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00103\ \ \ \}}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ Atomically\ check\ that\ \`{}*v\ ==\ val`,\ and\ if\ it\ is,\ then\ sleep\ until}}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ CLOCK\_REALTIME\ reaches\ \`{}*abs\_timeout`,\ or\ until\ woken\ by\ \`{}Wake()`.}}
+\DoxyCodeLine{00107\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{int}\ WaitAbsoluteTimeout(std::atomic<int32\_t>*\ v,\ int32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}},}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{struct}\ timespec*\ abs\_timeout)\ \{}
+\DoxyCodeLine{00109\ \ \ \ \ FutexTimespec\ ts;}
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{comment}{//\ https://locklessinc.com/articles/futex\_cheat\_sheet/}}
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{comment}{//\ Unlike\ FUTEX\_WAIT,\ FUTEX\_WAIT\_BITSET\ uses\ absolute\ time.}}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{keyword}{auto}\ err\ =\ syscall(}
+\DoxyCodeLine{00113\ \ \ \ \ \ \ \ \ SYS\_futex,\ \textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{namespaceEigen_1_1numext_ae4642fe9b8f3d42e634712b1d5e2fffe}{int32\_t}}*\textcolor{keyword}{>}(v),}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ FUTEX\_WAIT\_BITSET\ |\ FUTEX\_PRIVATE\_FLAG\ |\ FUTEX\_CLOCK\_REALTIME,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}},}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ ToFutexTimespec(abs\_timeout,\ \&ts),\ \textcolor{keyword}{nullptr},\ FUTEX\_BITSET\_MATCH\_ANY);}
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{keywordflow}{if}\ (err\ !=\ 0)\ \{}
+\DoxyCodeLine{00117\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/errno;}
+\DoxyCodeLine{00118\ \ \ \ \ \}}
+\DoxyCodeLine{00119\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00120\ \ \ \}}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//\ Atomically\ check\ that\ \`{}*v\ ==\ val`,\ and\ if\ it\ is,\ then\ sleep\ until}}
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//\ \`{}*rel\_timeout`\ has\ elapsed,\ or\ until\ woken\ by\ \`{}Wake()`.}}
+\DoxyCodeLine{00124\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{int}\ WaitRelativeTimeout(std::atomic<int32\_t>*\ v,\ int32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}},}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{struct}\ timespec*\ rel\_timeout)\ \{}
+\DoxyCodeLine{00126\ \ \ \ \ FutexTimespec\ ts;}
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{comment}{//\ Atomically\ check\ that\ the\ futex\ value\ is\ still\ 0,\ and\ if\ it}}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{comment}{//\ is,\ sleep\ until\ abs\_timeout\ or\ until\ woken\ by\ FUTEX\_WAKE.}}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keyword}{auto}\ err\ =}
+\DoxyCodeLine{00130\ \ \ \ \ \ \ \ \ syscall(SYS\_futex,\ \textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{namespaceEigen_1_1numext_ae4642fe9b8f3d42e634712b1d5e2fffe}{int32\_t}}*\textcolor{keyword}{>}(v),\ FUTEX\_PRIVATE\_FLAG,}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}},\ ToFutexTimespec(rel\_timeout,\ \&ts));}
+\DoxyCodeLine{00132\ \ \ \ \ \textcolor{keywordflow}{if}\ (err\ !=\ 0)\ \{}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/errno;}
+\DoxyCodeLine{00134\ \ \ \ \ \}}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00136\ \ \ \}}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \ \ \textcolor{comment}{//\ Wakes\ at\ most\ \`{}count`\ waiters\ that\ have\ entered\ the\ sleep\ state\ on\ \`{}v`.}}
+\DoxyCodeLine{00139\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{int}\ Wake(std::atomic<int32\_t>*\ v,\ int32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\ \{}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keyword}{auto}\ err\ =\ syscall(SYS\_futex,\ \textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{namespaceEigen_1_1numext_ae4642fe9b8f3d42e634712b1d5e2fffe}{int32\_t}}*\textcolor{keyword}{>}(v),}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FUTEX\_WAKE\ |\ FUTEX\_PRIVATE\_FLAG,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}});}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(err\ <\ 0))\ \{}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ -\/errno;}
+\DoxyCodeLine{00144\ \ \ \ \ \}}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00146\ \ \ \}}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00149\ \ \ \textcolor{keyword}{static}\ FutexTimespec*\ ToFutexTimespec(\textcolor{keyword}{const}\ \textcolor{keyword}{struct}\ timespec*\ userspace\_ts,}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FutexTimespec*\ futex\_ts)\ \{}
+\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keywordflow}{if}\ (userspace\_ts\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00153\ \ \ \ \ \}}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keyword}{using\ }FutexSeconds\ =\ \textcolor{keyword}{decltype}(futex\_ts-\/>tv\_sec);}
+\DoxyCodeLine{00156\ \ \ \ \ \textcolor{keyword}{using\ }FutexNanoseconds\ =\ \textcolor{keyword}{decltype}(futex\_ts-\/>tv\_nsec);}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{auto}\ kMaxSeconds\{(std::numeric\_limits<FutexSeconds>::max)()\};}
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keywordflow}{if}\ (userspace\_ts-\/>tv\_sec\ >\ kMaxSeconds)\ \{}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ futex\_ts-\/>tv\_sec\ =\ kMaxSeconds;}
+\DoxyCodeLine{00161\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ futex\_ts-\/>tv\_sec\ =\ \textcolor{keyword}{static\_cast<}FutexSeconds\textcolor{keyword}{>}(userspace\_ts-\/>tv\_sec);}
+\DoxyCodeLine{00163\ \ \ \ \ \}}
+\DoxyCodeLine{00164\ \ \ \ \ futex\_ts-\/>tv\_nsec\ =\ \textcolor{keyword}{static\_cast<}FutexNanoseconds\textcolor{keyword}{>}(userspace\_ts-\/>tv\_nsec);}
+\DoxyCodeLine{00165\ \ \ \ \ \textcolor{keywordflow}{return}\ futex\_ts;}
+\DoxyCodeLine{00166\ \ \ \}}
+\DoxyCodeLine{00167\ \};}
+\DoxyCodeLine{00168\ }
+\DoxyCodeLine{00169\ \textcolor{keyword}{class\ }Futex\ :\ \textcolor{keyword}{public}\ FutexImpl\ \{\};}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \}\ \ \textcolor{comment}{//\ namespace\ synchronization\_internal}}
+\DoxyCodeLine{00172\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00173\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_INTERNAL\_HAVE\_FUTEX}}
+\DoxyCodeLine{00176\ }
+\DoxyCodeLine{00177\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_SYNCHRONIZATION\_INTERNAL\_FUTEX\_H\_}}
+
+\end{DoxyCode}

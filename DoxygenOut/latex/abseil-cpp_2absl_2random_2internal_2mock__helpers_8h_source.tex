@@ -1,0 +1,167 @@
+\doxysection{mock\+\_\+helpers.\+h}
+\hypertarget{abseil-cpp_2absl_2random_2internal_2mock__helpers_8h_source}{}\label{abseil-cpp_2absl_2random_2internal_2mock__helpers_8h_source}\index{abseil-\/cpp/absl/random/internal/mock\_helpers.h@{abseil-\/cpp/absl/random/internal/mock\_helpers.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2random_2internal_2mock__helpers_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2019\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#ifndef\ ABSL\_RANDOM\_INTERNAL\_MOCK\_HELPERS\_H\_}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#define\ ABSL\_RANDOM\_INTERNAL\_MOCK\_HELPERS\_H\_}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/fast\_type\_id.h"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/types/optional.h"{}}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00026\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00027\ \textcolor{keyword}{namespace\ }random\_internal\ \{}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ A\ no-\/op\ validator\ meeting\ the\ ValidatorT\ requirements\ for\ MockHelpers.}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ Custom\ validators\ should\ follow\ a\ similar\ structure,\ passing\ the\ type\ to}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ MockHelpers::MockFor<KeyT>(m,\ CustomValidatorT()).}}
+\DoxyCodeLine{00033\ \textcolor{keyword}{struct\ }NoOpValidator\ \{}
+\DoxyCodeLine{00034\ \ \ \textcolor{comment}{//\ Default\ validation:\ do\ nothing.}}
+\DoxyCodeLine{00035\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ResultT,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00036\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1random__internal_1_1NoOpValidator_ae4a148a9b74d252e9c5a0bb6fb5225cf}{Validate}}(ResultT,\ Args\&\&...)\ \{\}}
+\DoxyCodeLine{00037\ \};}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ MockHelpers\ works\ in\ conjunction\ with\ MockOverloadSet,\ MockingBitGen,\ and}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ BitGenRef\ to\ enable\ the\ mocking\ capability\ for\ absl\ distribution\ functions.}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ MockingBitGen\ registers\ mocks\ based\ on\ the\ typeid\ of\ a\ mock\ signature,\ KeyT,}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ which\ is\ used\ to\ generate\ a\ unique\ id.}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ KeyT\ is\ a\ signature\ of\ the\ form:}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \ \ result\_type(discriminator\_type,\ std::tuple<args...>)}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ The\ mocked\ function\ signature\ will\ be\ composed\ from\ KeyT\ as:}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \ \ result\_type(args...)}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//}}
+\DoxyCodeLine{00050\ \textcolor{keyword}{class\ }MockHelpers\ \{}
+\DoxyCodeLine{00051\ \ \ \textcolor{keyword}{using\ }IdType\ =\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ac4232b348046a6a9bc30dc6817174faa}{::absl::base\_internal::FastTypeIdType}};}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \ \ \textcolor{comment}{//\ Given\ a\ key\ signature\ type\ used\ to\ index\ the\ mock,\ extract\ the\ components.}}
+\DoxyCodeLine{00054\ \ \ \textcolor{comment}{//\ KeyT\ is\ expected\ to\ have\ the\ form:}}
+\DoxyCodeLine{00055\ \ \ \textcolor{comment}{//\ \ \ result\_type(discriminator\_type,\ arg\_tuple\_type)}}
+\DoxyCodeLine{00056\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ KeyT>}
+\DoxyCodeLine{00057\ \ \ \textcolor{keyword}{struct\ }KeySignature;}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ResultT,\ \textcolor{keyword}{typename}\ DiscriminatorT,\ \textcolor{keyword}{typename}\ ArgTupleT>}
+\DoxyCodeLine{00060\ \ \ \textcolor{keyword}{struct\ }KeySignature<ResultT(DiscriminatorT,\ ArgTupleT)>\ \{}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keyword}{using\ }result\_type\ =\ ResultT;}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{using\ }discriminator\_type\ =\ DiscriminatorT;}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{using\ }arg\_tuple\_type\ =\ ArgTupleT;}
+\DoxyCodeLine{00064\ \ \ \};}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ Detector\ for\ InvokeMock.}}
+\DoxyCodeLine{00067\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{using\ }invoke\_mock\_t\ =\ \textcolor{keyword}{decltype}(std::declval<T*>()-\/>InvokeMock(}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ std::declval<IdType>(),\ std::declval<void*>(),\ std::declval<void*>()));}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ Empty\ implementation\ of\ InvokeMock.}}
+\DoxyCodeLine{00072\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ KeyT,\ \textcolor{keyword}{typename}\ ReturnT,\ \textcolor{keyword}{typename}\ ArgTupleT,\ \textcolor{keyword}{typename}\ URBG,}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{classabsl_1_1optional}{absl::optional<ReturnT>}}\ InvokeMockImpl(\textcolor{keywordtype}{char},\ URBG*,\ Args\&\&...)\ \{}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keywordflow}{return}\ absl::nullopt;}
+\DoxyCodeLine{00076\ \ \ \}}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ Non-\/empty\ implementation\ of\ InvokeMock.}}
+\DoxyCodeLine{00079\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ KeyT,\ \textcolor{keyword}{typename}\ ReturnT,\ \textcolor{keyword}{typename}\ ArgTupleT,\ \textcolor{keyword}{typename}\ URBG,}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ invoke\_mock\_t<URBG>,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00081\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{classabsl_1_1optional}{absl::optional<ReturnT>}}\ InvokeMockImpl(\textcolor{keywordtype}{int},\ URBG*\ urbg,}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00083\ \ \ \ \ ArgTupleT\ arg\_tuple(std::forward<Args>(args)...);}
+\DoxyCodeLine{00084\ \ \ \ \ ReturnT\ result;}
+\DoxyCodeLine{00085\ \ \ \ \ \textcolor{keywordflow}{if}\ (urbg-\/>InvokeMock(\mbox{\hyperlink{namespaceabsl_1_1base__internal_a6f0b25e9ed9706a67b201247d2697ec3}{::absl::base\_internal::FastTypeId<KeyT>}}(),\ \&arg\_tuple,}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&result))\ \{}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00088\ \ \ \ \ \}}
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{keywordflow}{return}\ absl::nullopt;}
+\DoxyCodeLine{00090\ \ \ \}}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00093\ \ \ \textcolor{comment}{//\ InvokeMock\ is\ private;\ this\ provides\ access\ for\ some\ specialized\ use\ cases.}}
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ URBG>}
+\DoxyCodeLine{00095\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockHelpers_ab7d926fc125601ee4ce63d3dfd9d8201}{PrivateInvokeMock}}(URBG*\ urbg,\ IdType\ type,}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{void}*\ args\_tuple,\ \textcolor{keywordtype}{void}*\ result)\ \{}
+\DoxyCodeLine{00097\ \ \ \ \ \textcolor{keywordflow}{return}\ urbg-\/>InvokeMock(type,\ args\_tuple,\ result);}
+\DoxyCodeLine{00098\ \ \ \}}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ Invoke\ a\ mock\ for\ the\ KeyT\ (may\ or\ may\ not\ be\ a\ signature).}}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ KeyT\ is\ used\ to\ generate\ a\ typeid-\/based\ lookup\ key\ for\ the\ mock.}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ KeyT\ is\ a\ signature\ of\ the\ form:}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ \ \ result\_type(discriminator\_type,\ std::tuple<args...>)}}
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ The\ mocked\ function\ signature\ will\ be\ composed\ from\ KeyT\ as:}}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ \ \ result\_type(args...)}}
+\DoxyCodeLine{00107\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//\ An\ instance\ of\ arg\_tuple\_type\ must\ be\ constructable\ from\ Args...,\ since}}
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ the\ underlying\ mechanism\ requires\ a\ pointer\ to\ an\ argument\ tuple.}}
+\DoxyCodeLine{00110\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ KeyT,\ \textcolor{keyword}{typename}\ URBG,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00111\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockHelpers_a9a116711596ae96ed3d03f1cd6b3e63a}{MaybeInvokeMock}}(URBG*\ urbg,\ Args\&\&...\ args)}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ -\/>\ \mbox{\hyperlink{classabsl_1_1optional}{absl::optional<typename\ KeySignature<KeyT>::result\_type}}>\ \{}
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{comment}{//\ Use\ function\ overloading\ to\ dispatch\ to\ the\ implementation\ since}}
+\DoxyCodeLine{00114\ \ \ \ \ \textcolor{comment}{//\ more\ modern\ patterns\ (e.g.\ require\ +\ constexpr)\ are\ not\ supported\ in\ all}}
+\DoxyCodeLine{00115\ \ \ \ \ \textcolor{comment}{//\ compiler\ configurations.}}
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{keywordflow}{return}\ InvokeMockImpl<KeyT,\ typename\ KeySignature<KeyT>::result\_type,}
+\DoxyCodeLine{00117\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ KeySignature<KeyT>::arg\_tuple\_type,\ URBG>(}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ \ \ 0,\ urbg,\ std::forward<Args>(args)...);}
+\DoxyCodeLine{00119\ \ \ \}}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//\ Acquire\ a\ mock\ for\ the\ KeyT\ (may\ or\ may\ not\ be\ a\ signature),\ set\ up\ to\ use}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//\ the\ ValidatorT\ to\ verify\ that\ the\ result\ is\ in\ the\ range\ of\ the\ RNG}}
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//\ function.}}
+\DoxyCodeLine{00124\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00125\ \ \ \textcolor{comment}{//\ KeyT\ is\ used\ to\ generate\ a\ typeid-\/based\ lookup\ for\ the\ mock.}}
+\DoxyCodeLine{00126\ \ \ \textcolor{comment}{//\ KeyT\ is\ a\ signature\ of\ the\ form:}}
+\DoxyCodeLine{00127\ \ \ \textcolor{comment}{//\ \ \ result\_type(discriminator\_type,\ std::tuple<args...>)}}
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ The\ mocked\ function\ signature\ will\ be\ composed\ from\ KeyT\ as:}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ \ \ result\_type(args...)}}
+\DoxyCodeLine{00130\ \ \ \textcolor{comment}{//\ ValidatorT::Validate\ will\ be\ called\ after\ the\ result\ of\ the\ RNG.\ The}}
+\DoxyCodeLine{00131\ \ \ \textcolor{comment}{//\ \ \ signature\ is\ expected\ to\ be\ of\ the\ form:}}
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ \ \ \ \ \ ValidatorT::Validate(result,\ args...)}}
+\DoxyCodeLine{00133\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ KeyT,\ \textcolor{keyword}{typename}\ Val\textcolor{keywordtype}{id}atorT,\ \textcolor{keyword}{typename}\ MockURBG>}
+\DoxyCodeLine{00134\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockHelpers_a603904d7cefe04a167ea1c80431a0adb}{MockFor}}(MockURBG\&\ m,\ ValidatorT)}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ -\/>\ \textcolor{keyword}{decltype}(m.template\ RegisterMock<}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ KeySignature<KeyT>::result\_type,}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ KeySignature<KeyT>::arg\_tuple\_type>(}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \ \ \ \ m,\ std::declval<IdType>(),\ ValidatorT()))\ \{}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keywordflow}{return}\ m.template\ RegisterMock<typename\ KeySignature<KeyT>::result\_type,}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ KeySignature<KeyT>::arg\_tuple\_type>(}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \ \ m,\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a6f0b25e9ed9706a67b201247d2697ec3}{::absl::base\_internal::FastTypeId<KeyT>}}(),\ ValidatorT());}
+\DoxyCodeLine{00142\ \ \ \}}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//\ Acquire\ a\ mock\ for\ the\ KeyT\ (may\ or\ may\ not\ be\ a\ signature).}}
+\DoxyCodeLine{00145\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00146\ \ \ \textcolor{comment}{//\ KeyT\ is\ used\ to\ generate\ a\ typeid-\/based\ lookup\ for\ the\ mock.}}
+\DoxyCodeLine{00147\ \ \ \textcolor{comment}{//\ KeyT\ is\ a\ signature\ of\ the\ form:}}
+\DoxyCodeLine{00148\ \ \ \textcolor{comment}{//\ \ \ result\_type(discriminator\_type,\ std::tuple<args...>)}}
+\DoxyCodeLine{00149\ \ \ \textcolor{comment}{//\ The\ mocked\ function\ signature\ will\ be\ composed\ from\ KeyT\ as:}}
+\DoxyCodeLine{00150\ \ \ \textcolor{comment}{//\ \ \ result\_type(args...)}}
+\DoxyCodeLine{00151\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ KeyT,\ \textcolor{keyword}{typename}\ MockURBG>}
+\DoxyCodeLine{00152\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{decltype}(\textcolor{keyword}{auto})\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockHelpers_a6abc29acb5284aefeb8bc815eef13a48}{MockFor}}(MockURBG\&\ m)\ \{}
+\DoxyCodeLine{00153\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1MockHelpers_a603904d7cefe04a167ea1c80431a0adb}{MockFor<KeyT>}}(m,\ \mbox{\hyperlink{structabsl_1_1random__internal_1_1NoOpValidator}{NoOpValidator}}());}
+\DoxyCodeLine{00154\ \ \ \}}
+\DoxyCodeLine{00155\ \};}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \}\ \ \textcolor{comment}{//\ namespace\ random\_internal}}
+\DoxyCodeLine{00158\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00159\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00161\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_RANDOM\_INTERNAL\_MOCK\_HELPERS\_H\_}}
+
+\end{DoxyCode}

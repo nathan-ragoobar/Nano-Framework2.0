@@ -1,0 +1,470 @@
+\doxysection{check\+\_\+op.\+h}
+\hypertarget{abseil-cpp_2absl_2log_2internal_2check__op_8h_source}{}\label{abseil-cpp_2absl_2log_2internal_2check__op_8h_source}\index{abseil-\/cpp/absl/log/internal/check\_op.h@{abseil-\/cpp/absl/log/internal/check\_op.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2022\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ log/internal/check\_op.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ file\ declares\ helpers\ routines\ and\ macros\ used\ to\ implement\ \`{}CHECK`}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ macros.}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#ifndef\ ABSL\_LOG\_INTERNAL\_CHECK\_OP\_H\_}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CHECK\_OP\_H\_}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <ostream>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <sstream>}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ "{}absl/base/nullability.h"{}}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/log/internal/nullguard.h"{}}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ "{}absl/log/internal/nullstream.h"{}}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ "{}absl/log/internal/strip.h"{}}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ "{}absl/strings/has\_absl\_stringify.h"{}}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ "{}absl/strings/string\_view.h"{}}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \`{}ABSL\_LOG\_INTERNAL\_STRIP\_STRING\_LITERAL`\ wraps\ string\ literals\ that}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ should\ be\ stripped\ when\ \`{}ABSL\_MIN\_LOG\_LEVEL`\ exceeds\ \`{}kFatal`.}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#ifdef\ ABSL\_MIN\_LOG\_LEVEL}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_STRIP\_STRING\_LITERAL(literal)\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\ \ (::absl::LogSeverity::kFatal\ >=\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ static\_cast<::absl::LogSeverity>(ABSL\_MIN\_LOG\_LEVEL)\ \(\backslash\)}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\ \ \ \ \ \ \ ?\ (literal)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\ \ \ \ \ \ \ :\ "{}"{})}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_STRIP\_STRING\_LITERAL(literal)\ (literal)}}
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#ifdef\ NDEBUG}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ \`{}NDEBUG`\ is\ defined,\ so\ \`{}DCHECK\_EQ(x,\ y)`\ and\ so\ on\ do\ nothing.\ \ However,\ we}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ still\ want\ the\ compiler\ to\ parse\ \`{}x`\ and\ \`{}y`,\ because\ we\ don't\ want\ to\ lose}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ potentially\ useful\ errors\ and\ warnings.}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DCHECK\_NOP(x,\ y)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\ \ while\ (false\ \&\&\ ((void)(x),\ (void)(y),\ 0))\ \(\backslash\)}}
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\ \ ::absl::log\_internal::NullStream().InternalStream()}}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CHECK\_OP(name,\ op,\ val1,\ val1\_text,\ val2,\ val2\_text)\ \(\backslash\)}}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\ \ while\ (::std::string*\ absl\_log\_internal\_check\_op\_result\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00067\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ ABSL\_LOG\_INTERNAL\_ATTRIBUTE\_UNUSED\_IF\_STRIP\_LOG\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::name\#\#Impl(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::GetReferenceableValue(val1),\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00070\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::GetReferenceableValue(val2),\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00071\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ABSL\_LOG\_INTERNAL\_STRIP\_STRING\_LITERAL(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00072\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ val1\_text\ "{}\ "{}\ \#op\ "{}\ "{}\ val2\_text)))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_FATAL(STATELESS,\ true)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00074\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CHECK(*absl\_log\_internal\_check\_op\_result).InternalStream()}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_QCHECK\_OP(name,\ op,\ val1,\ val1\_text,\ val2,\ \(\backslash\)}}
+\DoxyCodeLine{00076\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ val2\_text)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00077\ \textcolor{preprocessor}{\ \ while\ (::std::string*\ absl\_log\_internal\_qcheck\_op\_result\ =\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00078\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::name\#\#Impl(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::GetReferenceableValue(val1),\ \ \(\backslash\)}}
+\DoxyCodeLine{00080\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::GetReferenceableValue(val2),\ \ \(\backslash\)}}
+\DoxyCodeLine{00081\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ABSL\_LOG\_INTERNAL\_STRIP\_STRING\_LITERAL(\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00082\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ val1\_text\ "{}\ "{}\ \#op\ "{}\ "{}\ val2\_text)))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00083\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_QFATAL(STATELESS,\ true)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_QCHECK(*absl\_log\_internal\_qcheck\_op\_result).InternalStream()}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CHECK\_STROP(func,\ op,\ expected,\ s1,\ s1\_text,\ s2,\ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00086\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ s2\_text)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\ \ while\ (::std::string*\ absl\_log\_internal\_check\_strop\_result\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::Check\#\#func\#\#expected\#\#Impl(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00089\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (s1),\ (s2),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ABSL\_LOG\_INTERNAL\_STRIP\_STRING\_LITERAL(s1\_text\ "{}\ "{}\ \#op\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00091\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "{}\ "{}\ s2\_text)))\ \(\backslash\)}}
+\DoxyCodeLine{00092\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_FATAL(STATELESS,\ true)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00093\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CHECK(*absl\_log\_internal\_check\_strop\_result)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00094\ \textcolor{preprocessor}{\ \ \ \ \ \ .InternalStream()}}
+\DoxyCodeLine{00095\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_QCHECK\_STROP(func,\ op,\ expected,\ s1,\ s1\_text,\ s2,\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00096\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ s2\_text)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\ \ while\ (::std::string*\ absl\_log\_internal\_qcheck\_strop\_result\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::Check\#\#func\#\#expected\#\#Impl(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00099\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (s1),\ (s2),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00100\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ABSL\_LOG\_INTERNAL\_STRIP\_STRING\_LITERAL(s1\_text\ "{}\ "{}\ \#op\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00101\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "{}\ "{}\ s2\_text)))\ \(\backslash\)}}
+\DoxyCodeLine{00102\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_QFATAL(STATELESS,\ true)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00103\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_QCHECK(*absl\_log\_internal\_qcheck\_strop\_result)\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00104\ \textcolor{preprocessor}{\ \ \ \ \ \ .InternalStream()}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ This\ one\ is\ tricky:}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ *\ We\ must\ evaluate\ \`{}val`\ exactly\ once,\ yet\ we\ need\ to\ do\ two\ things\ with\ it:}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ \ \ evaluate\ \`{}.ok()`\ and\ (sometimes)\ \`{}.ToString()`.}}
+\DoxyCodeLine{00108\ \textcolor{comment}{//\ *\ \`{}val`\ might\ be\ an\ \`{}absl::Status`\ or\ some\ \`{}absl::StatusOr<T>`.}}
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ *\ \`{}val`\ might\ be\ e.g.\ \`{}ATemporary().GetStatus()`,\ which\ may\ return\ a}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//\ \ \ reference\ to\ a\ member\ of\ \`{}ATemporary`\ that\ is\ only\ valid\ until\ the\ end\ of}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ \ \ the\ full\ expression.}}
+\DoxyCodeLine{00112\ \textcolor{comment}{//\ *\ We\ don't\ want\ this\ file\ to\ depend\ on\ \`{}absl::Status`\ \`{}\#include`s\ or\ linkage,}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ \ \ nor\ do\ we\ want\ to\ move\ the\ definition\ to\ status\ and\ introduce\ a\ dependency}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ \ \ in\ the\ other\ direction.\ \ We\ can\ be\ assured\ that\ callers\ must\ already\ have\ a}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ \ \ \`{}Status`\ and\ the\ necessary\ \`{}\#include`s\ and\ linkage.}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ *\ Callsites\ should\ be\ small\ and\ fast\ (at\ least\ when\ \`{}val.ok()`):\ one\ branch,}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ \ \ minimal\ stack\ footprint.}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ \ \ *\ In\ particular,\ the\ string\ concat\ stuff\ should\ be\ out-\/of-\/line\ and\ emitted}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ \ \ \ \ in\ only\ one\ TU\ to\ save\ linker\ input\ size}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ *\ We\ want\ the\ \`{}val.ok()`\ check\ inline\ so\ static\ analyzers\ and\ optimizers\ can}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ \ \ see\ it.}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ *\ As\ usual,\ no\ braces\ so\ we\ can\ stream\ into\ the\ expansion\ with\ \`{}operator<<`.}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ *\ Also\ as\ usual,\ it\ must\ expand\ to\ a\ single\ (partial)\ statement\ with\ no}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ \ \ ambiguous-\/else\ problems.}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ *\ When\ stripped\ by\ \`{}ABSL\_MIN\_LOG\_LEVEL`,\ we\ must\ discard\ the\ \`{}<expr>\ is\ OK`}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ \ \ string\ literal\ and\ abort\ without\ doing\ any\ streaming.\ \ We\ don't\ need\ to}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ \ \ strip\ the\ call\ to\ stringify\ the\ non-\/ok\ \`{}Status`\ as\ long\ as\ we\ don't\ log\ it;}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ \ \ dropping\ the\ \`{}Status`'s\ message\ text\ is\ out\ of\ scope.}}
+\DoxyCodeLine{00129\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CHECK\_OK(val,\ val\_text)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00130\ \textcolor{preprocessor}{\ \ for\ (::std::pair<const\ ::absl::Status*,\ ::std::string*>\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00131\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ absl\_log\_internal\_check\_ok\_goo;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00132\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_check\_ok\_goo.first\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00133\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::AsStatus(val),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00134\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_check\_ok\_goo.second\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00135\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ ABSL\_PREDICT\_TRUE(absl\_log\_internal\_check\_ok\_goo.first-\/>ok())\ \(\backslash\)}}
+\DoxyCodeLine{00136\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ nullptr\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00137\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ ::absl::status\_internal::MakeCheckFailString(\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00138\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl\_log\_internal\_check\_ok\_goo.first,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00139\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ABSL\_LOG\_INTERNAL\_STRIP\_STRING\_LITERAL(val\_text\ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00140\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "{}\ is\ OK"{})),\ \ \(\backslash\)}}
+\DoxyCodeLine{00141\ \textcolor{preprocessor}{\ \ \ \ \ \ \ !ABSL\_PREDICT\_TRUE(absl\_log\_internal\_check\_ok\_goo.first-\/>ok());)\ \ \(\backslash\)}}
+\DoxyCodeLine{00142\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_FATAL(STATELESS,\ true)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00143\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CHECK(*absl\_log\_internal\_check\_ok\_goo.second)\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00144\ \textcolor{preprocessor}{\ \ \ \ \ \ .InternalStream()}}
+\DoxyCodeLine{00145\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_QCHECK\_OK(val,\ val\_text)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00146\ \textcolor{preprocessor}{\ \ for\ (::std::pair<const\ ::absl::Status*,\ ::std::string*>\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00147\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ absl\_log\_internal\_qcheck\_ok\_goo;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00148\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_qcheck\_ok\_goo.first\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00149\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ ::absl::log\_internal::AsStatus(val),\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00150\ \textcolor{preprocessor}{\ \ \ \ \ \ \ absl\_log\_internal\_qcheck\_ok\_goo.second\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00151\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ ABSL\_PREDICT\_TRUE(absl\_log\_internal\_qcheck\_ok\_goo.first-\/>ok())\ \(\backslash\)}}
+\DoxyCodeLine{00152\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ nullptr\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00153\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ ::absl::status\_internal::MakeCheckFailString(\ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00154\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl\_log\_internal\_qcheck\_ok\_goo.first,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00155\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ABSL\_LOG\_INTERNAL\_STRIP\_STRING\_LITERAL(val\_text\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00156\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ "{}\ is\ OK"{})),\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00157\ \textcolor{preprocessor}{\ \ \ \ \ \ \ !ABSL\_PREDICT\_TRUE(absl\_log\_internal\_qcheck\_ok\_goo.first-\/>ok());)\ \ \(\backslash\)}}
+\DoxyCodeLine{00158\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_QFATAL(STATELESS,\ true)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00159\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_QCHECK(*absl\_log\_internal\_qcheck\_ok\_goo.second)\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00160\ \textcolor{preprocessor}{\ \ \ \ \ \ .InternalStream()}}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00163\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00165\ \textcolor{keyword}{class\ }\mbox{\hyperlink{namespaceabsl_a56314f49e511be606aaed82792eb4aaa}{Status}};}
+\DoxyCodeLine{00166\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00167\ \textcolor{keyword}{class\ }\mbox{\hyperlink{namespaceabsl_a2a7a7c3ed0074da60860e558e3ae5181}{StatusOr}};}
+\DoxyCodeLine{00168\ }
+\DoxyCodeLine{00169\ \textcolor{keyword}{namespace\ }status\_internal\ \{}
+\DoxyCodeLine{00170\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_aa7aa289eeb6115ba610cf05f5a41c623}{ABSL\_ATTRIBUTE\_PURE\_FUNCTION}}\ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::string*>}}\ \mbox{\hyperlink{namespaceabsl_1_1status__internal_a27327a08bda07ad7294c2cfea16e806b}{MakeCheckFailString}}(}
+\DoxyCodeLine{00171\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ absl::Status*>}}\ status,}
+\DoxyCodeLine{00172\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ prefix);}
+\DoxyCodeLine{00173\ \}\ \ \textcolor{comment}{//\ namespace\ status\_internal}}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \textcolor{keyword}{namespace\ }log\_internal\ \{}
+\DoxyCodeLine{00176\ }
+\DoxyCodeLine{00177\ \textcolor{comment}{//\ Convert\ a\ Status\ or\ a\ StatusOr\ to\ its\ underlying\ status\ value.}}
+\DoxyCodeLine{00178\ \textcolor{comment}{//}}
+\DoxyCodeLine{00179\ \textcolor{comment}{//\ (This\ implementation\ does\ not\ require\ a\ dep\ on\ absl::Status\ to\ work.)}}
+\DoxyCodeLine{00180\ \textcolor{keyword}{inline}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1Status}{absl::Status}}*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_af00535b4635a957539ae6d7bcfe0a310}{AsStatus}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1Status}{absl::Status}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \{\ \textcolor{keywordflow}{return}\ \&\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}};\ \}}
+\DoxyCodeLine{00181\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00182\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1Status}{absl::Status}}*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_af00535b4635a957539ae6d7bcfe0a310}{AsStatus}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1StatusOr}{absl::StatusOr<T>}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \{}
+\DoxyCodeLine{00183\ \ \ \textcolor{keywordflow}{return}\ \&\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.status();}
+\DoxyCodeLine{00184\ \}}
+\DoxyCodeLine{00185\ }
+\DoxyCodeLine{00186\ \textcolor{comment}{//\ A\ helper\ class\ for\ formatting\ \`{}expr\ (V1\ vs.\ V2)`\ in\ a\ \`{}CHECK\_XX`\ statement.}}
+\DoxyCodeLine{00187\ \textcolor{comment}{//\ See\ \`{}MakeCheckOpString`\ for\ sample\ usage.}}
+\DoxyCodeLine{00188\ \textcolor{keyword}{class\ }CheckOpMessageBuilder\ final\ \{}
+\DoxyCodeLine{00189\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00190\ \ \ \textcolor{comment}{//\ Inserts\ \`{}exprtext`\ and\ \`{}\ (`\ to\ the\ stream.}}
+\DoxyCodeLine{00191\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1CheckOpMessageBuilder_a106c69653971d3c9c303d774dd055af2}{CheckOpMessageBuilder}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ exprtext);}
+\DoxyCodeLine{00192\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1CheckOpMessageBuilder_ad0e410eb37ca06fe7aeeac1815b04233}{\string~CheckOpMessageBuilder}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00193\ \ \ \textcolor{comment}{//\ For\ inserting\ the\ first\ variable.}}
+\DoxyCodeLine{00194\ \ \ std::ostream\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1CheckOpMessageBuilder_afdaab01d73228d6b249e45aa4379c4e1}{ForVar1}}()\ \{\ \textcolor{keywordflow}{return}\ stream\_;\ \}}
+\DoxyCodeLine{00195\ \ \ \textcolor{comment}{//\ For\ inserting\ the\ second\ variable\ (adds\ an\ intermediate\ \`{}\ vs.\ \`{}).}}
+\DoxyCodeLine{00196\ \ \ std::ostream\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1CheckOpMessageBuilder_a2673bf482744a11de6393e019bd3fcfa}{ForVar2}}();}
+\DoxyCodeLine{00197\ \ \ \textcolor{comment}{//\ Get\ the\ result\ (inserts\ the\ closing\ \`{})`).}}
+\DoxyCodeLine{00198\ \ \ std::string*\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1CheckOpMessageBuilder_a8004daa26ef24ba10499c6b6edb690db}{NewString}}();}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00201\ \ \ std::ostringstream\ stream\_;}
+\DoxyCodeLine{00202\ \};}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \textcolor{comment}{//\ This\ formats\ a\ value\ for\ a\ failing\ \`{}CHECK\_XX`\ statement.\ \ Ordinarily,\ it\ uses}}
+\DoxyCodeLine{00205\ \textcolor{comment}{//\ the\ definition\ for\ \`{}operator<<`,\ with\ a\ few\ special\ cases\ below.}}
+\DoxyCodeLine{00206\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00207\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a45ddf557d6dce465a87172498e1e44d0}{MakeCheckOpValueString}}(std::ostream\&\ os,\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00208\ \ \ os\ <<\ log\_internal::NullGuard<T>::Guard(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00209\ \}}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \textcolor{comment}{//\ Overloads\ for\ char\ types\ provide\ readable\ values\ for\ unprintable\ characters.}}
+\DoxyCodeLine{00212\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a45ddf557d6dce465a87172498e1e44d0}{MakeCheckOpValueString}}(std::ostream\&\ os,\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00213\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a45ddf557d6dce465a87172498e1e44d0}{MakeCheckOpValueString}}(std::ostream\&\ os,\ \textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00214\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a45ddf557d6dce465a87172498e1e44d0}{MakeCheckOpValueString}}(std::ostream\&\ os,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00215\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a45ddf557d6dce465a87172498e1e44d0}{MakeCheckOpValueString}}(std::ostream\&\ os,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}});}
+\DoxyCodeLine{00216\ }
+\DoxyCodeLine{00217\ \textcolor{keyword}{namespace\ }detect\_specialization\ \{}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \textcolor{comment}{//\ MakeCheckOpString\ is\ being\ specialized\ for\ every\ T\ and\ U\ pair\ that\ is\ being}}
+\DoxyCodeLine{00220\ \textcolor{comment}{//\ passed\ to\ the\ CHECK\_op\ macros.\ However,\ there\ is\ a\ lot\ of\ redundancy\ in\ these}}
+\DoxyCodeLine{00221\ \textcolor{comment}{//\ specializations\ that\ creates\ unnecessary\ library\ and\ binary\ bloat.}}
+\DoxyCodeLine{00222\ \textcolor{comment}{//\ The\ number\ of\ instantiations\ tends\ to\ be\ O(n\string^2)\ because\ we\ have\ two}}
+\DoxyCodeLine{00223\ \textcolor{comment}{//\ independent\ inputs.\ This\ technique\ works\ by\ reducing\ \`{}n`.}}
+\DoxyCodeLine{00224\ \textcolor{comment}{//}}
+\DoxyCodeLine{00225\ \textcolor{comment}{//\ Most\ user-\/defined\ types\ being\ passed\ to\ CHECK\_op\ end\ up\ being\ printed\ as\ a}}
+\DoxyCodeLine{00226\ \textcolor{comment}{//\ builtin\ type.\ For\ example,\ enums\ tend\ to\ be\ implicitly\ converted\ to\ its}}
+\DoxyCodeLine{00227\ \textcolor{comment}{//\ underlying\ type\ when\ calling\ operator<<,\ and\ pointers\ are\ printed\ with\ the}}
+\DoxyCodeLine{00228\ \textcolor{comment}{//\ \`{}const\ void*`\ overload.}}
+\DoxyCodeLine{00229\ \textcolor{comment}{//\ To\ reduce\ the\ number\ of\ instantiations\ we\ coerce\ these\ values\ before\ calling}}
+\DoxyCodeLine{00230\ \textcolor{comment}{//\ MakeCheckOpString\ instead\ of\ inside\ it.}}
+\DoxyCodeLine{00231\ \textcolor{comment}{//}}
+\DoxyCodeLine{00232\ \textcolor{comment}{//\ To\ detect\ if\ this\ coercion\ is\ needed,\ we\ duplicate\ all\ the\ relevant}}
+\DoxyCodeLine{00233\ \textcolor{comment}{//\ operator<<\ overloads\ as\ specified\ in\ the\ standard,\ just\ in\ a\ different}}
+\DoxyCodeLine{00234\ \textcolor{comment}{//\ namespace.\ If\ the\ call\ to\ \`{}stream\ <<\ value`\ becomes\ ambiguous,\ it\ means\ that}}
+\DoxyCodeLine{00235\ \textcolor{comment}{//\ one\ of\ these\ overloads\ is\ the\ one\ selected\ by\ overload\ resolution.\ We\ then}}
+\DoxyCodeLine{00236\ \textcolor{comment}{//\ do\ overload\ resolution\ again\ just\ with\ our\ overload\ set\ to\ see\ which\ one\ gets}}
+\DoxyCodeLine{00237\ \textcolor{comment}{//\ selected.\ That\ tells\ us\ which\ type\ to\ coerce\ to.}}
+\DoxyCodeLine{00238\ \textcolor{comment}{//\ If\ the\ augmented\ call\ was\ not\ ambiguous,\ it\ means\ that\ none\ of\ these\ were}}
+\DoxyCodeLine{00239\ \textcolor{comment}{//\ selected\ and\ we\ can't\ coerce\ the\ input.}}
+\DoxyCodeLine{00240\ \textcolor{comment}{//}}
+\DoxyCodeLine{00241\ \textcolor{comment}{//\ As\ a\ secondary\ step\ to\ reduce\ code\ duplication,\ we\ promote\ integral\ types\ to}}
+\DoxyCodeLine{00242\ \textcolor{comment}{//\ their\ 64-\/bit\ variant.\ This\ does\ not\ change\ the\ printed\ value,\ but\ reduces\ the}}
+\DoxyCodeLine{00243\ \textcolor{comment}{//\ number\ of\ instantiations\ even\ further.\ Promoting\ an\ integer\ is\ very\ cheap\ at}}
+\DoxyCodeLine{00244\ \textcolor{comment}{//\ the\ call\ site.}}
+\DoxyCodeLine{00245\ int64\_t\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00246\ int64\_t\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00247\ int64\_t\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});}
+\DoxyCodeLine{00248\ int64\_t\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});}
+\DoxyCodeLine{00249\ int64\_t\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00250\ uint64\_t\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});\ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00251\ int64\_t\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00252\ uint64\_t\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00253\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});}
+\DoxyCodeLine{00254\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});}
+\DoxyCodeLine{00255\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});}
+\DoxyCodeLine{00256\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});}
+\DoxyCodeLine{00257\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});}
+\DoxyCodeLine{00258\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::ostream\&,\ std::nullptr\_t);}
+\DoxyCodeLine{00259\ }
+\DoxyCodeLine{00260\ \textcolor{comment}{//\ These\ \`{}char`\ overloads\ are\ specified\ like\ this\ in\ the\ standard,\ so\ we\ have\ to}}
+\DoxyCodeLine{00261\ \textcolor{comment}{//\ write\ them\ exactly\ the\ same\ to\ ensure\ the\ call\ is\ ambiguous.}}
+\DoxyCodeLine{00262\ \textcolor{comment}{//\ If\ we\ wrote\ it\ in\ a\ different\ way\ (eg\ taking\ std::ostream\ instead\ of\ the}}
+\DoxyCodeLine{00263\ \textcolor{comment}{//\ template)\ then\ one\ call\ might\ have\ a\ higher\ rank\ than\ the\ other\ and\ it\ would}}
+\DoxyCodeLine{00264\ \textcolor{comment}{//\ not\ be\ ambiguous.}}
+\DoxyCodeLine{00265\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Traits>}
+\DoxyCodeLine{00266\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::basic\_ostream<char,\ Traits>\&,\ \textcolor{keywordtype}{char});}
+\DoxyCodeLine{00267\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Traits>}
+\DoxyCodeLine{00268\ \textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::basic\_ostream<char,\ Traits>\&,\ \textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char});}
+\DoxyCodeLine{00269\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Traits>}
+\DoxyCodeLine{00270\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::basic\_ostream<char,\ Traits>\&,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char});}
+\DoxyCodeLine{00271\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Traits>}
+\DoxyCodeLine{00272\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::basic\_ostream<char,\ Traits>\&,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*);}
+\DoxyCodeLine{00273\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Traits>}
+\DoxyCodeLine{00274\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::basic\_ostream<char,\ Traits>\&,}
+\DoxyCodeLine{00275\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}*);}
+\DoxyCodeLine{00276\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Traits>}
+\DoxyCodeLine{00277\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_ae8b8c498621efc1d9bd18e29984b1ee3}{operator<<}}(std::basic\_ostream<char,\ Traits>\&,}
+\DoxyCodeLine{00278\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}*);}
+\DoxyCodeLine{00279\ }
+\DoxyCodeLine{00280\ \textcolor{comment}{//\ This\ overload\ triggers\ when\ the\ call\ is\ not\ ambiguous.}}
+\DoxyCodeLine{00281\ \textcolor{comment}{//\ It\ means\ that\ T\ is\ being\ printed\ with\ some\ overload\ not\ on\ this\ list.}}
+\DoxyCodeLine{00282\ \textcolor{comment}{//\ We\ keep\ the\ value\ as\ \`{}const\ T\&`.}}
+\DoxyCodeLine{00283\ template\ <typename\ T,\ typename\ =\ decltype(std::declval<std::ostream\&>()}
+\DoxyCodeLine{00284\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ <<\ std::declval<const\ T\&>())>}
+\DoxyCodeLine{00285\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_a7cbd583e4f2fb6d110c75210f1f11c55}{Detect}}(\textcolor{keywordtype}{int});}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00287\ \textcolor{comment}{//\ This\ overload\ triggers\ when\ the\ call\ is\ ambiguous.}}
+\DoxyCodeLine{00288\ \textcolor{comment}{//\ It\ means\ that\ T\ is\ either\ one\ from\ this\ list\ or\ printed\ as\ one\ from\ this}}
+\DoxyCodeLine{00289\ \textcolor{comment}{//\ list.\ Eg\ an\ enum\ that\ decays\ to\ \`{}int`\ for\ printing.}}
+\DoxyCodeLine{00290\ \textcolor{comment}{//\ We\ ask\ the\ overload\ set\ to\ give\ us\ the\ type\ we\ want\ to\ convert\ it\ to.}}
+\DoxyCodeLine{00291\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00292\ \textcolor{keyword}{decltype}(detect\_specialization::operator<<(std::declval<std::ostream\&>(),}
+\DoxyCodeLine{00293\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<const\ T\&>()))}
+\DoxyCodeLine{00294\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_a7cbd583e4f2fb6d110c75210f1f11c55}{Detect}}(\textcolor{keywordtype}{char});}
+\DoxyCodeLine{00295\ }
+\DoxyCodeLine{00296\ \textcolor{comment}{//\ A\ sink\ for\ AbslStringify\ which\ redirects\ everything\ to\ a\ std::ostream.}}
+\DoxyCodeLine{00297\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifySink}{StringifySink}}\ \{}
+\DoxyCodeLine{00298\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00299\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifySink_a117805438519c35da9d85226ac9bfa6f}{StringifySink}}(std::ostream\&\ os\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}});}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifySink_a6cccf3b805f5bdc4df8ace12599ac87c}{Append}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ text);}
+\DoxyCodeLine{00302\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifySink_a6cccf3b805f5bdc4df8ace12599ac87c}{Append}}(\textcolor{keywordtype}{size\_t}\ length,\ \textcolor{keywordtype}{char}\ ch);}
+\DoxyCodeLine{00303\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifySink_affbe2a7bd34e4ef5193e99f830bd7993}{AbslFormatFlush}}(\mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifySink}{StringifySink}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}},\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ text);}
+\DoxyCodeLine{00304\ }
+\DoxyCodeLine{00305\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00306\ \ \ std::ostream\&\ os\_;}
+\DoxyCodeLine{00307\ \};}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00309\ \textcolor{comment}{//\ Wraps\ a\ type\ implementing\ AbslStringify,\ and\ implements\ operator<<.}}
+\DoxyCodeLine{00310\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00311\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifyToStreamWrapper}{StringifyToStreamWrapper}}\ \{}
+\DoxyCodeLine{00312\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00313\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifyToStreamWrapper_ad6ec37a0d8e0eb43ad7429752dbba650}{StringifyToStreamWrapper}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})}
+\DoxyCodeLine{00314\ \ \ \ \ \ \ :\ v\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{\}}
+\DoxyCodeLine{00315\ }
+\DoxyCodeLine{00316\ \ \ \textcolor{keyword}{friend}\ std::ostream\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifyToStreamWrapper_a8a89f28de6a97f56aec5c3159dc1ff3a}{operator<<}}(std::ostream\&\ os,}
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifyToStreamWrapper}{StringifyToStreamWrapper}}\&\ wrapper)\ \{}
+\DoxyCodeLine{00318\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1detect__specialization_1_1StringifySink}{StringifySink}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}(os);}
+\DoxyCodeLine{00319\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a7e29fe892ee850c37bf78f6f02c66170}{AbslStringify}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}},\ wrapper.v\_);}
+\DoxyCodeLine{00320\ \ \ \ \ \textcolor{keywordflow}{return}\ os;}
+\DoxyCodeLine{00321\ \ \ \}}
+\DoxyCodeLine{00322\ }
+\DoxyCodeLine{00323\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00324\ \ \ \textcolor{keyword}{const}\ T\&\ v\_;}
+\DoxyCodeLine{00325\ \};}
+\DoxyCodeLine{00326\ }
+\DoxyCodeLine{00327\ \textcolor{comment}{//\ This\ overload\ triggers\ when\ T\ implements\ AbslStringify.}}
+\DoxyCodeLine{00328\ \textcolor{comment}{//\ StringifyToStreamWrapper\ is\ used\ to\ allow\ MakeCheckOpString\ to\ use}}
+\DoxyCodeLine{00329\ \textcolor{comment}{//\ operator<<.}}
+\DoxyCodeLine{00330\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00331\ std::enable\_if\_t<HasAbslStringify<T>::value,}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ StringifyToStreamWrapper<T>>}
+\DoxyCodeLine{00333\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_a7cbd583e4f2fb6d110c75210f1f11c55}{Detect}}(...);\ \ \textcolor{comment}{//\ Ellipsis\ has\ lowest\ preference\ when\ int\ passed.}}
+\DoxyCodeLine{00334\ \}\ \ \textcolor{comment}{//\ namespace\ detect\_specialization}}
+\DoxyCodeLine{00335\ }
+\DoxyCodeLine{00336\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00337\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1log__internal_a15f321ce847b16f59fb1e6997c63ebfb}{CheckOpStreamType}}\ =\ \textcolor{keyword}{decltype}(\mbox{\hyperlink{namespaceabsl_1_1log__internal_1_1detect__specialization_a7cbd583e4f2fb6d110c75210f1f11c55}{detect\_specialization::Detect<T>}}(0));}
+\DoxyCodeLine{00338\ }
+\DoxyCodeLine{00339\ \textcolor{comment}{//\ Build\ the\ error\ message\ string.\ \ Specify\ no\ inlining\ for\ code\ size.}}
+\DoxyCodeLine{00340\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T1,\ \textcolor{keyword}{typename}\ T2>}
+\DoxyCodeLine{00341\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a67d0c6f93ab8041490a8cb8a34ad6671}{ABSL\_ATTRIBUTE\_RETURNS\_NONNULL}}\ std::string*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a233e6d0b92538d0062eeee55aea4d997}{MakeCheckOpString}}(}
+\DoxyCodeLine{00342\ \ \ \ \ T1\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_ac3f9ff4294615df8b7e9684b7d6fddc7}{v1}},\ T2\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_aa517e2fff4a8c9cba11391ca12f91803}{v2}},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ exprtext)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}};}
+\DoxyCodeLine{00343\ }
+\DoxyCodeLine{00344\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T1,\ \textcolor{keyword}{typename}\ T2>}
+\DoxyCodeLine{00345\ std::string*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a233e6d0b92538d0062eeee55aea4d997}{MakeCheckOpString}}(T1\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_ac3f9ff4294615df8b7e9684b7d6fddc7}{v1}},\ T2\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_aa517e2fff4a8c9cba11391ca12f91803}{v2}},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ exprtext)\ \{}
+\DoxyCodeLine{00346\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1CheckOpMessageBuilder}{CheckOpMessageBuilder}}\ comb(exprtext);}
+\DoxyCodeLine{00347\ \ \ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a45ddf557d6dce465a87172498e1e44d0}{MakeCheckOpValueString}}(comb.ForVar1(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_ac3f9ff4294615df8b7e9684b7d6fddc7}{v1}});}
+\DoxyCodeLine{00348\ \ \ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a45ddf557d6dce465a87172498e1e44d0}{MakeCheckOpValueString}}(comb.ForVar2(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_aa517e2fff4a8c9cba11391ca12f91803}{v2}});}
+\DoxyCodeLine{00349\ \ \ \textcolor{keywordflow}{return}\ comb.NewString();}
+\DoxyCodeLine{00350\ \}}
+\DoxyCodeLine{00351\ }
+\DoxyCodeLine{00352\ \textcolor{comment}{//\ Add\ a\ few\ commonly\ used\ instantiations\ as\ extern\ to\ reduce\ size\ of\ objects}}
+\DoxyCodeLine{00353\ \textcolor{comment}{//\ files.}}
+\DoxyCodeLine{00354\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN(x)\ \(\backslash\)}}
+\DoxyCodeLine{00355\ \textcolor{preprocessor}{\ \ extern\ template\ std::string*\ MakeCheckOpString(x,\ x,\ const\ char*)}}
+\DoxyCodeLine{00356\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keywordtype}{bool});}
+\DoxyCodeLine{00357\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(int64\_t);}
+\DoxyCodeLine{00358\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(uint64\_t);}
+\DoxyCodeLine{00359\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keywordtype}{float});}
+\DoxyCodeLine{00360\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keywordtype}{double});}
+\DoxyCodeLine{00361\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keywordtype}{char});}
+\DoxyCodeLine{00362\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char});}
+\DoxyCodeLine{00363\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keyword}{const}\ std::string\&);}
+\DoxyCodeLine{00364\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\&);}
+\DoxyCodeLine{00365\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*);}
+\DoxyCodeLine{00366\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}*);}
+\DoxyCodeLine{00367\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}*);}
+\DoxyCodeLine{00368\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a764e4efc1e6d00bb748d9112d8ab42a0}{ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*);}
+\DoxyCodeLine{00369\ \textcolor{preprocessor}{\#undef\ ABSL\_LOG\_INTERNAL\_DEFINE\_MAKE\_CHECK\_OP\_STRING\_EXTERN}}
+\DoxyCodeLine{00370\ }
+\DoxyCodeLine{00371\ \textcolor{comment}{//\ \`{}ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL\_RESULT`\ skips\ formatting\ the\ Check\_OP\ result}}
+\DoxyCodeLine{00372\ \textcolor{comment}{//\ string\ iff\ \`{}ABSL\_MIN\_LOG\_LEVEL`\ exceeds\ \`{}kFatal`,\ instead\ returning\ an\ empty}}
+\DoxyCodeLine{00373\ \textcolor{comment}{//\ string.}}
+\DoxyCodeLine{00374\ \textcolor{preprocessor}{\#ifdef\ ABSL\_MIN\_LOG\_LEVEL}}
+\DoxyCodeLine{00375\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL\_RESULT(U1,\ U2,\ v1,\ v2,\ exprtext)\ \(\backslash\)}}
+\DoxyCodeLine{00376\ \textcolor{preprocessor}{\ \ ((::absl::LogSeverity::kFatal\ >=\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00377\ \textcolor{preprocessor}{\ \ \ \ static\_cast<::absl::LogSeverity>(ABSL\_MIN\_LOG\_LEVEL))\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00378\ \textcolor{preprocessor}{\ \ \ \ \ \ \ ?\ MakeCheckOpString<U1,\ U2>(v1,\ v2,\ exprtext)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00379\ \textcolor{preprocessor}{\ \ \ \ \ \ \ :\ new\ std::string())}}
+\DoxyCodeLine{00380\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00381\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL\_RESULT(U1,\ U2,\ v1,\ v2,\ exprtext)\ \(\backslash\)}}
+\DoxyCodeLine{00382\ \textcolor{preprocessor}{\ \ MakeCheckOpString<U1,\ U2>(v1,\ v2,\ exprtext)}}
+\DoxyCodeLine{00383\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00384\ }
+\DoxyCodeLine{00385\ \textcolor{comment}{//\ Helper\ functions\ for\ \`{}ABSL\_LOG\_INTERNAL\_CHECK\_OP`\ macro\ family.\ \ The}}
+\DoxyCodeLine{00386\ \textcolor{comment}{//\ \`{}(int,\ int)`\ override\ works\ around\ the\ issue\ that\ the\ compiler\ will\ not}}
+\DoxyCodeLine{00387\ \textcolor{comment}{//\ instantiate\ the\ template\ version\ of\ the\ function\ on\ values\ of\ unnamed\ enum}}
+\DoxyCodeLine{00388\ \textcolor{comment}{//\ type.}}
+\DoxyCodeLine{00389\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL(name,\ op)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00390\ \textcolor{preprocessor}{\ \ template\ <typename\ T1,\ typename\ T2>\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00391\ \textcolor{preprocessor}{\ \ inline\ constexpr\ ::std::string*\ name\#\#Impl(const\ T1\&\ v1,\ const\ T2\&\ v2,\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00392\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ const\ char*\ exprtext)\ \{\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00393\ \textcolor{preprocessor}{\ \ \ \ using\ U1\ =\ CheckOpStreamType<T1>;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00394\ \textcolor{preprocessor}{\ \ \ \ using\ U2\ =\ CheckOpStreamType<T2>;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00395\ \textcolor{preprocessor}{\ \ \ \ return\ ABSL\_PREDICT\_TRUE(v1\ op\ v2)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00396\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ nullptr\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00397\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL\_RESULT(U1,\ U2,\ U1(v1),\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00398\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ U2(v2),\ exprtext);\ \(\backslash\)}}
+\DoxyCodeLine{00399\ \textcolor{preprocessor}{\ \ \}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00400\ \textcolor{preprocessor}{\ \ inline\ constexpr\ ::std::string*\ name\#\#Impl(int\ v1,\ int\ v2,\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00401\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ const\ char*\ exprtext)\ \{\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00402\ \textcolor{preprocessor}{\ \ \ \ return\ name\#\#Impl<int,\ int>(v1,\ v2,\ exprtext);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00403\ \textcolor{preprocessor}{\ \ \}}}
+\DoxyCodeLine{00404\ }
+\DoxyCodeLine{00405\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a3fd5f00a3f6822abcf194566d16e7d09}{ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL}}(Check\_EQ,\ ==)}
+\DoxyCodeLine{00406\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a3fd5f00a3f6822abcf194566d16e7d09}{ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL}}(Check\_NE,\ !=)}
+\DoxyCodeLine{00407\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a3fd5f00a3f6822abcf194566d16e7d09}{ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL}}(Check\_LE,\ <=)}
+\DoxyCodeLine{00408\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a3fd5f00a3f6822abcf194566d16e7d09}{ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL}}(Check\_LT,\ <)}
+\DoxyCodeLine{00409\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a3fd5f00a3f6822abcf194566d16e7d09}{ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL}}(Check\_GE,\ >=)}
+\DoxyCodeLine{00410\ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2check__op_8h_a3fd5f00a3f6822abcf194566d16e7d09}{ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL}}(Check\_GT,\ >)}
+\DoxyCodeLine{00411\ \textcolor{preprocessor}{\#undef\ ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL\_RESULT}}
+\DoxyCodeLine{00412\ \textcolor{preprocessor}{\#undef\ ABSL\_LOG\_INTERNAL\_CHECK\_OP\_IMPL}}
+\DoxyCodeLine{00413\ }
+\DoxyCodeLine{00414\ std::string*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_aecf6aa997cf4d405c6c015ac22c6cfeb}{CheckstrcmptrueImpl}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s1,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s2,}
+\DoxyCodeLine{00415\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ exprtext);}
+\DoxyCodeLine{00416\ std::string*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a6a39bab303b1e7a924e668a139782a91}{CheckstrcmpfalseImpl}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s1,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s2,}
+\DoxyCodeLine{00417\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ exprtext);}
+\DoxyCodeLine{00418\ std::string*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a0c395b276e62f54d248c98ac2dbfcb7d}{CheckstrcasecmptrueImpl}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s1,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s2,}
+\DoxyCodeLine{00419\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ exprtext);}
+\DoxyCodeLine{00420\ std::string*\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_afb5a73c59f2c18e50bfcf9960f38eec6}{CheckstrcasecmpfalseImpl}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s1,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s2,}
+\DoxyCodeLine{00421\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ exprtext);}
+\DoxyCodeLine{00422\ }
+\DoxyCodeLine{00423\ \textcolor{comment}{//\ \`{}CHECK\_EQ`\ and\ friends\ want\ to\ pass\ their\ arguments\ by\ reference,\ however}}
+\DoxyCodeLine{00424\ \textcolor{comment}{//\ this\ winds\ up\ exposing\ lots\ of\ cases\ where\ people\ have\ defined\ and}}
+\DoxyCodeLine{00425\ \textcolor{comment}{//\ initialized\ static\ const\ data\ members\ but\ never\ declared\ them\ (i.e.\ in\ a\ .cc}}
+\DoxyCodeLine{00426\ \textcolor{comment}{//\ file),\ meaning\ they\ are\ not\ referenceable.\ \ This\ function\ avoids\ that\ problem}}
+\DoxyCodeLine{00427\ \textcolor{comment}{//\ for\ integers\ (the\ most\ common\ cases)\ by\ overloading\ for\ every\ primitive}}
+\DoxyCodeLine{00428\ \textcolor{comment}{//\ integer\ type,\ even\ the\ ones\ we\ discourage,\ and\ returning\ them\ by\ value.}}
+\DoxyCodeLine{00429\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00430\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{}
+\DoxyCodeLine{00431\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};}
+\DoxyCodeLine{00432\ \}}
+\DoxyCodeLine{00433\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};\ \}}
+\DoxyCodeLine{00434\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{}
+\DoxyCodeLine{00435\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};}
+\DoxyCodeLine{00436\ \}}
+\DoxyCodeLine{00437\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};\ \}}
+\DoxyCodeLine{00438\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};\ \}\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00439\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00440\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00441\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};}
+\DoxyCodeLine{00442\ \}}
+\DoxyCodeLine{00443\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};\ \}}
+\DoxyCodeLine{00444\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{}
+\DoxyCodeLine{00445\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};}
+\DoxyCodeLine{00446\ \}}
+\DoxyCodeLine{00447\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};\ \}\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00448\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00449\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00450\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};}
+\DoxyCodeLine{00451\ \}}
+\DoxyCodeLine{00452\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00453\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};}
+\DoxyCodeLine{00454\ \}}
+\DoxyCodeLine{00455\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a2a7e9096279072305244d913d07d504e}{GetReferenceableValue}}(\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00456\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00457\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};}
+\DoxyCodeLine{00458\ \}}
+\DoxyCodeLine{00459\ }
+\DoxyCodeLine{00460\ \}\ \ \textcolor{comment}{//\ namespace\ log\_internal}}
+\DoxyCodeLine{00461\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00462\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00463\ }
+\DoxyCodeLine{00464\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_LOG\_INTERNAL\_CHECK\_OP\_H\_}}
+
+\end{DoxyCode}

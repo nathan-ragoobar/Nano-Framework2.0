@@ -1,0 +1,147 @@
+\doxysection{elf\+\_\+mem\+\_\+image.\+h}
+\hypertarget{abseil-cpp_2absl_2debugging_2internal_2elf__mem__image_8h_source}{}\label{abseil-cpp_2absl_2debugging_2internal_2elf__mem__image_8h_source}\index{abseil-\/cpp/absl/debugging/internal/elf\_mem\_image.h@{abseil-\/cpp/absl/debugging/internal/elf\_mem\_image.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2debugging_2internal_2elf__mem__image_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00002\ \textcolor{comment}{\ *\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{\ *}}
+\DoxyCodeLine{00004\ \textcolor{comment}{\ *\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{\ *\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{\ *\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{\ *}}
+\DoxyCodeLine{00008\ \textcolor{comment}{\ *\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{\ *}}
+\DoxyCodeLine{00010\ \textcolor{comment}{\ *\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{\ *\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{\ *\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{\ *\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{\ *\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{\ */}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ Allow\ dynamic\ symbol\ lookup\ for\ in-\/memory\ Elf\ images.}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#ifndef\ ABSL\_DEBUGGING\_INTERNAL\_ELF\_MEM\_IMAGE\_H\_}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#define\ ABSL\_DEBUGGING\_INTERNAL\_ELF\_MEM\_IMAGE\_H\_}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ Including\ this\ will\ define\ the\ \_\_GLIBC\_\_\ macro\ if\ glibc\ is\ being}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ used.}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ <climits>}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ Maybe\ one\ day\ we\ can\ rewrite\ this\ file\ not\ to\ require\ the\ elf}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ symbol\ extensions\ in\ glibc,\ but\ for\ right\ now\ we\ need\ them.}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#ifdef\ ABSL\_HAVE\_ELF\_MEM\_IMAGE}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#error\ ABSL\_HAVE\_ELF\_MEM\_IMAGE\ cannot\ be\ directly\ set}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#if\ defined(\_\_ELF\_\_)\ \&\&\ !defined(\_\_OpenBSD\_\_)\ \&\&\ !defined(\_\_QNX\_\_)\ \&\&\ \(\backslash\)}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\ \ \ \ !defined(\_\_native\_client\_\_)\ \&\&\ !defined(\_\_asmjs\_\_)\ \&\&\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\ \ \ \ !defined(\_\_wasm\_\_)\ \&\&\ !defined(\_\_HAIKU\_\_)\ \&\&\ !defined(\_\_sun)\ \&\&\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\ \ \ \ !defined(\_\_VXWORKS\_\_)\ \&\&\ !defined(\_\_hexagon\_\_)\ \&\&\ !defined(\_\_XTENSA\_\_)}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#define\ ABSL\_HAVE\_ELF\_MEM\_IMAGE\ 1}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#ifdef\ ABSL\_HAVE\_ELF\_MEM\_IMAGE}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ <link.h>}\ \ \textcolor{comment}{//\ for\ ElfW}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#if\ defined(\_\_FreeBSD\_\_)\ \&\&\ !defined(ElfW)}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#define\ ElfW(x)\ \_\_ElfN(x)}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00051\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00052\ \textcolor{keyword}{namespace\ }debugging\_internal\ \{}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ An\ in-\/memory\ ELF\ image\ (may\ not\ exist\ on\ disk).}}
+\DoxyCodeLine{00055\ \textcolor{keyword}{class\ }ElfMemImage\ \{}
+\DoxyCodeLine{00056\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00057\ \ \ \textcolor{comment}{//\ Sentinel:\ there\ could\ never\ be\ an\ elf\ image\ at\ \&kInvalidBaseSentinel.}}
+\DoxyCodeLine{00058\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kInvalidBaseSentinel;}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00061\ \ \ \textcolor{comment}{//\ Sentinel:\ there\ could\ never\ be\ an\ elf\ image\ at\ this\ address.}}
+\DoxyCodeLine{00062\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}\ *\textcolor{keyword}{const}\ kInvalidBase\ =}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keyword}{const\ }\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&kInvalidBaseSentinel);}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \ \ \textcolor{comment}{//\ Information\ about\ a\ single\ vdso\ symbol.}}
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ All\ pointers\ are\ into\ .dynsym,\ .dynstr,\ or\ .text\ of\ the\ VDSO.}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ Do\ not\ free()\ them\ or\ modify\ through\ them.}}
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{struct\ }SymbolInfo\ \{}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ \ \ \ \ \ *\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}};\ \ \ \ \ \ \textcolor{comment}{//\ E.g.\ "{}\_\_vdso\_getcpu"{}}}
+\DoxyCodeLine{00070\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ \ \ \ \ \ *\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8cc_acd99bb05ca015e7d74448acb1deba7ca}{version}};\ \ \ \textcolor{comment}{//\ E.g.\ "{}LINUX\_2.6"{},\ could\ be\ "{}"{}}}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ for\ unversioned\ symbol.}}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}\ \ \ \ \ \ *address;\ \ \ \textcolor{comment}{//\ Relocated\ symbol\ address.}}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keyword}{const}\ ElfW(Sym)\ *symbol;\ \ \ \ \textcolor{comment}{//\ Symbol\ in\ the\ dynamic\ symbol\ table.}}
+\DoxyCodeLine{00074\ \ \ \};}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ Supports\ iteration\ over\ all\ dynamic\ symbols.}}
+\DoxyCodeLine{00077\ \ \ \textcolor{keyword}{class\ }SymbolIterator\ \{}
+\DoxyCodeLine{00078\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }ElfMemImage;}
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{keyword}{const}\ SymbolInfo\ *operator-\/>()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keyword}{const}\ SymbolInfo\ \&\mbox{\hyperlink{namespaceabsl_ae50de9a310971e98f1f32db604a9e8cf}{operator*}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00082\ \ \ \ \ SymbolIterator\&\ \mbox{\hyperlink{namespaceEigen_1_1bfloat16__impl_aff7dfa2c21dfbc3a25b302fafea9bcce}{operator++}}();}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a78dbd46464e8900c304d14534f0567bc}{operator!=}}(\textcolor{keyword}{const}\ SymbolIterator\ \&rhs)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a6e23a3339a264413328c9a0ce0896eac}{operator==}}(\textcolor{keyword}{const}\ SymbolIterator\ \&rhs)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00085\ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00086\ \ \ \ \ SymbolIterator(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}\ *\textcolor{keyword}{const}\ image,\ uint32\_t\ index);}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{keywordtype}{void}\ Update(uint32\_t\ incr);}
+\DoxyCodeLine{00088\ \ \ \ \ SymbolInfo\ info\_;}
+\DoxyCodeLine{00089\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_af6a076c0f63ad22b8620d4de6fc6f632}{uint32\_t}}\ index\_;}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}\ *\textcolor{keyword}{const}\ image\_;}
+\DoxyCodeLine{00091\ \ \ \};}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{explicit}\ ElfMemImage(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}\ *base);}
+\DoxyCodeLine{00095\ \ \ \textcolor{keywordtype}{void}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Init(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}\ *base);}
+\DoxyCodeLine{00096\ \ \ \textcolor{keywordtype}{bool}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ IsPresent()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ ehdr\_\ !=\ \textcolor{keyword}{nullptr};\ \}}
+\DoxyCodeLine{00097\ \ \ \textcolor{keyword}{const}\ ElfW(Phdr)*\ \ \ \ GetPhdr(\textcolor{keywordtype}{int}\ index)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00098\ \ \ \textcolor{keyword}{const}\ ElfW(Sym)\ *\ GetDynsym(uint32\_t\ index)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00099\ \ \ \textcolor{keyword}{const}\ ElfW(Versym)*\ \ GetVersym(uint32\_t\ index)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00100\ \ \ \textcolor{keyword}{const}\ ElfW(Verdef)*\ \ GetVerdef(\textcolor{keywordtype}{int}\ index)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{const}\ ElfW(Verdaux)*\ GetVerdefAux(\textcolor{keyword}{const}\ ElfW(Verdef)\ *verdef)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00102\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \ \ \ \ \ \ \ \ \ GetDynstr(ElfW(Word)\ offset)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00103\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \ \ \ \ \ \ \ \ \ GetSymAddr(\textcolor{keyword}{const}\ ElfW(Sym)\ *sym)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00104\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \ \ \ \ \ \ \ \ \ GetVerstr(ElfW(Word)\ offset)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00105\ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_af6a076c0f63ad22b8620d4de6fc6f632}{uint32\_t}}\ GetNumSymbols()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \ \ SymbolIterator\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_aa9f974458dc400bd897fe724a13dcd47}{begin}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00108\ \ \ SymbolIterator\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ Look\ up\ versioned\ dynamic\ symbol\ in\ the\ image.}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ Returns\ false\ if\ image\ is\ not\ present,\ or\ doesn't\ contain\ given}}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//\ symbol/version/type\ combination.}}
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ If\ info\_out\ is\ non-\/null,\ additional\ details\ are\ filled\ in.}}
+\DoxyCodeLine{00114\ \ \ \textcolor{keywordtype}{bool}\ LookupSymbol(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ *\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}},\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ *\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8cc_acd99bb05ca015e7d74448acb1deba7ca}{version}},}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ symbol\_type,\ SymbolInfo\ *info\_out)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//\ Find\ info\ about\ symbol\ (if\ any)\ which\ overlaps\ given\ address.}}
+\DoxyCodeLine{00118\ \ \ \textcolor{comment}{//\ Returns\ true\ if\ symbol\ was\ found;\ false\ if\ image\ isn't\ present}}
+\DoxyCodeLine{00119\ \ \ \textcolor{comment}{//\ or\ doesn't\ have\ a\ symbol\ overlapping\ given\ address.}}
+\DoxyCodeLine{00120\ \ \ \textcolor{comment}{//\ If\ info\_out\ is\ non-\/null,\ additional\ details\ are\ filled\ in.}}
+\DoxyCodeLine{00121\ \ \ \textcolor{keywordtype}{bool}\ LookupSymbolByAddress(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}\ *address,\ SymbolInfo\ *info\_out)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00124\ \ \ \textcolor{keyword}{const}\ ElfW(Ehdr)\ *ehdr\_;}
+\DoxyCodeLine{00125\ \ \ \textcolor{keyword}{const}\ ElfW(Sym)\ *dynsym\_;}
+\DoxyCodeLine{00126\ \ \ \textcolor{keyword}{const}\ ElfW(Versym)\ *versym\_;}
+\DoxyCodeLine{00127\ \ \ \textcolor{keyword}{const}\ ElfW(Verdef)\ *verdef\_;}
+\DoxyCodeLine{00128\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ *dynstr\_;}
+\DoxyCodeLine{00129\ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_af6a076c0f63ad22b8620d4de6fc6f632}{uint32\_t}}\ num\_syms\_;}
+\DoxyCodeLine{00130\ \ \ \textcolor{keywordtype}{size\_t}\ strsize\_;}
+\DoxyCodeLine{00131\ \ \ \textcolor{keywordtype}{size\_t}\ verdefnum\_;}
+\DoxyCodeLine{00132\ \ \ ElfW(Addr)\ link\_base\_;\ \ \ \ \ \textcolor{comment}{//\ Link-\/time\ base\ (p\_vaddr\ of\ first\ PT\_LOAD).}}
+\DoxyCodeLine{00133\ \};}
+\DoxyCodeLine{00134\ }
+\DoxyCodeLine{00135\ \}\ \ \textcolor{comment}{//\ namespace\ debugging\_internal}}
+\DoxyCodeLine{00136\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00137\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00138\ }
+\DoxyCodeLine{00139\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_HAVE\_ELF\_MEM\_IMAGE}}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_DEBUGGING\_INTERNAL\_ELF\_MEM\_IMAGE\_H\_}}
+
+\end{DoxyCode}

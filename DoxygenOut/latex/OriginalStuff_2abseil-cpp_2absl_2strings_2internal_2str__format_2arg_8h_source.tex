@@ -1,0 +1,677 @@
+\doxysection{arg.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/strings/internal/str\_format/arg.h@{OriginalStuff/abseil-\/cpp/absl/strings/internal/str\_format/arg.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2020\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_INTERNAL\_STR\_FORMAT\_ARG\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_INTERNAL\_STR\_FORMAT\_ARG\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <string.h>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <wchar.h>}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ <cstdio>}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <sstream>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ "{}absl/numeric/int128.h"{}}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ "{}absl/strings/has\_absl\_stringify.h"{}}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/str\_format/extension.h"{}}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/strings/string\_view.h"{}}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#if\ defined(ABSL\_HAVE\_STD\_STRING\_VIEW)}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ <string\_view>}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00045\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{keyword}{class\ }Cord;}
+\DoxyCodeLine{00048\ \textcolor{keyword}{class\ }FormatCountCapture;}
+\DoxyCodeLine{00049\ \textcolor{keyword}{class\ }FormatSink;}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{keyword}{template}\ <absl::FormatConversionCharSet\ C>}
+\DoxyCodeLine{00052\ \textcolor{keyword}{struct\ }FormatConvertResult;}
+\DoxyCodeLine{00053\ \textcolor{keyword}{class\ }FormatConversionSpec;}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{keyword}{namespace\ }str\_format\_internal\ \{}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{keyword}{template}\ <FormatConversionCharSet\ C>}
+\DoxyCodeLine{00058\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult}{ArgConvertResult}}\ \{}
+\DoxyCodeLine{00059\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult_a39d9b87ee395dc028117f06e4a3488fc}{value}};}
+\DoxyCodeLine{00060\ \};}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult}{IntegralConvertResult}}\ =\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult}{ArgConvertResult}}<\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a75e9c7a4002555f4ffd8cd26ce47c4de}{FormatConversionCharSetUnion}}(}
+\DoxyCodeLine{00063\ \ \ \ \ FormatConversionCharSetInternal::c,}
+\DoxyCodeLine{00064\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatConversionCharSetInternal_a4e4e4b33186ade561e50e05296c2001d}{FormatConversionCharSetInternal::kNumeric}},}
+\DoxyCodeLine{00065\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatConversionCharSetInternal_a838f3fa86570a8fa2ddd60b5bf1f5cda}{FormatConversionCharSetInternal::kStar}},}
+\DoxyCodeLine{00066\ \ \ \ \ FormatConversionCharSetInternal::v)>;}
+\DoxyCodeLine{00067\ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult}{FloatingConvertResult}}\ =\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult}{ArgConvertResult}}<\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a75e9c7a4002555f4ffd8cd26ce47c4de}{FormatConversionCharSetUnion}}(}
+\DoxyCodeLine{00068\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatConversionCharSetInternal_a42adb683be5f77f05a99accc9e080ea1}{FormatConversionCharSetInternal::kFloating}},}
+\DoxyCodeLine{00069\ \ \ \ \ FormatConversionCharSetInternal::v)>;}
+\DoxyCodeLine{00070\ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult}{CharConvertResult}}\ =\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult}{ArgConvertResult}}<\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a75e9c7a4002555f4ffd8cd26ce47c4de}{FormatConversionCharSetUnion}}(}
+\DoxyCodeLine{00071\ \ \ \ \ FormatConversionCharSetInternal::c,}
+\DoxyCodeLine{00072\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatConversionCharSetInternal_a4e4e4b33186ade561e50e05296c2001d}{FormatConversionCharSetInternal::kNumeric}},}
+\DoxyCodeLine{00073\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatConversionCharSetInternal_a838f3fa86570a8fa2ddd60b5bf1f5cda}{FormatConversionCharSetInternal::kStar}})>;}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00076\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1HasUserDefinedConvert}{HasUserDefinedConvert}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00079\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1HasUserDefinedConvert}{HasUserDefinedConvert}}<T,\ \mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}<decltype(\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a88cf8249665d6fa7d0e464e36f976743}{AbslFormatConvert}}(}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::declval<const\ T\&>(),}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<const\ FormatConversionSpec\&>(),}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<FormatSink*>()))>>}
+\DoxyCodeLine{00083\ \ \ \ \ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ These\ declarations\ prevent\ ADL\ lookup\ from\ continuing\ in\ absl\ namespaces,}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ we\ are\ deliberately\ using\ these\ as\ ADL\ hooks\ and\ want\ them\ to\ consider}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ non-\/absl\ namespaces\ only.}}
+\DoxyCodeLine{00088\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a88cf8249665d6fa7d0e464e36f976743}{AbslFormatConvert}}();}
+\DoxyCodeLine{00089\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a1395e3b5e819b1caf186061fe49adba2}{AbslStringify}}();}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00092\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a322a728ba03ec0fa0e3e5641e47db646}{ConvertIntArg}}(T\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \textcolor{comment}{//\ Forward\ declarations\ of\ internal\ \`{}ConvertIntArg`\ function\ template}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ instantiations\ are\ here\ to\ avoid\ including\ the\ template\ body\ in\ the\ headers}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//\ and\ instantiating\ it\ in\ large\ numbers\ of\ translation\ units.\ Explicit}}
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ instantiations\ can\ be\ found\ in\ "{}absl/strings/internal/str\_format/arg.cc"{}}}
+\DoxyCodeLine{00098\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a716d2dd18a37d80d3c2d20bd3a104cc7}{ConvertIntArg<char>}}(\textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00100\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad78a84d43c917efd5fe2dfd9f4aba163}{ConvertIntArg<signed\ char>}}(\textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00103\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a60900f0ab0539a75615c7b4ab5e40205}{ConvertIntArg<unsigned\ char>}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00106\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a842e3700d35caef10f96a64c73299eb1}{ConvertIntArg<wchar\_t>}}(\textcolor{keywordtype}{wchar\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00109\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_abcd39da9848082059560de8ec9b32d11}{ConvertIntArg<short>}}(\textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00112\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a70156a46f2d9185931118e5b81466013}{ConvertIntArg<unsigned\ short>}}(\ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00114\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00115\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ae6b4afae2b56674b5b8ec89c0970c519}{ConvertIntArg<int>}}(\textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00117\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afecccfe0faaee1968666615db6672bc0}{ConvertIntArg<unsigned\ int>}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00120\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_af98f3de2237ca451e959ce98264104c9}{ConvertIntArg<long>}}(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});\ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00122\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a7227a3ea3fc0aa9e3aa1250564ef02f0}{ConvertIntArg<unsigned\ long>}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00125\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_abece423ae44e94e24a6262cd1ca4e4ba}{ConvertIntArg<long\ long>}}(\textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00127\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00128\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a67e03c91174ca86dea72dab19ccd89fb}{ConvertIntArg<unsigned\ long\ long>}}(\ \ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00130\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00133\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})}
+\DoxyCodeLine{00135\ \ \ \ \ -\/>\ \textcolor{keyword}{decltype}(\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a88cf8249665d6fa7d0e464e36f976743}{AbslFormatConvert}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<const\ FormatConversionSpec\&>(),}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<FormatSink*>()))\ \{}
+\DoxyCodeLine{00138\ \ \ \textcolor{keyword}{using\ }FormatConversionSpecT\ =}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<\textcolor{keyword}{sizeof}(\textcolor{keyword}{const}\ T\&\ (*)())\ !=\ 0,\ \mbox{\hyperlink{classabsl_1_1FormatConversionSpec}{FormatConversionSpec}}>;}
+\DoxyCodeLine{00140\ \ \ \textcolor{keyword}{using\ }FormatSinkT\ =}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<\textcolor{keyword}{sizeof}(\textcolor{keyword}{const}\ T\&\ (*)())\ !=\ 0,\ \mbox{\hyperlink{classabsl_1_1FormatSink}{FormatSink}}>;}
+\DoxyCodeLine{00142\ \ \ \textcolor{keyword}{auto}\ fcs\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}}.\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl_a59b082d0b844d0e22afaf1436d975b4a}{Wrap}}<FormatConversionSpecT>();}
+\DoxyCodeLine{00143\ \ \ \textcolor{keyword}{auto}\ fs\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}-\/>\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl_ad8b06334dce01e539648d2dc775f7890}{Wrap}}<FormatSinkT>();}
+\DoxyCodeLine{00144\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a88cf8249665d6fa7d0e464e36f976743}{AbslFormatConvert}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ fcs,\ \&fs);}
+\DoxyCodeLine{00145\ \}}
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00147\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00148\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})}
+\DoxyCodeLine{00150\ \ \ \ \ -\/>\ std::enable\_if\_t<std::is\_enum<T>::value\ \&\&}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_void<\textcolor{keyword}{decltype}(\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a1395e3b5e819b1caf186061fe49adba2}{AbslStringify}}(}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<FormatSink\&>(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}>\ \{}
+\DoxyCodeLine{00154\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}}.\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl_a6ff421d47f7a1fd240c2a88ef469283e}{conversion\_char}}()\ ==\ FormatConversionCharInternal::v)\ \{}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keyword}{using\ }FormatSinkT\ =}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<\textcolor{keyword}{sizeof}(\textcolor{keyword}{const}\ T\&\ (*)())\ !=\ 0,\ \mbox{\hyperlink{classabsl_1_1FormatSink}{FormatSink}}>;}
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keyword}{auto}\ fs\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}-\/>\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl_ad8b06334dce01e539648d2dc775f7890}{Wrap}}<FormatSinkT>();}
+\DoxyCodeLine{00158\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a1395e3b5e819b1caf186061fe49adba2}{AbslStringify}}(fs,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\textcolor{keyword}{true}\};}
+\DoxyCodeLine{00160\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a322a728ba03ec0fa0e3e5641e47db646}{ConvertIntArg}}(}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}typename\ std::underlying\_type<T>::type\textcolor{keyword}{>}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})\};}
+\DoxyCodeLine{00163\ \ \ \}}
+\DoxyCodeLine{00164\ \}}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00167\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl,}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})}
+\DoxyCodeLine{00169\ \ \ \ \ -\/>\ std::enable\_if\_t<!std::is\_enum<T>::value\ \&\&}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_same<T,\ absl::Cord>::value\ \&\&}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_void<\textcolor{keyword}{decltype}(\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a1395e3b5e819b1caf186061fe49adba2}{AbslStringify}}(}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<FormatSink\&>(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}))>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ArgConvertResult<FormatConversionCharSetInternal::v>>\ \{}
+\DoxyCodeLine{00174\ \ \ \textcolor{keyword}{using\ }FormatSinkT\ =}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<\textcolor{keyword}{sizeof}(\textcolor{keyword}{const}\ T\&\ (*)())\ !=\ 0,\ FormatSink>;}
+\DoxyCodeLine{00176\ \ \ \textcolor{keyword}{auto}\ fs\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}-\/>\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl_ad8b06334dce01e539648d2dc775f7890}{Wrap}}<FormatSinkT>();}
+\DoxyCodeLine{00177\ \ \ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a1395e3b5e819b1caf186061fe49adba2}{AbslStringify}}(fs,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00178\ \ \ \textcolor{keywordflow}{return}\ \{\textcolor{keyword}{true}\};}
+\DoxyCodeLine{00179\ \}}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00182\ \textcolor{keyword}{class\ }StreamedWrapper;}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \textcolor{comment}{//\ If\ 'v'\ can\ be\ converted\ (in\ the\ printf\ sense)\ according\ to\ 'conv',}}
+\DoxyCodeLine{00185\ \textcolor{comment}{//\ then\ convert\ it,\ appending\ to\ \`{}sink`\ and\ return\ \`{}true`.}}
+\DoxyCodeLine{00186\ \textcolor{comment}{//\ Otherwise\ fail\ and\ return\ \`{}false`.}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \textcolor{comment}{//\ AbslFormatConvert(v,\ conv,\ sink)\ is\ intended\ to\ be\ found\ by\ ADL\ on\ 'v'}}
+\DoxyCodeLine{00189\ \textcolor{comment}{//\ as\ an\ extension\ mechanism.\ These\ FormatConvertImpl\ functions\ are\ the\ default}}
+\DoxyCodeLine{00190\ \textcolor{comment}{//\ implementations.}}
+\DoxyCodeLine{00191\ \textcolor{comment}{//\ The\ ADL\ search\ is\ augmented\ via\ the\ 'Sink*'\ parameter,\ which\ also}}
+\DoxyCodeLine{00192\ \textcolor{comment}{//\ serves\ as\ a\ disambiguator\ to\ reject\ possible\ unintended\ 'AbslFormatConvert'}}
+\DoxyCodeLine{00193\ \textcolor{comment}{//\ functions\ in\ the\ namespaces\ associated\ with\ 'v'.}}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \textcolor{comment}{//\ Raw\ pointers.}}
+\DoxyCodeLine{00196\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1VoidPtr}{VoidPtr}}\ \{}
+\DoxyCodeLine{00197\ \ \ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1VoidPtr_afdf9e25be1918579b8be598d6b096c65}{VoidPtr}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{decltype}(\textcolor{keyword}{reinterpret\_cast<}uintptr\_t\textcolor{keyword}{>}(std::declval<T*>()))\ =\ 0>}
+\DoxyCodeLine{00200\ \ \ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1VoidPtr_a1ec7e8ccbcdae1eba60af7e6f060eb71}{VoidPtr}}(T*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1VoidPtr_af5730ba6c99cd6d990a3a725d0493c23}{value}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}}\ ?\ \textcolor{keyword}{reinterpret\_cast<}uintptr\_t\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})\ :\ 0)\ \{\}}
+\DoxyCodeLine{00202\ \ \ uintptr\_t\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1VoidPtr_af5730ba6c99cd6d990a3a725d0493c23}{value}};}
+\DoxyCodeLine{00203\ \};}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00205\ \textcolor{keyword}{template}\ <FormatConversionCharSet\ C>}
+\DoxyCodeLine{00206\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{namespaceabsl_aefae0362f20cbd6536eb276d6be36613}{FormatConversionCharSet}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a249d407c0b894b1ea6fc6ce79d9e9b3a}{ExtractCharSet}}(\mbox{\hyperlink{structabsl_1_1FormatConvertResult}{FormatConvertResult<C>}})\ \{}
+\DoxyCodeLine{00207\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}};}
+\DoxyCodeLine{00208\ \}}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \textcolor{keyword}{template}\ <FormatConversionCharSet\ C>}
+\DoxyCodeLine{00211\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{namespaceabsl_aefae0362f20cbd6536eb276d6be36613}{FormatConversionCharSet}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a249d407c0b894b1ea6fc6ce79d9e9b3a}{ExtractCharSet}}(ArgConvertResult<C>)\ \{}
+\DoxyCodeLine{00212\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}};}
+\DoxyCodeLine{00213\ \}}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ ArgConvertResult<FormatConversionCharSetInternal::p>\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(}
+\DoxyCodeLine{00216\ \ \ \ \ VoidPtr\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \textcolor{comment}{//\ Strings.}}
+\DoxyCodeLine{00219\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ab278c58a5d6aad8c1cd35438d00c0d56}{StringConvertResult}}\ =\ ArgConvertResult<\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a75e9c7a4002555f4ffd8cd26ce47c4de}{FormatConversionCharSetUnion}}(}
+\DoxyCodeLine{00220\ \ \ \ \ FormatConversionCharSetInternal::s,}
+\DoxyCodeLine{00221\ \ \ \ \ FormatConversionCharSetInternal::v)>;}
+\DoxyCodeLine{00222\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ab278c58a5d6aad8c1cd35438d00c0d56}{StringConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{const}\ std::string\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00225\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ab278c58a5d6aad8c1cd35438d00c0d56}{StringConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{const}\ std::wstring\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00226\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00228\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ab278c58a5d6aad8c1cd35438d00c0d56}{StringConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(string\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00230\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00231\ \textcolor{preprocessor}{\#if\ defined(ABSL\_HAVE\_STD\_STRING\_VIEW)}}
+\DoxyCodeLine{00232\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ab278c58a5d6aad8c1cd35438d00c0d56}{StringConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(std::wstring\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00234\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00235\ \textcolor{preprocessor}{\#if\ !defined(ABSL\_USES\_STD\_STRING\_VIEW)}}
+\DoxyCodeLine{00236\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ab278c58a5d6aad8c1cd35438d00c0d56}{StringConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(std::string\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00237\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00238\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})\ \{}
+\DoxyCodeLine{00239\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.data(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.size()),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00240\ \}}
+\DoxyCodeLine{00241\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ !ABSL\_USES\_STD\_STRING\_VIEW}}
+\DoxyCodeLine{00242\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_HAVE\_STD\_STRING\_VIEW}}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a326f0f963325e7f17b5cdb7594eb0246}{StringPtrConvertResult}}\ =\ ArgConvertResult<\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a75e9c7a4002555f4ffd8cd26ce47c4de}{FormatConversionCharSetUnion}}(}
+\DoxyCodeLine{00245\ \ \ \ \ FormatConversionCharSetInternal::s,}
+\DoxyCodeLine{00246\ \ \ \ \ FormatConversionCharSetInternal::p)>;}
+\DoxyCodeLine{00247\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a326f0f963325e7f17b5cdb7594eb0246}{StringPtrConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00248\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00249\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00250\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a326f0f963325e7f17b5cdb7594eb0246}{StringPtrConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{wchar\_t}*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00251\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00252\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00253\ \textcolor{comment}{//\ This\ overload\ is\ needed\ to\ disambiguate,\ since\ \`{}nullptr`\ could\ match\ either}}
+\DoxyCodeLine{00254\ \textcolor{comment}{//\ of\ the\ other\ overloads\ equally\ well.}}
+\DoxyCodeLine{00255\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a326f0f963325e7f17b5cdb7594eb0246}{StringPtrConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(std::nullptr\_t,}
+\DoxyCodeLine{00256\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00257\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00258\ }
+\DoxyCodeLine{00259\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }AbslCord,\ \textcolor{keyword}{typename}\ std::enable\_if<std::is\_same<}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ AbslCord,\ \mbox{\hyperlink{classabsl_1_1Cord}{absl::Cord}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}>::type*\ =\ \textcolor{keyword}{nullptr}>}
+\DoxyCodeLine{00261\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ab278c58a5d6aad8c1cd35438d00c0d56}{StringConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{const}\ AbslCord\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}},}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})\ \{}
+\DoxyCodeLine{00264\ \ \ \textcolor{keywordtype}{bool}\ is\_left\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}}.\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl_a22647a1c76d359bb36491c38250a3749}{has\_left\_flag}}();}
+\DoxyCodeLine{00265\ \ \ \textcolor{keywordtype}{size\_t}\ space\_remaining\ =\ 0;}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \ \ \textcolor{keywordtype}{int}\ width\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}}.\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl_ad4215369ab40bba3db32177d25481b2b}{width}}();}
+\DoxyCodeLine{00268\ \ \ \textcolor{keywordflow}{if}\ (width\ >=\ 0)\ space\_remaining\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(width);}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00270\ \ \ \textcolor{keywordtype}{size\_t}\ to\_write\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}.size();}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00272\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a19a254febcf2ce797babef3a85a6076b}{precision}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}}.\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl_a098cb856adac67c2b44f950056596d57}{precision}}();}
+\DoxyCodeLine{00273\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a19a254febcf2ce797babef3a85a6076b}{precision}}\ >=\ 0)}
+\DoxyCodeLine{00274\ \ \ \ \ to\_write\ =\ (std::min)(to\_write,\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a19a254febcf2ce797babef3a85a6076b}{precision}}));}
+\DoxyCodeLine{00275\ }
+\DoxyCodeLine{00276\ \ \ space\_remaining\ =\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a8fbeb2cf2e801ed380c53a7ccae9fb73}{Excess}}(to\_write,\ space\_remaining);}
+\DoxyCodeLine{00277\ }
+\DoxyCodeLine{00278\ \ \ \textcolor{keywordflow}{if}\ (space\_remaining\ >\ 0\ \&\&\ !is\_left)\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}-\/>\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl_a3179d410db76f8253e57dae90d980e46}{Append}}(space\_remaining,\ \textcolor{charliteral}{'\ '});}
+\DoxyCodeLine{00279\ }
+\DoxyCodeLine{00280\ \ \ \textcolor{keywordflow}{for}\ (string\_view\ piece\ :\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}.Chunks())\ \{}
+\DoxyCodeLine{00281\ \ \ \ \ \textcolor{keywordflow}{if}\ (piece.size()\ >\ to\_write)\ \{}
+\DoxyCodeLine{00282\ \ \ \ \ \ \ piece.remove\_suffix(piece.size()\ -\/\ to\_write);}
+\DoxyCodeLine{00283\ \ \ \ \ \ \ to\_write\ =\ 0;}
+\DoxyCodeLine{00284\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00285\ \ \ \ \ \ \ to\_write\ -\/=\ piece.size();}
+\DoxyCodeLine{00286\ \ \ \ \ \}}
+\DoxyCodeLine{00287\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}-\/>\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl_a3179d410db76f8253e57dae90d980e46}{Append}}(piece);}
+\DoxyCodeLine{00288\ \ \ \ \ \textcolor{keywordflow}{if}\ (to\_write\ ==\ 0)\ \{}
+\DoxyCodeLine{00289\ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00290\ \ \ \ \ \}}
+\DoxyCodeLine{00291\ \ \ \}}
+\DoxyCodeLine{00292\ }
+\DoxyCodeLine{00293\ \ \ \textcolor{keywordflow}{if}\ (space\_remaining\ >\ 0\ \&\&\ is\_left)\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}-\/>\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl_a3179d410db76f8253e57dae90d980e46}{Append}}(space\_remaining,\ \textcolor{charliteral}{'\ '});}
+\DoxyCodeLine{00294\ \ \ \textcolor{keywordflow}{return}\ \{\textcolor{keyword}{true}\};}
+\DoxyCodeLine{00295\ \}}
+\DoxyCodeLine{00296\ }
+\DoxyCodeLine{00297\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_acc2edfcd809facba5becf68ada1a0a6b}{ConvertBoolArg}}(\textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00299\ \textcolor{comment}{//\ Floats.}}
+\DoxyCodeLine{00300\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ac09dbd140f8ace4b1e44f5a497dcd76e}{FloatingConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{float}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00301\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00302\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ac09dbd140f8ace4b1e44f5a497dcd76e}{FloatingConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00303\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00304\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ac09dbd140f8ace4b1e44f5a497dcd76e}{FloatingConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{long}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00305\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00306\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00307\ }
+\DoxyCodeLine{00308\ \textcolor{comment}{//\ Chars.}}
+\DoxyCodeLine{00309\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a61cc1745132356ee1366b1e7e408a3c1}{CharConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00310\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00311\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a61cc1745132356ee1366b1e7e408a3c1}{CharConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{wchar\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00312\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00313\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00314\ }
+\DoxyCodeLine{00315\ \textcolor{comment}{//\ Ints.}}
+\DoxyCodeLine{00316\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00318\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00319\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00320\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00321\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00322\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00323\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00324\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00325\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00328\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00329\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00330\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{unsigned}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00333\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00334\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00335\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00336\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00337\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00338\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00339\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00340\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00341\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00342\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00343\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00345\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(int128\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00346\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00347\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(uint128\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00348\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00349\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00350\ }
+\DoxyCodeLine{00351\ \textcolor{comment}{//\ This\ function\ needs\ to\ be\ a\ template\ due\ to\ ambiguity\ regarding\ type}}
+\DoxyCodeLine{00352\ \textcolor{comment}{//\ conversions.}}
+\DoxyCodeLine{00353\ template\ <typename\ T,\ enable\_if\_t<std::is\_same<T,\ bool>::value,\ \textcolor{keywordtype}{int}>\ =\ 0>}
+\DoxyCodeLine{00354\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(T\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})\ \{}
+\DoxyCodeLine{00356\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}}.\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl_a6ff421d47f7a1fd240c2a88ef469283e}{conversion\_char}}()\ ==\ FormatConversionCharInternal::v)\ \{}
+\DoxyCodeLine{00357\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_acc2edfcd809facba5becf68ada1a0a6b}{ConvertBoolArg}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})\};}
+\DoxyCodeLine{00358\ \ \ \}}
+\DoxyCodeLine{00359\ }
+\DoxyCodeLine{00360\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00361\ \}}
+\DoxyCodeLine{00362\ }
+\DoxyCodeLine{00363\ \textcolor{comment}{//\ We\ provide\ this\ function\ to\ help\ the\ checker,\ but\ it\ is\ never\ defined.}}
+\DoxyCodeLine{00364\ \textcolor{comment}{//\ FormatArgImpl\ will\ use\ the\ underlying\ Convert\ functions\ instead.}}
+\DoxyCodeLine{00365\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00366\ \textcolor{keyword}{typename}\ std::enable\_if<std::is\_enum<T>::value\ \&\&}
+\DoxyCodeLine{00367\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !HasUserDefinedConvert<T>::value\ \&\&}
+\DoxyCodeLine{00368\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !HasAbslStringify<T>::value,}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_afbfa8e66bd2d5942395ad59444f9540b}{IntegralConvertResult}}>::type}
+\DoxyCodeLine{00370\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(T\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00371\ }
+\DoxyCodeLine{00372\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00373\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ab278c58a5d6aad8c1cd35438d00c0d56}{StringConvertResult}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(\textcolor{keyword}{const}\ StreamedWrapper<T>\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},}
+\DoxyCodeLine{00374\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00375\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}})\ \{}
+\DoxyCodeLine{00376\ \ \ std::ostringstream\ oss;}
+\DoxyCodeLine{00377\ \ \ oss\ <<\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.v\_;}
+\DoxyCodeLine{00378\ \ \ \textcolor{keywordflow}{if}\ (!oss)\ \textcolor{keywordflow}{return}\ \{\textcolor{keyword}{false}\};}
+\DoxyCodeLine{00379\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{str\_format\_internal::FormatConvertImpl}}(oss.str(),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}});}
+\DoxyCodeLine{00380\ \}}
+\DoxyCodeLine{00381\ }
+\DoxyCodeLine{00382\ \textcolor{comment}{//\ Use\ templates\ and\ dependent\ types\ to\ delay\ evaluation\ of\ the\ function}}
+\DoxyCodeLine{00383\ \textcolor{comment}{//\ until\ after\ FormatCountCapture\ is\ fully\ defined.}}
+\DoxyCodeLine{00384\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatCountCaptureHelper}{FormatCountCaptureHelper}}\ \{}
+\DoxyCodeLine{00385\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T\ =\ \textcolor{keywordtype}{int}>}
+\DoxyCodeLine{00386\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult}{ArgConvertResult<FormatConversionCharSetInternal::n>}}\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatCountCaptureHelper_ae0c0d00c5d1d66c7d09a7f393d798726}{ConvertHelper}}(}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1FormatCountCapture}{FormatCountCapture}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00388\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})\ \{}
+\DoxyCodeLine{00389\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<\textcolor{keyword}{sizeof}(T)\ !=\ 0,\ \mbox{\hyperlink{classabsl_1_1FormatCountCapture}{FormatCountCapture}}>\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_aa517e2fff4a8c9cba11391ca12f91803}{v2}}\ =\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{00390\ }
+\DoxyCodeLine{00391\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}}.conversion\_char()\ !=}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \ \ str\_format\_internal::FormatConversionCharInternal::n)\ \{}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \{\textcolor{keyword}{false}\};}
+\DoxyCodeLine{00394\ \ \ \ \ \}}
+\DoxyCodeLine{00395\ \ \ \ \ *\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_aa517e2fff4a8c9cba11391ca12f91803}{v2}}.p\_\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}-\/>size());}
+\DoxyCodeLine{00396\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\textcolor{keyword}{true}\};}
+\DoxyCodeLine{00397\ \ \ \}}
+\DoxyCodeLine{00398\ \};}
+\DoxyCodeLine{00399\ }
+\DoxyCodeLine{00400\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T\ =\ \textcolor{keywordtype}{int}>}
+\DoxyCodeLine{00401\ ArgConvertResult<FormatConversionCharSetInternal::n>\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{FormatConvertImpl}}(}
+\DoxyCodeLine{00402\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1FormatCountCapture}{FormatCountCapture}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ FormatConversionSpecImpl\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00403\ \ \ \ \ FormatSinkImpl*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}})\ \{}
+\DoxyCodeLine{00404\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatCountCaptureHelper_ae0c0d00c5d1d66c7d09a7f393d798726}{FormatCountCaptureHelper::ConvertHelper}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00405\ \}}
+\DoxyCodeLine{00406\ }
+\DoxyCodeLine{00407\ \textcolor{comment}{//\ Helper\ friend\ struct\ to\ hide\ implementation\ details\ from\ the\ public\ API\ of}}
+\DoxyCodeLine{00408\ \textcolor{comment}{//\ FormatArgImpl.}}
+\DoxyCodeLine{00409\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatArgImplFriend}{FormatArgImplFriend}}\ \{}
+\DoxyCodeLine{00410\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Arg>}
+\DoxyCodeLine{00411\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatArgImplFriend_ab95d45f0e84e678bf0f9e3a481c5b0f9}{ToInt}}(Arg\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}},\ \textcolor{keywordtype}{int}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}})\ \{}
+\DoxyCodeLine{00412\ \ \ \ \ \textcolor{comment}{//\ A\ value\ initialized\ FormatConversionSpecImpl\ has\ a\ \`{}none`\ conv,\ which}}
+\DoxyCodeLine{00413\ \ \ \ \ \textcolor{comment}{//\ tells\ the\ dispatcher\ to\ run\ the\ \`{}int`\ conversion.}}
+\DoxyCodeLine{00414\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}}.dispatcher\_(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}}.data\_,\ \{\},\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}});}
+\DoxyCodeLine{00415\ \ \ \}}
+\DoxyCodeLine{00416\ }
+\DoxyCodeLine{00417\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Arg>}
+\DoxyCodeLine{00418\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatArgImplFriend_ac414c797c478495b81229a8810fec558}{Convert}}(Arg\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}},\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},}
+\DoxyCodeLine{00419\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatSinkImpl}{FormatSinkImpl}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}})\ \{}
+\DoxyCodeLine{00420\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}}.dispatcher\_(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}}.data\_,\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a972fc786e19cfc18cef3c79ae7b47e1e}{conv}},\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}});}
+\DoxyCodeLine{00421\ \ \ \}}
+\DoxyCodeLine{00422\ }
+\DoxyCodeLine{00423\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Arg>}
+\DoxyCodeLine{00424\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{typename}\ Arg::Dispatcher\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatArgImplFriend_acf071ef84c8c89a10e0fb59ea78006a2}{GetVTablePtrForTest}}(Arg\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}})\ \{}
+\DoxyCodeLine{00425\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}}.dispatcher\_;}
+\DoxyCodeLine{00426\ \ \ \}}
+\DoxyCodeLine{00427\ \};}
+\DoxyCodeLine{00428\ }
+\DoxyCodeLine{00429\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Arg>}
+\DoxyCodeLine{00430\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{namespaceabsl_aefae0362f20cbd6536eb276d6be36613}{FormatConversionCharSet}}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad509c1ae3b6728f7cface5514c80f582}{ArgumentToConv}}()\ \{}
+\DoxyCodeLine{00431\ \ \ \textcolor{keyword}{using\ }ConvResult\ =\ \textcolor{keyword}{decltype}(\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{str\_format\_internal::FormatConvertImpl}}(}
+\DoxyCodeLine{00432\ \ \ \ \ \ \ std::declval<const\ Arg\&>(),}
+\DoxyCodeLine{00433\ \ \ \ \ \ \ std::declval<const\ FormatConversionSpecImpl\&>(),}
+\DoxyCodeLine{00434\ \ \ \ \ \ \ std::declval<FormatSinkImpl*>()));}
+\DoxyCodeLine{00435\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a249d407c0b894b1ea6fc6ce79d9e9b3a}{absl::str\_format\_internal::ExtractCharSet}}(ConvResult\{\});}
+\DoxyCodeLine{00436\ \}}
+\DoxyCodeLine{00437\ }
+\DoxyCodeLine{00438\ \textcolor{comment}{//\ A\ type-\/erased\ handle\ to\ a\ format\ argument.}}
+\DoxyCodeLine{00439\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatArgImpl}{FormatArgImpl}}\ \{}
+\DoxyCodeLine{00440\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00441\ \ \ \textcolor{keyword}{enum}\ \{\ kInlinedSpace\ =\ 8\ \};}
+\DoxyCodeLine{00442\ }
+\DoxyCodeLine{00443\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1VoidPtr}{VoidPtr}}\ =\ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1VoidPtr}{str\_format\_internal::VoidPtr}};}
+\DoxyCodeLine{00444\ }
+\DoxyCodeLine{00445\ \ \ \textcolor{keyword}{union\ }Data\ \{}
+\DoxyCodeLine{00446\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}};}
+\DoxyCodeLine{00447\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{volatile}\ \textcolor{keywordtype}{void}*\ volatile\_ptr;}
+\DoxyCodeLine{00448\ \ \ \ \ \textcolor{keywordtype}{char}\ buf[kInlinedSpace];}
+\DoxyCodeLine{00449\ \ \ \};}
+\DoxyCodeLine{00450\ }
+\DoxyCodeLine{00451\ \ \ \textcolor{keyword}{using\ }Dispatcher\ =\ bool\ (*)(Data,\ \mbox{\hyperlink{classabsl_1_1str__format__internal_1_1FormatConversionSpecImpl}{FormatConversionSpecImpl}},\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}});}
+\DoxyCodeLine{00452\ }
+\DoxyCodeLine{00453\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00454\ \ \ \textcolor{keyword}{struct\ }store\_by\_value}
+\DoxyCodeLine{00455\ \ \ \ \ \ \ :\ std::integral\_constant<bool,\ (sizeof(T)\ <=\ kInlinedSpace)\ \&\&}
+\DoxyCodeLine{00456\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (std::is\_integral<T>::value\ ||}
+\DoxyCodeLine{00457\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_floating\_point<T>::value\ ||}
+\DoxyCodeLine{00458\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_pointer<T>::value\ ||}
+\DoxyCodeLine{00459\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<VoidPtr,\ T>::value)>\ \{\};}
+\DoxyCodeLine{00460\ }
+\DoxyCodeLine{00461\ \ \ enum\ StoragePolicy\ \{\ ByPointer,\ ByVolatilePointer,\ ByValue\ \};}
+\DoxyCodeLine{00462\ \ \ template\ <typename\ T>}
+\DoxyCodeLine{00463\ \ \ struct\ storage\_policy}
+\DoxyCodeLine{00464\ \ \ \ \ \ \ :\ std::integral\_constant<StoragePolicy,}
+\DoxyCodeLine{00465\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (std::is\_volatile<T>::value}
+\DoxyCodeLine{00466\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ ByVolatilePointer}
+\DoxyCodeLine{00467\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (store\_by\_value<T>::value\ ?\ ByValue}
+\DoxyCodeLine{00468\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ ByPointer))>\ \{}
+\DoxyCodeLine{00469\ \ \ \};}
+\DoxyCodeLine{00470\ }
+\DoxyCodeLine{00471\ \ \ \textcolor{comment}{//\ To\ reduce\ the\ number\ of\ vtables\ we\ will\ decay\ values\ before\ hand.}}
+\DoxyCodeLine{00472\ \ \ \textcolor{comment}{//\ Anything\ with\ a\ user-\/defined\ Convert\ will\ get\ its\ own\ vtable.}}
+\DoxyCodeLine{00473\ \ \ \textcolor{comment}{//\ For\ everything\ else:}}
+\DoxyCodeLine{00474\ \ \ \textcolor{comment}{//\ \ \ -\/\ Decay\ char*\ and\ char\ arrays\ into\ \`{}const\ char*`}}
+\DoxyCodeLine{00475\ \ \ \textcolor{comment}{//\ \ \ -\/\ Decay\ wchar\_t*\ and\ wchar\_t\ arrays\ into\ \`{}const\ wchar\_t*`}}
+\DoxyCodeLine{00476\ \ \ \textcolor{comment}{//\ \ \ -\/\ Decay\ any\ other\ pointer\ to\ \`{}const\ void*`}}
+\DoxyCodeLine{00477\ \ \ \textcolor{comment}{//\ \ \ -\/\ Decay\ all\ enums\ to\ the\ integral\ promotion\ of\ their\ underlying\ type.}}
+\DoxyCodeLine{00478\ \ \ \textcolor{comment}{//\ \ \ -\/\ Decay\ function\ pointers\ to\ void*.}}
+\DoxyCodeLine{00479\ \ \ template\ <typename\ T,\ typename\ =\ void>}
+\DoxyCodeLine{00480\ \ \ struct\ DecayType\ \{}
+\DoxyCodeLine{00481\ \ \ \ \ static\ constexpr\ bool\ kHasUserDefined\ =}
+\DoxyCodeLine{00482\ \ \ \ \ \ \ \ \ str\_format\_internal::HasUserDefinedConvert<T>::value\ ||}
+\DoxyCodeLine{00483\ \ \ \ \ \ \ \ \ HasAbslStringify<T>::value;}
+\DoxyCodeLine{00484\ \ \ \ \ using\ type\ =\ typename\ std::conditional<}
+\DoxyCodeLine{00485\ \ \ \ \ \ \ \ \ !kHasUserDefined\ \&\&\ std::is\_convertible<T,\ const\ char*>::value,}
+\DoxyCodeLine{00486\ \ \ \ \ \ \ \ \ const\ char*,}
+\DoxyCodeLine{00487\ \ \ \ \ \ \ \ \ typename\ std::conditional<}
+\DoxyCodeLine{00488\ \ \ \ \ \ \ \ \ \ \ \ \ !kHasUserDefined\ \&\&\ std::is\_convertible<T,\ const\ wchar\_t*>::value,}
+\DoxyCodeLine{00489\ \ \ \ \ \ \ \ \ \ \ \ \ const\ wchar\_t*,}
+\DoxyCodeLine{00490\ \ \ \ \ \ \ \ \ \ \ \ \ typename\ std::conditional<}
+\DoxyCodeLine{00491\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !kHasUserDefined\ \&\&\ std::is\_convertible<T,\ VoidPtr>::value,}
+\DoxyCodeLine{00492\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ VoidPtr,}
+\DoxyCodeLine{00493\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ const\ T\&>::type>::type>::type;}
+\DoxyCodeLine{00494\ \ \ \};}
+\DoxyCodeLine{00495\ \ \ template\ <typename\ T>}
+\DoxyCodeLine{00496\ \ \ struct\ DecayType<}
+\DoxyCodeLine{00497\ \ \ \ \ \ \ T,\ typename\ std::enable\_if<}
+\DoxyCodeLine{00498\ \ \ \ \ \ \ \ \ \ \ \ \ \ !str\_format\_internal::HasUserDefinedConvert<T>::value\ \&\&}
+\DoxyCodeLine{00499\ \ \ \ \ \ \ \ \ \ \ \ \ \ !HasAbslStringify<T>::value\ \&\&\ std::is\_enum<T>::value>::type>\ \{}
+\DoxyCodeLine{00500\ \ \ \ \ using\ type\ =\ decltype(+typename\ std::underlying\_type<T>::type());}
+\DoxyCodeLine{00501\ \ \ \};}
+\DoxyCodeLine{00502\ }
+\DoxyCodeLine{00503\ \ public:}
+\DoxyCodeLine{00504\ \ \ template\ <typename\ T>}
+\DoxyCodeLine{00505\ \ \ explicit\ FormatArgImpl(const\ T\&\ value)\ \{}
+\DoxyCodeLine{00506\ \ \ \ \ using\ D\ =\ typename\ DecayType<T>::type;}
+\DoxyCodeLine{00507\ \ \ \ \ static\_assert(}
+\DoxyCodeLine{00508\ \ \ \ \ \ \ \ \ std::is\_same<D,\ const\ T\&>::value\ ||\ storage\_policy<D>::value\ ==\ ByValue,}
+\DoxyCodeLine{00509\ \ \ \ \ \ \ \ \ "{}Decayed\ types\ must\ be\ stored\ by\ value"{});}
+\DoxyCodeLine{00510\ \ \ \ \ Init(static\_cast<D>(value));}
+\DoxyCodeLine{00511\ \ \ \}}
+\DoxyCodeLine{00512\ }
+\DoxyCodeLine{00513\ \ private:}
+\DoxyCodeLine{00514\ \ \ friend\ struct\ str\_format\_internal::FormatArgImplFriend;}
+\DoxyCodeLine{00515\ \ \ template\ <typename\ T,\ StoragePolicy\ =\ storage\_policy<T>::value>}
+\DoxyCodeLine{00516\ \ \ struct\ Manager;}
+\DoxyCodeLine{00517\ }
+\DoxyCodeLine{00518\ \ \ template\ <typename\ T>}
+\DoxyCodeLine{00519\ \ \ struct\ Manager<T,\ ByPointer>\ \{}
+\DoxyCodeLine{00520\ \ \ \ \ static\ Data\ SetValue(const\ T\&\ value)\ \{}
+\DoxyCodeLine{00521\ \ \ \ \ \ \ Data\ data;}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ data.ptr\ =\ std::addressof(value);}
+\DoxyCodeLine{00523\ \ \ \ \ \ \ return\ data;}
+\DoxyCodeLine{00524\ \ \ \ \ \}}
+\DoxyCodeLine{00525\ }
+\DoxyCodeLine{00526\ \ \ \ \ static\ const\ T\&\ Value(Data\ arg)\ \{\ return\ *static\_cast<const\ T*>(arg.ptr);\ \}}
+\DoxyCodeLine{00527\ \ \ \};}
+\DoxyCodeLine{00528\ }
+\DoxyCodeLine{00529\ \ \ template\ <typename\ T>}
+\DoxyCodeLine{00530\ \ \ struct\ Manager<T,\ ByVolatilePointer>\ \{}
+\DoxyCodeLine{00531\ \ \ \ \ static\ Data\ SetValue(const\ T\&\ value)\ \{}
+\DoxyCodeLine{00532\ \ \ \ \ \ \ Data\ data;}
+\DoxyCodeLine{00533\ \ \ \ \ \ \ data.volatile\_ptr\ =\ \&value;}
+\DoxyCodeLine{00534\ \ \ \ \ \ \ return\ data;}
+\DoxyCodeLine{00535\ \ \ \ \ \}}
+\DoxyCodeLine{00536\ }
+\DoxyCodeLine{00537\ \ \ \ \ static\ const\ T\&\ Value(Data\ arg)\ \{}
+\DoxyCodeLine{00538\ \ \ \ \ \ \ return\ *static\_cast<const\ T*>(arg.volatile\_ptr);}
+\DoxyCodeLine{00539\ \ \ \ \ \}}
+\DoxyCodeLine{00540\ \ \ \};}
+\DoxyCodeLine{00541\ }
+\DoxyCodeLine{00542\ \ \ template\ <typename\ T>}
+\DoxyCodeLine{00543\ \ \ struct\ Manager<T,\ ByValue>\ \{}
+\DoxyCodeLine{00544\ \ \ \ \ static\ Data\ SetValue(const\ T\&\ value)\ \{}
+\DoxyCodeLine{00545\ \ \ \ \ \ \ Data\ data;}
+\DoxyCodeLine{00546\ \ \ \ \ \ \ memcpy(data.buf,\ \&value,\ sizeof(value));}
+\DoxyCodeLine{00547\ \ \ \ \ \ \ return\ data;}
+\DoxyCodeLine{00548\ \ \ \ \ \}}
+\DoxyCodeLine{00549\ }
+\DoxyCodeLine{00550\ \ \ \ \ static\ T\ Value(Data\ arg)\ \{}
+\DoxyCodeLine{00551\ \ \ \ \ \ \ T\ value;}
+\DoxyCodeLine{00552\ \ \ \ \ \ \ memcpy(\&value,\ arg.buf,\ sizeof(T));}
+\DoxyCodeLine{00553\ \ \ \ \ \ \ return\ value;}
+\DoxyCodeLine{00554\ \ \ \ \ \}}
+\DoxyCodeLine{00555\ \ \ \};}
+\DoxyCodeLine{00556\ }
+\DoxyCodeLine{00557\ \ \ template\ <typename\ T>}
+\DoxyCodeLine{00558\ \ \ void\ Init(const\ T\&\ value)\ \{}
+\DoxyCodeLine{00559\ \ \ \ \ data\_\ =\ Manager<T>::SetValue(value);}
+\DoxyCodeLine{00560\ \ \ \ \ dispatcher\_\ =\ \&Dispatch<T>;}
+\DoxyCodeLine{00561\ \ \ \}}
+\DoxyCodeLine{00562\ }
+\DoxyCodeLine{00563\ \ \ template\ <typename\ T>}
+\DoxyCodeLine{00564\ \ \ static\ int\ ToIntVal(const\ T\&\ val)\ \{}
+\DoxyCodeLine{00565\ \ \ \ \ using\ CommonType\ =\ typename\ std::conditional<std::is\_signed<T>::value,}
+\DoxyCodeLine{00566\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ int64\_t,\ uint64\_t>::type;}
+\DoxyCodeLine{00567\ \ \ \ \ if\ (static\_cast<CommonType>(val)\ >}
+\DoxyCodeLine{00568\ \ \ \ \ \ \ \ \ static\_cast<CommonType>((std::numeric\_limits<int>::max)()))\ \{}
+\DoxyCodeLine{00569\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (std::numeric\_limits<int>::max)();}
+\DoxyCodeLine{00570\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (std::is\_signed<T>::value\ \&\&}
+\DoxyCodeLine{00571\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}CommonType\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}})\ <}
+\DoxyCodeLine{00572\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}CommonType\textcolor{keyword}{>}((std::numeric\_limits<int>::min)()))\ \{}
+\DoxyCodeLine{00573\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ (std::numeric\_limits<int>::min)();}
+\DoxyCodeLine{00574\ \ \ \ \ \}}
+\DoxyCodeLine{00575\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}});}
+\DoxyCodeLine{00576\ \ \ \}}
+\DoxyCodeLine{00577\ }
+\DoxyCodeLine{00578\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00579\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ ToInt(Data\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}},\ \textcolor{keywordtype}{int}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ std::true\_type\ \textcolor{comment}{/*\ is\_integral\ */},}
+\DoxyCodeLine{00580\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::false\_type)\ \{}
+\DoxyCodeLine{00581\ \ \ \ \ *\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}}\ =\ ToIntVal(Manager<T>::Value(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}}));}
+\DoxyCodeLine{00582\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00583\ \ \ \}}
+\DoxyCodeLine{00584\ }
+\DoxyCodeLine{00585\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00586\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ ToInt(Data\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}},\ \textcolor{keywordtype}{int}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ std::false\_type,}
+\DoxyCodeLine{00587\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::true\_type\ \textcolor{comment}{/*\ is\_enum\ */})\ \{}
+\DoxyCodeLine{00588\ \ \ \ \ *\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}}\ =\ ToIntVal(\textcolor{keyword}{static\_cast<}typename\ std::underlying\_type<T>::type\textcolor{keyword}{>}(}
+\DoxyCodeLine{00589\ \ \ \ \ \ \ \ \ Manager<T>::Value(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}})));}
+\DoxyCodeLine{00590\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00591\ \ \ \}}
+\DoxyCodeLine{00592\ }
+\DoxyCodeLine{00593\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00594\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ ToInt(Data,\ \textcolor{keywordtype}{int}*,\ std::false\_type,\ std::false\_type)\ \{}
+\DoxyCodeLine{00595\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00596\ \ \ \}}
+\DoxyCodeLine{00597\ }
+\DoxyCodeLine{00598\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00599\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ Dispatch(Data\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}},\ FormatConversionSpecImpl\ spec,\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}})\ \{}
+\DoxyCodeLine{00600\ \ \ \ \ \textcolor{comment}{//\ A\ \`{}none`\ conv\ indicates\ that\ we\ want\ the\ \`{}int`\ conversion.}}
+\DoxyCodeLine{00601\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(spec.conversion\_char()\ ==}
+\DoxyCodeLine{00602\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1str__format__internal_1_1FormatConversionCharInternal_abe127e7886c0c5ff30e383ca2a5d4f1a}{FormatConversionCharInternal::kNone}}))\ \{}
+\DoxyCodeLine{00603\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ ToInt<T>(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}},\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}*\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}}),\ std::is\_integral<T>(),}
+\DoxyCodeLine{00604\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_enum<T>());}
+\DoxyCodeLine{00605\ \ \ \ \ \}}
+\DoxyCodeLine{00606\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(!\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_a8cd51dfe8194e009d21b70e8c8387d01}{Contains}}(\mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad509c1ae3b6728f7cface5514c80f582}{ArgumentToConv<T>}}(),}
+\DoxyCodeLine{00607\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ spec.conversion\_char())))\ \{}
+\DoxyCodeLine{00608\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00609\ \ \ \ \ \}}
+\DoxyCodeLine{00610\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_ad0aa93eb85ee8f07567ebb4b2051a13d}{str\_format\_internal::FormatConvertImpl}}(}
+\DoxyCodeLine{00611\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Manager<T>::Value(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}}),\ spec,}
+\DoxyCodeLine{00612\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}FormatSinkImpl*\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}}))}
+\DoxyCodeLine{00613\ \ \ \ \ \ \ \ \ .\mbox{\hyperlink{structabsl_1_1str__format__internal_1_1ArgConvertResult_a39d9b87ee395dc028117f06e4a3488fc}{value}};}
+\DoxyCodeLine{00614\ \ \ \}}
+\DoxyCodeLine{00615\ }
+\DoxyCodeLine{00616\ \ \ Data\ data\_;}
+\DoxyCodeLine{00617\ \ \ Dispatcher\ dispatcher\_;}
+\DoxyCodeLine{00618\ \};}
+\DoxyCodeLine{00619\ }
+\DoxyCodeLine{00620\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(T,\ E)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00621\ \textcolor{preprocessor}{\ \ E\ template\ bool\ FormatArgImpl::Dispatch<T>(Data,\ FormatConversionSpecImpl,\ \(\backslash\)}}
+\DoxyCodeLine{00622\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ void*)}}
+\DoxyCodeLine{00623\ }
+\DoxyCodeLine{00624\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_OVERLOADS\_EXPAND\_NO\_WSTRING\_VIEW\_(...)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00625\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(str\_format\_internal::VoidPtr,\ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00626\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00627\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(bool,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00628\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(char,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00629\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(signed\ char,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00630\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(unsigned\ char,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00631\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(short,\ \_\_VA\_ARGS\_\_);\ }\textcolor{comment}{/*\ NOLINT\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{00632\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(unsigned\ short,\ \ \ \ \ \ }\textcolor{comment}{/*\ NOLINT\ */}\textcolor{preprocessor}{\ \(\backslash\)}}
+\DoxyCodeLine{00633\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00634\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(int,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00635\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(unsigned\ int,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00636\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(long,\ \_\_VA\_ARGS\_\_);\ }\textcolor{comment}{/*\ NOLINT\ */}\textcolor{preprocessor}{\ \ \(\backslash\)}}
+\DoxyCodeLine{00637\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(unsigned\ long,\ \ \ \ \ \ }\textcolor{comment}{/*\ NOLINT\ */}\textcolor{preprocessor}{\ \ \(\backslash\)}}
+\DoxyCodeLine{00638\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00639\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(long\ long,\ }\textcolor{comment}{/*\ NOLINT\ */}\textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00640\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00641\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(unsigned\ long\ long,\ }\textcolor{comment}{/*\ NOLINT\ */}\textcolor{preprocessor}{\ \ \(\backslash\)}}
+\DoxyCodeLine{00642\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00643\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(int128,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00644\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(uint128,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00645\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(float,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00646\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(double,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00647\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(long\ double,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00648\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(const\ char*,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00649\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(std::string,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00650\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(string\_view,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00651\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(const\ wchar\_t*,\ \_\_VA\_ARGS\_\_);\ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00652\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(std::wstring,\ \_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00653\ }
+\DoxyCodeLine{00654\ \textcolor{preprocessor}{\#if\ defined(ABSL\_HAVE\_STD\_STRING\_VIEW)}}
+\DoxyCodeLine{00655\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_OVERLOADS\_EXPAND\_(...)\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00656\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_OVERLOADS\_EXPAND\_NO\_WSTRING\_VIEW\_(\ \(\backslash\)}}
+\DoxyCodeLine{00657\ \textcolor{preprocessor}{\ \ \ \ \ \ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00658\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_INSTANTIATE\_(std::wstring\_view,\ \_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00659\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00660\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_OVERLOADS\_EXPAND\_(...)\ \(\backslash\)}}
+\DoxyCodeLine{00661\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_FORMAT\_DISPATCH\_OVERLOADS\_EXPAND\_NO\_WSTRING\_VIEW\_(\_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00662\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00663\ }
+\DoxyCodeLine{00664\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8h_a03c4a6c09eb7463d73ec668855d8302b}{ABSL\_INTERNAL\_FORMAT\_DISPATCH\_OVERLOADS\_EXPAND\_}}(\textcolor{keyword}{extern});}
+\DoxyCodeLine{00665\ }
+\DoxyCodeLine{00666\ }
+\DoxyCodeLine{00667\ \}\ \ \textcolor{comment}{//\ namespace\ str\_format\_internal}}
+\DoxyCodeLine{00668\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00669\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00670\ }
+\DoxyCodeLine{00671\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_INTERNAL\_STR\_FORMAT\_ARG\_H\_}}
+
+\end{DoxyCode}

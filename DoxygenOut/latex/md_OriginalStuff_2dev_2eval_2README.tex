@@ -1,0 +1,81 @@
+\chapter{eleuther eval readme}
+\hypertarget{md_OriginalStuff_2dev_2eval_2README}{}\label{md_OriginalStuff_2dev_2eval_2README}\index{eleuther eval readme@{eleuther eval readme}}
+\label{md_OriginalStuff_2dev_2eval_2README_autotoc_md95}%
+\Hypertarget{md_OriginalStuff_2dev_2eval_2README_autotoc_md95}%
+
+
+The goal here is to run the Eleuther Eval harness exactly in the same way as that used in the \href{https://huggingface.co/spaces/open-llm-leaderboard/open_llm_leaderboard}{\texttt{ huggingface LLM Leaderboard}}.
+
+The starting point is a {\ttfamily .bin} file trained by llm.\+c. We now have to export it to a huggingface model and then evaluate it.
+
+To export the model, use \href{export_hf.py}{\texttt{ export\+\_\+hf.\+py}}. See its documentation up top. Eample usage, from this directory\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cd\ dev/eval}
+\DoxyCodeLine{python\ export\_hf.py\ -\/-\/input\ model.bin\ -\/-\/output\ output\_dir}
+
+\end{DoxyCode}
+
+
+Where you point to your model .bin file, and huggingface files get written to output\+\_\+dir. The script can optionally also upload to huggingface hub. One more post-\/processing that is advisable is to go into the {\ttfamily output\+\_\+dir}, open up the {\ttfamily config.\+json} there and add one more entry into the json object\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{"{}\_attn\_implementation"{}:\ "{}flash\_attention\_2"{}}
+
+\end{DoxyCode}
+
+
+To use Flash\+Attention 2. We had trouble evaluating in bfloat16 without using Flash\+Attention 2 (the scores are much lower, and this was never fully resolved). This is a temporary hack/workaround.
+
+Now that we have the model in huggingface format, we download the Eleuther Eval Harness repo and run it. Head over to the parent/root directory of the llm.\+c repo and\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{git\ clone\ https://github.com/EleutherAI/lm-\/evaluation-\/harness/}
+\DoxyCodeLine{cd\ lm-\/evaluation-\/harness}
+\DoxyCodeLine{git\ checkout\ b281b0921b636bc36ad05c0b0b0763bd6dd43463}
+\DoxyCodeLine{pip\ install\ -\/e\ .}
+
+\end{DoxyCode}
+
+
+And then run the run\+\_\+eval.\+sh script\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{./dev/eval/run\_eval.sh\ output\_dir\ result\_dir}
+
+\end{DoxyCode}
+
+
+Where output\+\_\+dir can either be local output dir (above), or a huggingface repo name.\+This will write eval json objects to {\ttfamily ./lm-\/evaluation-\/harness/results/results\+\_\+dir}. It will print the results into console, e.\+g. for a 774M model we see\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}
+\DoxyCodeLine{arc\_challenge\_25shot.json\ \ \ \ \ \ :\ 30.4608}
+\DoxyCodeLine{gsm8k\_5shot.json\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 0.1516}
+\DoxyCodeLine{hellaswag\_10shot.json\ \ \ \ \ \ \ \ \ \ :\ 57.8072}
+\DoxyCodeLine{mmlu\_5shot.json\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 25.8682}
+\DoxyCodeLine{truthfulqa\_0shot.json\ \ \ \ \ \ \ \ \ \ :\ 35.7830}
+\DoxyCodeLine{winogrande\_5shot.json\ \ \ \ \ \ \ \ \ \ :\ 59.3528}
+\DoxyCodeLine{-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}
+\DoxyCodeLine{Average\ Score\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 34.9039}
+
+\end{DoxyCode}
+
+
+But you can additionally get these results later by running {\ttfamily summarize\+\_\+eval.\+py}\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{python\ dev/eval/summarize\_eval.py\ lm-\/evaluation-\/harness/results/results\_dir}
+
+\end{DoxyCode}
+
+
+The same information will be printed again.
+
+For some reason, the evaluation is quite expensive and runs for somewhere around 1-\/3 hours, even though it should be a few minutes at most. This has not been satisfyingly resolved so far. 

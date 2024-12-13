@@ -1,0 +1,259 @@
+\doxysection{sample\+\_\+recorder.\+h}
+\hypertarget{abseil-cpp_2absl_2profiling_2internal_2sample__recorder_8h_source}{}\label{abseil-cpp_2absl_2profiling_2internal_2sample__recorder_8h_source}\index{abseil-\/cpp/absl/profiling/internal/sample\_recorder.h@{abseil-\/cpp/absl/profiling/internal/sample\_recorder.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2profiling_2internal_2sample__recorder_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ sample\_recorder.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ header\ file\ defines\ a\ lock-\/free\ linked\ list\ for\ recording\ samples}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ collected\ from\ a\ random/stochastic\ process.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ This\ utility\ is\ internal-\/only.\ Use\ at\ your\ own\ risk.}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#ifndef\ ABSL\_PROFILING\_INTERNAL\_SAMPLE\_RECORDER\_H\_}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#define\ ABSL\_PROFILING\_INTERNAL\_SAMPLE\_RECORDER\_H\_}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}absl/base/thread\_annotations.h"{}}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/mutex.h"{}}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/time/time.h"{}}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00037\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00038\ \textcolor{keyword}{namespace\ }profiling\_internal\ \{}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ Sample<T>\ that\ has\ members\ required\ for\ linking\ samples\ in\ the\ linked\ list\ of}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ samples\ maintained\ by\ the\ SampleRecorder.\ \ Type\ T\ defines\ the\ sampled\ data.}}
+\DoxyCodeLine{00042\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00043\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_aeaee59ce392bf29eeed684adb3e53eaa}{Sample}}\ \{}
+\DoxyCodeLine{00044\ \ \ \textcolor{comment}{//\ Guards\ the\ ability\ to\ restore\ the\ sample\ to\ a\ pristine\ state.\ \ This}}
+\DoxyCodeLine{00045\ \ \ \textcolor{comment}{//\ prevents\ races\ with\ sampling\ and\ resurrecting\ an\ object.}}
+\DoxyCodeLine{00046\ \ \ \mbox{\hyperlink{classabsl_1_1Mutex}{absl::Mutex}}\ \mbox{\hyperlink{structabsl_1_1profiling__internal_1_1Sample_ae96d051477a60152f431f8178e664e19}{init\_mu}};}
+\DoxyCodeLine{00047\ \ \ T*\ \mbox{\hyperlink{structabsl_1_1profiling__internal_1_1Sample_a209c06febfa2f2ea5ba4f6727dcc6765}{next}}\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00048\ \ \ T*\ dead\ \mbox{\hyperlink{structabsl_1_1profiling__internal_1_1Sample_a69fcfabb421ccbbca74ab71a05bd94f7}{ABSL\_GUARDED\_BY}}(\mbox{\hyperlink{structabsl_1_1profiling__internal_1_1Sample_ae96d051477a60152f431f8178e664e19}{init\_mu}})\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00049\ \ \ int64\_t\ \mbox{\hyperlink{structabsl_1_1profiling__internal_1_1Sample_a837fdf46a919f3cf86cd502d8c68c87b}{weight}};\ \ \textcolor{comment}{//\ How\ many\ sampling\ events\ were\ required\ to\ sample\ this\ one.}}
+\DoxyCodeLine{00050\ \};}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ Holds\ samples\ and\ their\ associated\ stack\ traces\ with\ a\ soft\ limit\ of}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ \`{}SetHashtablezMaxSamples()`.}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ Thread\ safe.}}
+\DoxyCodeLine{00056\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00057\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder}{SampleRecorder}}\ \{}
+\DoxyCodeLine{00058\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00059\ \ \ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a0d3476039e46f2cedecab69fb6d3df06}{SampleRecorder}}();}
+\DoxyCodeLine{00060\ \ \ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_ae0af5d1fcc195a85fcd4eac4b0ff9086}{\string~SampleRecorder}}();}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \textcolor{comment}{//\ Registers\ for\ sampling.\ \ Returns\ an\ opaque\ registration\ info.}}
+\DoxyCodeLine{00063\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Targs>}
+\DoxyCodeLine{00064\ \ \ T*\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a74c179cf090c58fa460b405518948028}{Register}}(Targs\&\&...\ args);}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ Unregisters\ the\ sample.}}
+\DoxyCodeLine{00067\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a75d24bea909b6252cc4e6c6026b3f433}{Unregister}}(T*\ sample);}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ The\ dispose\ callback\ will\ be\ called\ on\ all\ samples\ the\ moment\ they\ are}}
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//\ being\ unregistered.\ Only\ affects\ samples\ that\ are\ unregistered\ after\ the}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ callback\ has\ been\ set.}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ Returns\ the\ previous\ callback.}}
+\DoxyCodeLine{00073\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a4b1f1ce24a7059b72e5d113c616dab06}{DisposeCallback}}\ =\ void\ (*)(\textcolor{keyword}{const}\ T\&);}
+\DoxyCodeLine{00074\ \ \ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a4b1f1ce24a7059b72e5d113c616dab06}{DisposeCallback}}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_afc8e0a0869426812e36a9a6076d4f8da}{SetDisposeCallback}}(\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a4b1f1ce24a7059b72e5d113c616dab06}{DisposeCallback}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}});}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ Iterates\ over\ all\ the\ registered\ \`{}StackInfo`s.\ \ Returning\ the\ number\ of}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ samples\ that\ have\ been\ dropped.}}
+\DoxyCodeLine{00078\ \ \ int64\_t\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_ad9795b8064faa5b07143238b0a7beae2}{Iterate}}(\textcolor{keyword}{const}\ std::function<\textcolor{keywordtype}{void}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2cord__rep__btree_8cc_a66e96c2dda890c63ecbff4f9719c2500}{stack}})>\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}});}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a0631fb5e08a196502eff5e34fb1cf38a}{GetMaxSamples}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00081\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a169265005184dabcb62fcec9e2fb3d0c}{SetMaxSamples}}(\textcolor{keywordtype}{size\_t}\ max);}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00084\ \ \ \textcolor{keywordtype}{void}\ PushNew(T*\ sample);}
+\DoxyCodeLine{00085\ \ \ \textcolor{keywordtype}{void}\ PushDead(T*\ sample);}
+\DoxyCodeLine{00086\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Targs>}
+\DoxyCodeLine{00087\ \ \ T*\ PopDead(Targs...\ args);}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \ \ std::atomic<size\_t>\ dropped\_samples\_;}
+\DoxyCodeLine{00090\ \ \ std::atomic<size\_t>\ size\_estimate\_;}
+\DoxyCodeLine{00091\ \ \ std::atomic<size\_t>\ max\_samples\_\{1\ <<\ 20\};}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \ \ \textcolor{comment}{//\ Intrusive\ lock\ free\ linked\ lists\ for\ tracking\ samples.}}
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//\ \`{}all\_`\ records\ all\ samples\ (they\ are\ never\ removed\ from\ this\ list)\ and\ is}}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//\ terminated\ with\ a\ \`{}nullptr`.}}
+\DoxyCodeLine{00097\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ \`{}graveyard\_.dead`\ is\ a\ circular\ linked\ list.\ \ When\ it\ is\ empty,}}
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ \`{}graveyard\_.dead\ ==\ \&graveyard`.\ \ The\ list\ is\ circular\ so\ that}}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ every\ item\ on\ it\ (even\ the\ last)\ has\ a\ non-\/null\ dead\ pointer.\ \ This\ allows}}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ \`{}Iterate`\ to\ determine\ if\ a\ given\ sample\ is\ live\ or\ dead\ using\ only}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ information\ on\ the\ sample\ itself.}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ For\ example,\ nodes\ [A,\ B,\ C,\ D,\ E]\ with\ [A,\ C,\ E]\ alive\ and\ [B,\ D]\ dead}}
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ looks\ like\ this\ (G\ is\ the\ Graveyard):}}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00107\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ +-\/-\/-\/+\ \ \ \ +-\/-\/-\/+\ \ \ \ +-\/-\/-\/+\ \ \ \ +-\/-\/-\/+\ \ \ \ +-\/-\/-\/+}}
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//\ \ \ \ all\ -\/-\/>|\ A\ |-\/-\/-\/>|\ B\ |-\/-\/-\/>|\ C\ |-\/-\/-\/>|\ D\ |-\/-\/-\/>|\ E\ |}}
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ |\ \ \ |\ \ \ \ |\ \ \ |\ \ \ \ |\ \ \ |\ \ \ \ |\ \ \ |\ \ \ \ |\ \ \ |}}
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ \ \ +-\/-\/-\/+\ \ \ |\ \ \ |\ +-\/>|\ \ \ |-\/+\ \ |\ \ \ |\ +-\/>|\ \ \ |-\/+\ \ |\ \ \ |}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ \ \ |\ G\ |\ \ \ +-\/-\/-\/+\ |\ \ +-\/-\/-\/+\ |\ \ +-\/-\/-\/+\ |\ \ +-\/-\/-\/+\ |\ \ +-\/-\/-\/+}}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//\ \ \ |\ \ \ |\ \ \ \ \ \ \ \ \ |\ \ \ \ \ \ \ \ |\ \ \ \ \ \ \ \ |\ \ \ \ \ \ \ \ |}}
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ \ \ |\ \ \ |\ -\/-\/-\/-\/-\/-\/-\/-\/+\ \ \ \ \ \ \ \ +-\/-\/-\/-\/-\/-\/-\/-\/+\ \ \ \ \ \ \ \ |}}
+\DoxyCodeLine{00114\ \ \ \textcolor{comment}{//\ \ \ +-\/-\/-\/+\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ |}}
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//\ \ \ \ \ \string^\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ |}}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ \ \ \ \ +-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/+}}
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00118\ \ \ std::atomic<T*>\ all\_;}
+\DoxyCodeLine{00119\ \ \ T\ graveyard\_;}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00121\ \ \ std::atomic<DisposeCallback>\ dispose\_;}
+\DoxyCodeLine{00122\ \};}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00125\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a4b1f1ce24a7059b72e5d113c616dab06}{SampleRecorder<T>::DisposeCallback}}}
+\DoxyCodeLine{00126\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_afc8e0a0869426812e36a9a6076d4f8da}{SampleRecorder<T>::SetDisposeCallback}}(\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a4b1f1ce24a7059b72e5d113c616dab06}{DisposeCallback}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \{}
+\DoxyCodeLine{00127\ \ \ \textcolor{keywordflow}{return}\ dispose\_.exchange(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00128\ \}}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00131\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a0d3476039e46f2cedecab69fb6d3df06}{SampleRecorder<T>::SampleRecorder}}()}
+\DoxyCodeLine{00132\ \ \ \ \ :\ dropped\_samples\_(0),\ size\_estimate\_(0),\ all\_(nullptr),\ dispose\_(nullptr)\ \{}
+\DoxyCodeLine{00133\ \ \ \mbox{\hyperlink{classabsl_1_1MutexLock}{absl::MutexLock}}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}(\&graveyard\_.init\_mu);}
+\DoxyCodeLine{00134\ \ \ graveyard\_.dead\ =\ \&graveyard\_;}
+\DoxyCodeLine{00135\ \}}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00137\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00138\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_ae0af5d1fcc195a85fcd4eac4b0ff9086}{SampleRecorder<T>::\string~SampleRecorder}}()\ \{}
+\DoxyCodeLine{00139\ \ \ T*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ all\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00140\ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ !=\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00141\ \ \ \ \ T*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a99b32867fd662c5f37b4c76816edc19e}{next}}\ =\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}-\/>next;}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keyword}{delete}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}};}
+\DoxyCodeLine{00143\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a99b32867fd662c5f37b4c76816edc19e}{next}};}
+\DoxyCodeLine{00144\ \ \ \}}
+\DoxyCodeLine{00145\ \}}
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00147\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00148\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder}{SampleRecorder<T>::PushNew}}(T*\ sample)\ \{}
+\DoxyCodeLine{00149\ \ \ sample-\/>next\ =\ all\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00150\ \ \ \textcolor{keywordflow}{while}\ (!all\_.compare\_exchange\_weak(sample-\/>next,\ sample,}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_release,}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_relaxed))\ \{}
+\DoxyCodeLine{00153\ \ \ \}}
+\DoxyCodeLine{00154\ \}}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00156\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00157\ \textcolor{keywordtype}{void}\ SampleRecorder<T>::PushDead(T*\ sample)\ \{}
+\DoxyCodeLine{00158\ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{auto}*\ dispose\ =\ dispose\_.load(std::memory\_order\_relaxed))\ \{}
+\DoxyCodeLine{00159\ \ \ \ \ dispose(*sample);}
+\DoxyCodeLine{00160\ \ \ \}}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \ \ \mbox{\hyperlink{classabsl_1_1MutexLock}{absl::MutexLock}}\ graveyard\_lock(\&graveyard\_.init\_mu);}
+\DoxyCodeLine{00163\ \ \ \mbox{\hyperlink{classabsl_1_1MutexLock}{absl::MutexLock}}\ sample\_lock(\&sample-\/>init\_mu);}
+\DoxyCodeLine{00164\ \ \ sample-\/>dead\ =\ graveyard\_.dead;}
+\DoxyCodeLine{00165\ \ \ graveyard\_.dead\ =\ sample;}
+\DoxyCodeLine{00166\ \}}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00169\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Targs>}
+\DoxyCodeLine{00170\ T*\ SampleRecorder<T>::PopDead(Targs...\ args)\ \{}
+\DoxyCodeLine{00171\ \ \ \mbox{\hyperlink{classabsl_1_1MutexLock}{absl::MutexLock}}\ graveyard\_lock(\&graveyard\_.init\_mu);}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00173\ \ \ \textcolor{comment}{//\ The\ list\ is\ circular,\ so\ eventually\ it\ collapses\ down\ to}}
+\DoxyCodeLine{00174\ \ \ \textcolor{comment}{//\ \ \ graveyard\_.dead\ ==\ \&graveyard\_}}
+\DoxyCodeLine{00175\ \ \ \textcolor{comment}{//\ when\ it\ is\ empty.}}
+\DoxyCodeLine{00176\ \ \ T*\ sample\ =\ graveyard\_.dead;}
+\DoxyCodeLine{00177\ \ \ \textcolor{keywordflow}{if}\ (sample\ ==\ \&graveyard\_)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \ \ \mbox{\hyperlink{classabsl_1_1MutexLock}{absl::MutexLock}}\ sample\_lock(\&sample-\/>init\_mu);}
+\DoxyCodeLine{00180\ \ \ graveyard\_.dead\ =\ sample-\/>dead;}
+\DoxyCodeLine{00181\ \ \ sample-\/>dead\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00182\ \ \ sample-\/>PrepareForSampling(std::forward<Targs>(args)...);}
+\DoxyCodeLine{00183\ \ \ \textcolor{keywordflow}{return}\ sample;}
+\DoxyCodeLine{00184\ \}}
+\DoxyCodeLine{00185\ }
+\DoxyCodeLine{00186\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00187\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Targs>}
+\DoxyCodeLine{00188\ T*\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a74c179cf090c58fa460b405518948028}{SampleRecorder<T>::Register}}(Targs\&\&...\ args)\ \{}
+\DoxyCodeLine{00189\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ size\_estimate\_.fetch\_add(1,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00190\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ >\ max\_samples\_.load(std::memory\_order\_relaxed))\ \{}
+\DoxyCodeLine{00191\ \ \ \ \ size\_estimate\_.fetch\_sub(1,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00192\ \ \ \ \ dropped\_samples\_.fetch\_add(1,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00193\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00194\ \ \ \}}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \ \ T*\ sample\ =\ PopDead(args...);}
+\DoxyCodeLine{00197\ \ \ \textcolor{keywordflow}{if}\ (sample\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00198\ \ \ \ \ \textcolor{comment}{//\ Resurrection\ failed.\ \ Hire\ a\ new\ warlock.}}
+\DoxyCodeLine{00199\ \ \ \ \ sample\ =\ \textcolor{keyword}{new}\ T();}
+\DoxyCodeLine{00200\ \ \ \ \ \{}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1MutexLock}{absl::MutexLock}}\ sample\_lock(\&sample-\/>init\_mu);}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ \textcolor{comment}{//\ If\ flag\ initialization\ happens\ to\ occur\ (perhaps\ in\ another\ thread)}}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \textcolor{comment}{//\ while\ in\ this\ block,\ it\ will\ lock\ \`{}graveyard\_`\ which\ is\ usually\ always}}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \textcolor{comment}{//\ locked\ before\ any\ sample.\ This\ will\ appear\ as\ a\ lock\ inversion.}}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \textcolor{comment}{//\ However,\ this\ code\ is\ run\ exactly\ once\ per\ sample,\ and\ this\ sample}}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ \textcolor{comment}{//\ cannot\ be\ accessed\ until\ after\ it\ is\ returned\ from\ this\ method.\ \ This}}
+\DoxyCodeLine{00207\ \ \ \ \ \ \ \textcolor{comment}{//\ means\ that\ this\ lock\ state\ can\ never\ be\ recreated,\ so\ we\ can\ safely}}
+\DoxyCodeLine{00208\ \ \ \ \ \ \ \textcolor{comment}{//\ inform\ the\ deadlock\ detector\ to\ ignore\ it.}}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ sample-\/>init\_mu.ForgetDeadlockInfo();}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ sample-\/>PrepareForSampling(std::forward<Targs>(args)...);}
+\DoxyCodeLine{00211\ \ \ \ \ \}}
+\DoxyCodeLine{00212\ \ \ \ \ PushNew(sample);}
+\DoxyCodeLine{00213\ \ \ \}}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \ \ \textcolor{keywordflow}{return}\ sample;}
+\DoxyCodeLine{00216\ \}}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00219\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a75d24bea909b6252cc4e6c6026b3f433}{SampleRecorder<T>::Unregister}}(T*\ sample)\ \{}
+\DoxyCodeLine{00220\ \ \ PushDead(sample);}
+\DoxyCodeLine{00221\ \ \ size\_estimate\_.fetch\_sub(1,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00222\ \}}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00225\ int64\_t\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_ad9795b8064faa5b07143238b0a7beae2}{SampleRecorder<T>::Iterate}}(}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keyword}{const}\ std::function<\textcolor{keywordtype}{void}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2cord__rep__btree_8cc_a66e96c2dda890c63ecbff4f9719c2500}{stack}})>\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \{}
+\DoxyCodeLine{00227\ \ \ T*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ all\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00228\ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ !=\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00229\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1MutexLock}{absl::MutexLock}}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}(\&\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}-\/>init\_mu);}
+\DoxyCodeLine{00230\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}-\/>dead\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}(*\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}});}
+\DoxyCodeLine{00232\ \ \ \ \ \}}
+\DoxyCodeLine{00233\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}-\/>next;}
+\DoxyCodeLine{00234\ \ \ \}}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \ \ \textcolor{keywordflow}{return}\ dropped\_samples\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00237\ \}}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00240\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a169265005184dabcb62fcec9e2fb3d0c}{SampleRecorder<T>::SetMaxSamples}}(\textcolor{keywordtype}{size\_t}\ max)\ \{}
+\DoxyCodeLine{00241\ \ \ max\_samples\_.store(max,\ std::memory\_order\_release);}
+\DoxyCodeLine{00242\ \}}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00245\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder_a0631fb5e08a196502eff5e34fb1cf38a}{SampleRecorder<T>::GetMaxSamples}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00246\ \ \ \textcolor{keywordflow}{return}\ max\_samples\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00247\ \}}
+\DoxyCodeLine{00248\ }
+\DoxyCodeLine{00249\ \}\ \ \textcolor{comment}{//\ namespace\ profiling\_internal}}
+\DoxyCodeLine{00250\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00251\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00252\ }
+\DoxyCodeLine{00253\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_PROFILING\_INTERNAL\_SAMPLE\_RECORDER\_H\_}}
+
+\end{DoxyCode}

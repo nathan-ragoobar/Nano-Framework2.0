@@ -1,0 +1,150 @@
+\doxysection{cycleclock.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2base_2internal_2cycleclock_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2base_2internal_2cycleclock_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/base/internal/cycleclock.h@{OriginalStuff/abseil-\/cpp/absl/base/internal/cycleclock.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2base_2internal_2cycleclock_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ File:\ cycleclock.h}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ This\ header\ file\ defines\ a\ \`{}CycleClock`,\ which\ yields\ the\ value\ and\ frequency}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ of\ a\ cycle\ counter\ that\ increments\ at\ a\ rate\ that\ is\ approximately\ constant.}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ NOTE:}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ The\ cycle\ counter\ frequency\ is\ not\ necessarily\ related\ to\ the\ core\ clock}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ frequency\ and\ should\ not\ be\ treated\ as\ such.\ That\ is,\ \`{}CycleClock`\ cycles\ are}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ not\ necessarily\ "{}CPU\ cycles"{}\ and\ code\ should\ not\ rely\ on\ that\ behavior,\ even}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ if\ experimentally\ observed.}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ An\ arbitrary\ offset\ may\ have\ been\ added\ to\ the\ counter\ at\ power\ on.}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ On\ some\ platforms,\ the\ rate\ and\ offset\ of\ the\ counter\ may\ differ}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ slightly\ when\ read\ from\ different\ CPUs\ of\ a\ multiprocessor.\ Usually,}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ we\ try\ to\ ensure\ that\ the\ operating\ system\ adjusts\ values\ periodically}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ so\ that\ values\ agree\ approximately.\ \ \ If\ you\ need\ stronger\ guarantees,}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ consider\ using\ alternate\ interfaces.}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ The\ CPU\ is\ not\ required\ to\ maintain\ the\ ordering\ of\ a\ cycle\ counter\ read}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ with\ respect\ to\ surrounding\ instructions.}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_CYCLECLOCK\_H\_}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_CYCLECLOCK\_H\_}}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/cycleclock\_config.h"{}}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/unscaledcycleclock.h"{}}}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00054\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00055\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1base__internal_a75dc8d74e8ac9f296f3b7cfb5e4241c6}{CycleClockSourceFunc}}\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_a26035668345422b5f30be2124b0b6f6e}{int64\_t}}\ (*)();}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ CycleClock}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00062\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock}{CycleClock}}\ \{}
+\DoxyCodeLine{00063\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00064\ \ \ \textcolor{comment}{//\ CycleClock::Now()}}
+\DoxyCodeLine{00065\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ Returns\ the\ value\ of\ a\ cycle\ counter\ that\ counts\ at\ a\ rate\ that\ is}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ approximately\ constant.}}
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{static}\ int64\_t\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock_a46eac49b43f2c471e92ded944a16fd6c}{Now}}();}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//\ CycleClock::Frequency()}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ Returns\ the\ amount\ by\ which\ \`{}CycleClock::Now()`\ increases\ per\ second.\ Note}}
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ that\ this\ value\ may\ not\ necessarily\ match\ the\ core\ CPU\ clock\ frequency.}}
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock_ad9b79001445fbd98bc0fe31923d7446d}{Frequency}}();}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00077\ \textcolor{preprocessor}{\#if\ ABSL\_USE\_UNSCALED\_CYCLECLOCK}}
+\DoxyCodeLine{00078\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a75dc8d74e8ac9f296f3b7cfb5e4241c6}{CycleClockSourceFunc}}\ LoadCycleClockSource();}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ int32\_t\ kShift\ =\ kCycleClockShift;}
+\DoxyCodeLine{00081\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{double}\ kFrequencyScale\ =\ kCycleClockFrequencyScale;}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a0960184d4a72f445953241f1c5a30bb2}{ABSL\_CONST\_INIT}}\ \textcolor{keyword}{static}\ std::atomic<CycleClockSourceFunc>\ cycle\_clock\_source\_;}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ \ ABSL\_USE\_UNSCALED\_CYCLECLOC}}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock}{CycleClock}}()\ =\ \textcolor{keyword}{delete};\ \ \textcolor{comment}{//\ no\ instances}}
+\DoxyCodeLine{00087\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock}{CycleClock}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock}{CycleClock}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00088\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock}{CycleClock}}\&\ operator=(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock}{CycleClock}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClockSource}{CycleClockSource}};}
+\DoxyCodeLine{00091\ \};}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClockSource}{CycleClockSource}}\ \{}
+\DoxyCodeLine{00094\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//\ CycleClockSource::Register()}}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00097\ \ \ \textcolor{comment}{//\ Register\ a\ function\ that\ provides\ an\ alternate\ source\ for\ the\ unscaled\ CPU}}
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ cycle\ count\ value.\ The\ source\ function\ must\ be\ async\ signal\ safe,\ must\ not}}
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ call\ CycleClock::Now(),\ and\ must\ have\ a\ frequency\ that\ matches\ that\ of\ the}}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ unscaled\ clock\ used\ by\ CycleClock.\ A\ nullptr\ value\ resets\ CycleClock\ to\ use}}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ the\ default\ source.}}
+\DoxyCodeLine{00102\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ Register(\mbox{\hyperlink{namespaceabsl_1_1base__internal_a75dc8d74e8ac9f296f3b7cfb5e4241c6}{CycleClockSourceFunc}}\ source);}
+\DoxyCodeLine{00103\ \};}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{preprocessor}{\#if\ ABSL\_USE\_UNSCALED\_CYCLECLOCK}}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a75dc8d74e8ac9f296f3b7cfb5e4241c6}{CycleClockSourceFunc}}\ CycleClock::LoadCycleClockSource()\ \{}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#if\ !defined(\_\_x86\_64\_\_)}}
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ Optimize\ for\ the\ common\ case\ (no\ callback)\ by\ first\ doing\ a\ relaxed\ load;}}
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ this\ is\ significantly\ faster\ on\ non-\/x86\ platforms.}}
+\DoxyCodeLine{00111\ \ \ \textcolor{keywordflow}{if}\ (cycle\_clock\_source\_.load(std::memory\_order\_relaxed)\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00113\ \ \ \}}
+\DoxyCodeLine{00114\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ !defined(\_\_x86\_64\_\_)}}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ This\ corresponds\ to\ the\ store(std::memory\_order\_release)\ in}}
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//\ CycleClockSource::Register,\ and\ makes\ sure\ that\ any\ updates\ made\ prior\ to}}
+\DoxyCodeLine{00118\ \ \ \textcolor{comment}{//\ registering\ the\ callback\ are\ visible\ to\ this\ thread\ before\ the\ callback}}
+\DoxyCodeLine{00119\ \ \ \textcolor{comment}{//\ is\ invoked.}}
+\DoxyCodeLine{00120\ \ \ \textcolor{keywordflow}{return}\ cycle\_clock\_source\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00121\ \}}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ Accessing\ globals\ in\ inlined\ code\ in\ Window\ DLLs\ is\ problematic.}}
+\DoxyCodeLine{00124\ \textcolor{preprocessor}{\#ifndef\ \_WIN32}}
+\DoxyCodeLine{00125\ \textcolor{keyword}{inline}\ int64\_t\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock_a85c8ef09d43c0646a2399d0245eb905f}{CycleClock::Now}}()\ \{}
+\DoxyCodeLine{00126\ \ \ \textcolor{keyword}{auto}\ fn\ =\ LoadCycleClockSource();}
+\DoxyCodeLine{00127\ \ \ \textcolor{keywordflow}{if}\ (fn\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keywordflow}{return}\ base\_internal::UnscaledCycleClock::Now()\ >>\ kShift;}
+\DoxyCodeLine{00129\ \ \ \}}
+\DoxyCodeLine{00130\ \ \ \textcolor{keywordflow}{return}\ fn()\ >>\ kShift;}
+\DoxyCodeLine{00131\ \}}
+\DoxyCodeLine{00132\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1CycleClock_aff51a076eaf300d859d1433c92b14140}{CycleClock::Frequency}}()\ \{}
+\DoxyCodeLine{00135\ \ \ \textcolor{keywordflow}{return}\ kFrequencyScale\ *\ base\_internal::UnscaledCycleClock::Frequency();}
+\DoxyCodeLine{00136\ \}}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_USE\_UNSCALED\_CYCLECLOCK}}
+\DoxyCodeLine{00139\ }
+\DoxyCodeLine{00140\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00141\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00142\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_CYCLECLOCK\_H\_}}
+
+\end{DoxyCode}

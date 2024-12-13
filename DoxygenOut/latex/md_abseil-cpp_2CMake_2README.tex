@@ -1,0 +1,165 @@
+\chapter{Abseil CMake Build Instructions}
+\hypertarget{md_abseil-cpp_2CMake_2README}{}\label{md_abseil-cpp_2CMake_2README}\index{Abseil CMake Build Instructions@{Abseil CMake Build Instructions}}
+\label{md_abseil-cpp_2CMake_2README_autotoc_md4}%
+\Hypertarget{md_abseil-cpp_2CMake_2README_autotoc_md4}%
+
+
+Abseil comes with a CMake build script (\href{../CMakeLists.txt}{\texttt{ CMake\+Lists.\+txt}}) that can be used on a wide range of platforms ("{}\+C"{} stands for cross-\/platform.). If you don\textquotesingle{}t have CMake installed already, you can download it for free from \href{https://www.cmake.org/}{\texttt{ https\+://www.\+cmake.\+org/}}.
+
+CMake works by generating native makefiles or build projects that can be used in the compiler environment of your choice.
+
+For API/\+ABI compatibility reasons, we strongly recommend building Abseil in a subdirectory of your project or as an embedded dependency.\hypertarget{md_abseil-cpp_2CMake_2README_autotoc_md5}{}\doxysection{\texorpdfstring{Incorporating Abseil Into a CMake Project}{Incorporating Abseil Into a CMake Project}}\label{md_abseil-cpp_2CMake_2README_autotoc_md5}
+The recommendations below are similar to those for using CMake within the googletest framework (\href{https://github.com/google/googletest/blob/master/googletest/README.md\#incorporating-into-an-existing-cmake-project}{\texttt{ https\+://github.\+com/google/googletest/blob/master/googletest/\+README.\+md\#incorporating-\/into-\/an-\/existing-\/cmake-\/project}})\hypertarget{md_abseil-cpp_2CMake_2README_autotoc_md6}{}\doxysubsection{\texorpdfstring{Step-\/by-\/\+Step Instructions}{Step-\/by-\/\+Step Instructions}}\label{md_abseil-cpp_2CMake_2README_autotoc_md6}
+
+\begin{DoxyEnumerate}
+\item If you want to build the Abseil tests, integrate the Abseil dependency \href{https://github.com/google/googletest}{\texttt{ Google Test}} into your CMake project. To disable Abseil tests, you have to pass either {\ttfamily -\/DBUILD\+\_\+\+TESTING=OFF} or {\ttfamily -\/DABSL\+\_\+\+BUILD\+\_\+\+TESTING=OFF} when configuring your project with CMake.
+\item Download Abseil and copy it into a subdirectory in your CMake project or add Abseil as a \href{https://git-scm.com/docs/git-submodule}{\texttt{ git submodule}} in your CMake project.
+\item You can then use the CMake command \href{https://cmake.org/cmake/help/latest/command/add_subdirectory.html}{\texttt{ {\ttfamily add\+\_\+subdirectory()}}} to include Abseil directly in your CMake project.
+\item Add the {\bfseries{absl\+:\+:}} target you wish to use to the \href{https://cmake.org/cmake/help/latest/command/target_link_libraries.html}{\texttt{ {\ttfamily target\+\_\+link\+\_\+libraries()}}} section of your executable or of your library.~\newline
+ Here is a short CMake\+Lists.\+txt example of an application project using Abseil.
+\end{DoxyEnumerate}
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cmake\_minimum\_required(VERSION\ 3.16)}
+\DoxyCodeLine{project(my\_app\_project)}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\ Pick\ the\ C++\ standard\ to\ compile\ with.}
+\DoxyCodeLine{\#\ Abseil\ currently\ supports\ C++14,\ C++17,\ and\ C++20.}
+\DoxyCodeLine{set(CMAKE\_CXX\_STANDARD\ 14)}
+\DoxyCodeLine{set(CMAKE\_CXX\_STANDARD\_REQUIRED\ ON)}
+\DoxyCodeLine{}
+\DoxyCodeLine{add\_subdirectory(abseil-\/cpp)}
+\DoxyCodeLine{}
+\DoxyCodeLine{add\_executable(my\_exe\ source.cpp)}
+\DoxyCodeLine{target\_link\_libraries(my\_exe\ absl::base\ absl::synchronization\ absl::strings)}
+
+\end{DoxyCode}
+
+
+Note that if you are developing a library designed for use by other clients, you should instead leave {\ttfamily CMAKE\+\_\+\+CXX\+\_\+\+STANDARD} unset (or only set if being built as the current top-\/level CMake project) and configure the minimum required C++ standard at the target level. If you require a later minimum C++ standard than Abseil does, it\textquotesingle{}s a good idea to also enforce that {\ttfamily CMAKE\+\_\+\+CXX\+\_\+\+STANDARD} (which will control Abseil library targets) is set to at least that minimum. For example\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cmake\_minimum\_required(VERSION\ 3.16)}
+\DoxyCodeLine{project(my\_lib\_project)}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\ Leave\ C++\ standard\ up\ to\ the\ root\ application,\ so\ set\ it\ only\ if\ this\ is\ the}
+\DoxyCodeLine{\#\ current\ top-\/level\ CMake\ project.}
+\DoxyCodeLine{if(CMAKE\_SOURCE\_DIR\ STREQUAL\ my\_lib\_project\_SOURCE\_DIR)}
+\DoxyCodeLine{\ \ set(CMAKE\_CXX\_STANDARD\ 17)}
+\DoxyCodeLine{\ \ set(CMAKE\_CXX\_STANDARD\_REQUIRED\ ON)}
+\DoxyCodeLine{endif()}
+\DoxyCodeLine{}
+\DoxyCodeLine{add\_subdirectory(abseil-\/cpp)}
+\DoxyCodeLine{}
+\DoxyCodeLine{add\_library(my\_lib\ source.cpp)}
+\DoxyCodeLine{target\_link\_libraries(my\_lib\ absl::base\ absl::synchronization\ absl::strings)}
+\DoxyCodeLine{}
+\DoxyCodeLine{\#\ Enforce\ that\ my\_lib\ requires\ C++17.\ Important\ to\ document\ for\ clients\ that\ they}
+\DoxyCodeLine{\#\ must\ set\ CMAKE\_CXX\_STANDARD\ to\ 17\ or\ higher\ for\ proper\ Abseil\ ABI\ compatibility}
+\DoxyCodeLine{\#\ (since\ otherwise,\ Abseil\ library\ targets\ could\ be\ compiled\ with\ a\ lower\ C++}
+\DoxyCodeLine{\#\ standard\ than\ my\_lib).}
+\DoxyCodeLine{target\_compile\_features(my\_lib\ PUBLIC\ cxx\_std\_17)}
+\DoxyCodeLine{if(CMAKE\_CXX\_STANDARD\ LESS\ 17)}
+\DoxyCodeLine{\ \ message(FATAL\_ERROR}
+\DoxyCodeLine{\ \ \ \ \ \ "{}my\_lib\_project\ requires\ CMAKE\_CXX\_STANDARD\ >=\ 17\ (got:\ \$\{CMAKE\_CXX\_STANDARD\})"{})}
+\DoxyCodeLine{endif()}
+
+\end{DoxyCode}
+
+
+Then the top-\/level application project that uses your library is responsible for setting a consistent {\ttfamily CMAKE\+\_\+\+CXX\+\_\+\+STANDARD} that is sufficiently high.\hypertarget{md_abseil-cpp_2CMake_2README_autotoc_md7}{}\doxysubsection{\texorpdfstring{Running Abseil Tests with CMake}{Running Abseil Tests with CMake}}\label{md_abseil-cpp_2CMake_2README_autotoc_md7}
+Use the {\ttfamily -\/DABSL\+\_\+\+BUILD\+\_\+\+TESTING=ON} flag to run Abseil tests. Note that BUILD\+\_\+\+TESTING must also be on (the default).
+
+You will need to provide Abseil with a Googletest dependency. There are two options for how to do this\+:
+
+
+\begin{DoxyItemize}
+\item Use {\ttfamily -\/DABSL\+\_\+\+USE\+\_\+\+GOOGLETEST\+\_\+\+HEAD}. This will automatically download the latest Googletest source into the build directory at configure time. Googletest will then be compiled directly alongside Abseil\textquotesingle{}s tests.
+\item Manually integrate Googletest with your build. See \href{https://github.com/google/googletest/blob/master/googletest/README.md\#using-cmake}{\texttt{ https\+://github.\+com/google/googletest/blob/master/googletest/\+README.\+md\#using-\/cmake}} for more information on using Googletest in a CMake project.
+\end{DoxyItemize}
+
+For example, to run just the Abseil tests, you could use this script\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cd\ path/to/abseil-\/cpp}
+\DoxyCodeLine{mkdir\ build}
+\DoxyCodeLine{cd\ build}
+\DoxyCodeLine{cmake\ -\/DABSL\_BUILD\_TESTING=ON\ -\/DABSL\_USE\_GOOGLETEST\_HEAD=ON\ ..}
+\DoxyCodeLine{make\ -\/j}
+\DoxyCodeLine{ctest}
+
+\end{DoxyCode}
+
+
+Currently, we only run our tests with CMake in a Linux environment, but we are working on the rest of our supported platforms. See \href{https://github.com/abseil/abseil-cpp/projects/1}{\texttt{ https\+://github.\+com/abseil/abseil-\/cpp/projects/1}} and \href{https://github.com/abseil/abseil-cpp/issues/109}{\texttt{ https\+://github.\+com/abseil/abseil-\/cpp/issues/109}} for more information.\hypertarget{md_abseil-cpp_2CMake_2README_autotoc_md8}{}\doxysubsection{\texorpdfstring{Available Abseil CMake Public Targets}{Available Abseil CMake Public Targets}}\label{md_abseil-cpp_2CMake_2README_autotoc_md8}
+Here\textquotesingle{}s a non-\/exhaustive list of Abseil CMake public targets\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{absl::algorithm}
+\DoxyCodeLine{absl::base}
+\DoxyCodeLine{absl::debugging}
+\DoxyCodeLine{absl::flat\_hash\_map}
+\DoxyCodeLine{absl::flags}
+\DoxyCodeLine{absl::memory}
+\DoxyCodeLine{absl::meta}
+\DoxyCodeLine{absl::numeric}
+\DoxyCodeLine{absl::random\_random}
+\DoxyCodeLine{absl::strings}
+\DoxyCodeLine{absl::synchronization}
+\DoxyCodeLine{absl::time}
+\DoxyCodeLine{absl::utility}
+
+\end{DoxyCode}
+\hypertarget{md_abseil-cpp_2CMake_2README_autotoc_md9}{}\doxysection{\texorpdfstring{Traditional CMake Set-\/\+Up}{Traditional CMake Set-\/\+Up}}\label{md_abseil-cpp_2CMake_2README_autotoc_md9}
+For larger projects, it may make sense to use the traditional CMake set-\/up where you build and install projects separately.
+
+First, you\textquotesingle{}d need to build and install Google Test\+: 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cmake\ -\/S\ /source/googletest\ -\/B\ /build/googletest\ -\/DCMAKE\_BUILD\_TYPE=Release\ -\/DCMAKE\_INSTALL\_PREFIX=/installation/dir\ -\/DBUILD\_GMOCK=ON}
+\DoxyCodeLine{cmake\ -\/-\/build\ /build/googletest\ -\/-\/target\ install}
+
+\end{DoxyCode}
+
+
+Then you need to configure and build Abseil. Make sure you enable {\ttfamily ABSL\+\_\+\+USE\+\_\+\+EXTERNAL\+\_\+\+GOOGLETEST} and {\ttfamily ABSL\+\_\+\+FIND\+\_\+\+GOOGLETEST}. You also need to enable {\ttfamily ABSL\+\_\+\+ENABLE\+\_\+\+INSTALL} so that you can install Abseil itself. 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cmake\ -\/S\ /source/abseil-\/cpp\ -\/B\ /build/abseil-\/cpp\ -\/DCMAKE\_PREFIX\_PATH=/installation/dir\ -\/DCMAKE\_INSTALL\_PREFIX=/installation/dir\ -\/DABSL\_ENABLE\_INSTALL=ON\ -\/DABSL\_USE\_EXTERNAL\_GOOGLETEST=ON\ -\/DABSL\_FIND\_GOOGLETEST=ON}
+\DoxyCodeLine{cmake\ -\/-\/build\ /temporary/build/abseil-\/cpp}
+
+\end{DoxyCode}
+
+
+({\ttfamily CMAKE\+\_\+\+PREFIX\+\_\+\+PATH} is where you already have Google Test installed; {\ttfamily CMAKE\+\_\+\+INSTALL\+\_\+\+PREFIX} is where you want to have Abseil installed; they can be different.)
+
+Run the tests\+: 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{ctest\ -\/-\/test-\/dir\ /temporary/build/abseil-\/cpp}
+
+\end{DoxyCode}
+
+
+And finally install\+: 
+\begin{DoxyCode}{0}
+\DoxyCodeLine{cmake\ -\/-\/build\ /temporary/build/abseil-\/cpp\ -\/-\/target\ install}
+
+\end{DoxyCode}
+\hypertarget{md_abseil-cpp_2CMake_2README_autotoc_md10}{}\doxysection{\texorpdfstring{CMake Option Synopsis}{CMake Option Synopsis}}\label{md_abseil-cpp_2CMake_2README_autotoc_md10}
+\hypertarget{md_abseil-cpp_2CMake_2README_autotoc_md11}{}\doxysubsection{\texorpdfstring{Enable Standard CMake Installation}{Enable Standard CMake Installation}}\label{md_abseil-cpp_2CMake_2README_autotoc_md11}
+{\ttfamily -\/DABSL\+\_\+\+ENABLE\+\_\+\+INSTALL=ON}\hypertarget{md_abseil-cpp_2CMake_2README_autotoc_md12}{}\doxysubsection{\texorpdfstring{Google Test Options}{Google Test Options}}\label{md_abseil-cpp_2CMake_2README_autotoc_md12}
+{\ttfamily -\/DABSL\+\_\+\+BUILD\+\_\+\+TESTING=ON} must be set to enable testing
+
+
+\begin{DoxyItemize}
+\item Have Abseil download and build Google Test for you\+: {\ttfamily -\/DABSL\+\_\+\+USE\+\_\+\+EXTERNAL\+\_\+\+GOOGLETEST=OFF} (default)
+\begin{DoxyItemize}
+\item Download and build latest Google Test\+: {\ttfamily -\/DABSL\+\_\+\+USE\+\_\+\+GOOGLETEST\+\_\+\+HEAD=ON}
+\item Download specific Google Test version (ZIP archive)\+: {\ttfamily -\/DABSL\+\_\+\+GOOGLETEST\+\_\+\+DOWNLOAD\+\_\+\+URL=\href{https://.../version.zip}{\texttt{ https\+://.../version.\+zip}}}
+\item Use Google Test from specific local directory\+: {\ttfamily -\/DABSL\+\_\+\+LOCAL\+\_\+\+GOOGLETEST\+\_\+\+DIR=/path/to/googletest}
+\end{DoxyItemize}
+\item Use Google Test included elsewhere in your project\+: {\ttfamily -\/DABSL\+\_\+\+USE\+\_\+\+EXTERNAL\+\_\+\+GOOGLETEST=ON}
+\item Use standard CMake {\ttfamily find\+\_\+package(\+CTest)} to find installed Google Test\+: {\ttfamily -\/DABSL\+\_\+\+USE\+\_\+\+EXTERNAL\+\_\+\+GOOGLETEST=ON -\/DABSL\+\_\+\+FIND\+\_\+\+GOOGLETEST=ON} 
+\end{DoxyItemize}

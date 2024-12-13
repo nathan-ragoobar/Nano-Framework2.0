@@ -1,0 +1,339 @@
+\doxysection{thread\+\_\+annotations.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2base_2thread__annotations_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2base_2thread__annotations_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/base/thread\_annotations.h@{OriginalStuff/abseil-\/cpp/absl/base/thread\_annotations.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2base_2thread__annotations_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ thread\_annotations.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ header\ file\ contains\ macro\ definitions\ for\ thread\ safety\ annotations}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ that\ allow\ developers\ to\ document\ the\ locking\ policies\ of\ multi-\/threaded}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ code.\ The\ annotations\ can\ also\ help\ program\ analysis\ tools\ to\ identify}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ potential\ thread\ safety\ issues.}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ These\ annotations\ are\ implemented\ using\ compiler\ attributes.\ Using\ the\ macros}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ defined\ here\ instead\ of\ raw\ attributes\ allow\ for\ portability\ and\ future}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ compatibility.}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ When\ referring\ to\ mutexes\ in\ the\ arguments\ of\ the\ attributes,\ you\ should}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ use\ variable\ names\ or\ more\ complex\ expressions\ (e.g.\ my\_object-\/>mutex\_)}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ that\ evaluate\ to\ a\ concrete\ mutex\ object\ whenever\ possible.\ If\ the\ mutex}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ you\ want\ to\ refer\ to\ is\ not\ in\ scope,\ you\ may\ use\ a\ member\ pointer}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ (e.g.\ \&MyClass::mutex\_)\ to\ refer\ to\ a\ mutex\ in\ some\ (unknown)\ object.}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_THREAD\_ANNOTATIONS\_H\_}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_THREAD\_ANNOTATIONS\_H\_}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ ABSL\_GUARDED\_BY()}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ Documents\ if\ a\ shared\ field\ or\ global\ variable\ needs\ to\ be\ protected\ by\ a}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ mutex.\ ABSL\_GUARDED\_BY()\ allows\ the\ user\ to\ specify\ a\ particular\ mutex\ that}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ should\ be\ held\ when\ accessing\ the\ annotated\ variable.}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ Although\ this\ annotation\ (and\ ABSL\_PT\_GUARDED\_BY,\ below)\ cannot\ be\ applied\ to}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ local\ variables,\ a\ local\ variable\ and\ its\ associated\ mutex\ can\ often\ be}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ combined\ into\ a\ small\ class\ or\ struct,\ thereby\ allowing\ the\ annotation.}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ \ \ class\ Foo\ \{}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ \ \ \ \ Mutex\ mu\_;}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ \ \ \ \ int\ p1\_\ ABSL\_GUARDED\_BY(mu\_);}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ \ \ \ \ ...}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ \ \ \};}}
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(guarded\_by)}}
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#define\ ABSL\_GUARDED\_BY(x)\ \_\_attribute\_\_((guarded\_by(x)))}}
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#define\ ABSL\_GUARDED\_BY(x)}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ ABSL\_PT\_GUARDED\_BY()}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ Documents\ if\ the\ memory\ location\ pointed\ to\ by\ a\ pointer\ should\ be\ guarded}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ by\ a\ mutex\ when\ dereferencing\ the\ pointer.}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ \ \ class\ Foo\ \{}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \ \ \ \ Mutex\ mu\_;}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ \ \ \ int\ *p1\_\ ABSL\_PT\_GUARDED\_BY(mu\_);}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ \ \ \ \ ...}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ \ \};}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ Note\ that\ a\ pointer\ variable\ to\ a\ shared\ memory\ location\ could\ itself\ be\ a}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ shared\ variable.}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ \ \ //\ \`{}q\_`,\ guarded\ by\ \`{}mu1\_`,\ points\ to\ a\ shared\ memory\ location\ that\ is}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ \ \ //\ guarded\ by\ \`{}mu2\_`:}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ \ \ int\ *q\_\ ABSL\_GUARDED\_BY(mu1\_)\ ABSL\_PT\_GUARDED\_BY(mu2\_);}}
+\DoxyCodeLine{00083\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(pt\_guarded\_by)}}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\#define\ ABSL\_PT\_GUARDED\_BY(x)\ \_\_attribute\_\_((pt\_guarded\_by(x)))}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00086\ \textcolor{preprocessor}{\#define\ ABSL\_PT\_GUARDED\_BY(x)}}
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ ABSL\_ACQUIRED\_AFTER()\ /\ ABSL\_ACQUIRED\_BEFORE()}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ Documents\ the\ acquisition\ order\ between\ locks\ that\ can\ be\ held}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ simultaneously\ by\ a\ thread.\ For\ any\ two\ locks\ that\ need\ to\ be\ annotated}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ to\ establish\ an\ acquisition\ order,\ only\ one\ of\ them\ needs\ the\ annotation.}}
+\DoxyCodeLine{00094\ \textcolor{comment}{//\ (i.e.\ You\ don't\ have\ to\ annotate\ both\ locks\ with\ both\ ABSL\_ACQUIRED\_AFTER}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ and\ ABSL\_ACQUIRED\_BEFORE.)}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//}}
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ As\ with\ ABSL\_GUARDED\_BY,\ this\ is\ only\ applicable\ to\ mutexes\ that\ are\ shared}}
+\DoxyCodeLine{00098\ \textcolor{comment}{//\ fields\ or\ global\ variables.}}
+\DoxyCodeLine{00099\ \textcolor{comment}{//}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ \ \ Mutex\ m1\_;}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//\ \ \ Mutex\ m2\_\ ABSL\_ACQUIRED\_AFTER(m1\_);}}
+\DoxyCodeLine{00104\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(acquired\_after)}}
+\DoxyCodeLine{00105\ \textcolor{preprocessor}{\#define\ ABSL\_ACQUIRED\_AFTER(...)\ \_\_attribute\_\_((acquired\_after(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00106\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00107\ \textcolor{preprocessor}{\#define\ ABSL\_ACQUIRED\_AFTER(...)}}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(acquired\_before)}}
+\DoxyCodeLine{00111\ \textcolor{preprocessor}{\#define\ ABSL\_ACQUIRED\_BEFORE(...)\ \_\_attribute\_\_((acquired\_before(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00112\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00113\ \textcolor{preprocessor}{\#define\ ABSL\_ACQUIRED\_BEFORE(...)}}
+\DoxyCodeLine{00114\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ ABSL\_EXCLUSIVE\_LOCKS\_REQUIRED()\ /\ ABSL\_SHARED\_LOCKS\_REQUIRED()}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ Documents\ a\ function\ that\ expects\ a\ mutex\ to\ be\ held\ prior\ to\ entry.}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ The\ mutex\ is\ expected\ to\ be\ held\ both\ on\ entry\ to,\ and\ exit\ from,\ the}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ function.}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ An\ exclusive\ lock\ allows\ read-\/write\ access\ to\ the\ guarded\ data\ member(s),\ and}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ only\ one\ thread\ can\ acquire\ a\ lock\ exclusively\ at\ any\ one\ time.\ A\ shared\ lock}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ allows\ read-\/only\ access,\ and\ any\ number\ of\ threads\ can\ acquire\ a\ shared\ lock}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ concurrently.}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ Generally,\ non-\/const\ methods\ should\ be\ annotated\ with}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ ABSL\_EXCLUSIVE\_LOCKS\_REQUIRED,\ while\ const\ methods\ should\ be\ annotated\ with}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//\ ABSL\_SHARED\_LOCKS\_REQUIRED.}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00132\ \textcolor{comment}{//}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ \ \ Mutex\ mu1,\ mu2;}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ \ \ int\ a\ ABSL\_GUARDED\_BY(mu1);}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ \ \ int\ b\ ABSL\_GUARDED\_BY(mu2);}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ \ \ void\ foo()\ ABSL\_EXCLUSIVE\_LOCKS\_REQUIRED(mu1,\ mu2)\ \{\ ...\ \}}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ \ \ void\ bar()\ const\ ABSL\_SHARED\_LOCKS\_REQUIRED(mu1,\ mu2)\ \{\ ...\ \}}}
+\DoxyCodeLine{00139\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(exclusive\_locks\_required)}}
+\DoxyCodeLine{00140\ \textcolor{preprocessor}{\#define\ ABSL\_EXCLUSIVE\_LOCKS\_REQUIRED(...)\ \(\backslash\)}}
+\DoxyCodeLine{00141\ \textcolor{preprocessor}{\ \ \_\_attribute\_\_((exclusive\_locks\_required(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00142\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00143\ \textcolor{preprocessor}{\#define\ ABSL\_EXCLUSIVE\_LOCKS\_REQUIRED(...)}}
+\DoxyCodeLine{00144\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00145\ }
+\DoxyCodeLine{00146\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(shared\_locks\_required)}}
+\DoxyCodeLine{00147\ \textcolor{preprocessor}{\#define\ ABSL\_SHARED\_LOCKS\_REQUIRED(...)\ \(\backslash\)}}
+\DoxyCodeLine{00148\ \textcolor{preprocessor}{\ \ \_\_attribute\_\_((shared\_locks\_required(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00149\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00150\ \textcolor{preprocessor}{\#define\ ABSL\_SHARED\_LOCKS\_REQUIRED(...)}}
+\DoxyCodeLine{00151\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ ABSL\_LOCKS\_EXCLUDED()}}
+\DoxyCodeLine{00154\ \textcolor{comment}{//}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ Documents\ the\ locks\ that\ cannot\ be\ held\ by\ callers\ of\ this\ function,\ as\ they}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ might\ be\ acquired\ by\ this\ function\ (Abseil's\ \`{}Mutex`\ locks\ are}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//\ non-\/reentrant).}}
+\DoxyCodeLine{00158\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(locks\_excluded)}}
+\DoxyCodeLine{00159\ \textcolor{preprocessor}{\#define\ ABSL\_LOCKS\_EXCLUDED(...)\ \_\_attribute\_\_((locks\_excluded(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00160\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00161\ \textcolor{preprocessor}{\#define\ ABSL\_LOCKS\_EXCLUDED(...)}}
+\DoxyCodeLine{00162\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \textcolor{comment}{//\ ABSL\_LOCK\_RETURNED()}}
+\DoxyCodeLine{00165\ \textcolor{comment}{//}}
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ Documents\ a\ function\ that\ returns\ a\ mutex\ without\ acquiring\ it.\ \ For\ example,}}
+\DoxyCodeLine{00167\ \textcolor{comment}{//\ a\ public\ getter\ method\ that\ returns\ a\ pointer\ to\ a\ private\ mutex\ should}}
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ be\ annotated\ with\ ABSL\_LOCK\_RETURNED.}}
+\DoxyCodeLine{00169\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(lock\_returned)}}
+\DoxyCodeLine{00170\ \textcolor{preprocessor}{\#define\ ABSL\_LOCK\_RETURNED(x)\ \_\_attribute\_\_((lock\_returned(x)))}}
+\DoxyCodeLine{00171\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00172\ \textcolor{preprocessor}{\#define\ ABSL\_LOCK\_RETURNED(x)}}
+\DoxyCodeLine{00173\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \textcolor{comment}{//\ ABSL\_LOCKABLE}}
+\DoxyCodeLine{00176\ \textcolor{comment}{//}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//\ Documents\ if\ a\ class/type\ is\ a\ lockable\ type\ (such\ as\ the\ \`{}Mutex`\ class).}}
+\DoxyCodeLine{00178\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(lockable)}}
+\DoxyCodeLine{00179\ \textcolor{preprocessor}{\#define\ ABSL\_LOCKABLE\ \_\_attribute\_\_((lockable))}}
+\DoxyCodeLine{00180\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00181\ \textcolor{preprocessor}{\#define\ ABSL\_LOCKABLE}}
+\DoxyCodeLine{00182\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \textcolor{comment}{//\ ABSL\_SCOPED\_LOCKABLE}}
+\DoxyCodeLine{00185\ \textcolor{comment}{//}}
+\DoxyCodeLine{00186\ \textcolor{comment}{//\ Documents\ if\ a\ class\ does\ RAII\ locking\ (such\ as\ the\ \`{}MutexLock`\ class).}}
+\DoxyCodeLine{00187\ \textcolor{comment}{//\ The\ constructor\ should\ use\ \`{}LOCK\_FUNCTION()`\ to\ specify\ the\ mutex\ that\ is}}
+\DoxyCodeLine{00188\ \textcolor{comment}{//\ acquired,\ and\ the\ destructor\ should\ use\ \`{}UNLOCK\_FUNCTION()`\ with\ no}}
+\DoxyCodeLine{00189\ \textcolor{comment}{//\ arguments;\ the\ analysis\ will\ assume\ that\ the\ destructor\ unlocks\ whatever\ the}}
+\DoxyCodeLine{00190\ \textcolor{comment}{//\ constructor\ locked.}}
+\DoxyCodeLine{00191\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(scoped\_lockable)}}
+\DoxyCodeLine{00192\ \textcolor{preprocessor}{\#define\ ABSL\_SCOPED\_LOCKABLE\ \_\_attribute\_\_((scoped\_lockable))}}
+\DoxyCodeLine{00193\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00194\ \textcolor{preprocessor}{\#define\ ABSL\_SCOPED\_LOCKABLE}}
+\DoxyCodeLine{00195\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \textcolor{comment}{//\ ABSL\_EXCLUSIVE\_LOCK\_FUNCTION()}}
+\DoxyCodeLine{00198\ \textcolor{comment}{//}}
+\DoxyCodeLine{00199\ \textcolor{comment}{//\ Documents\ functions\ that\ acquire\ a\ lock\ in\ the\ body\ of\ a\ function,\ and\ do}}
+\DoxyCodeLine{00200\ \textcolor{comment}{//\ not\ release\ it.}}
+\DoxyCodeLine{00201\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(exclusive\_lock\_function)}}
+\DoxyCodeLine{00202\ \textcolor{preprocessor}{\#define\ ABSL\_EXCLUSIVE\_LOCK\_FUNCTION(...)\ \(\backslash\)}}
+\DoxyCodeLine{00203\ \textcolor{preprocessor}{\ \ \_\_attribute\_\_((exclusive\_lock\_function(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00204\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00205\ \textcolor{preprocessor}{\#define\ ABSL\_EXCLUSIVE\_LOCK\_FUNCTION(...)}}
+\DoxyCodeLine{00206\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \textcolor{comment}{//\ ABSL\_SHARED\_LOCK\_FUNCTION()}}
+\DoxyCodeLine{00209\ \textcolor{comment}{//}}
+\DoxyCodeLine{00210\ \textcolor{comment}{//\ Documents\ functions\ that\ acquire\ a\ shared\ (reader)\ lock\ in\ the\ body\ of\ a}}
+\DoxyCodeLine{00211\ \textcolor{comment}{//\ function,\ and\ do\ not\ release\ it.}}
+\DoxyCodeLine{00212\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(shared\_lock\_function)}}
+\DoxyCodeLine{00213\ \textcolor{preprocessor}{\#define\ ABSL\_SHARED\_LOCK\_FUNCTION(...)\ \(\backslash\)}}
+\DoxyCodeLine{00214\ \textcolor{preprocessor}{\ \ \_\_attribute\_\_((shared\_lock\_function(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00215\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00216\ \textcolor{preprocessor}{\#define\ ABSL\_SHARED\_LOCK\_FUNCTION(...)}}
+\DoxyCodeLine{00217\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \textcolor{comment}{//\ ABSL\_UNLOCK\_FUNCTION()}}
+\DoxyCodeLine{00220\ \textcolor{comment}{//}}
+\DoxyCodeLine{00221\ \textcolor{comment}{//\ Documents\ functions\ that\ expect\ a\ lock\ to\ be\ held\ on\ entry\ to\ the\ function,}}
+\DoxyCodeLine{00222\ \textcolor{comment}{//\ and\ release\ it\ in\ the\ body\ of\ the\ function.}}
+\DoxyCodeLine{00223\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(unlock\_function)}}
+\DoxyCodeLine{00224\ \textcolor{preprocessor}{\#define\ ABSL\_UNLOCK\_FUNCTION(...)\ \_\_attribute\_\_((unlock\_function(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00225\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00226\ \textcolor{preprocessor}{\#define\ ABSL\_UNLOCK\_FUNCTION(...)}}
+\DoxyCodeLine{00227\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \textcolor{comment}{//\ ABSL\_EXCLUSIVE\_TRYLOCK\_FUNCTION()\ /\ ABSL\_SHARED\_TRYLOCK\_FUNCTION()}}
+\DoxyCodeLine{00230\ \textcolor{comment}{//}}
+\DoxyCodeLine{00231\ \textcolor{comment}{//\ Documents\ functions\ that\ try\ to\ acquire\ a\ lock,\ and\ return\ success\ or\ failure}}
+\DoxyCodeLine{00232\ \textcolor{comment}{//\ (or\ a\ non-\/boolean\ value\ that\ can\ be\ interpreted\ as\ a\ boolean).}}
+\DoxyCodeLine{00233\ \textcolor{comment}{//\ The\ first\ argument\ should\ be\ \`{}true`\ for\ functions\ that\ return\ \`{}true`\ on}}
+\DoxyCodeLine{00234\ \textcolor{comment}{//\ success,\ or\ \`{}false`\ for\ functions\ that\ return\ \`{}false`\ on\ success.\ The\ second}}
+\DoxyCodeLine{00235\ \textcolor{comment}{//\ argument\ specifies\ the\ mutex\ that\ is\ locked\ on\ success.\ If\ unspecified,\ this}}
+\DoxyCodeLine{00236\ \textcolor{comment}{//\ mutex\ is\ assumed\ to\ be\ \`{}this`.}}
+\DoxyCodeLine{00237\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(exclusive\_trylock\_function)}}
+\DoxyCodeLine{00238\ \textcolor{preprocessor}{\#define\ ABSL\_EXCLUSIVE\_TRYLOCK\_FUNCTION(...)\ \(\backslash\)}}
+\DoxyCodeLine{00239\ \textcolor{preprocessor}{\ \ \_\_attribute\_\_((exclusive\_trylock\_function(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00240\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00241\ \textcolor{preprocessor}{\#define\ ABSL\_EXCLUSIVE\_TRYLOCK\_FUNCTION(...)}}
+\DoxyCodeLine{00242\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(shared\_trylock\_function)}}
+\DoxyCodeLine{00245\ \textcolor{preprocessor}{\#define\ ABSL\_SHARED\_TRYLOCK\_FUNCTION(...)\ \(\backslash\)}}
+\DoxyCodeLine{00246\ \textcolor{preprocessor}{\ \ \_\_attribute\_\_((shared\_trylock\_function(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00247\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00248\ \textcolor{preprocessor}{\#define\ ABSL\_SHARED\_TRYLOCK\_FUNCTION(...)}}
+\DoxyCodeLine{00249\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00251\ \textcolor{comment}{//\ ABSL\_ASSERT\_EXCLUSIVE\_LOCK()\ /\ ABSL\_ASSERT\_SHARED\_LOCK()}}
+\DoxyCodeLine{00252\ \textcolor{comment}{//}}
+\DoxyCodeLine{00253\ \textcolor{comment}{//\ Documents\ functions\ that\ dynamically\ check\ to\ see\ if\ a\ lock\ is\ held,\ and\ fail}}
+\DoxyCodeLine{00254\ \textcolor{comment}{//\ if\ it\ is\ not\ held.}}
+\DoxyCodeLine{00255\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(assert\_exclusive\_lock)}}
+\DoxyCodeLine{00256\ \textcolor{preprocessor}{\#define\ ABSL\_ASSERT\_EXCLUSIVE\_LOCK(...)\ \(\backslash\)}}
+\DoxyCodeLine{00257\ \textcolor{preprocessor}{\ \ \_\_attribute\_\_((assert\_exclusive\_lock(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00258\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00259\ \textcolor{preprocessor}{\#define\ ABSL\_ASSERT\_EXCLUSIVE\_LOCK(...)}}
+\DoxyCodeLine{00260\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(assert\_shared\_lock)}}
+\DoxyCodeLine{00263\ \textcolor{preprocessor}{\#define\ ABSL\_ASSERT\_SHARED\_LOCK(...)\ \(\backslash\)}}
+\DoxyCodeLine{00264\ \textcolor{preprocessor}{\ \ \_\_attribute\_\_((assert\_shared\_lock(\_\_VA\_ARGS\_\_)))}}
+\DoxyCodeLine{00265\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00266\ \textcolor{preprocessor}{\#define\ ABSL\_ASSERT\_SHARED\_LOCK(...)}}
+\DoxyCodeLine{00267\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00269\ \textcolor{comment}{//\ ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}}
+\DoxyCodeLine{00270\ \textcolor{comment}{//}}
+\DoxyCodeLine{00271\ \textcolor{comment}{//\ Turns\ off\ thread\ safety\ checking\ within\ the\ body\ of\ a\ particular\ function.}}
+\DoxyCodeLine{00272\ \textcolor{comment}{//\ This\ annotation\ is\ used\ to\ mark\ functions\ that\ are\ known\ to\ be\ correct,\ but}}
+\DoxyCodeLine{00273\ \textcolor{comment}{//\ the\ locking\ behavior\ is\ more\ complicated\ than\ the\ analyzer\ can\ handle.}}
+\DoxyCodeLine{00274\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_ATTRIBUTE(no\_thread\_safety\_analysis)}}
+\DoxyCodeLine{00275\ \textcolor{preprocessor}{\#define\ ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS\ \(\backslash\)}}
+\DoxyCodeLine{00276\ \textcolor{preprocessor}{\ \ \_\_attribute\_\_((no\_thread\_safety\_analysis))}}
+\DoxyCodeLine{00277\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00278\ \textcolor{preprocessor}{\#define\ ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}}
+\DoxyCodeLine{00279\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00282\ \textcolor{comment}{//\ Tool-\/Supplied\ Annotations}}
+\DoxyCodeLine{00283\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00284\ }
+\DoxyCodeLine{00285\ \textcolor{comment}{//\ ABSL\_TS\_UNCHECKED\ should\ be\ placed\ around\ lock\ expressions\ that\ are\ not\ valid}}
+\DoxyCodeLine{00286\ \textcolor{comment}{//\ C++\ syntax,\ but\ which\ are\ present\ for\ documentation\ purposes.\ \ These}}
+\DoxyCodeLine{00287\ \textcolor{comment}{//\ annotations\ will\ be\ ignored\ by\ the\ analysis.}}
+\DoxyCodeLine{00288\ \textcolor{preprocessor}{\#define\ ABSL\_TS\_UNCHECKED(x)\ "{}"{}}}
+\DoxyCodeLine{00289\ }
+\DoxyCodeLine{00290\ \textcolor{comment}{//\ ABSL\_TS\_FIXME\ is\ used\ to\ mark\ lock\ expressions\ that\ are\ not\ valid\ C++\ syntax.}}
+\DoxyCodeLine{00291\ \textcolor{comment}{//\ It\ is\ used\ by\ automated\ tools\ to\ mark\ and\ disable\ invalid\ expressions.}}
+\DoxyCodeLine{00292\ \textcolor{comment}{//\ The\ annotation\ should\ either\ be\ fixed,\ or\ changed\ to\ ABSL\_TS\_UNCHECKED.}}
+\DoxyCodeLine{00293\ \textcolor{preprocessor}{\#define\ ABSL\_TS\_FIXME(x)\ "{}"{}}}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \textcolor{comment}{//\ Like\ ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS,\ this\ turns\ off\ checking\ within\ the\ body}}
+\DoxyCodeLine{00296\ \textcolor{comment}{//\ of\ a\ particular\ function.\ \ However,\ this\ attribute\ is\ used\ to\ mark\ functions}}
+\DoxyCodeLine{00297\ \textcolor{comment}{//\ that\ are\ incorrect\ and\ need\ to\ be\ fixed.\ \ It\ is\ used\ by\ automated\ tools\ to}}
+\DoxyCodeLine{00298\ \textcolor{comment}{//\ avoid\ breaking\ the\ build\ when\ the\ analysis\ is\ updated.}}
+\DoxyCodeLine{00299\ \textcolor{comment}{//\ Code\ owners\ are\ expected\ to\ eventually\ fix\ the\ routine.}}
+\DoxyCodeLine{00300\ \textcolor{preprocessor}{\#define\ ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS\_FIXME\ ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00302\ \textcolor{comment}{//\ Similar\ to\ ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS\_FIXME,\ this\ macro\ marks\ a}}
+\DoxyCodeLine{00303\ \textcolor{comment}{//\ ABSL\_GUARDED\_BY\ annotation\ that\ needs\ to\ be\ fixed,\ because\ it\ is\ producing}}
+\DoxyCodeLine{00304\ \textcolor{comment}{//\ thread\ safety\ warning.\ It\ disables\ the\ ABSL\_GUARDED\_BY.}}
+\DoxyCodeLine{00305\ \textcolor{preprocessor}{\#define\ ABSL\_GUARDED\_BY\_FIXME(x)}}
+\DoxyCodeLine{00306\ }
+\DoxyCodeLine{00307\ \textcolor{comment}{//\ Disables\ warnings\ for\ a\ single\ read\ operation.\ \ This\ can\ be\ used\ to\ avoid}}
+\DoxyCodeLine{00308\ \textcolor{comment}{//\ warnings\ when\ it\ is\ known\ that\ the\ read\ is\ not\ actually\ involved\ in\ a\ race,}}
+\DoxyCodeLine{00309\ \textcolor{comment}{//\ but\ the\ compiler\ cannot\ confirm\ that.}}
+\DoxyCodeLine{00310\ \textcolor{preprocessor}{\#define\ ABSL\_TS\_UNCHECKED\_READ(x)\ absl::base\_internal::ts\_unchecked\_read(x)}}
+\DoxyCodeLine{00311\ }
+\DoxyCodeLine{00312\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00313\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00314\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00315\ }
+\DoxyCodeLine{00316\ \textcolor{comment}{//\ Takes\ a\ reference\ to\ a\ guarded\ data\ member,\ and\ returns\ an\ unguarded}}
+\DoxyCodeLine{00317\ \textcolor{comment}{//\ reference.}}
+\DoxyCodeLine{00318\ \textcolor{comment}{//\ Do\ not\ use\ this\ function\ directly,\ use\ ABSL\_TS\_UNCHECKED\_READ\ instead.}}
+\DoxyCodeLine{00319\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00320\ \textcolor{keyword}{inline}\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a927e51c3252b55239a2bb314fd86d82a}{ts\_unchecked\_read}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a21f691a067fb20eeb0a2430051753740}{ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}}\ \{}
+\DoxyCodeLine{00321\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{00322\ \}}
+\DoxyCodeLine{00323\ }
+\DoxyCodeLine{00324\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00325\ \textcolor{keyword}{inline}\ T\&\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a927e51c3252b55239a2bb314fd86d82a}{ts\_unchecked\_read}}(T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a21f691a067fb20eeb0a2430051753740}{ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}}\ \{}
+\DoxyCodeLine{00326\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{00327\ \}}
+\DoxyCodeLine{00328\ }
+\DoxyCodeLine{00329\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00330\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00331\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00332\ }
+\DoxyCodeLine{00333\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_THREAD\_ANNOTATIONS\_H\_}}
+
+\end{DoxyCode}

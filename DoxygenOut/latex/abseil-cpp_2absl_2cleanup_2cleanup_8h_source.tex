@@ -1,0 +1,146 @@
+\doxysection{cleanup.\+h}
+\hypertarget{abseil-cpp_2absl_2cleanup_2cleanup_8h_source}{}\label{abseil-cpp_2absl_2cleanup_2cleanup_8h_source}\index{abseil-\/cpp/absl/cleanup/cleanup.h@{abseil-\/cpp/absl/cleanup/cleanup.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2cleanup_2cleanup_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2021\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ cleanup.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ \`{}absl::Cleanup`\ implements\ the\ scope\ guard\ idiom,\ invoking\ the\ contained}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ callback's\ \`{}operator()()\ \&\&`\ on\ scope\ exit.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ \`{}\`{}\`{}}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ \ \ absl::Status\ CopyGoodData(const\ char*\ source\_path,\ const\ char*\ sink\_path)\ \{}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ \ \ \ \ FILE*\ source\_file\ =\ fopen(source\_path,\ "{}r"{});}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ \ \ \ \ if\ (source\_file\ ==\ nullptr)\ \{}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ \ \ \ \ \ \ return\ absl::NotFoundError("{}No\ source\ file"{});\ \ //\ No\ cleanups\ execute}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ \ \ \ \ //\ C++17\ style\ cleanup\ using\ class\ template\ argument\ deduction}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ \ \ \ \ absl::Cleanup\ source\_closer\ =\ [source\_file]\ \{\ fclose(source\_file);\ \};}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ \ \ \ \ FILE*\ sink\_file\ =\ fopen(sink\_path,\ "{}w"{});}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ \ \ \ \ if\ (sink\_file\ ==\ nullptr)\ \{}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ \ \ \ \ \ \ return\ absl::NotFoundError("{}No\ sink\ file"{});\ \ //\ First\ cleanup\ executes}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ \ \ \ \ //\ C++11\ style\ cleanup\ using\ the\ factory\ function}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ \ \ \ \ auto\ sink\_closer\ =\ absl::MakeCleanup([sink\_file]\ \{\ fclose(sink\_file);\ \});}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ \ \ \ \ Data\ data;}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ \ \ while\ (ReadData(source\_file,\ \&data))\ \{}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \ \ \ \ \ \ if\ (!data.IsGood())\ \{}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ absl::Status\ result\ =\ absl::FailedPreconditionError("{}Read\ bad\ data"{});}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ return\ result;\ \ //\ Both\ cleanups\ execute}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ \ \ \ \ \ \ \}}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \ \ \ \ \ \ SaveData(sink\_file,\ \&data);}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ \ \ \ \ return\ absl::OkStatus();\ \ //\ Both\ cleanups\ execute}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ \`{}\`{}\`{}}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ Methods:}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ \`{}std::move(cleanup).Cancel()`\ will\ prevent\ the\ callback\ from\ executing.}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ \`{}std::move(cleanup).Invoke()`\ will\ execute\ the\ callback\ early,\ before}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ destruction,\ and\ prevent\ the\ callback\ from\ executing\ in\ the\ destructor.}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ Usage:}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ \`{}absl::Cleanup`\ is\ not\ an\ interface\ type.\ It\ is\ only\ intended\ to\ be\ used}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ within\ the\ body\ of\ a\ function.\ It\ is\ not\ a\ value\ type\ and\ instead\ models\ a}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ control\ flow\ construct.\ Check\ out\ \`{}defer`\ in\ Golang\ for\ something\ similar.}}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CLEANUP\_CLEANUP\_H\_}}
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\#define\ ABSL\_CLEANUP\_CLEANUP\_H\_}}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00074\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#include\ "{}absl/cleanup/internal/cleanup.h"{}}}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00078\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Arg,\ \textcolor{keyword}{typename}\ Callback\ =\ \textcolor{keywordtype}{void}()>}
+\DoxyCodeLine{00081\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ Cleanup\ final\ \{}
+\DoxyCodeLine{00082\ \ \ \textcolor{keyword}{static\_assert}(cleanup\_internal::WasDeduced<Arg>(),}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Explicit\ template\ parameters\ are\ not\ supported."{}});}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \ \ \textcolor{keyword}{static\_assert}(cleanup\_internal::ReturnsVoid<Callback>(),}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Callbacks\ that\ return\ values\ are\ not\ supported."{}});}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00089\ \ \ \mbox{\hyperlink{classabsl_1_1Cleanup_a014182e5befca078476f726b6b814fe9}{Cleanup}}(Callback\ callback)\ :\ storage\_(\mbox{\hyperlink{namespacestd}{std}}::move(callback))\ \{\}\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \ \ \mbox{\hyperlink{classabsl_1_1Cleanup_a3b5f0f13e5d80e6a1fa7fabd9ad05b20}{Cleanup}}(\mbox{\hyperlink{classabsl_1_1Cleanup}{Cleanup}}\&\&\ other)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1Cleanup_a0749b0dd9cdbf72f654afe202503c1b0}{Cancel}}()\ \&\&\ \{}
+\DoxyCodeLine{00094\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(storage\_.IsCallbackEngaged());}
+\DoxyCodeLine{00095\ \ \ \ \ storage\_.DestroyCallback();}
+\DoxyCodeLine{00096\ \ \ \}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1Cleanup_a05a83255aefa7049a1db90f744a2fb96}{Invoke}}()\ \&\&\ \{}
+\DoxyCodeLine{00099\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(storage\_.IsCallbackEngaged());}
+\DoxyCodeLine{00100\ \ \ \ \ storage\_.InvokeCallback();}
+\DoxyCodeLine{00101\ \ \ \ \ storage\_.DestroyCallback();}
+\DoxyCodeLine{00102\ \ \ \}}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \ \ \mbox{\hyperlink{classabsl_1_1Cleanup_af28c3577567b507f15e052a9da110afe}{\string~Cleanup}}()\ \{}
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{keywordflow}{if}\ (storage\_.IsCallbackEngaged())\ \{}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ storage\_.InvokeCallback();}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ storage\_.DestroyCallback();}
+\DoxyCodeLine{00108\ \ \ \ \ \}}
+\DoxyCodeLine{00109\ \ \ \}}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00112\ \ \ \mbox{\hyperlink{classabsl_1_1cleanup__internal_1_1Storage}{cleanup\_internal::Storage<Callback>}}\ storage\_;}
+\DoxyCodeLine{00113\ \};}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ \`{}absl::Cleanup\ c\ =\ /*\ callback\ */;`}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ C++17\ type\ deduction\ API\ for\ creating\ an\ instance\ of\ \`{}absl::Cleanup`}}
+\DoxyCodeLine{00118\ \textcolor{preprocessor}{\#if\ defined(ABSL\_HAVE\_CLASS\_TEMPLATE\_ARGUMENT\_DEDUCTION)}}
+\DoxyCodeLine{00119\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Callback>}
+\DoxyCodeLine{00120\ Cleanup(Callback\ callback)\ -\/>\ Cleanup<cleanup\_internal::Tag,\ Callback>;}
+\DoxyCodeLine{00121\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ defined(ABSL\_HAVE\_CLASS\_TEMPLATE\_ARGUMENT\_DEDUCTION)}}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ \`{}auto\ c\ =\ absl::MakeCleanup(/*\ callback\ */);`}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ C++11\ type\ deduction\ API\ for\ creating\ an\ instance\ of\ \`{}absl::Cleanup`}}
+\DoxyCodeLine{00126\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args,\ \textcolor{keyword}{typename}\ Callback>}
+\DoxyCodeLine{00127\ \mbox{\hyperlink{classabsl_1_1Cleanup}{absl::Cleanup<cleanup\_internal::Tag,\ Callback>}}\ \mbox{\hyperlink{namespaceabsl_a45f83adf9243f1de8d456300aa5c8f76}{MakeCleanup}}(Callback\ callback)\ \{}
+\DoxyCodeLine{00128\ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{namespaceabsl_1_1cleanup__internal_ab169bee7d576a142f76c2b9bc3114ad3}{cleanup\_internal::WasDeduced}}<\mbox{\hyperlink{structabsl_1_1cleanup__internal_1_1Tag}{cleanup\_internal::Tag}},\ Args...>(),}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Explicit\ template\ parameters\ are\ not\ supported."{}});}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{namespaceabsl_1_1cleanup__internal_a8f6193f460edd139982718d817e8dac4}{cleanup\_internal::ReturnsVoid<Callback>}}(),}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Callbacks\ that\ return\ values\ are\ not\ supported."{}});}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \ \ \textcolor{keywordflow}{return}\ \{std::move(callback)\};}
+\DoxyCodeLine{00135\ \}}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00137\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00138\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00139\ }
+\DoxyCodeLine{00140\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CLEANUP\_CLEANUP\_H\_}}
+
+\end{DoxyCode}

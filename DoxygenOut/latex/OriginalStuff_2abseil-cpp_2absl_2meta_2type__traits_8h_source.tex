@@ -1,0 +1,664 @@
+\doxysection{type\+\_\+traits.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2meta_2type__traits_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2meta_2type__traits_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/meta/type\_traits.h@{OriginalStuff/abseil-\/cpp/absl/meta/type\_traits.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2meta_2type__traits_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ type\_traits.h}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ This\ file\ contains\ C++11-\/compatible\ versions\ of\ standard\ <type\_traits>\ API}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ functions\ for\ determining\ the\ characteristics\ of\ types.\ Such\ traits\ can}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ support\ type\ inference,\ classification,\ and\ transformation,\ as\ well\ as}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ make\ it\ easier\ to\ write\ templates\ based\ on\ generic\ type\ behavior.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ See\ https://en.cppreference.com/w/cpp/header/type\_traits}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ WARNING:\ use\ of\ many\ of\ the\ constructs\ in\ this\ header\ will\ count\ as\ "{}complex}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ template\ metaprogramming"{},\ so\ before\ proceeding,\ please\ carefully\ consider}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ https://google.github.io/styleguide/cppguide.html\#Template\_metaprogramming}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ WARNING:\ using\ template\ metaprogramming\ to\ detect\ or\ depend\ on\ API}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ features\ is\ brittle\ and\ not\ guaranteed.\ Neither\ the\ standard\ library\ nor}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ Abseil\ provides\ any\ guarantee\ that\ APIs\ are\ stable\ in\ the\ face\ of\ template}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ metaprogramming.\ Use\ with\ caution.}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#ifndef\ ABSL\_META\_TYPE\_TRAITS\_H\_}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#define\ ABSL\_META\_TYPE\_TRAITS\_H\_}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#ifdef\ \_\_cpp\_lib\_span}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#include\ <span>}\ \ \textcolor{comment}{//\ NOLINT(build/c++20)}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#ifdef\ ABSL\_HAVE\_STD\_STRING\_VIEW}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#include\ <string\_view>}}
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ Defines\ the\ default\ alignment.\ \`{}\_\_STDCPP\_DEFAULT\_NEW\_ALIGNMENT\_\_`\ is\ a\ C++17}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ feature.}}
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#if\ defined(\_\_STDCPP\_DEFAULT\_NEW\_ALIGNMENT\_\_)}}
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_DEFAULT\_NEW\_ALIGNMENT\ \_\_STDCPP\_DEFAULT\_NEW\_ALIGNMENT\_\_}}
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ defined(\_\_STDCPP\_DEFAULT\_NEW\_ALIGNMENT\_\_)}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_DEFAULT\_NEW\_ALIGNMENT\ alignof(std::max\_align\_t)}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ defined(\_\_STDCPP\_DEFAULT\_NEW\_ALIGNMENT\_\_)}}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00064\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \textcolor{keyword}{namespace\ }type\_traits\_internal\ \{}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{00069\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1VoidTImpl}{VoidTImpl}}\ \{}
+\DoxyCodeLine{00070\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1VoidTImpl_ae425a0b92dac1f99c964878f81e25155}{type}}\ =\ void;}
+\DoxyCodeLine{00071\ \};}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ Library\ Fundamentals\ V2\ TS\ //}}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ NOTE:\ The\ \`{}is\_detected`\ family\ of\ templates\ here\ differ\ from\ the\ library}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ fundamentals\ specification\ in\ that\ for\ library\ fundamentals,\ \`{}Op<Args...>`\ is}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ evaluated\ as\ soon\ as\ the\ type\ \`{}is\_detected<Op,\ Args...>`\ undergoes}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ substitution,\ regardless\ of\ whether\ or\ not\ the\ \`{}::value`\ is\ accessed.\ That}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ is\ inconsistent\ with\ all\ other\ standard\ traits\ and\ prevents\ lazy\ evaluation}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ in\ larger\ contexts\ (such\ as\ if\ the\ \`{}is\_detected`\ check\ is\ a\ trailing\ argument}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ of\ a\ \`{}conjunction`.\ This\ implementation\ opts\ to\ instead\ be\ lazy\ in\ the\ same}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ way\ that\ the\ standard\ traits\ are\ (this\ "{}defect"{}\ of\ the\ detection\ idiom}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ specifications\ has\ been\ reported).}}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Enabler,\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00088\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__impl}{is\_detected\_impl}}\ \{}
+\DoxyCodeLine{00089\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__impl_aa5da4ee40e118911e6e4d6fe9da13656}{type}}\ =\ std::false\_type;}
+\DoxyCodeLine{00090\ \};}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \textcolor{keyword}{template}\ <\textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00093\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__impl}{is\_detected\_impl}}<typename\ \mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1VoidTImpl}{VoidTImpl}}<Op<Args...>>::\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__impl_3_01typename_01VoidTImpl_3_01Op_3_01Aa60d6ecb31a694a06c40b98b783d8fb0_aa3f7642c998cc3b99d1f7e401377147d}{type}},\ Op,\ Args...>\ \{}
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__impl_3_01typename_01VoidTImpl_3_01Op_3_01Aa60d6ecb31a694a06c40b98b783d8fb0_aa3f7642c998cc3b99d1f7e401377147d}{type}}\ =\ std::true\_type;}
+\DoxyCodeLine{00095\ \};}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \textcolor{keyword}{template}\ <\textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00098\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected}{is\_detected}}\ :\ \mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__impl}{is\_detected\_impl}}<void,\ Op,\ Args...>::type\ \{\};}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Enabler,\ \textcolor{keyword}{class\ }To,\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00101\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__convertible__impl}{is\_detected\_convertible\_impl}}\ \{}
+\DoxyCodeLine{00102\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__convertible__impl_a76ffe90571fea737eee6304581a560f6}{type}}\ =\ std::false\_type;}
+\DoxyCodeLine{00103\ \};}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }To,\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00106\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__convertible__impl}{is\_detected\_convertible\_impl}}<}
+\DoxyCodeLine{00107\ \ \ \ \ typename\ \mbox{\hyperlink{namespacestd}{std}}::enable\_if<std::is\_convertible<Op<Args...>,\ To>::value>::type,}
+\DoxyCodeLine{00108\ \ \ \ \ To,\ Op,\ Args...>\ \{}
+\DoxyCodeLine{00109\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__convertible__impl_3_01typename_01std_1_1en3607b40ab64759f97b3168950e0eed6b_a71682ce3b00c2881b2faf537136eeece}{type}}\ =\ std::true\_type;}
+\DoxyCodeLine{00110\ \};}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }To,\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00113\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__convertible}{is\_detected\_convertible}}}
+\DoxyCodeLine{00114\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected__convertible__impl}{is\_detected\_convertible\_impl}}<void,\ To,\ Op,\ Args...>::type\ \{\};}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \}\ \ \textcolor{comment}{//\ namespace\ type\_traits\_internal}}
+\DoxyCodeLine{00117\ }
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ void\_t()}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ Ignores\ the\ type\ of\ any\ its\ arguments\ and\ returns\ \`{}void`.\ In\ general,\ this}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ metafunction\ allows\ you\ to\ create\ a\ general\ case\ that\ maps\ to\ \`{}void`\ while}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ allowing\ specializations\ that\ map\ to\ specific\ types.}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ This\ metafunction\ is\ designed\ to\ be\ a\ drop-\/in\ replacement\ for\ the\ C++17}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ \`{}std::void\_t`\ metafunction.}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ NOTE:\ \`{}absl::void\_t`\ does\ not\ use\ the\ standard-\/specified\ implementation\ so}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ that\ it\ can\ remain\ compatible\ with\ gcc\ <\ 5.1.\ This\ can\ introduce\ slightly}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//\ different\ behavior,\ such\ as\ when\ ordering\ partial\ specializations.}}
+\DoxyCodeLine{00130\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{00131\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1VoidTImpl}{type\_traits\_internal::VoidTImpl}}<Ts...>::type;}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ conjunction}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ Performs\ a\ compile-\/time\ logical\ AND\ operation\ on\ the\ passed\ types\ (which}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ must\ have\ \ \`{}::value`\ members\ convertible\ to\ \`{}bool`.\ Short-\/circuits\ if\ it}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ encounters\ any\ \`{}false`\ members\ (and\ does\ not\ compare\ the\ \`{}::value`\ members}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ of\ any\ remaining\ arguments).}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//\ This\ metafunction\ is\ designed\ to\ be\ a\ drop-\/in\ replacement\ for\ the\ C++17}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ \`{}std::conjunction`\ metafunction.}}
+\DoxyCodeLine{00142\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{00143\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1conjunction}{conjunction}}\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{00146\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1conjunction}{conjunction}}<T,\ Ts...>}
+\DoxyCodeLine{00147\ \ \ \ \ :\ std::conditional<T::value,\ conjunction<Ts...>,\ T>::type\ \{\};}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00150\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1conjunction}{conjunction}}<T>\ :\ T\ \{\};}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \textcolor{comment}{//\ disjunction}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//}}
+\DoxyCodeLine{00154\ \textcolor{comment}{//\ Performs\ a\ compile-\/time\ logical\ OR\ operation\ on\ the\ passed\ types\ (which}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ must\ have\ \ \`{}::value`\ members\ convertible\ to\ \`{}bool`.\ Short-\/circuits\ if\ it}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ encounters\ any\ \`{}true`\ members\ (and\ does\ not\ compare\ the\ \`{}::value`\ members}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//\ of\ any\ remaining\ arguments).}}
+\DoxyCodeLine{00158\ \textcolor{comment}{//}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ This\ metafunction\ is\ designed\ to\ be\ a\ drop-\/in\ replacement\ for\ the\ C++17}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ \`{}std::disjunction`\ metafunction.}}
+\DoxyCodeLine{00161\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{00162\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1disjunction}{disjunction}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{00165\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1disjunction}{disjunction}}<T,\ Ts...>}
+\DoxyCodeLine{00166\ \ \ \ \ :\ std::conditional<T::value,\ T,\ disjunction<Ts...>>::type\ \{\};}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00169\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1disjunction}{disjunction}}<T>\ :\ T\ \{\};}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \textcolor{comment}{//\ negation}}
+\DoxyCodeLine{00172\ \textcolor{comment}{//}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//\ Performs\ a\ compile-\/time\ logical\ NOT\ operation\ on\ the\ passed\ type\ (which}}
+\DoxyCodeLine{00174\ \textcolor{comment}{//\ must\ have\ \ \`{}::value`\ members\ convertible\ to\ \`{}bool`.}}
+\DoxyCodeLine{00175\ \textcolor{comment}{//}}
+\DoxyCodeLine{00176\ \textcolor{comment}{//\ This\ metafunction\ is\ designed\ to\ be\ a\ drop-\/in\ replacement\ for\ the\ C++17}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//\ \`{}std::negation`\ metafunction.}}
+\DoxyCodeLine{00178\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00179\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1negation}{negation}}\ :\ std::integral\_constant<bool,\ !T::value>\ \{\};}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \textcolor{comment}{//\ is\_function()}}
+\DoxyCodeLine{00182\ \textcolor{comment}{//}}
+\DoxyCodeLine{00183\ \textcolor{comment}{//\ Determines\ whether\ the\ passed\ type\ \`{}T`\ is\ a\ function\ type.}}
+\DoxyCodeLine{00184\ \textcolor{comment}{//}}
+\DoxyCodeLine{00185\ \textcolor{comment}{//\ This\ metafunction\ is\ designed\ to\ be\ a\ drop-\/in\ replacement\ for\ the\ C++11}}
+\DoxyCodeLine{00186\ \textcolor{comment}{//\ \`{}std::is\_function()`\ metafunction\ for\ platforms\ that\ have\ incomplete\ C++11}}
+\DoxyCodeLine{00187\ \textcolor{comment}{//\ support\ (such\ as\ libstdc++\ 4.x).}}
+\DoxyCodeLine{00188\ \textcolor{comment}{//}}
+\DoxyCodeLine{00189\ \textcolor{comment}{//\ This\ metafunction\ works\ because\ appending\ \`{}const`\ to\ a\ type\ does\ nothing\ to}}
+\DoxyCodeLine{00190\ \textcolor{comment}{//\ function\ types\ and\ reference\ types\ (and\ forms\ a\ const-\/qualified\ type}}
+\DoxyCodeLine{00191\ \textcolor{comment}{//\ otherwise).}}
+\DoxyCodeLine{00192\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00193\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1is__function}{is\_function}}}
+\DoxyCodeLine{00194\ \ \ \ \ :\ std::integral\_constant<}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ \ \ bool,\ !(std::is\_reference<T>::value\ ||}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_const<typename\ std::add\_const<T>::type>::value)>\ \{\};}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \textcolor{comment}{//\ is\_copy\_assignable()}}
+\DoxyCodeLine{00199\ \textcolor{comment}{//\ is\_move\_assignable()}}
+\DoxyCodeLine{00200\ \textcolor{comment}{//\ is\_trivially\_destructible()}}
+\DoxyCodeLine{00201\ \textcolor{comment}{//\ is\_trivially\_default\_constructible()}}
+\DoxyCodeLine{00202\ \textcolor{comment}{//\ is\_trivially\_move\_constructible()}}
+\DoxyCodeLine{00203\ \textcolor{comment}{//\ is\_trivially\_copy\_constructible()}}
+\DoxyCodeLine{00204\ \textcolor{comment}{//\ is\_trivially\_move\_assignable()}}
+\DoxyCodeLine{00205\ \textcolor{comment}{//\ is\_trivially\_copy\_assignable()}}
+\DoxyCodeLine{00206\ \textcolor{comment}{//}}
+\DoxyCodeLine{00207\ \textcolor{comment}{//\ Historical\ note:\ Abseil\ once\ provided\ implementations\ of\ these\ type\ traits}}
+\DoxyCodeLine{00208\ \textcolor{comment}{//\ for\ platforms\ that\ lacked\ full\ support.\ New\ code\ should\ prefer\ to\ use\ the}}
+\DoxyCodeLine{00209\ \textcolor{comment}{//\ std\ variants.}}
+\DoxyCodeLine{00210\ \textcolor{comment}{//}}
+\DoxyCodeLine{00211\ \textcolor{comment}{//\ See\ the\ documentation\ for\ the\ STL\ <type\_traits>\ header\ for\ more\ information:}}
+\DoxyCodeLine{00212\ \textcolor{comment}{//\ https://en.cppreference.com/w/cpp/header/type\_traits}}
+\DoxyCodeLine{00213\ \textcolor{keyword}{using\ }std::is\_copy\_assignable;}
+\DoxyCodeLine{00214\ \textcolor{keyword}{using\ }std::is\_move\_assignable;}
+\DoxyCodeLine{00215\ \textcolor{keyword}{using\ }std::is\_trivially\_copy\_assignable;}
+\DoxyCodeLine{00216\ \textcolor{keyword}{using\ }std::is\_trivially\_copy\_constructible;}
+\DoxyCodeLine{00217\ \textcolor{keyword}{using\ }std::is\_trivially\_default\_constructible;}
+\DoxyCodeLine{00218\ \textcolor{keyword}{using\ }std::is\_trivially\_destructible;}
+\DoxyCodeLine{00219\ \textcolor{keyword}{using\ }std::is\_trivially\_move\_assignable;}
+\DoxyCodeLine{00220\ \textcolor{keyword}{using\ }std::is\_trivially\_move\_constructible;}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \textcolor{preprocessor}{\#if\ defined(\_\_cpp\_lib\_remove\_cvref)\ \&\&\ \_\_cpp\_lib\_remove\_cvref\ >=\ 201711L}}
+\DoxyCodeLine{00223\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00224\ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1remove__cvref}{remove\_cvref}}\ =\ std::remove\_cvref<T>;}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00227\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a9e2a5d99886bc8dcb67049bf9c5b4404}{remove\_cvref\_t}}\ =\ \textcolor{keyword}{typename}\ std::remove\_cvref<T>::type;}
+\DoxyCodeLine{00228\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00229\ \textcolor{comment}{//\ remove\_cvref()}}
+\DoxyCodeLine{00230\ \textcolor{comment}{//}}
+\DoxyCodeLine{00231\ \textcolor{comment}{//\ C++11\ compatible\ implementation\ of\ std::remove\_cvref\ which\ was\ added\ in}}
+\DoxyCodeLine{00232\ \textcolor{comment}{//\ C++20.}}
+\DoxyCodeLine{00233\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00234\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1remove__cvref}{remove\_cvref}}\ \{}
+\DoxyCodeLine{00235\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1remove__cvref_a3f1563670e669a553608672e71fa08b1}{type}}\ =}
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::remove\_cv<typename\ std::remove\_reference<T>::type>\mbox{\hyperlink{structabsl_1_1remove__cvref_a3f1563670e669a553608672e71fa08b1}{::type}};}
+\DoxyCodeLine{00237\ \};}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00240\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a9e2a5d99886bc8dcb67049bf9c5b4404}{remove\_cvref\_t}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1remove__cvref_a3f1563670e669a553608672e71fa08b1}{remove\_cvref<T>::type}};}
+\DoxyCodeLine{00241\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00244\ \textcolor{comment}{//\ C++14\ "{}\_t"{}\ trait\ aliases}}
+\DoxyCodeLine{00245\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00248\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a6953812acdf411715dc9a2102e75ff3d}{remove\_cv\_t}}\ =\ \textcolor{keyword}{typename}\ std::remove\_cv<T>::type;}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00250\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00251\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a48b91f2c6032a94f7a73bfaf71753099}{remove\_const\_t}}\ =\ \textcolor{keyword}{typename}\ std::remove\_const<T>::type;}
+\DoxyCodeLine{00252\ }
+\DoxyCodeLine{00253\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00254\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a32298e0cefa1872c5a9859e85ef2ef94}{remove\_volatile\_t}}\ =\ \textcolor{keyword}{typename}\ std::remove\_volatile<T>::type;}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00257\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a614baafaa8ca0bebc89e52e885a444ba}{add\_cv\_t}}\ =\ \textcolor{keyword}{typename}\ std::add\_cv<T>::type;}
+\DoxyCodeLine{00258\ }
+\DoxyCodeLine{00259\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00260\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a48bde2ff70d2e790afec303c19c2a423}{add\_const\_t}}\ =\ \textcolor{keyword}{typename}\ std::add\_const<T>::type;}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00263\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a582fe6f663cdb48d548c3d83d1e3b74c}{add\_volatile\_t}}\ =\ \textcolor{keyword}{typename}\ std::add\_volatile<T>::type;}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00266\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a279ab7624584512e3d49a4ea360bf973}{remove\_reference\_t}}\ =\ \textcolor{keyword}{typename}\ std::remove\_reference<T>::type;}
+\DoxyCodeLine{00267\ }
+\DoxyCodeLine{00268\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00269\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a5729c63a0eda632fe64e45310f44d194}{add\_lvalue\_reference\_t}}\ =\ \textcolor{keyword}{typename}\ std::add\_lvalue\_reference<T>::type;}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00272\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a5e6992520a83693f424d965892662767}{add\_rvalue\_reference\_t}}\ =\ \textcolor{keyword}{typename}\ std::add\_rvalue\_reference<T>::type;}
+\DoxyCodeLine{00273\ }
+\DoxyCodeLine{00274\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00275\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_aace701215dfadd3d4633641023eb7a2b}{remove\_pointer\_t}}\ =\ \textcolor{keyword}{typename}\ std::remove\_pointer<T>::type;}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00277\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00278\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_ad36f4f08f14f323caecd215a967b8a46}{add\_pointer\_t}}\ =\ \textcolor{keyword}{typename}\ std::add\_pointer<T>::type;}
+\DoxyCodeLine{00279\ }
+\DoxyCodeLine{00280\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00281\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a9764cd2b095bed687d2d9b7073dc251c}{make\_signed\_t}}\ =\ \textcolor{keyword}{typename}\ std::make\_signed<T>::type;}
+\DoxyCodeLine{00282\ }
+\DoxyCodeLine{00283\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00284\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_aaa57d74611a2f2bae1ab7c8ff4cad1c7}{make\_unsigned\_t}}\ =\ \textcolor{keyword}{typename}\ std::make\_unsigned<T>::type;}
+\DoxyCodeLine{00285\ }
+\DoxyCodeLine{00286\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00287\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a2b62fc465886e626ad14242cf05a9c6e}{remove\_extent\_t}}\ =\ \textcolor{keyword}{typename}\ std::remove\_extent<T>::type;}
+\DoxyCodeLine{00288\ }
+\DoxyCodeLine{00289\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00290\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a6db9fc9e62aecc116ea8ca9e4362c6bf}{remove\_all\_extents\_t}}\ =\ \textcolor{keyword}{typename}\ std::remove\_all\_extents<T>::type;}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00293\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_af47101d71bf50fda2b5cb36d43a38f2a}{decay\_t}}\ =\ \textcolor{keyword}{typename}\ std::decay<T>::type;}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ B,\ \textcolor{keyword}{typename}\ T\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00296\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{enable\_if\_t}}\ =\ \textcolor{keyword}{typename}\ std::enable\_if<B,\ T>::type;}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00298\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ B,\ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ F>}
+\DoxyCodeLine{00299\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{conditional\_t}}\ =\ \textcolor{keyword}{typename}\ std::conditional<B,\ T,\ F>::type;}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ T>}
+\DoxyCodeLine{00302\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_aaafa189cd4c0a8f7518ae04353c1f9ee}{common\_type\_t}}\ =\ \textcolor{keyword}{typename}\ std::common\_type<T...>::type;}
+\DoxyCodeLine{00303\ }
+\DoxyCodeLine{00304\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00305\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_aea3d3341fbf6caa9e266558a12a7611f}{underlying\_type\_t}}\ =\ \textcolor{keyword}{typename}\ std::underlying\_type<T>::type;}
+\DoxyCodeLine{00306\ }
+\DoxyCodeLine{00307\ \textcolor{keyword}{namespace\ }type\_traits\_internal\ \{}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00309\ \textcolor{preprocessor}{\#if\ (defined(\_\_cpp\_lib\_is\_invocable)\ \&\&\ \_\_cpp\_lib\_is\_invocable\ >=\ 201703L)\ ||\ \(\backslash\)}}
+\DoxyCodeLine{00310\ \textcolor{preprocessor}{\ \ \ \ (defined(\_MSVC\_LANG)\ \&\&\ \_MSVC\_LANG\ >=\ 201703L)}}
+\DoxyCodeLine{00311\ \textcolor{comment}{//\ std::result\_of\ is\ deprecated\ (C++17)\ or\ removed\ (C++20)}}
+\DoxyCodeLine{00312\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}>}
+\DoxyCodeLine{00313\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{namespaceabsl_1_1type__traits__internal_a5002fbb64cf081924b73f33495fb6ac0}{result\_of}};}
+\DoxyCodeLine{00314\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00315\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{namespaceabsl_1_1type__traits__internal_a5002fbb64cf081924b73f33495fb6ac0}{result\_of}}<\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}}(Args...)>\ :\ std::invoke\_result<F,\ Args...>\ \{\};}
+\DoxyCodeLine{00316\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00317\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ F>}
+\DoxyCodeLine{00318\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1type__traits__internal_a5002fbb64cf081924b73f33495fb6ac0}{result\_of}}\ =\ std::result\_of<F>;}
+\DoxyCodeLine{00319\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00320\ }
+\DoxyCodeLine{00321\ \}\ \ \textcolor{comment}{//\ namespace\ type\_traits\_internal}}
+\DoxyCodeLine{00322\ }
+\DoxyCodeLine{00323\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ F>}
+\DoxyCodeLine{00324\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_ae68357235a46d10a2fa83f9eaeea080c}{result\_of\_t}}\ =\ \textcolor{keyword}{typename}\ type\_traits\_internal::result\_of<F>::type;}
+\DoxyCodeLine{00325\ }
+\DoxyCodeLine{00326\ \textcolor{keyword}{namespace\ }type\_traits\_internal\ \{}
+\DoxyCodeLine{00327\ \textcolor{comment}{//\ In\ MSVC\ we\ can't\ probe\ std::hash\ or\ stdext::hash\ because\ it\ triggers\ a}}
+\DoxyCodeLine{00328\ \textcolor{comment}{//\ static\_assert\ instead\ of\ failing\ substitution.\ Libc++\ prior\ to\ 4.0}}
+\DoxyCodeLine{00329\ \textcolor{comment}{//\ also\ used\ a\ static\_assert.}}
+\DoxyCodeLine{00330\ \textcolor{comment}{//}}
+\DoxyCodeLine{00331\ \textcolor{preprocessor}{\#if\ defined(\_MSC\_VER)\ ||\ (defined(\_LIBCPP\_VERSION)\ \&\&\ \(\backslash\)}}
+\DoxyCodeLine{00332\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \_LIBCPP\_VERSION\ <\ 4000\ \&\&\ \_LIBCPP\_STD\_VER\ >\ 11)}}
+\DoxyCodeLine{00333\ \textcolor{preprocessor}{\#define\ ABSL\_META\_INTERNAL\_STD\_HASH\_SFINAE\_FRIENDLY\_\ 0}}
+\DoxyCodeLine{00334\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00335\ \textcolor{preprocessor}{\#define\ ABSL\_META\_INTERNAL\_STD\_HASH\_SFINAE\_FRIENDLY\_\ 1}}
+\DoxyCodeLine{00336\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00337\ }
+\DoxyCodeLine{00338\ \textcolor{preprocessor}{\#if\ !ABSL\_META\_INTERNAL\_STD\_HASH\_SFINAE\_FRIENDLY\_}}
+\DoxyCodeLine{00339\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Key,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{size\_t}>}
+\DoxyCodeLine{00340\ \textcolor{keyword}{struct\ }IsHashable\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00341\ \textcolor{preprocessor}{\#else\ \ \ }\textcolor{comment}{//\ ABSL\_META\_INTERNAL\_STD\_HASH\_SFINAE\_FRIENDLY\_}}
+\DoxyCodeLine{00342\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Key,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00343\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsHashable}{IsHashable}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00344\ }
+\DoxyCodeLine{00345\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Key>}
+\DoxyCodeLine{00346\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsHashable}{IsHashable}}<}
+\DoxyCodeLine{00347\ \ \ \ \ Key,}
+\DoxyCodeLine{00348\ \ \ \ \ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{enable\_if\_t}}<std::is\_convertible<}
+\DoxyCodeLine{00349\ \ \ \ \ \ \ \ \ decltype(std::declval<std::hash<Key>\&>()(std::declval<Key\ const\&>())),}
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \ \ std::size\_t>::value>>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00351\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ !ABSL\_META\_INTERNAL\_STD\_HASH\_SFINAE\_FRIENDLY\_}}
+\DoxyCodeLine{00352\ }
+\DoxyCodeLine{00353\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1AssertHashEnabledHelper}{AssertHashEnabledHelper}}\ \{}
+\DoxyCodeLine{00354\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00355\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ Sink(...)\ \{\}}
+\DoxyCodeLine{00356\ \ \ \textcolor{keyword}{struct\ }NAT\ \{\};}
+\DoxyCodeLine{00357\ }
+\DoxyCodeLine{00358\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Key>}
+\DoxyCodeLine{00359\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{auto}\ GetReturnType(\textcolor{keywordtype}{int})}
+\DoxyCodeLine{00360\ \ \ \ \ \ \ -\/>\ \textcolor{keyword}{decltype}(std::declval<std::hash<Key>>()(std::declval<Key\ const\&>()));}
+\DoxyCodeLine{00361\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Key>}
+\DoxyCodeLine{00362\ \ \ \textcolor{keyword}{static}\ NAT\ GetReturnType(...);}
+\DoxyCodeLine{00363\ }
+\DoxyCodeLine{00364\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Key>}
+\DoxyCodeLine{00365\ \ \ \textcolor{keyword}{static}\ std::nullptr\_t\ DoIt()\ \{}
+\DoxyCodeLine{00366\ \ \ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsHashable}{IsHashable<Key>::value}},}
+\DoxyCodeLine{00367\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}std::hash<Key>\ does\ not\ provide\ a\ call\ operator"{}});}
+\DoxyCodeLine{00368\ \ \ \ \ \textcolor{keyword}{static\_assert}(}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ \ \ std::is\_default\_constructible<std::hash<Key>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00370\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}std::hash<Key>\ must\ be\ default\ constructible\ when\ it\ is\ enabled"{}});}
+\DoxyCodeLine{00371\ \ \ \ \ \textcolor{keyword}{static\_assert}(}
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \ \ std::is\_copy\_constructible<std::hash<Key>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}std::hash<Key>\ must\ be\ copy\ constructible\ when\ it\ is\ enabled"{}});}
+\DoxyCodeLine{00374\ \ \ \ \ \textcolor{keyword}{static\_assert}(absl::is\_copy\_assignable<std::hash<Key>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00375\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}std::hash<Key>\ must\ be\ copy\ assignable\ when\ it\ is\ enabled"{}});}
+\DoxyCodeLine{00376\ \ \ \ \ \textcolor{comment}{//\ is\_destructible\ is\ unchecked\ as\ it's\ implied\ by\ each\ of\ the}}
+\DoxyCodeLine{00377\ \ \ \ \ \textcolor{comment}{//\ is\_constructible\ checks.}}
+\DoxyCodeLine{00378\ \ \ \ \ \textcolor{keyword}{using\ }ReturnType\ =\ \textcolor{keyword}{decltype}(GetReturnType<Key>(0));}
+\DoxyCodeLine{00379\ \ \ \ \ \textcolor{keyword}{static\_assert}(std::is\_same<ReturnType,\ NAT>::value\ ||}
+\DoxyCodeLine{00380\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<ReturnType,\ size\_t>::value,}
+\DoxyCodeLine{00381\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}std::hash<Key>\ must\ return\ size\_t"{}});}
+\DoxyCodeLine{00382\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00383\ \ \ \}}
+\DoxyCodeLine{00384\ }
+\DoxyCodeLine{00385\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00386\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1AssertHashEnabledHelper_a9ae7a6b434e9cb0d8af7a805fb5ef33e}{AssertHashEnabled}}();}
+\DoxyCodeLine{00387\ \};}
+\DoxyCodeLine{00388\ }
+\DoxyCodeLine{00389\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00390\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1type__traits__internal_abc1b6770e2b815276649fb39aea320cb}{AssertHashEnabled}}()\ \{}
+\DoxyCodeLine{00391\ \ \ \textcolor{keyword}{using\ }Helper\ =\ \mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1AssertHashEnabledHelper}{AssertHashEnabledHelper}};}
+\DoxyCodeLine{00392\ \ \ Helper::Sink(Helper::DoIt<Ts>()...);}
+\DoxyCodeLine{00393\ \}}
+\DoxyCodeLine{00394\ }
+\DoxyCodeLine{00395\ \}\ \ \textcolor{comment}{//\ namespace\ type\_traits\_internal}}
+\DoxyCodeLine{00396\ }
+\DoxyCodeLine{00397\ \textcolor{comment}{//\ An\ internal\ namespace\ that\ is\ required\ to\ implement\ the\ C++17\ swap\ traits.}}
+\DoxyCodeLine{00398\ \textcolor{comment}{//\ It\ is\ not\ further\ nested\ in\ type\_traits\_internal\ to\ avoid\ long\ symbol\ names.}}
+\DoxyCodeLine{00399\ \textcolor{keyword}{namespace\ }swap\_internal\ \{}
+\DoxyCodeLine{00400\ }
+\DoxyCodeLine{00401\ \textcolor{comment}{//\ Necessary\ for\ the\ traits.}}
+\DoxyCodeLine{00402\ \textcolor{keyword}{using\ }std::swap;}
+\DoxyCodeLine{00403\ }
+\DoxyCodeLine{00404\ \textcolor{comment}{//\ This\ declaration\ prevents\ global\ \`{}swap`\ and\ \`{}absl::swap`\ overloads\ from\ being}}
+\DoxyCodeLine{00405\ \textcolor{comment}{//\ considered\ unless\ ADL\ picks\ them\ up.}}
+\DoxyCodeLine{00406\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1swap__internal_a74e301217ca47afbe27cbec2d5333692}{swap}}();}
+\DoxyCodeLine{00407\ }
+\DoxyCodeLine{00408\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00409\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1swap__internal_a3850d21afd84ab5c843aaf8f90e15720}{IsSwappableImpl}}\ =\ \textcolor{keyword}{decltype}(\mbox{\hyperlink{namespaceabsl_1_1swap__internal_a74e301217ca47afbe27cbec2d5333692}{swap}}(std::declval<T\&>(),\ std::declval<T\&>()));}
+\DoxyCodeLine{00410\ }
+\DoxyCodeLine{00411\ \textcolor{comment}{//\ NOTE:\ This\ dance\ with\ the\ default\ template\ parameter\ is\ for\ MSVC.}}
+\DoxyCodeLine{00412\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }T,}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{class\ }IsNoexcept\ =\ std::integral\_constant<}
+\DoxyCodeLine{00414\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool,\ \textcolor{keyword}{noexcept}(\mbox{\hyperlink{namespaceabsl_1_1swap__internal_a74e301217ca47afbe27cbec2d5333692}{swap}}(std::declval<T\&>(),\ std::declval<T\&>()))>>}
+\DoxyCodeLine{00415\ \textcolor{keyword}{using}\ \mbox{\hyperlink{namespaceabsl_1_1swap__internal_a93753ffad95faee6549443a8a8b26228}{IsNothrowSwappableImpl}}\ =\ \textcolor{keyword}{typename}\ std::enable\_if<IsNoexcept::value>::type;}
+\DoxyCodeLine{00416\ }
+\DoxyCodeLine{00417\ \textcolor{comment}{//\ IsSwappable}}
+\DoxyCodeLine{00418\ \textcolor{comment}{//}}
+\DoxyCodeLine{00419\ \textcolor{comment}{//\ Determines\ whether\ the\ standard\ swap\ idiom\ is\ a\ valid\ expression\ for}}
+\DoxyCodeLine{00420\ \textcolor{comment}{//\ arguments\ of\ type\ \`{}T`.}}
+\DoxyCodeLine{00421\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00422\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1swap__internal_1_1IsSwappable}{IsSwappable}}}
+\DoxyCodeLine{00423\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected}{absl::type\_traits\_internal::is\_detected<IsSwappableImpl,\ T>}}\ \{\};}
+\DoxyCodeLine{00424\ }
+\DoxyCodeLine{00425\ \textcolor{comment}{//\ IsNothrowSwappable}}
+\DoxyCodeLine{00426\ \textcolor{comment}{//}}
+\DoxyCodeLine{00427\ \textcolor{comment}{//\ Determines\ whether\ the\ standard\ swap\ idiom\ is\ a\ valid\ expression\ for}}
+\DoxyCodeLine{00428\ \textcolor{comment}{//\ arguments\ of\ type\ \`{}T`\ and\ is\ noexcept.}}
+\DoxyCodeLine{00429\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00430\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1swap__internal_1_1IsNothrowSwappable}{IsNothrowSwappable}}}
+\DoxyCodeLine{00431\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1is__detected}{absl::type\_traits\_internal::is\_detected<IsNothrowSwappableImpl,\ T>}}\ \{\};}
+\DoxyCodeLine{00432\ }
+\DoxyCodeLine{00433\ \textcolor{comment}{//\ Swap()}}
+\DoxyCodeLine{00434\ \textcolor{comment}{//}}
+\DoxyCodeLine{00435\ \textcolor{comment}{//\ Performs\ the\ swap\ idiom\ from\ a\ namespace\ where\ valid\ candidates\ may\ only\ be}}
+\DoxyCodeLine{00436\ \textcolor{comment}{//\ found\ in\ \`{}std`\ or\ via\ ADL.}}
+\DoxyCodeLine{00437\ template\ <class\ T,\ absl::enable\_if\_t<IsSwappable<T>::value,\ \textcolor{keywordtype}{int}>\ =\ 0>}
+\DoxyCodeLine{00438\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1swap__internal_a05e26d99fc1f3dcd36814533fdc652cb}{Swap}}(T\&\ lhs,\ T\&\ rhs)\ \textcolor{keyword}{noexcept}(\mbox{\hyperlink{structabsl_1_1swap__internal_1_1IsNothrowSwappable}{IsNothrowSwappable<T>::value}})\ \{}
+\DoxyCodeLine{00439\ \ \ \mbox{\hyperlink{namespaceabsl_1_1swap__internal_a74e301217ca47afbe27cbec2d5333692}{swap}}(lhs,\ rhs);}
+\DoxyCodeLine{00440\ \}}
+\DoxyCodeLine{00441\ }
+\DoxyCodeLine{00442\ \textcolor{comment}{//\ StdSwapIsUnconstrained}}
+\DoxyCodeLine{00443\ \textcolor{comment}{//}}
+\DoxyCodeLine{00444\ \textcolor{comment}{//\ Some\ standard\ library\ implementations\ are\ broken\ in\ that\ they\ do\ not}}
+\DoxyCodeLine{00445\ \textcolor{comment}{//\ constrain\ \`{}std::swap`.\ This\ will\ effectively\ tell\ us\ if\ we\ are\ dealing\ with}}
+\DoxyCodeLine{00446\ \textcolor{comment}{//\ one\ of\ those\ implementations.}}
+\DoxyCodeLine{00447\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1swap__internal_aef405f8ff8edbff96e4b94e42b71c25a}{StdSwapIsUnconstrained}}\ =\ IsSwappable<void()>;}
+\DoxyCodeLine{00448\ }
+\DoxyCodeLine{00449\ \}\ \ \textcolor{comment}{//\ namespace\ swap\_internal}}
+\DoxyCodeLine{00450\ }
+\DoxyCodeLine{00451\ \textcolor{keyword}{namespace\ }type\_traits\_internal\ \{}
+\DoxyCodeLine{00452\ }
+\DoxyCodeLine{00453\ \textcolor{comment}{//\ Make\ the\ swap-\/related\ traits/function\ accessible\ from\ this\ namespace.}}
+\DoxyCodeLine{00454\ \textcolor{keyword}{using\ }swap\_internal::IsNothrowSwappable;}
+\DoxyCodeLine{00455\ \textcolor{keyword}{using\ }swap\_internal::IsSwappable;}
+\DoxyCodeLine{00456\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1swap__internal_aef405f8ff8edbff96e4b94e42b71c25a}{swap\_internal::StdSwapIsUnconstrained}};}
+\DoxyCodeLine{00457\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1swap__internal_a05e26d99fc1f3dcd36814533fdc652cb}{swap\_internal::Swap}};}
+\DoxyCodeLine{00458\ }
+\DoxyCodeLine{00459\ \}\ \ \textcolor{comment}{//\ namespace\ type\_traits\_internal}}
+\DoxyCodeLine{00460\ }
+\DoxyCodeLine{00461\ \textcolor{comment}{//\ absl::is\_trivially\_relocatable<T>}}
+\DoxyCodeLine{00462\ \textcolor{comment}{//}}
+\DoxyCodeLine{00463\ \textcolor{comment}{//\ Detects\ whether\ a\ type\ is\ known\ to\ be\ "{}trivially\ relocatable"{}\ -\/-\/\ meaning\ it}}
+\DoxyCodeLine{00464\ \textcolor{comment}{//\ can\ be\ relocated\ from\ one\ place\ to\ another\ as\ if\ by\ memcpy/memmove.}}
+\DoxyCodeLine{00465\ \textcolor{comment}{//\ This\ implies\ that\ its\ object\ representation\ doesn't\ depend\ on\ its\ address,}}
+\DoxyCodeLine{00466\ \textcolor{comment}{//\ and\ also\ none\ of\ its\ special\ member\ functions\ do\ anything\ strange.}}
+\DoxyCodeLine{00467\ \textcolor{comment}{//}}
+\DoxyCodeLine{00468\ \textcolor{comment}{//\ This\ trait\ is\ conservative.\ If\ it's\ true\ then\ the\ type\ is\ definitely}}
+\DoxyCodeLine{00469\ \textcolor{comment}{//\ trivially\ relocatable,\ but\ if\ it's\ false\ then\ the\ type\ may\ or\ may\ not\ be.\ For}}
+\DoxyCodeLine{00470\ \textcolor{comment}{//\ example,\ std::vector<int>\ is\ trivially\ relocatable\ on\ every\ known\ STL}}
+\DoxyCodeLine{00471\ \textcolor{comment}{//\ implementation,\ but\ absl::is\_trivially\_relocatable<std::vector<int>>\ remains}}
+\DoxyCodeLine{00472\ \textcolor{comment}{//\ false.}}
+\DoxyCodeLine{00473\ \textcolor{comment}{//}}
+\DoxyCodeLine{00474\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00475\ \textcolor{comment}{//}}
+\DoxyCodeLine{00476\ \textcolor{comment}{//\ if\ constexpr\ (absl::is\_trivially\_relocatable<T>::value)\ \{}}
+\DoxyCodeLine{00477\ \textcolor{comment}{//\ \ \ memcpy(new\_location,\ old\_location,\ sizeof(T));}}
+\DoxyCodeLine{00478\ \textcolor{comment}{//\ \}\ else\ \{}}
+\DoxyCodeLine{00479\ \textcolor{comment}{//\ \ \ new(new\_location)\ T(std::move(*old\_location));}}
+\DoxyCodeLine{00480\ \textcolor{comment}{//\ \ \ old\_location-\/>\string~T();}}
+\DoxyCodeLine{00481\ \textcolor{comment}{//\ \}}}
+\DoxyCodeLine{00482\ \textcolor{comment}{//}}
+\DoxyCodeLine{00483\ \textcolor{comment}{//\ Upstream\ documentation:}}
+\DoxyCodeLine{00484\ \textcolor{comment}{//}}
+\DoxyCodeLine{00485\ \textcolor{comment}{//\ https://clang.llvm.org/docs/LanguageExtensions.html\#:\string~:text=\_\_is\_trivially\_relocatable}}
+\DoxyCodeLine{00486\ }
+\DoxyCodeLine{00487\ \textcolor{comment}{//\ If\ the\ compiler\ offers\ a\ builtin\ that\ tells\ us\ the\ answer,\ we\ can\ use\ that.}}
+\DoxyCodeLine{00488\ \textcolor{comment}{//\ This\ covers\ all\ of\ the\ cases\ in\ the\ fallback\ below,\ plus\ types\ that\ opt\ in}}
+\DoxyCodeLine{00489\ \textcolor{comment}{//\ using\ e.g.\ [[clang::trivial\_abi]].}}
+\DoxyCodeLine{00490\ \textcolor{comment}{//}}
+\DoxyCodeLine{00491\ \textcolor{comment}{//\ Clang\ on\ Windows\ has\ the\ builtin,\ but\ it\ falsely\ claims\ types\ with\ a}}
+\DoxyCodeLine{00492\ \textcolor{comment}{//\ user-\/provided\ destructor\ are\ trivial\ (http://b/275003464).\ So\ we\ opt\ out}}
+\DoxyCodeLine{00493\ \textcolor{comment}{//\ there.}}
+\DoxyCodeLine{00494\ \textcolor{comment}{//}}
+\DoxyCodeLine{00495\ \textcolor{comment}{//\ TODO(b/275003464):\ remove\ the\ opt-\/out\ once\ the\ bug\ is\ fixed.}}
+\DoxyCodeLine{00496\ \textcolor{comment}{//}}
+\DoxyCodeLine{00497\ \textcolor{comment}{//\ Starting\ with\ Xcode\ 15,\ the\ Apple\ compiler\ will\ falsely\ say\ a\ type}}
+\DoxyCodeLine{00498\ \textcolor{comment}{//\ with\ a\ user-\/provided\ move\ constructor\ is\ trivially\ relocatable}}
+\DoxyCodeLine{00499\ \textcolor{comment}{//\ (b/324278148).\ We\ will\ opt\ out\ without\ a\ version\ check,\ due\ to}}
+\DoxyCodeLine{00500\ \textcolor{comment}{//\ the\ fluidity\ of\ Apple\ versions.}}
+\DoxyCodeLine{00501\ \textcolor{comment}{//}}
+\DoxyCodeLine{00502\ \textcolor{comment}{//\ TODO(b/324278148):\ If\ all\ versions\ we\ use\ have\ the\ bug\ fixed,\ then}}
+\DoxyCodeLine{00503\ \textcolor{comment}{//\ remove\ the\ condition.}}
+\DoxyCodeLine{00504\ \textcolor{comment}{//}}
+\DoxyCodeLine{00505\ \textcolor{comment}{//\ Clang\ on\ all\ platforms\ fails\ to\ detect\ that\ a\ type\ with\ a\ user-\/provided}}
+\DoxyCodeLine{00506\ \textcolor{comment}{//\ move-\/assignment\ operator\ is\ not\ trivially\ relocatable.\ So\ in\ fact\ we}}
+\DoxyCodeLine{00507\ \textcolor{comment}{//\ opt\ out\ of\ Clang\ altogether,\ for\ now.}}
+\DoxyCodeLine{00508\ \textcolor{comment}{//}}
+\DoxyCodeLine{00509\ \textcolor{comment}{//\ TODO(b/325479096):\ Remove\ the\ opt-\/out\ once\ Clang's\ behavior\ is\ fixed.}}
+\DoxyCodeLine{00510\ \textcolor{comment}{//}}
+\DoxyCodeLine{00511\ \textcolor{comment}{//\ According\ to\ https://github.com/abseil/abseil-\/cpp/issues/1479,\ this\ does\ not}}
+\DoxyCodeLine{00512\ \textcolor{comment}{//\ work\ with\ NVCC\ either.}}
+\DoxyCodeLine{00513\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_BUILTIN(\_\_is\_trivially\_relocatable)\ \&\&\ \(\backslash\)}}
+\DoxyCodeLine{00514\ \textcolor{preprocessor}{\ \ \ \ (defined(\_\_cpp\_impl\_trivially\_relocatable)\ ||\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00515\ \textcolor{preprocessor}{\ \ \ \ \ (!defined(\_\_clang\_\_)\ \&\&\ !defined(\_\_APPLE\_\_)\ \&\&\ !defined(\_\_NVCC\_\_)))}}
+\DoxyCodeLine{00516\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00517\ \textcolor{keyword}{struct\ }is\_trivially\_relocatable}
+\DoxyCodeLine{00518\ \ \ \ \ :\ std::integral\_constant<bool,\ \_\_is\_trivially\_relocatable(T)>\ \{\};}
+\DoxyCodeLine{00519\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00520\ \textcolor{comment}{//\ Otherwise\ we\ use\ a\ fallback\ that\ detects\ only\ those\ types\ we\ can\ feasibly}}
+\DoxyCodeLine{00521\ \textcolor{comment}{//\ detect.\ Any\ type\ that\ is\ trivially\ copyable\ is\ by\ definition\ trivially}}
+\DoxyCodeLine{00522\ \textcolor{comment}{//\ relocatable.}}
+\DoxyCodeLine{00523\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00524\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1is__trivially__relocatable}{is\_trivially\_relocatable}}\ :\ std::is\_trivially\_copyable<T>\ \{\};}
+\DoxyCodeLine{00525\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00526\ }
+\DoxyCodeLine{00527\ \textcolor{comment}{//\ absl::is\_constant\_evaluated()}}
+\DoxyCodeLine{00528\ \textcolor{comment}{//}}
+\DoxyCodeLine{00529\ \textcolor{comment}{//\ Detects\ whether\ the\ function\ call\ occurs\ within\ a\ constant-\/evaluated\ context.}}
+\DoxyCodeLine{00530\ \textcolor{comment}{//\ Returns\ true\ if\ the\ evaluation\ of\ the\ call\ occurs\ within\ the\ evaluation\ of\ an}}
+\DoxyCodeLine{00531\ \textcolor{comment}{//\ expression\ or\ conversion\ that\ is\ manifestly\ constant-\/evaluated;\ otherwise}}
+\DoxyCodeLine{00532\ \textcolor{comment}{//\ returns\ false.}}
+\DoxyCodeLine{00533\ \textcolor{comment}{//}}
+\DoxyCodeLine{00534\ \textcolor{comment}{//\ This\ function\ is\ implemented\ in\ terms\ of\ \`{}std::is\_constant\_evaluated`\ for}}
+\DoxyCodeLine{00535\ \textcolor{comment}{//\ c++20\ and\ up.\ For\ older\ c++\ versions,\ the\ function\ is\ implemented\ in\ terms}}
+\DoxyCodeLine{00536\ \textcolor{comment}{//\ of\ \`{}\_\_builtin\_is\_constant\_evaluated`\ if\ available,\ otherwise\ the\ function}}
+\DoxyCodeLine{00537\ \textcolor{comment}{//\ will\ fail\ to\ compile.}}
+\DoxyCodeLine{00538\ \textcolor{comment}{//}}
+\DoxyCodeLine{00539\ \textcolor{comment}{//\ Applications\ can\ inspect\ \`{}ABSL\_HAVE\_CONSTANT\_EVALUATED`\ at\ compile\ time}}
+\DoxyCodeLine{00540\ \textcolor{comment}{//\ to\ check\ if\ this\ function\ is\ supported.}}
+\DoxyCodeLine{00541\ \textcolor{comment}{//}}
+\DoxyCodeLine{00542\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00543\ \textcolor{comment}{//}}
+\DoxyCodeLine{00544\ \textcolor{comment}{//\ constexpr\ MyClass::MyClass(int\ param)\ \{}}
+\DoxyCodeLine{00545\ \textcolor{comment}{//\ \#ifdef\ ABSL\_HAVE\_CONSTANT\_EVALUATED}}
+\DoxyCodeLine{00546\ \textcolor{comment}{//\ \ \ if\ (!absl::is\_constant\_evaluated())\ \{}}
+\DoxyCodeLine{00547\ \textcolor{comment}{//\ \ \ \ \ ABSL\_LOG(INFO)\ <<\ "{}MyClass("{}\ <<\ param\ <<\ "{})"{};}}
+\DoxyCodeLine{00548\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00549\ \textcolor{comment}{//\ \#endif\ \ //\ ABSL\_HAVE\_CONSTANT\_EVALUATED}}
+\DoxyCodeLine{00550\ \textcolor{comment}{//\ \}}}
+\DoxyCodeLine{00551\ \textcolor{comment}{//}}
+\DoxyCodeLine{00552\ \textcolor{comment}{//\ Upstream\ documentation:}}
+\DoxyCodeLine{00553\ \textcolor{comment}{//}}
+\DoxyCodeLine{00554\ \textcolor{comment}{//\ http://en.cppreference.com/w/cpp/types/is\_constant\_evaluated}}
+\DoxyCodeLine{00555\ \textcolor{comment}{//\ http://gcc.gnu.org/onlinedocs/gcc/Other-\/Builtins.html\#:\string~:text=\_\_builtin\_is\_constant\_evaluated}}
+\DoxyCodeLine{00556\ \textcolor{comment}{//}}
+\DoxyCodeLine{00557\ \textcolor{preprocessor}{\#if\ defined(ABSL\_HAVE\_CONSTANT\_EVALUATED)}}
+\DoxyCodeLine{00558\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ is\_constant\_evaluated()\ noexcept\ \{}
+\DoxyCodeLine{00559\ \textcolor{preprocessor}{\#ifdef\ \_\_cpp\_lib\_is\_constant\_evaluated}}
+\DoxyCodeLine{00560\ \ \ \textcolor{keywordflow}{return}\ std::is\_constant\_evaluated();}
+\DoxyCodeLine{00561\ \textcolor{preprocessor}{\#elif\ ABSL\_HAVE\_BUILTIN(\_\_builtin\_is\_constant\_evaluated)}}
+\DoxyCodeLine{00562\ \ \ \textcolor{keywordflow}{return}\ \_\_builtin\_is\_constant\_evaluated();}
+\DoxyCodeLine{00563\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00564\ \}}
+\DoxyCodeLine{00565\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_HAVE\_CONSTANT\_EVALUATED}}
+\DoxyCodeLine{00566\ }
+\DoxyCodeLine{00567\ \textcolor{keyword}{namespace\ }type\_traits\_internal\ \{}
+\DoxyCodeLine{00568\ }
+\DoxyCodeLine{00569\ \textcolor{comment}{//\ Detects\ if\ a\ class's\ definition\ has\ declared\ itself\ to\ be\ an\ owner\ by}}
+\DoxyCodeLine{00570\ \textcolor{comment}{//\ declaring}}
+\DoxyCodeLine{00571\ \textcolor{comment}{//\ \ \ using\ absl\_internal\_is\_view\ =\ std::true\_type;}}
+\DoxyCodeLine{00572\ \textcolor{comment}{//\ as\ a\ member.}}
+\DoxyCodeLine{00573\ \textcolor{comment}{//\ Types\ that\ don't\ want\ either\ must\ either\ omit\ this\ declaration\ entirely,\ or}}
+\DoxyCodeLine{00574\ \textcolor{comment}{//\ (if\ e.g.\ inheriting\ from\ a\ base\ class)\ define\ the\ member\ to\ something\ that}}
+\DoxyCodeLine{00575\ \textcolor{comment}{//\ isn't\ a\ Boolean\ trait\ class,\ such\ as\ \`{}void`.}}
+\DoxyCodeLine{00576\ \textcolor{comment}{//\ Do\ not\ specialize\ or\ use\ this\ directly.\ It's\ an\ implementation\ detail.}}
+\DoxyCodeLine{00577\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00578\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsOwnerImpl}{IsOwnerImpl}}\ :\ std::false\_type\ \{}
+\DoxyCodeLine{00579\ \ \ \textcolor{keyword}{static\_assert}(std::is\_same<T,\ absl::remove\_cvref\_t<T>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00580\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}type\ must\ lack\ qualifiers"{}});}
+\DoxyCodeLine{00581\ \};}
+\DoxyCodeLine{00582\ }
+\DoxyCodeLine{00583\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00584\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsOwnerImpl}{IsOwnerImpl}}<}
+\DoxyCodeLine{00585\ \ \ \ \ T,}
+\DoxyCodeLine{00586\ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::\mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{enable\_if\_t}}<std::is\_class<typename\ T::absl\_internal\_is\_view>::value>>}
+\DoxyCodeLine{00587\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1negation}{absl::negation}}<typename\ T::absl\_internal\_is\_view>\ \{\};}
+\DoxyCodeLine{00588\ }
+\DoxyCodeLine{00589\ \textcolor{comment}{//\ A\ trait\ to\ determine\ whether\ a\ type\ is\ an\ owner.}}
+\DoxyCodeLine{00590\ \textcolor{comment}{//\ Do\ *not*\ depend\ on\ the\ correctness\ of\ this\ trait\ for\ correct\ code\ behavior.}}
+\DoxyCodeLine{00591\ \textcolor{comment}{//\ It\ is\ only\ a\ safety\ feature\ and\ its\ value\ may\ change\ in\ the\ future.}}
+\DoxyCodeLine{00592\ \textcolor{comment}{//\ Do\ not\ specialize\ this;\ instead,\ define\ the\ member\ trait\ inside\ your\ type\ so}}
+\DoxyCodeLine{00593\ \textcolor{comment}{//\ that\ it\ can\ be\ auto-\/detected,\ and\ to\ prevent\ ODR\ violations.}}
+\DoxyCodeLine{00594\ \textcolor{comment}{//\ If\ it\ ever\ becomes\ possible\ to\ detect\ [[gsl::Owner]],\ we\ should\ leverage\ it:}}
+\DoxyCodeLine{00595\ \textcolor{comment}{//\ https://wg21.link/p1179}}
+\DoxyCodeLine{00596\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00597\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsOwner}{IsOwner}}\ :\ \mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsOwnerImpl}{IsOwnerImpl}}<T>\ \{\};}
+\DoxyCodeLine{00598\ }
+\DoxyCodeLine{00599\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Traits,\ \textcolor{keyword}{typename}\ Alloc>}
+\DoxyCodeLine{00600\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsOwner}{IsOwner}}<\mbox{\hyperlink{namespacestd}{std}}::basic\_string<T,\ Traits,\ Alloc>>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00601\ }
+\DoxyCodeLine{00602\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ Alloc>}
+\DoxyCodeLine{00603\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsOwner}{IsOwner}}<\mbox{\hyperlink{namespacestd}{std}}::vector<T,\ Alloc>>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00604\ }
+\DoxyCodeLine{00605\ \textcolor{comment}{//\ Detects\ if\ a\ class's\ definition\ has\ declared\ itself\ to\ be\ a\ view\ by\ declaring}}
+\DoxyCodeLine{00606\ \textcolor{comment}{//\ \ \ using\ absl\_internal\_is\_view\ =\ std::true\_type;}}
+\DoxyCodeLine{00607\ \textcolor{comment}{//\ as\ a\ member.}}
+\DoxyCodeLine{00608\ \textcolor{comment}{//\ Do\ not\ specialize\ or\ use\ this\ directly.}}
+\DoxyCodeLine{00609\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00610\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsViewImpl}{IsViewImpl}}\ :\ std::false\_type\ \{}
+\DoxyCodeLine{00611\ \ \ \textcolor{keyword}{static\_assert}(std::is\_same<T,\ absl::remove\_cvref\_t<T>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00612\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}type\ must\ lack\ qualifiers"{}});}
+\DoxyCodeLine{00613\ \};}
+\DoxyCodeLine{00614\ }
+\DoxyCodeLine{00615\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00616\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsViewImpl}{IsViewImpl}}<}
+\DoxyCodeLine{00617\ \ \ \ \ T,}
+\DoxyCodeLine{00618\ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::\mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{enable\_if\_t}}<std::is\_class<typename\ T::absl\_internal\_is\_view>::value>>}
+\DoxyCodeLine{00619\ \ \ \ \ :\ T::absl\_internal\_is\_view\ \{\};}
+\DoxyCodeLine{00620\ }
+\DoxyCodeLine{00621\ \textcolor{comment}{//\ A\ trait\ to\ determine\ whether\ a\ type\ is\ a\ view.}}
+\DoxyCodeLine{00622\ \textcolor{comment}{//\ Do\ *not*\ depend\ on\ the\ correctness\ of\ this\ trait\ for\ correct\ code\ behavior.}}
+\DoxyCodeLine{00623\ \textcolor{comment}{//\ It\ is\ only\ a\ safety\ feature,\ and\ its\ value\ may\ change\ in\ the\ future.}}
+\DoxyCodeLine{00624\ \textcolor{comment}{//\ Do\ not\ specialize\ this\ trait.\ Instead,\ define\ the\ member}}
+\DoxyCodeLine{00625\ \textcolor{comment}{//\ \ \ using\ absl\_internal\_is\_view\ =\ std::true\_type;}}
+\DoxyCodeLine{00626\ \textcolor{comment}{//\ in\ your\ class\ to\ allow\ its\ detection\ while\ preventing\ ODR\ violations.}}
+\DoxyCodeLine{00627\ \textcolor{comment}{//\ If\ it\ ever\ becomes\ possible\ to\ detect\ [[gsl::Pointer]],\ we\ should\ leverage}}
+\DoxyCodeLine{00628\ \textcolor{comment}{//\ it:\ https://wg21.link/p1179}}
+\DoxyCodeLine{00629\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00630\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsView}{IsView}}\ :\ std::integral\_constant<bool,\ std::is\_pointer<T>::value\ ||}
+\DoxyCodeLine{00631\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ IsViewImpl<T>::value>\ \{\};}
+\DoxyCodeLine{00632\ }
+\DoxyCodeLine{00633\ \textcolor{preprocessor}{\#ifdef\ ABSL\_HAVE\_STD\_STRING\_VIEW}}
+\DoxyCodeLine{00634\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Char,\ \textcolor{keyword}{typename}\ Traits>}
+\DoxyCodeLine{00635\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1type__traits__internal_1_1IsView}{IsView}}<\mbox{\hyperlink{namespacestd}{std}}::basic\_string\_view<Char,\ Traits>>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00636\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00637\ }
+\DoxyCodeLine{00638\ \textcolor{preprocessor}{\#ifdef\ \_\_cpp\_lib\_span}}
+\DoxyCodeLine{00639\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00640\ \textcolor{keyword}{struct\ }IsView<\mbox{\hyperlink{namespacestd}{std}}::span<T>>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00641\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00642\ }
+\DoxyCodeLine{00643\ \textcolor{comment}{//\ Determines\ whether\ the\ assignment\ of\ the\ given\ types\ is\ lifetime-\/bound.}}
+\DoxyCodeLine{00644\ \textcolor{comment}{//\ Do\ *not*\ depend\ on\ the\ correctness\ of\ this\ trait\ for\ correct\ code\ behavior.}}
+\DoxyCodeLine{00645\ \textcolor{comment}{//\ It\ is\ only\ a\ safety\ feature\ and\ its\ value\ may\ change\ in\ the\ future.}}
+\DoxyCodeLine{00646\ \textcolor{comment}{//\ If\ it\ ever\ becomes\ possible\ to\ detect\ [[clang::lifetimebound]]\ directly,}}
+\DoxyCodeLine{00647\ \textcolor{comment}{//\ we\ should\ change\ the\ implementation\ to\ leverage\ that.}}
+\DoxyCodeLine{00648\ \textcolor{comment}{//\ Until\ then,\ we\ consider\ an\ assignment\ from\ an\ "{}owner"{}\ (such\ as\ std::string)}}
+\DoxyCodeLine{00649\ \textcolor{comment}{//\ to\ a\ "{}view"{}\ (such\ as\ std::string\_view)\ to\ be\ a\ lifetime-\/bound\ assignment.}}
+\DoxyCodeLine{00650\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U>}
+\DoxyCodeLine{00651\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1type__traits__internal_a46e9f00db65a8682ad1392b331c4a846}{IsLifetimeBoundAssignment}}\ =}
+\DoxyCodeLine{00652\ \ \ \ \ std::integral\_constant<bool,\ IsView<absl::remove\_cvref\_t<T>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ \&\&}
+\DoxyCodeLine{00653\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ IsOwner<absl::remove\_cvref\_t<U>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}>;}
+\DoxyCodeLine{00654\ }
+\DoxyCodeLine{00655\ \}\ \ \textcolor{comment}{//\ namespace\ type\_traits\_internal}}
+\DoxyCodeLine{00656\ }
+\DoxyCodeLine{00657\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00658\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00659\ }
+\DoxyCodeLine{00660\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_META\_TYPE\_TRAITS\_H\_}}
+
+\end{DoxyCode}

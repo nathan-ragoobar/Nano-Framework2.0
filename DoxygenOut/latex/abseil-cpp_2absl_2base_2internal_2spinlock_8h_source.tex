@@ -1,0 +1,281 @@
+\doxysection{spinlock.\+h}
+\hypertarget{abseil-cpp_2absl_2base_2internal_2spinlock_8h_source}{}\label{abseil-cpp_2absl_2base_2internal_2spinlock_8h_source}\index{abseil-\/cpp/absl/base/internal/spinlock.h@{abseil-\/cpp/absl/base/internal/spinlock.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2spinlock_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ \ Most\ users\ requiring\ mutual\ exclusion\ should\ use\ Mutex.}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ \ SpinLock\ is\ provided\ for\ use\ in\ two\ situations:}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ \ \ -\/\ for\ use\ by\ Abseil\ internal\ code\ that\ Mutex\ itself\ depends\ on}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ \ \ -\/\ for\ async\ signal\ safety\ (see\ below)}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ SpinLock\ with\ a\ base\_internal::SchedulingMode::SCHEDULE\_KERNEL\_ONLY\ is\ async}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ signal\ safe.\ If\ a\ spinlock\ is\ used\ within\ a\ signal\ handler,\ all\ code\ that}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ acquires\ the\ lock\ must\ ensure\ that\ the\ signal\ cannot\ arrive\ while\ they\ are}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ holding\ the\ lock.\ Typically,\ this\ is\ done\ by\ blocking\ the\ signal.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ Threads\ waiting\ on\ a\ SpinLock\ may\ be\ woken\ in\ an\ arbitrary\ order.}}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_SPINLOCK\_H\_}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_SPINLOCK\_H\_}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ "{}absl/base/const\_init.h"{}}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/base/dynamic\_annotations.h"{}}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/low\_level\_scheduling.h"{}}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/raw\_logging.h"{}}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/scheduling\_mode.h"{}}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/tsan\_mutex\_interface.h"{}}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ "{}absl/base/thread\_annotations.h"{}}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespacetcmalloc}{tcmalloc}}\ \{}
+\DoxyCodeLine{00045\ \textcolor{keyword}{namespace\ }tcmalloc\_internal\ \{}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{keyword}{class\ }AllocationGuardSpinLockHolder;}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \}\ \ \textcolor{comment}{//\ namespace\ tcmalloc\_internal}}
+\DoxyCodeLine{00050\ \}\ \ \textcolor{comment}{//\ namespace\ tcmalloc}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00053\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00054\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a474827525a05da25eeee625052e60f70}{ABSL\_LOCKABLE}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_abfa81c12e6bc7c07ec5002f0a690701f}{ABSL\_ATTRIBUTE\_WARN\_UNUSED}}\ SpinLock\ \{}
+\DoxyCodeLine{00057\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00058\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock_a9e8ca913df5d190b36d579a8340344f2}{SpinLock}}()\ :\ lockword\_(kSpinLockCooperative)\ \{}
+\DoxyCodeLine{00059\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2tsan__mutex__interface_8h_a499e37087989ad3dc690e3d95797ae47}{ABSL\_TSAN\_MUTEX\_CREATE}}(\textcolor{keyword}{this},\ \_\_tsan\_mutex\_not\_static);}
+\DoxyCodeLine{00060\ \ \ \}}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \textcolor{comment}{//\ Constructors\ that\ allow\ non-\/cooperative\ spinlocks\ to\ be\ created\ for\ use}}
+\DoxyCodeLine{00063\ \ \ \textcolor{comment}{//\ inside\ thread\ schedulers.\ \ Normal\ clients\ should\ not\ use\ these.}}
+\DoxyCodeLine{00064\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock}{SpinLock}}(\mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{base\_internal::SchedulingMode}}\ mode);}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ Constructor\ for\ global\ SpinLock\ instances.\ \ See\ absl/base/const\_init.h.}}
+\DoxyCodeLine{00067\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock_afe8eb2d6dd998da0f4bfffef2d94c196}{SpinLock}}(\mbox{\hyperlink{namespaceabsl_aa7e9ebe5aa2498d9d5d26823c49d0bfc}{absl::ConstInitType}},\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{base\_internal::SchedulingMode}}\ mode)}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ :\ lockword\_(IsCooperative(mode)\ ?\ kSpinLockCooperative\ :\ 0)\ \{\}}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//\ For\ global\ SpinLock\ instances\ prefer\ trivial\ destructor\ when\ possible.}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ Default\ but\ non-\/trivial\ destructor\ in\ some\ build\ configurations\ causes\ an}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ extra\ static\ initializer.}}
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\#ifdef\ ABSL\_INTERNAL\_HAVE\_TSAN\_INTERFACE}}
+\DoxyCodeLine{00074\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock}{\string~SpinLock}}()\ \{\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2tsan__mutex__interface_8h_afcd9010454415df8683e52cf95cc39f8}{ABSL\_TSAN\_MUTEX\_DESTROY}}(\textcolor{keyword}{this},\ \_\_tsan\_mutex\_not\_static);\ \}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00076\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock_ac3847d619dbd46bce9363d68e983a2c8}{\string~SpinLock}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00077\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \ \ \textcolor{comment}{//\ Acquire\ this\ SpinLock.}}
+\DoxyCodeLine{00080\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock_abfcd9ce207fddefecfce79a47230ed1b}{Lock}}()\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a5ef3265435b3866ea5028bb5d01ffab2}{ABSL\_EXCLUSIVE\_LOCK\_FUNCTION}}()\ \{}
+\DoxyCodeLine{00081\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2tsan__mutex__interface_8h_a4df5a9676ff70edd1291a1177fd68dfb}{ABSL\_TSAN\_MUTEX\_PRE\_LOCK}}(\textcolor{keyword}{this},\ 0);}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keywordflow}{if}\ (!TryLockImpl())\ \{}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ SlowLock();}
+\DoxyCodeLine{00084\ \ \ \ \ \}}
+\DoxyCodeLine{00085\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2tsan__mutex__interface_8h_a562c014af6ffb84a8f6ed725851dee59}{ABSL\_TSAN\_MUTEX\_POST\_LOCK}}(\textcolor{keyword}{this},\ 0,\ 0);}
+\DoxyCodeLine{00086\ \ \ \}}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ Try\ to\ acquire\ this\ SpinLock\ without\ blocking\ and\ return\ true\ if\ the}}
+\DoxyCodeLine{00089\ \ \ \textcolor{comment}{//\ acquisition\ was\ successful.\ \ If\ the\ lock\ was\ not\ acquired,\ false\ is}}
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ returned.\ \ If\ this\ SpinLock\ is\ free\ at\ the\ time\ of\ the\ call,\ TryLock}}
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ will\ return\ true\ with\ high\ probability.}}
+\DoxyCodeLine{00092\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock_a474e3fd8ff51d3c043cfd6cc9e0dbaa6}{TryLock}}()}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a3ee1068359639a2c82356da26ffaee9e}{ABSL\_EXCLUSIVE\_TRYLOCK\_FUNCTION}}(true)\ \{}
+\DoxyCodeLine{00094\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2tsan__mutex__interface_8h_a4df5a9676ff70edd1291a1177fd68dfb}{ABSL\_TSAN\_MUTEX\_PRE\_LOCK}}(\textcolor{keyword}{this},\ \_\_tsan\_mutex\_try\_lock);}
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keywordtype}{bool}\ res\ =\ TryLockImpl();}
+\DoxyCodeLine{00096\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2tsan__mutex__interface_8h_a562c014af6ffb84a8f6ed725851dee59}{ABSL\_TSAN\_MUTEX\_POST\_LOCK}}(}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \ \ \textcolor{keyword}{this},\ \_\_tsan\_mutex\_try\_lock\ |\ (res\ ?\ 0\ :\ \_\_tsan\_mutex\_try\_lock\_failed),}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ 0);}
+\DoxyCodeLine{00099\ \ \ \ \ \textcolor{keywordflow}{return}\ res;}
+\DoxyCodeLine{00100\ \ \ \}}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ Release\ this\ SpinLock,\ which\ must\ be\ held\ by\ the\ calling\ thread.}}
+\DoxyCodeLine{00103\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock_a9f67422fd4a434e07367048a9a394822}{Unlock}}()\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_af11c78a6616064e59a8938d4ff1f9d53}{ABSL\_UNLOCK\_FUNCTION}}()\ \{}
+\DoxyCodeLine{00104\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2tsan__mutex__interface_8h_a13436d6d9357f79d21f6cd898054a13f}{ABSL\_TSAN\_MUTEX\_PRE\_UNLOCK}}(\textcolor{keyword}{this},\ 0);}
+\DoxyCodeLine{00105\ \ \ \ \ uint32\_t\ lock\_value\ =\ lockword\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00106\ \ \ \ \ lock\_value\ =\ lockword\_.exchange(lock\_value\ \&\ kSpinLockCooperative,}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_release);}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ \ \ \textcolor{keywordflow}{if}\ ((lock\_value\ \&\ kSpinLockDisabledScheduling)\ !=\ 0)\ \{}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ base\_internal::SchedulingGuard::EnableRescheduling(\textcolor{keyword}{true});}
+\DoxyCodeLine{00111\ \ \ \ \ \}}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{keywordflow}{if}\ ((lock\_value\ \&\ kWaitTimeMask)\ !=\ 0)\ \{}
+\DoxyCodeLine{00113\ \ \ \ \ \ \ \textcolor{comment}{//\ Collect\ contentionz\ profile\ info,\ and\ speed\ the\ wakeup\ of\ any\ waiter.}}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \textcolor{comment}{//\ The\ wait\_cycles\ value\ indicates\ how\ long\ this\ thread\ spent\ waiting}}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \textcolor{comment}{//\ for\ the\ lock.}}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ SlowUnlock(lock\_value);}
+\DoxyCodeLine{00117\ \ \ \ \ \}}
+\DoxyCodeLine{00118\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2tsan__mutex__interface_8h_a1e216028e42cfb58420f2f54e1732814}{ABSL\_TSAN\_MUTEX\_POST\_UNLOCK}}(\textcolor{keyword}{this},\ 0);}
+\DoxyCodeLine{00119\ \ \ \}}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//\ Determine\ if\ the\ lock\ is\ held.\ \ When\ the\ lock\ is\ held\ by\ the\ invoking}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//\ thread,\ true\ will\ always\ be\ returned.\ Intended\ to\ be\ used\ as}}
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//\ CHECK(lock.IsHeld()).}}
+\DoxyCodeLine{00124\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock_a433a97d494a1914647b0cfc5016a74c0}{IsHeld}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keywordflow}{return}\ (lockword\_.load(std::memory\_order\_relaxed)\ \&\ kSpinLockHeld)\ !=\ 0;}
+\DoxyCodeLine{00126\ \ \ \}}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ Return\ immediately\ if\ this\ thread\ holds\ the\ SpinLock\ exclusively.}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ Otherwise,\ report\ an\ error\ by\ crashing\ with\ a\ diagnostic.}}
+\DoxyCodeLine{00130\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock_a30dbf1ec3ec9a93c8c88a98040bde863}{AssertHeld}}()\ const\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_ae9d145cdfc3acd26084e91cae9e46532}{ABSL\_ASSERT\_EXCLUSIVE\_LOCK}}()\ \{}
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keywordflow}{if}\ (!IsHeld())\ \{}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2raw__logging_8h_a08c96681b0c47d4a8242c96b6db6fd99}{ABSL\_RAW\_LOG}}(FATAL,\ \textcolor{stringliteral}{"{}thread\ should\ hold\ the\ lock\ on\ SpinLock"{}});}
+\DoxyCodeLine{00133\ \ \ \ \ \}}
+\DoxyCodeLine{00134\ \ \ \}}
+\DoxyCodeLine{00135\ }
+\DoxyCodeLine{00136\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00137\ \ \ \textcolor{comment}{//\ These\ should\ not\ be\ exported\ except\ for\ testing.}}
+\DoxyCodeLine{00138\ }
+\DoxyCodeLine{00139\ \ \ \textcolor{comment}{//\ Store\ number\ of\ cycles\ between\ wait\_start\_time\ and\ wait\_end\_time\ in\ a}}
+\DoxyCodeLine{00140\ \ \ \textcolor{comment}{//\ lock\ value.}}
+\DoxyCodeLine{00141\ \ \ \textcolor{keyword}{static}\ uint32\_t\ EncodeWaitCycles(int64\_t\ wait\_start\_time,}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ int64\_t\ wait\_end\_time);}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//\ Extract\ number\ of\ wait\ cycles\ in\ a\ lock\ value.}}
+\DoxyCodeLine{00145\ \ \ \textcolor{keyword}{static}\ int64\_t\ DecodeWaitCycles(uint32\_t\ lock\_value);}
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00147\ \ \ \textcolor{comment}{//\ Provide\ access\ to\ protected\ method\ above.\ \ Use\ for\ testing\ only.}}
+\DoxyCodeLine{00148\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1SpinLockTest}{SpinLockTest}};}
+\DoxyCodeLine{00149\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }tcmalloc::tcmalloc\_internal::AllocationGuardSpinLockHolder;}
+\DoxyCodeLine{00150\ }
+\DoxyCodeLine{00151\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00152\ \ \ \textcolor{comment}{//\ lockword\_\ is\ used\ to\ store\ the\ following:}}
+\DoxyCodeLine{00153\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00154\ \ \ \textcolor{comment}{//\ bit[0]\ encodes\ whether\ a\ lock\ is\ being\ held.}}
+\DoxyCodeLine{00155\ \ \ \textcolor{comment}{//\ bit[1]\ encodes\ whether\ a\ lock\ uses\ cooperative\ scheduling.}}
+\DoxyCodeLine{00156\ \ \ \textcolor{comment}{//\ bit[2]\ encodes\ whether\ the\ current\ lock\ holder\ disabled\ scheduling\ when}}
+\DoxyCodeLine{00157\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ acquiring\ the\ lock.\ Only\ set\ when\ kSpinLockHeld\ is\ also\ set.}}
+\DoxyCodeLine{00158\ \ \ \textcolor{comment}{//\ bit[3:31]\ encodes\ time\ a\ lock\ spent\ on\ waiting\ as\ a\ 29-\/bit\ unsigned\ int.}}
+\DoxyCodeLine{00159\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ This\ is\ set\ by\ the\ lock\ holder\ to\ indicate\ how\ long\ it\ waited\ on}}
+\DoxyCodeLine{00160\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ the\ lock\ before\ eventually\ acquiring\ it.\ The\ number\ of\ cycles\ is}}
+\DoxyCodeLine{00161\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ encoded\ as\ a\ 29-\/bit\ unsigned\ int,\ or\ in\ the\ case\ that\ the\ current}}
+\DoxyCodeLine{00162\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ holder\ did\ not\ wait\ but\ another\ waiter\ is\ queued,\ the\ LSB}}
+\DoxyCodeLine{00163\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ (kSpinLockSleeper)\ is\ set.\ The\ implementation\ does\ not\ explicitly}}
+\DoxyCodeLine{00164\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ track\ the\ number\ of\ queued\ waiters\ beyond\ this.\ It\ must\ always\ be}}
+\DoxyCodeLine{00165\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ assumed\ that\ waiters\ may\ exist\ if\ the\ current\ holder\ was\ required\ to}}
+\DoxyCodeLine{00166\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ queue.}}
+\DoxyCodeLine{00167\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00168\ \ \ \textcolor{comment}{//\ Invariant:\ if\ the\ lock\ is\ not\ held,\ the\ value\ is\ either\ 0\ or}}
+\DoxyCodeLine{00169\ \ \ \textcolor{comment}{//\ kSpinLockCooperative.}}
+\DoxyCodeLine{00170\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ uint32\_t\ kSpinLockHeld\ =\ 1;}
+\DoxyCodeLine{00171\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ uint32\_t\ kSpinLockCooperative\ =\ 2;}
+\DoxyCodeLine{00172\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ uint32\_t\ kSpinLockDisabledScheduling\ =\ 4;}
+\DoxyCodeLine{00173\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ uint32\_t\ kSpinLockSleeper\ =\ 8;}
+\DoxyCodeLine{00174\ \ \ \textcolor{comment}{//\ Includes\ kSpinLockSleeper.}}
+\DoxyCodeLine{00175\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ uint32\_t\ kWaitTimeMask\ =}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \string~(kSpinLockHeld\ |\ kSpinLockCooperative\ |\ kSpinLockDisabledScheduling);}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \ \ \textcolor{comment}{//\ Returns\ true\ if\ the\ provided\ scheduling\ mode\ is\ cooperative.}}
+\DoxyCodeLine{00179\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ IsCooperative(}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{base\_internal::SchedulingMode}}\ scheduling\_mode)\ \{}
+\DoxyCodeLine{00181\ \ \ \ \ \textcolor{keywordflow}{return}\ scheduling\_mode\ ==\ base\_internal::SCHEDULE\_COOPERATIVE\_AND\_KERNEL;}
+\DoxyCodeLine{00182\ \ \ \}}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \ \ \textcolor{keywordtype}{bool}\ IsCooperative()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00185\ \ \ \ \ \textcolor{keywordflow}{return}\ lockword\_.load(std::memory\_order\_relaxed)\ \&\ kSpinLockCooperative;}
+\DoxyCodeLine{00186\ \ \ \}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ uint32\_t\ TryLockInternal(uint32\_t\ lock\_value,\ uint32\_t\ wait\_cycles);}
+\DoxyCodeLine{00189\ \ \ \textcolor{keywordtype}{void}\ SlowLock()\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00190\ \ \ \textcolor{keywordtype}{void}\ SlowUnlock(uint32\_t\ lock\_value)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00191\ \ \ uint32\_t\ SpinLoop();}
+\DoxyCodeLine{00192\ }
+\DoxyCodeLine{00193\ \ \ inline\ \textcolor{keywordtype}{bool}\ TryLockImpl()\ \{}
+\DoxyCodeLine{00194\ \ \ \ \ uint32\_t\ lock\_value\ =\ lockword\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00195\ \ \ \ \ \textcolor{keywordflow}{return}\ (TryLockInternal(lock\_value,\ 0)\ \&\ kSpinLockHeld)\ ==\ 0;}
+\DoxyCodeLine{00196\ \ \ \}}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \ \ std::atomic<uint32\_t>\ lockword\_;}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \ \ SpinLock(\textcolor{keyword}{const}\ SpinLock\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00201\ \ \ SpinLock\&\ operator=(\textcolor{keyword}{const}\ SpinLock\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00202\ \};}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \textcolor{comment}{//\ Corresponding\ locker\ object\ that\ arranges\ to\ acquire\ a\ spinlock\ for}}
+\DoxyCodeLine{00205\ \textcolor{comment}{//\ the\ duration\ of\ a\ C++\ scope.}}
+\DoxyCodeLine{00206\ \textcolor{comment}{//}}
+\DoxyCodeLine{00207\ \textcolor{comment}{//\ TODO(b/176172494):\ Use\ only\ [[nodiscard]]\ when\ baseline\ is\ raised.}}
+\DoxyCodeLine{00208\ \textcolor{comment}{//\ TODO(b/6695610):\ Remove\ forward\ declaration\ when\ \#ifdef\ is\ no\ longer\ needed.}}
+\DoxyCodeLine{00209\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_CPP\_ATTRIBUTE(nodiscard)}}
+\DoxyCodeLine{00210\ \textcolor{keyword}{class\ }[[nodiscard]]\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ad84dd4072c84a571d9c702369504a6b4}{SpinLockHolder}};}
+\DoxyCodeLine{00211\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00212\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a26d208dd1c682c6412c46d8c470bbeb8}{ABSL\_ATTRIBUTE\_TRIVIAL\_ABI}}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLockHolder}{SpinLockHolder}};}
+\DoxyCodeLine{00213\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a0502f5f517fd77335dd2d5616e760475}{ABSL\_SCOPED\_LOCKABLE}}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLockHolder}{SpinLockHolder}}\ \{}
+\DoxyCodeLine{00216\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00217\ \ \ \textcolor{keyword}{inline}\ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLockHolder_aa9d8dcec63b7dcbb319f40d4df4a1012}{SpinLockHolder}}(\mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock}{SpinLock}}*\ l)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a5ef3265435b3866ea5028bb5d01ffab2}{ABSL\_EXCLUSIVE\_LOCK\_FUNCTION}}(l)}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ :\ lock\_(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00219\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}-\/>Lock();}
+\DoxyCodeLine{00220\ \ \ \}}
+\DoxyCodeLine{00221\ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLockHolder_a28441ae19f829711c8a8672600bbf606}{\string~SpinLockHolder}}()\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_af11c78a6616064e59a8938d4ff1f9d53}{ABSL\_UNLOCK\_FUNCTION}}()\ \{\ lock\_-\/>Unlock();\ \}}
+\DoxyCodeLine{00222\ }
+\DoxyCodeLine{00223\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLockHolder_a1ae444f973e8a7bc62dbf0e7eff0acc1}{SpinLockHolder}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLockHolder}{SpinLockHolder}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00224\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLockHolder}{SpinLockHolder}}\&\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLockHolder_aa69a5dc2092bfec4663d26eb533bb79c}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLockHolder}{SpinLockHolder}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00227\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock}{SpinLock}}*\ lock\_;}
+\DoxyCodeLine{00228\ \};}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00230\ \textcolor{comment}{//\ Register\ a\ hook\ for\ profiling\ support.}}
+\DoxyCodeLine{00231\ \textcolor{comment}{//}}
+\DoxyCodeLine{00232\ \textcolor{comment}{//\ The\ function\ pointer\ registered\ here\ will\ be\ called\ whenever\ a\ spinlock\ is}}
+\DoxyCodeLine{00233\ \textcolor{comment}{//\ contended.\ \ The\ callback\ is\ given\ an\ opaque\ handle\ to\ the\ contended\ spinlock}}
+\DoxyCodeLine{00234\ \textcolor{comment}{//\ and\ the\ number\ of\ wait\ cycles.\ \ This\ is\ thread-\/safe,\ but\ only\ a\ single}}
+\DoxyCodeLine{00235\ \textcolor{comment}{//\ profiler\ can\ be\ registered.\ \ It\ is\ an\ error\ to\ call\ this\ function\ multiple}}
+\DoxyCodeLine{00236\ \textcolor{comment}{//\ times\ with\ different\ arguments.}}
+\DoxyCodeLine{00237\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a2773aeb0b119b91e2d31a9d6f6948f9a}{RegisterSpinLockProfiler}}(\textcolor{keywordtype}{void}\ (*fn)(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ lock,}
+\DoxyCodeLine{00238\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ int64\_t\ wait\_cycles));}
+\DoxyCodeLine{00239\ }
+\DoxyCodeLine{00240\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00241\ \textcolor{comment}{//\ Public\ interface\ ends\ here.}}
+\DoxyCodeLine{00242\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \textcolor{comment}{//\ If\ (result\ \&\ kSpinLockHeld)\ ==\ 0,\ then\ *this\ was\ successfully\ locked.}}
+\DoxyCodeLine{00245\ \textcolor{comment}{//\ Otherwise,\ returns\ last\ observed\ value\ for\ lockword\_.}}
+\DoxyCodeLine{00246\ \textcolor{keyword}{inline}\ uint32\_t\ SpinLock::TryLockInternal(uint32\_t\ lock\_value,}
+\DoxyCodeLine{00247\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint32\_t\ wait\_cycles)\ \{}
+\DoxyCodeLine{00248\ \ \ \textcolor{keywordflow}{if}\ ((lock\_value\ \&\ kSpinLockHeld)\ !=\ 0)\ \{}
+\DoxyCodeLine{00249\ \ \ \ \ \textcolor{keywordflow}{return}\ lock\_value;}
+\DoxyCodeLine{00250\ \ \ \}}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00252\ \ \ uint32\_t\ sched\_disabled\_bit\ =\ 0;}
+\DoxyCodeLine{00253\ \ \ \textcolor{keywordflow}{if}\ ((lock\_value\ \&\ kSpinLockCooperative)\ ==\ 0)\ \{}
+\DoxyCodeLine{00254\ \ \ \ \ \textcolor{comment}{//\ For\ non-\/cooperative\ locks\ we\ must\ make\ sure\ we\ mark\ ourselves\ as}}
+\DoxyCodeLine{00255\ \ \ \ \ \textcolor{comment}{//\ non-\/reschedulable\ before\ we\ attempt\ to\ CompareAndSwap.}}
+\DoxyCodeLine{00256\ \ \ \ \ \textcolor{keywordflow}{if}\ (base\_internal::SchedulingGuard::DisableRescheduling())\ \{}
+\DoxyCodeLine{00257\ \ \ \ \ \ \ sched\_disabled\_bit\ =\ kSpinLockDisabledScheduling;}
+\DoxyCodeLine{00258\ \ \ \ \ \}}
+\DoxyCodeLine{00259\ \ \ \}}
+\DoxyCodeLine{00260\ }
+\DoxyCodeLine{00261\ \ \ \textcolor{keywordflow}{if}\ (!lockword\_.compare\_exchange\_strong(}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \ \ \ \ lock\_value,}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \ \ kSpinLockHeld\ |\ lock\_value\ |\ wait\_cycles\ |\ sched\_disabled\_bit,}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_acquire,\ std::memory\_order\_relaxed))\ \{}
+\DoxyCodeLine{00265\ \ \ \ \ base\_internal::SchedulingGuard::EnableRescheduling(sched\_disabled\_bit\ !=\ 0);}
+\DoxyCodeLine{00266\ \ \ \}}
+\DoxyCodeLine{00267\ }
+\DoxyCodeLine{00268\ \ \ \textcolor{keywordflow}{return}\ lock\_value;}
+\DoxyCodeLine{00269\ \}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00272\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00273\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00275\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_SPINLOCK\_H\_}}
+
+\end{DoxyCode}

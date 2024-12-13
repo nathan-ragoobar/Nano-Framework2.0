@@ -1,0 +1,293 @@
+\doxysection{pcg\+\_\+engine.\+h}
+\hypertarget{abseil-cpp_2absl_2random_2internal_2pcg__engine_8h_source}{}\label{abseil-cpp_2absl_2random_2internal_2pcg__engine_8h_source}\index{abseil-\/cpp/absl/random/internal/pcg\_engine.h@{abseil-\/cpp/absl/random/internal/pcg\_engine.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2random_2internal_2pcg__engine_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_RANDOM\_INTERNAL\_PCG\_ENGINE\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_RANDOM\_INTERNAL\_PCG\_ENGINE\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/numeric/bits.h"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/numeric/int128.h"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/random/internal/fastmath.h"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}absl/random/internal/iostream\_state\_saver.h"{}}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00028\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00029\ \textcolor{keyword}{namespace\ }random\_internal\ \{}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ pcg\_engine\ is\ a\ simplified\ implementation\ of\ Melissa\ O'Neil's\ PCG\ engine\ in}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ C++.\ \ PCG\ combines\ a\ linear\ congruential\ generator\ (LCG)\ with\ output\ state}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ mixing\ functions\ to\ generate\ each\ random\ variate.\ \ pcg\_engine\ supports\ only\ a}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ single\ sequence\ (oneseq),\ and\ does\ not\ support\ streams.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ pcg\_engine\ is\ parameterized\ by\ two\ types:}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ \ \ Params,\ which\ provides\ the\ multiplier\ and\ increment\ values;}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ \ \ Mix,\ which\ mixes\ the\ state\ into\ the\ result.}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//}}
+\DoxyCodeLine{00040\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Params,\ \textcolor{keyword}{typename}\ Mix>}
+\DoxyCodeLine{00041\ \textcolor{keyword}{class\ }pcg\_engine\ \{}
+\DoxyCodeLine{00042\ \ \ \textcolor{keyword}{static\_assert}(std::is\_same<\textcolor{keyword}{typename}\ Params::state\_type,}
+\DoxyCodeLine{00043\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ Mix::state\_type>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00044\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Class-\/template\ absl::pcg\_engine\ must\ be\ parameterized\ by\ "{}}}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Params\ and\ Mix\ with\ identical\ state\_type"{}});}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \ \ \textcolor{keyword}{static\_assert}(std::is\_unsigned<typename\ Mix::result\_type>::value,}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Class-\/template\ absl::pcg\_engine\ must\ be\ parameterized\ by\ "{}}}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}an\ unsigned\ Mix::result\_type"{}});}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \textcolor{keyword}{using\ }params\_type\ =\ Params;}
+\DoxyCodeLine{00052\ \ \ \textcolor{keyword}{using\ }mix\_type\ =\ Mix;}
+\DoxyCodeLine{00053\ \ \ \textcolor{keyword}{using\ }state\_type\ =\ \textcolor{keyword}{typename}\ Mix::state\_type;}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00056\ \ \ \textcolor{comment}{//\ C++11\ URBG\ interface:}}
+\DoxyCodeLine{00057\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a10066f1dce604a138c846996e3c9bf5a}{result\_type}}\ =\ \textcolor{keyword}{typename}\ Mix::result\_type;}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a10066f1dce604a138c846996e3c9bf5a}{result\_type}}(\mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a382ffa2ff9a9d4f0e9ccf58f2bac27ed}{min}})()\ \{}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordflow}{return}\ (std::numeric\_limits<result\_type>::min)();}
+\DoxyCodeLine{00061\ \ \ \}}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a10066f1dce604a138c846996e3c9bf5a}{result\_type}}(\mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a1aeb422f536ae86fe31ef68f520a4254}{max}})()\ \{}
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{keywordflow}{return}\ (std::numeric\_limits<result\_type>::max)();}
+\DoxyCodeLine{00065\ \ \ \}}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a583ff5c80ba873461dd5cebe6af7713d}{pcg\_engine}}(uint64\_t\ seed\_value\ =\ 0)\ \{\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a1f0ce1830d28cd848991a2d1546bca23}{seed}}(seed\_value);\ \}}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }SeedSequence,}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_same<SeedSequence,\ pcg\_engine>::value>>}
+\DoxyCodeLine{00072\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a35503819248bf9145111419ff8f33a94}{pcg\_engine}}(SeedSequence\&\&\ seq)\ \{}
+\DoxyCodeLine{00073\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a1f0ce1830d28cd848991a2d1546bca23}{seed}}(seq);}
+\DoxyCodeLine{00074\ \ \ \}}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a6b53754863557f5e2c106d74dd26298e}{pcg\_engine}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00077\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_ad235313af8a29b3f53d8f078e90b77fa}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00078\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_aa23abb12a09e9cc904c0638dba36e694}{pcg\_engine}}(\mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00079\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_aea2e3a8aa72aecb33c7df689b1e1f680}{operator=}}(\mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a10066f1dce604a138c846996e3c9bf5a}{result\_type}}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_aac6ee78f5ea9b138d743b1d7ca51a88d}{operator()}}()\ \{}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{comment}{//\ Advance\ the\ LCG\ state,\ always\ using\ the\ new\ value\ to\ generate\ the\ output.}}
+\DoxyCodeLine{00083\ \ \ \ \ state\_\ =\ lcg(state\_);}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordflow}{return}\ Mix\{\}(state\_);}
+\DoxyCodeLine{00085\ \ \ \}}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a1f0ce1830d28cd848991a2d1546bca23}{seed}}(uint64\_t\ seed\_value\ =\ 0)\ \{}
+\DoxyCodeLine{00088\ \ \ \ \ state\_type\ tmp\ =\ seed\_value;}
+\DoxyCodeLine{00089\ \ \ \ \ state\_\ =\ lcg(tmp\ +\ Params::increment());}
+\DoxyCodeLine{00090\ \ \ \}}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ SeedSequence>}
+\DoxyCodeLine{00093\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ !std::is\_convertible<SeedSequence,\ uint64\_t>::value,\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00095\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a96513200595d6abe4f72633661d04838}{seed}}(SeedSequence\&\&\ seq)\ \{}
+\DoxyCodeLine{00096\ \ \ \ \ reseed(seq);}
+\DoxyCodeLine{00097\ \ \ \}}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_a437a742bc355c26b384ffa67363884ce}{discard}}(uint64\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\ \{\ state\_\ =\ advance(state\_,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}});\ \}}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_af315cd1baa6ba1f097fcbfe8f270e48b}{operator==}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\ other)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{keywordflow}{return}\ state\_\ ==\ other.state\_;}
+\DoxyCodeLine{00103\ \ \ \}}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine_ab83c3d4c3793e3604818d7722ea07aa2}{operator!=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\ other)\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ !(*\textcolor{keyword}{this}\ ==\ other);\ \}}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ CharT,\ \textcolor{keyword}{class}\ Traits>}
+\DoxyCodeLine{00108\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<(\textcolor{keyword}{sizeof}(state\_type)\ ==\ 16),}
+\DoxyCodeLine{00109\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::basic\_ostream<CharT,\ Traits>\&>}
+\DoxyCodeLine{00110\ \ \ \textcolor{keyword}{operator}<<(}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ std::basic\_ostream<CharT,\ Traits>\&\ os,\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\ engine)\ \{}
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{keyword}{auto}\ saver\ =\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a04da1d5318d386d8186b77635581772e}{random\_internal::make\_ostream\_state\_saver}}(os);}
+\DoxyCodeLine{00114\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1random__internal_1_1stream__u128__helper}{random\_internal::stream\_u128\_helper<state\_type>}}\ helper;}
+\DoxyCodeLine{00115\ \ \ \ \ helper.write(pcg\_engine::params\_type::multiplier(),\ os);}
+\DoxyCodeLine{00116\ \ \ \ \ os\ <<\ os.fill();}
+\DoxyCodeLine{00117\ \ \ \ \ helper.write(pcg\_engine::params\_type::increment(),\ os);}
+\DoxyCodeLine{00118\ \ \ \ \ os\ <<\ os.fill();}
+\DoxyCodeLine{00119\ \ \ \ \ helper.write(engine.state\_,\ os);}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keywordflow}{return}\ os;}
+\DoxyCodeLine{00121\ \ \ \}}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ CharT,\ \textcolor{keyword}{class}\ Traits>}
+\DoxyCodeLine{00124\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<(\textcolor{keyword}{sizeof}(state\_type)\ <=\ 8),}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::basic\_ostream<CharT,\ Traits>\&>}
+\DoxyCodeLine{00126\ \ \ \textcolor{keyword}{operator}<<(}
+\DoxyCodeLine{00127\ \ \ \ \ \ \ std::basic\_ostream<CharT,\ Traits>\&\ os,\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00128\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\ engine)\ \{}
+\DoxyCodeLine{00129\ \ \ \ \ \textcolor{keyword}{auto}\ saver\ =\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a04da1d5318d386d8186b77635581772e}{random\_internal::make\_ostream\_state\_saver}}(os);}
+\DoxyCodeLine{00130\ \ \ \ \ os\ <<\ pcg\_engine::params\_type::multiplier()\ <<\ os.fill();}
+\DoxyCodeLine{00131\ \ \ \ \ os\ <<\ pcg\_engine::params\_type::increment()\ <<\ os.fill();}
+\DoxyCodeLine{00132\ \ \ \ \ os\ <<\ engine.state\_;}
+\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keywordflow}{return}\ os;}
+\DoxyCodeLine{00134\ \ \ \}}
+\DoxyCodeLine{00135\ }
+\DoxyCodeLine{00136\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ CharT,\ \textcolor{keyword}{class}\ Traits>}
+\DoxyCodeLine{00137\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<(\textcolor{keyword}{sizeof}(state\_type)\ ==\ 16),}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::basic\_istream<CharT,\ Traits>\&>}
+\DoxyCodeLine{00139\ \ \ \textcolor{keyword}{operator}>>(}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ std::basic\_istream<CharT,\ Traits>\&\ is,\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\ engine)\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00142\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1random__internal_1_1stream__u128__helper}{random\_internal::stream\_u128\_helper<state\_type>}}\ helper;}
+\DoxyCodeLine{00143\ \ \ \ \ \textcolor{keyword}{auto}\ mult\ =\ helper.read(is);}
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{keyword}{auto}\ inc\ =\ helper.read(is);}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keyword}{auto}\ tmp\ =\ helper.read(is);}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keywordflow}{if}\ (mult\ !=\ pcg\_engine::params\_type::multiplier()\ ||}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ inc\ !=\ pcg\_engine::params\_type::increment())\ \{}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \textcolor{comment}{//\ signal\ failure\ by\ setting\ the\ failbit.}}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ is.setstate(is.rdstate()\ |\ std::ios\_base::failbit);}
+\DoxyCodeLine{00150\ \ \ \ \ \}}
+\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keywordflow}{if}\ (!is.fail())\ \{}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ engine.state\_\ =\ tmp;}
+\DoxyCodeLine{00153\ \ \ \ \ \}}
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{keywordflow}{return}\ is;}
+\DoxyCodeLine{00155\ \ \ \}}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ CharT,\ \textcolor{keyword}{class}\ Traits>}
+\DoxyCodeLine{00158\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<(\textcolor{keyword}{sizeof}(state\_type)\ <=\ 8),}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::basic\_istream<CharT,\ Traits>\&>}
+\DoxyCodeLine{00160\ \ \ \textcolor{keyword}{operator}>>(}
+\DoxyCodeLine{00161\ \ \ \ \ \ \ std::basic\_istream<CharT,\ Traits>\&\ is,\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}\&\ engine)\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00163\ \ \ \ \ state\_type\ mult\{\},\ inc\{\},\ tmp\{\};}
+\DoxyCodeLine{00164\ \ \ \ \ is\ >>\ mult\ >>\ inc\ >>\ tmp;}
+\DoxyCodeLine{00165\ \ \ \ \ \textcolor{keywordflow}{if}\ (mult\ !=\ pcg\_engine::params\_type::multiplier()\ ||}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \ \ inc\ !=\ pcg\_engine::params\_type::increment())\ \{}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \textcolor{comment}{//\ signal\ failure\ by\ setting\ the\ failbit.}}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ is.setstate(is.rdstate()\ |\ std::ios\_base::failbit);}
+\DoxyCodeLine{00169\ \ \ \ \ \}}
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{keywordflow}{if}\ (!is.fail())\ \{}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ engine.state\_\ =\ tmp;}
+\DoxyCodeLine{00172\ \ \ \ \ \}}
+\DoxyCodeLine{00173\ \ \ \ \ \textcolor{keywordflow}{return}\ is;}
+\DoxyCodeLine{00174\ \ \ \}}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00177\ \ \ state\_type\ state\_;}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \ \ \textcolor{comment}{//\ Returns\ the\ linear-\/congruential\ generator\ next\ state.}}
+\DoxyCodeLine{00180\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ state\_type\ lcg(state\_type\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \{}
+\DoxyCodeLine{00181\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ *\ Params::multiplier()\ +\ Params::increment();}
+\DoxyCodeLine{00182\ \ \ \}}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \ \ \textcolor{comment}{//\ Returns\ the\ linear-\/congruential\ arbitrary\ seek\ state.}}
+\DoxyCodeLine{00185\ \ \ \textcolor{keyword}{inline}\ state\_type\ advance(state\_type\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ uint64\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00186\ \ \ \ \ state\_type\ mult\ =\ Params::multiplier();}
+\DoxyCodeLine{00187\ \ \ \ \ state\_type\ inc\ =\ Params::increment();}
+\DoxyCodeLine{00188\ \ \ \ \ state\_type\ m\ =\ 1;}
+\DoxyCodeLine{00189\ \ \ \ \ state\_type\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ 0;}
+\DoxyCodeLine{00190\ \ \ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ >\ 0)\ \{}
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ \&\ 1)\ \{}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ \ \ m\ *=\ mult;}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ *\ mult\ +\ inc;}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ inc\ =\ (mult\ +\ 1)\ *\ inc;}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ mult\ *=\ mult;}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ >>=\ 1;}
+\DoxyCodeLine{00198\ \ \ \ \ \}}
+\DoxyCodeLine{00199\ \ \ \ \ \textcolor{keywordflow}{return}\ m\ *\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ +\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}};}
+\DoxyCodeLine{00200\ \ \ \}}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ SeedSequence>}
+\DoxyCodeLine{00203\ \ \ \textcolor{keywordtype}{void}\ reseed(SeedSequence\&\ seq)\ \{}
+\DoxyCodeLine{00204\ \ \ \ \ \textcolor{keyword}{using\ }sequence\_result\_type\ =\ \textcolor{keyword}{typename}\ SeedSequence::result\_type;}
+\DoxyCodeLine{00205\ \ \ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ kBufferSize\ =}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}(state\_type)\ /\ \textcolor{keyword}{sizeof}(sequence\_result\_type);}
+\DoxyCodeLine{00207\ \ \ \ \ sequence\_result\_type\ buffer[kBufferSize];}
+\DoxyCodeLine{00208\ \ \ \ \ seq.generate(std::begin(buffer),\ std::end(buffer));}
+\DoxyCodeLine{00209\ \ \ \ \ \textcolor{comment}{//\ Convert\ the\ seed\ output\ to\ a\ single\ state\ value.}}
+\DoxyCodeLine{00210\ \ \ \ \ state\_type\ tmp\ =\ buffer[0];}
+\DoxyCodeLine{00211\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ 1;\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ <\ kBufferSize;\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}++)\ \{}
+\DoxyCodeLine{00212\ \ \ \ \ \ \ tmp\ <<=\ (\textcolor{keyword}{sizeof}(sequence\_result\_type)\ *\ 8);}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ tmp\ |=\ buffer[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}];}
+\DoxyCodeLine{00214\ \ \ \ \ \}}
+\DoxyCodeLine{00215\ \ \ \ \ state\_\ =\ lcg(tmp\ +\ params\_type::increment());}
+\DoxyCodeLine{00216\ \ \ \}}
+\DoxyCodeLine{00217\ \};}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \textcolor{comment}{//\ Parameterized\ implementation\ of\ the\ PCG\ 128-\/bit\ oneseq\ state.}}
+\DoxyCodeLine{00220\ \textcolor{comment}{//\ This\ provides\ state\_type,\ multiplier,\ and\ increment\ for\ pcg\_engine.}}
+\DoxyCodeLine{00221\ \textcolor{keyword}{template}\ <u\textcolor{keywordtype}{int}64\_t\ kMultA,\ u\textcolor{keywordtype}{int}64\_t\ kMultB,\ u\textcolor{keywordtype}{int}64\_t\ kIncA,\ u\textcolor{keywordtype}{int}64\_t\ kIncB>}
+\DoxyCodeLine{00222\ \textcolor{keyword}{class\ }pcg128\_params\ \{}
+\DoxyCodeLine{00223\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00224\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1uint128}{state\_type}}\ =\ \mbox{\hyperlink{classabsl_1_1uint128}{absl::uint128}};}
+\DoxyCodeLine{00225\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1uint128}{state\_type}}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg128__params_ac7b82286aa98ea8b0181855334e65107}{multiplier}}()\ \{}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a5b8cd59a1fb92b2337309c494ce5a35a}{absl::MakeUint128}}(kMultA,\ kMultB);}
+\DoxyCodeLine{00227\ \ \ \}}
+\DoxyCodeLine{00228\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1uint128}{state\_type}}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg128__params_a063ae5a984fe336df60f91d99cf9acf1}{increment}}()\ \{}
+\DoxyCodeLine{00229\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a5b8cd59a1fb92b2337309c494ce5a35a}{absl::MakeUint128}}(kIncA,\ kIncB);}
+\DoxyCodeLine{00230\ \ \ \}}
+\DoxyCodeLine{00231\ \};}
+\DoxyCodeLine{00232\ }
+\DoxyCodeLine{00233\ \textcolor{comment}{//\ Implementation\ of\ the\ PCG\ xsl\_rr\_128\_64\ 128-\/bit\ mixing\ function,\ which}}
+\DoxyCodeLine{00234\ \textcolor{comment}{//\ accepts\ an\ input\ of\ state\_type\ and\ mixes\ it\ into\ an\ output\ of\ result\_type.}}
+\DoxyCodeLine{00235\ \textcolor{keyword}{struct\ }pcg\_xsl\_rr\_128\_64\ \{}
+\DoxyCodeLine{00236\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1uint128}{state\_type}}\ =\ \mbox{\hyperlink{classabsl_1_1uint128}{absl::uint128}};}
+\DoxyCodeLine{00237\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1pcg__xsl__rr__128__64_aea3e9ebd6df3cd6430a21110ed24d0d2}{result\_type}}\ =\ uint64\_t;}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \ \ \textcolor{keyword}{inline}\ uint64\_t\ \mbox{\hyperlink{structabsl_1_1random__internal_1_1pcg__xsl__rr__128__64_a8783b3ac69a23d3e51c639dd294d80c2}{operator()}}(\mbox{\hyperlink{classabsl_1_1uint128}{state\_type}}\ state)\ \{}
+\DoxyCodeLine{00240\ \ \ \ \ \textcolor{comment}{//\ This\ is\ equivalent\ to\ the\ xsl\_rr\_128\_64\ mixing\ function.}}
+\DoxyCodeLine{00241\ \ \ \ \ uint64\_t\ rotate\ =\ \textcolor{keyword}{static\_cast<}uint64\_t\textcolor{keyword}{>}(state\ >>\ 122u);}
+\DoxyCodeLine{00242\ \ \ \ \ state\ \string^=\ state\ >>\ 64;}
+\DoxyCodeLine{00243\ \ \ \ \ uint64\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ \textcolor{keyword}{static\_cast<}uint64\_t\textcolor{keyword}{>}(state);}
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_aa8ce76d694d684fd667c5d2fa1edd455}{rotr}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(rotate));}
+\DoxyCodeLine{00245\ \ \ \}}
+\DoxyCodeLine{00246\ \};}
+\DoxyCodeLine{00247\ }
+\DoxyCodeLine{00248\ \textcolor{comment}{//\ Parameterized\ implementation\ of\ the\ PCG\ 64-\/bit\ oneseq\ state.}}
+\DoxyCodeLine{00249\ \textcolor{comment}{//\ This\ provides\ state\_type,\ multiplier,\ and\ increment\ for\ pcg\_engine.}}
+\DoxyCodeLine{00250\ \textcolor{keyword}{template}\ <u\textcolor{keywordtype}{int}64\_t\ kMult,\ u\textcolor{keywordtype}{int}64\_t\ kInc>}
+\DoxyCodeLine{00251\ \textcolor{keyword}{class\ }pcg64\_params\ \{}
+\DoxyCodeLine{00252\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00253\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg64__params_a9a2eac685ee9aee63c381247706ce8d5}{state\_type}}\ =\ uint64\_t;}
+\DoxyCodeLine{00254\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg64__params_a9a2eac685ee9aee63c381247706ce8d5}{state\_type}}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg64__params_a8685921bc4df61c42e2eca478ba597d4}{multiplier}}()\ \{\ \textcolor{keywordflow}{return}\ kMult;\ \}}
+\DoxyCodeLine{00255\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg64__params_a9a2eac685ee9aee63c381247706ce8d5}{state\_type}}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg64__params_a4b49456926cfe8d72441d2d3beb5475b}{increment}}()\ \{\ \textcolor{keywordflow}{return}\ kInc;\ \}}
+\DoxyCodeLine{00256\ \};}
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00258\ \textcolor{comment}{//\ Implementation\ of\ the\ PCG\ xsh\_rr\_64\_32\ 64-\/bit\ mixing\ function,\ which\ accepts}}
+\DoxyCodeLine{00259\ \textcolor{comment}{//\ an\ input\ of\ state\_type\ and\ mixes\ it\ into\ an\ output\ of\ result\_type.}}
+\DoxyCodeLine{00260\ \textcolor{keyword}{struct\ }pcg\_xsh\_rr\_64\_32\ \{}
+\DoxyCodeLine{00261\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1pcg__xsh__rr__64__32_a78d3b660f1a8afd11f0de5210f9cad59}{state\_type}}\ =\ uint64\_t;}
+\DoxyCodeLine{00262\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1pcg__xsh__rr__64__32_ac3628b9016ebd36682f65f6606776b3d}{result\_type}}\ =\ uint32\_t;}
+\DoxyCodeLine{00263\ \ \ \textcolor{keyword}{inline}\ uint32\_t\ \mbox{\hyperlink{structabsl_1_1random__internal_1_1pcg__xsh__rr__64__32_a3d07bc7849122c29b615adff5400f65e}{operator()}}(uint64\_t\ state)\ \{}
+\DoxyCodeLine{00264\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_aa8ce76d694d684fd667c5d2fa1edd455}{rotr}}(\textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(((state\ >>\ 18)\ \string^\ state)\ >>\ 27),}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ state\ >>\ 59);}
+\DoxyCodeLine{00266\ \ \ \}}
+\DoxyCodeLine{00267\ \};}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00269\ \textcolor{comment}{//\ Stable\ pcg\_engine\ implementations:}}
+\DoxyCodeLine{00270\ \textcolor{comment}{//\ This\ is\ a\ 64-\/bit\ generator\ using\ 128-\/bits\ of\ state.}}
+\DoxyCodeLine{00271\ \textcolor{comment}{//\ The\ output\ sequence\ is\ equivalent\ to\ Melissa\ O'Neil's\ pcg64\_oneseq.}}
+\DoxyCodeLine{00272\ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg64\_2018\_engine}}\ =\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}<}
+\DoxyCodeLine{00273\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg128__params}{random\_internal::pcg128\_params}}<0x2360ed051fc65da4ull,\ 0x4385df649fccf645ull,}
+\DoxyCodeLine{00274\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 0x5851f42d4c957f2d,\ 0x14057b7ef767814f>,}
+\DoxyCodeLine{00275\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1random__internal_1_1pcg__xsl__rr__128__64}{random\_internal::pcg\_xsl\_rr\_128\_64}}>;}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00277\ \textcolor{comment}{//\ This\ is\ a\ 32-\/bit\ generator\ using\ 64-\/bits\ of\ state.}}
+\DoxyCodeLine{00278\ \textcolor{comment}{//\ This\ is\ equivalent\ to\ Melissa\ O'Neil's\ pcg32\_oneseq.}}
+\DoxyCodeLine{00279\ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg32\_2018\_engine}}\ =\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg__engine}{pcg\_engine}}<}
+\DoxyCodeLine{00280\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1pcg64__params}{random\_internal::pcg64\_params<0x5851f42d4c957f2dull,\ 0x14057b7ef767814full>}},}
+\DoxyCodeLine{00281\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1random__internal_1_1pcg__xsh__rr__64__32}{random\_internal::pcg\_xsh\_rr\_64\_32}}>;}
+\DoxyCodeLine{00282\ }
+\DoxyCodeLine{00283\ \}\ \ \textcolor{comment}{//\ namespace\ random\_internal}}
+\DoxyCodeLine{00284\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00285\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00287\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_RANDOM\_INTERNAL\_PCG\_ENGINE\_H\_}}
+
+\end{DoxyCode}

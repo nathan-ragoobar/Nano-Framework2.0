@@ -1,0 +1,281 @@
+\doxysection{hashtablez\+\_\+sampler.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2hashtablez__sampler_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2hashtablez__sampler_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/container/internal/hashtablez\_sampler.h@{OriginalStuff/abseil-\/cpp/absl/container/internal/hashtablez\_sampler.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2hashtablez__sampler_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ hashtablez\_sampler.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ header\ file\ defines\ the\ API\ for\ a\ low\ level\ library\ to\ sample\ hashtables}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ and\ collect\ runtime\ statistics\ about\ them.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ \`{}HashtablezSampler`\ controls\ the\ lifecycle\ of\ \`{}HashtablezInfo`\ objects\ which}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ store\ information\ about\ a\ single\ sample.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ \`{}Record*`\ methods\ store\ information\ into\ samples.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ \`{}Sample()`\ and\ \`{}Unsample()`\ make\ use\ of\ a\ single\ global\ sampler\ with}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ properties\ controlled\ by\ the\ flags\ hashtablez\_enabled,}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ hashtablez\_sample\_rate,\ and\ hashtablez\_max\_samples.}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ WARNING}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ Using\ this\ sampling\ API\ may\ cause\ sampled\ Swiss\ tables\ to\ use\ the\ global}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ allocator\ (operator\ \`{}new`)\ in\ addition\ to\ any\ custom\ allocator.\ \ If\ you}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ are\ using\ a\ table\ in\ an\ unusual\ circumstance\ where\ allocation\ or\ calling\ a}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ linux\ syscall\ is\ unacceptable,\ this\ could\ interfere.}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ This\ utility\ is\ internal-\/only.\ Use\ at\ your\ own\ risk.}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CONTAINER\_INTERNAL\_HASHTABLEZ\_SAMPLER\_H\_}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ ABSL\_CONTAINER\_INTERNAL\_HASHTABLEZ\_SAMPLER\_H\_}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/per\_thread\_tls.h"{}}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#include\ "{}absl/base/thread\_annotations.h"{}}}
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#include\ "{}absl/profiling/internal/sample\_recorder.h"{}}}
+\DoxyCodeLine{00055\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/mutex.h"{}}}
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#include\ "{}absl/time/time.h"{}}}
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#include\ "{}absl/utility/utility.h"{}}}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00060\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00061\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ Stores\ information\ about\ a\ sampled\ hashtable.\ \ All\ mutations\ to\ this\ *must*}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ be\ made\ through\ \`{}Record*`\ functions\ below.\ \ All\ reads\ from\ this\ *must*\ only}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ occur\ in\ the\ callback\ to\ \`{}HashtablezSampler::Iterate`.}}
+\DoxyCodeLine{00066\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{structabsl_1_1profiling__internal_1_1Sample}{profiling\_internal::Sample}}<HashtablezInfo>\ \{}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ Constructs\ the\ object\ but\ does\ not\ fill\ in\ any\ fields.}}
+\DoxyCodeLine{00068\ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_ad0e87f65b1f4578ad9ce8d621f0f126c}{HashtablezInfo}}();}
+\DoxyCodeLine{00069\ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_ad4a2af6e13c90d1c7e6b88b44aa604af}{\string~HashtablezInfo}}();}
+\DoxyCodeLine{00070\ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a7abead7f6b7a897c2b80f843241bcde2}{HashtablezInfo}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00071\ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}\&\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a4a5d52b756fbc155f39c843bca41dc19}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ Puts\ the\ object\ into\ a\ clean\ state,\ fills\ in\ the\ logically\ \`{}const`\ members,}}
+\DoxyCodeLine{00074\ \ \ \textcolor{comment}{//\ blocking\ for\ any\ readers\ that\ are\ currently\ sampling\ the\ object.}}
+\DoxyCodeLine{00075\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a029fede0baa89371ecafad44bee767d6}{PrepareForSampling}}(int64\_t\ stride,\ \textcolor{keywordtype}{size\_t}\ inline\_element\_size\_value,}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_afb65e758c7bfe33e2e86760ac0a19bce}{key\_size}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a5d5572393d1a401ce0e19cdeb3bdabc4}{value\_size}},}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint16\_t\ soo\_capacity\_value)}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a13508dba116715784486cd4149128855}{ABSL\_EXCLUSIVE\_LOCKS\_REQUIRED}}(\mbox{\hyperlink{structabsl_1_1profiling__internal_1_1Sample_ae96d051477a60152f431f8178e664e19}{init\_mu}});}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ These\ fields\ are\ mutated\ by\ the\ various\ Record*\ APIs\ and\ need\ to\ be}}
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ thread-\/safe.}}
+\DoxyCodeLine{00082\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a0a6488c022806dfe9e4ad977ff35a745}{capacity}};}
+\DoxyCodeLine{00083\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_afef91ee080cc3afd02c07fdda6aa546d}{size}};}
+\DoxyCodeLine{00084\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_af72ad6ce8f69427522c22960823c36cc}{num\_erases}};}
+\DoxyCodeLine{00085\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a7a5f561ab3a204a07de468935bf35e3b}{num\_rehashes}};}
+\DoxyCodeLine{00086\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a9b72baf73fd0657e653e4068c20c1005}{max\_probe\_length}};}
+\DoxyCodeLine{00087\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_ae4a954243687bb604bb6223856e561e4}{total\_probe\_length}};}
+\DoxyCodeLine{00088\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a70d19555ce710d0e3eca201ad138f6e0}{hashes\_bitwise\_or}};}
+\DoxyCodeLine{00089\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_aba881ddd0f8f307c71457a55cf072f2e}{hashes\_bitwise\_and}};}
+\DoxyCodeLine{00090\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a747e262eb46b91ebcdc6d601c6ab6fb9}{hashes\_bitwise\_xor}};}
+\DoxyCodeLine{00091\ \ \ std::atomic<size\_t>\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_ab743d96aa3e12bb9a0387e52385d2c4c}{max\_reserve}};}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \ \ \textcolor{comment}{//\ All\ of\ the\ fields\ below\ are\ set\ by\ \`{}PrepareForSampling`,\ they\ must\ not\ be}}
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//\ mutated\ in\ \`{}Record*`\ functions.\ \ They\ are\ logically\ \`{}const`\ in\ that\ sense.}}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//\ These\ are\ guarded\ by\ init\_mu,\ but\ that\ is\ not\ externalized\ to\ clients,}}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//\ which\ can\ read\ them\ only\ during\ \`{}SampleRecorder::Iterate`\ which\ will\ hold}}
+\DoxyCodeLine{00097\ \ \ \textcolor{comment}{//\ the\ lock.}}
+\DoxyCodeLine{00098\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a561ab1c54a35c02606576f384512b548}{kMaxStackDepth}}\ =\ 64;}
+\DoxyCodeLine{00099\ \ \ \mbox{\hyperlink{classabsl_1_1Time}{absl::Time}}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_af99acae0d6a81e7f078945db5a01a006}{create\_time}};}
+\DoxyCodeLine{00100\ \ \ int32\_t\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_ada71228b5d1f95962f49cb448c3a33e0}{depth}};}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ The\ SOO\ capacity\ for\ this\ table\ in\ elements\ (not\ bytes).\ Note\ that\ sampled}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ tables\ are\ never\ SOO\ because\ we\ need\ to\ store\ the\ infoz\ handle\ on\ the\ heap.}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ Tables\ that\ would\ be\ SOO\ if\ not\ sampled\ should\ have:\ soo\_capacity\ >\ 0\ \&\&}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ size\ <=\ soo\_capacity\ \&\&\ max\_reserve\ <=\ soo\_capacity.}}
+\DoxyCodeLine{00105\ \ \ uint16\_t\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_acfc34b14c64b0d5d29757c7ecd2964f4}{soo\_capacity}};}
+\DoxyCodeLine{00106\ \ \ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_ae45c34e0ec50d02472c7749534420331}{stack}}[\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a561ab1c54a35c02606576f384512b548}{kMaxStackDepth}}];}
+\DoxyCodeLine{00107\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_ae1fe92eddd55902c562465febec136d6}{inline\_element\_size}};\ \ \textcolor{comment}{//\ How\ big\ is\ the\ slot\ in\ bytes?}}
+\DoxyCodeLine{00108\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_afb65e758c7bfe33e2e86760ac0a19bce}{key\_size}};\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ sizeof(key\_type)}}
+\DoxyCodeLine{00109\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo_a5d5572393d1a401ce0e19cdeb3bdabc4}{value\_size}};\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ sizeof(value\_type)}}
+\DoxyCodeLine{00110\ \};}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a5ed328d81373e3fc0ec65bd32b76ad38}{RecordRehashSlow}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}*\ info,\ \textcolor{keywordtype}{size\_t}\ total\_probe\_length);}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00114\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a613a50ece10e3a09c85e5a033e3c38ac}{RecordReservationSlow}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}*\ info,\ \textcolor{keywordtype}{size\_t}\ target\_capacity);}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a7e8439af5a4a566f973f419cbd0970c2}{RecordClearedReservationSlow}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}*\ info);}
+\DoxyCodeLine{00117\ }
+\DoxyCodeLine{00118\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_ad4eb9bfff087a5587d85f9c5dd8d5d95}{RecordStorageChangedSlow}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}*\ info,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}},}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ capacity);}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00121\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_abf50ab91eb5fcef9eb36cf99b1bd759f}{RecordInsertSlow}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}*\ info,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2hash__function__defaults__test_8cc_ae77f29aca59793a0cd8df5ad02220b8b}{hash}},}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ distance\_from\_desired);}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a1476155d97c29c62884facf29d2f1ac5}{RecordEraseSlow}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}*\ info);}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1SamplingState}{SamplingState}}\ \{}
+\DoxyCodeLine{00127\ \ \ int64\_t\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1SamplingState_a84134070a7b1bb3622614d2656f82291}{next\_sample}};}
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ When\ we\ make\ a\ sampling\ decision,\ we\ record\ that\ distance\ so\ we\ can\ weight}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ each\ sample.}}
+\DoxyCodeLine{00130\ \ \ int64\_t\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1SamplingState_a527d89cbb7558b7dba84acff98848c1b}{sample\_stride}};}
+\DoxyCodeLine{00131\ \};}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}*\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a26b62cac5aef18a8760b36cee11a224d}{SampleSlow}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1SamplingState}{SamplingState}}\&\ next\_sample,}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ inline\_element\_size,\ \textcolor{keywordtype}{size\_t}\ key\_size,}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ value\_size,\ uint16\_t\ soo\_capacity);}
+\DoxyCodeLine{00136\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a191dfb25b906c4d6a1e7069303c88db4}{UnsampleSlow}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtablezInfo}{HashtablezInfo}}*\ info);}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \textcolor{preprocessor}{\#if\ defined(ABSL\_INTERNAL\_HASHTABLEZ\_SAMPLE)}}
+\DoxyCodeLine{00139\ \textcolor{preprocessor}{\#error\ ABSL\_INTERNAL\_HASHTABLEZ\_SAMPLE\ cannot\ be\ directly\ set}}
+\DoxyCodeLine{00140\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ defined(ABSL\_INTERNAL\_HASHTABLEZ\_SAMPLE)}}
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00142\ \textcolor{preprocessor}{\#if\ defined(ABSL\_INTERNAL\_HASHTABLEZ\_SAMPLE)}}
+\DoxyCodeLine{00143\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle}{HashtablezInfoHandle}}\ \{}
+\DoxyCodeLine{00144\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00145\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_aecf1f7faa8823a3c105077d13c57657c}{HashtablezInfoHandle}}()\ :\ info\_(nullptr)\ \{\}}
+\DoxyCodeLine{00146\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_aecf1f7faa8823a3c105077d13c57657c}{HashtablezInfoHandle}}(HashtablezInfo*\ info)\ :\ info\_(info)\ \{\}}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \ \ \textcolor{comment}{//\ We\ do\ not\ have\ a\ destructor.\ Caller\ is\ responsible\ for\ calling\ Unregister}}
+\DoxyCodeLine{00149\ \ \ \textcolor{comment}{//\ before\ destroying\ the\ handle.}}
+\DoxyCodeLine{00150\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a40fa9f1a4d0228c4f7cc2a84a7849883}{Unregister}}()\ \{}
+\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(info\_\ ==\ \textcolor{keyword}{nullptr}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00152\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a191dfb25b906c4d6a1e7069303c88db4}{UnsampleSlow}}(info\_);}
+\DoxyCodeLine{00153\ \ \ \}}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a050f37380f7b50ea0054341bd40b9d8a}{IsSampled}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(info\_\ !=\ \textcolor{keyword}{nullptr});\ \}}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_adf07ae31b1eac90598ee215e55badfa4}{RecordStorageChanged}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}},\ \textcolor{keywordtype}{size\_t}\ capacity)\ \{}
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(info\_\ ==\ \textcolor{keyword}{nullptr}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00159\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_ad4eb9bfff087a5587d85f9c5dd8d5d95}{RecordStorageChangedSlow}}(info\_,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}},\ capacity);}
+\DoxyCodeLine{00160\ \ \ \}}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a36bbea76e9eefb5dbacd6ef5ac3c6b9d}{RecordRehash}}(\textcolor{keywordtype}{size\_t}\ total\_probe\_length)\ \{}
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(info\_\ ==\ \textcolor{keyword}{nullptr}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00164\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a5ed328d81373e3fc0ec65bd32b76ad38}{RecordRehashSlow}}(info\_,\ total\_probe\_length);}
+\DoxyCodeLine{00165\ \ \ \}}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a0c4a1d20dd921e070fb56cfb1bc83c4c}{RecordReservation}}(\textcolor{keywordtype}{size\_t}\ target\_capacity)\ \{}
+\DoxyCodeLine{00168\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(info\_\ ==\ \textcolor{keyword}{nullptr}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00169\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a613a50ece10e3a09c85e5a033e3c38ac}{RecordReservationSlow}}(info\_,\ target\_capacity);}
+\DoxyCodeLine{00170\ \ \ \}}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00172\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a2e8e34e39df58199bd75ee0e0a05c227}{RecordClearedReservation}}()\ \{}
+\DoxyCodeLine{00173\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(info\_\ ==\ \textcolor{keyword}{nullptr}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00174\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a7e8439af5a4a566f973f419cbd0970c2}{RecordClearedReservationSlow}}(info\_);}
+\DoxyCodeLine{00175\ \ \ \}}
+\DoxyCodeLine{00176\ }
+\DoxyCodeLine{00177\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_acf1e4fff5ebba447d1e7264e2234c413}{RecordInsert}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2hash__function__defaults__test_8cc_ae77f29aca59793a0cd8df5ad02220b8b}{hash}},\ \textcolor{keywordtype}{size\_t}\ distance\_from\_desired)\ \{}
+\DoxyCodeLine{00178\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(info\_\ ==\ \textcolor{keyword}{nullptr}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00179\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_abf50ab91eb5fcef9eb36cf99b1bd759f}{RecordInsertSlow}}(info\_,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2hash__function__defaults__test_8cc_ae77f29aca59793a0cd8df5ad02220b8b}{hash}},\ distance\_from\_desired);}
+\DoxyCodeLine{00180\ \ \ \}}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00182\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_aa7051103fff8a61a4e414b3a921e0f99}{RecordErase}}()\ \{}
+\DoxyCodeLine{00183\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(info\_\ ==\ \textcolor{keyword}{nullptr}))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00184\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a1476155d97c29c62884facf29d2f1ac5}{RecordEraseSlow}}(info\_);}
+\DoxyCodeLine{00185\ \ \ \}}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_ae35361a13b1a2a7decdb27c2fc27b23a}{swap}}(\mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_aecf1f7faa8823a3c105077d13c57657c}{HashtablezInfoHandle}}\&\ lhs,}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_aecf1f7faa8823a3c105077d13c57657c}{HashtablezInfoHandle}}\&\ rhs)\ \{}
+\DoxyCodeLine{00189\ \ \ \ \ std::swap(lhs.info\_,\ rhs.info\_);}
+\DoxyCodeLine{00190\ \ \ \}}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00193\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }HashtablezInfoHandlePeer;}
+\DoxyCodeLine{00194\ \ \ HashtablezInfo*\ info\_;}
+\DoxyCodeLine{00195\ \};}
+\DoxyCodeLine{00196\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00197\ \textcolor{comment}{//\ Ensure\ that\ when\ Hashtablez\ is\ turned\ off\ at\ compile\ time,\ HashtablezInfo\ can}}
+\DoxyCodeLine{00198\ \textcolor{comment}{//\ be\ removed\ by\ the\ linker,\ in\ order\ to\ reduce\ the\ binary\ size.}}
+\DoxyCodeLine{00199\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle}{HashtablezInfoHandle}}\ \{}
+\DoxyCodeLine{00200\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00201\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_aecf1f7faa8823a3c105077d13c57657c}{HashtablezInfoHandle}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00202\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a996cc41c42d37148a9f0042007643e56}{HashtablezInfoHandle}}(std::nullptr\_t)\ \{\}}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a40fa9f1a4d0228c4f7cc2a84a7849883}{Unregister}}()\ \{\}}
+\DoxyCodeLine{00205\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a050f37380f7b50ea0054341bd40b9d8a}{IsSampled}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};\ \}}
+\DoxyCodeLine{00206\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_adf07ae31b1eac90598ee215e55badfa4}{RecordStorageChanged}}(\textcolor{keywordtype}{size\_t}\ \textcolor{comment}{/*size*/},\ \textcolor{keywordtype}{size\_t}\ \textcolor{comment}{/*capacity*/})\ \{\}}
+\DoxyCodeLine{00207\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a36bbea76e9eefb5dbacd6ef5ac3c6b9d}{RecordRehash}}(\textcolor{keywordtype}{size\_t}\ \textcolor{comment}{/*total\_probe\_length*/})\ \{\}}
+\DoxyCodeLine{00208\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a0c4a1d20dd921e070fb56cfb1bc83c4c}{RecordReservation}}(\textcolor{keywordtype}{size\_t}\ \textcolor{comment}{/*target\_capacity*/})\ \{\}}
+\DoxyCodeLine{00209\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_a2e8e34e39df58199bd75ee0e0a05c227}{RecordClearedReservation}}()\ \{\}}
+\DoxyCodeLine{00210\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_acf1e4fff5ebba447d1e7264e2234c413}{RecordInsert}}(\textcolor{keywordtype}{size\_t}\ \textcolor{comment}{/*hash*/},\ \textcolor{keywordtype}{size\_t}\ \textcolor{comment}{/*distance\_from\_desired*/})\ \{\}}
+\DoxyCodeLine{00211\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_aa7051103fff8a61a4e414b3a921e0f99}{RecordErase}}()\ \{\}}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle_ae35361a13b1a2a7decdb27c2fc27b23a}{swap}}(\mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle}{HashtablezInfoHandle}}\&\ \textcolor{comment}{/*lhs*/},}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1HashtablezInfoHandle}{HashtablezInfoHandle}}\&\ \textcolor{comment}{/*rhs*/})\ \{\}}
+\DoxyCodeLine{00215\ \};}
+\DoxyCodeLine{00216\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ defined(ABSL\_INTERNAL\_HASHTABLEZ\_SAMPLE)}}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \textcolor{preprocessor}{\#if\ defined(ABSL\_INTERNAL\_HASHTABLEZ\_SAMPLE)}}
+\DoxyCodeLine{00219\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2per__thread__tls_8h_ac5a35e5c7065babf5e38e5a7b3df04d8}{ABSL\_PER\_THREAD\_TLS\_KEYWORD}}\ SamplingState\ global\_next\_sample;}
+\DoxyCodeLine{00220\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ defined(ABSL\_INTERNAL\_HASHTABLEZ\_SAMPLE)}}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \textcolor{comment}{//\ Returns\ a\ sampling\ handle.}}
+\DoxyCodeLine{00223\ \textcolor{keyword}{inline}\ HashtablezInfoHandle\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_aeaee59ce392bf29eeed684adb3e53eaa}{Sample}}(}
+\DoxyCodeLine{00224\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a532dcbae3a0d71263d6d595c4a6b7e81}{ABSL\_ATTRIBUTE\_UNUSED}}\ \textcolor{keywordtype}{size\_t}\ inline\_element\_size,}
+\DoxyCodeLine{00225\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a532dcbae3a0d71263d6d595c4a6b7e81}{ABSL\_ATTRIBUTE\_UNUSED}}\ \textcolor{keywordtype}{size\_t}\ key\_size,}
+\DoxyCodeLine{00226\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a532dcbae3a0d71263d6d595c4a6b7e81}{ABSL\_ATTRIBUTE\_UNUSED}}\ \textcolor{keywordtype}{size\_t}\ value\_size,}
+\DoxyCodeLine{00227\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a532dcbae3a0d71263d6d595c4a6b7e81}{ABSL\_ATTRIBUTE\_UNUSED}}\ uint16\_t\ soo\_capacity)\ \{}
+\DoxyCodeLine{00228\ \textcolor{preprocessor}{\#if\ defined(ABSL\_INTERNAL\_HASHTABLEZ\_SAMPLE)}}
+\DoxyCodeLine{00229\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(-\/-\/global\_next\_sample.next\_sample\ >\ 0))\ \{}
+\DoxyCodeLine{00230\ \ \ \ \ \textcolor{keywordflow}{return}\ HashtablezInfoHandle(\textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00231\ \ \ \}}
+\DoxyCodeLine{00232\ \ \ \textcolor{keywordflow}{return}\ HashtablezInfoHandle(\mbox{\hyperlink{namespaceabsl_1_1container__internal_a26b62cac5aef18a8760b36cee11a224d}{SampleSlow}}(global\_next\_sample,}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ inline\_element\_size,\ key\_size,}
+\DoxyCodeLine{00234\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ value\_size,\ soo\_capacity));}
+\DoxyCodeLine{00235\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00236\ \ \ \textcolor{keywordflow}{return}\ HashtablezInfoHandle(\textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00237\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ !ABSL\_PER\_THREAD\_TLS}}
+\DoxyCodeLine{00238\ \}}
+\DoxyCodeLine{00239\ }
+\DoxyCodeLine{00240\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_a416428b6a90ff32f29e14d3862a7f7fd}{HashtablezSampler}}\ =}
+\DoxyCodeLine{00241\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1SampleRecorder}{::absl::profiling\_internal::SampleRecorder<HashtablezInfo>}};}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \textcolor{comment}{//\ Returns\ a\ global\ Sampler.}}
+\DoxyCodeLine{00244\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a416428b6a90ff32f29e14d3862a7f7fd}{HashtablezSampler}}\&\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a8b89becd1271d7ec837c6e7d1bdfdfb4}{GlobalHashtablezSampler}}();}
+\DoxyCodeLine{00245\ }
+\DoxyCodeLine{00246\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_aa884327141f1a5188274675cfd0efb9f}{HashtablezConfigListener}}\ =\ void\ (*)();}
+\DoxyCodeLine{00247\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_ab3e337189704b087dd452ce356b4cf88}{SetHashtablezConfigListener}}(\mbox{\hyperlink{namespaceabsl_1_1container__internal_aa884327141f1a5188274675cfd0efb9f}{HashtablezConfigListener}}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}});}
+\DoxyCodeLine{00248\ }
+\DoxyCodeLine{00249\ \textcolor{comment}{//\ Enables\ or\ disables\ sampling\ for\ Swiss\ tables.}}
+\DoxyCodeLine{00250\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_ab9c5acf222c0b106c748a2ad73e29c86}{IsHashtablezEnabled}}();}
+\DoxyCodeLine{00251\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a6ed3dd8c827dab0d158481ec4e6f823b}{SetHashtablezEnabled}}(\textcolor{keywordtype}{bool}\ enabled);}
+\DoxyCodeLine{00252\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a71b4e12224a11326c2da9f0b4a1ee217}{SetHashtablezEnabledInternal}}(\textcolor{keywordtype}{bool}\ enabled);}
+\DoxyCodeLine{00253\ }
+\DoxyCodeLine{00254\ \textcolor{comment}{//\ Sets\ the\ rate\ at\ which\ Swiss\ tables\ will\ be\ sampled.}}
+\DoxyCodeLine{00255\ \mbox{\hyperlink{namespaceEigen_1_1numext_ae4642fe9b8f3d42e634712b1d5e2fffe}{int32\_t}}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a02f9f2bf25f6ef69968495bdf9e2e650}{GetHashtablezSampleParameter}}();}
+\DoxyCodeLine{00256\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a7137908009cc04ed4f372b4e224e42ce}{SetHashtablezSampleParameter}}(int32\_t\ rate);}
+\DoxyCodeLine{00257\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_ae29da366f946e05e017432849ea748b5}{SetHashtablezSampleParameterInternal}}(int32\_t\ rate);}
+\DoxyCodeLine{00258\ }
+\DoxyCodeLine{00259\ \textcolor{comment}{//\ Sets\ a\ soft\ max\ for\ the\ number\ of\ samples\ that\ will\ be\ kept.}}
+\DoxyCodeLine{00260\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_acdf4f0af97b1e1d6ab7f8e5c2eeb0955}{GetHashtablezMaxSamples}}();}
+\DoxyCodeLine{00261\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_ac1124d0fc9432ed28c59d722667d8bae}{SetHashtablezMaxSamples}}(\textcolor{keywordtype}{size\_t}\ max);}
+\DoxyCodeLine{00262\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a841209efcbc705b10277b835dea4d1f9}{SetHashtablezMaxSamplesInternal}}(\textcolor{keywordtype}{size\_t}\ max);}
+\DoxyCodeLine{00263\ }
+\DoxyCodeLine{00264\ \textcolor{comment}{//\ Configuration\ override.}}
+\DoxyCodeLine{00265\ \textcolor{comment}{//\ This\ allows\ process-\/wide\ sampling\ without\ depending\ on\ order\ of}}
+\DoxyCodeLine{00266\ \textcolor{comment}{//\ initialization\ of\ static\ storage\ duration\ objects.}}
+\DoxyCodeLine{00267\ \textcolor{comment}{//\ The\ definition\ of\ this\ constant\ is\ weak,\ which\ allows\ us\ to\ inject\ a}}
+\DoxyCodeLine{00268\ \textcolor{comment}{//\ different\ value\ for\ it\ at\ link\ time.}}
+\DoxyCodeLine{00269\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{namespaceabsl_1_1container__internal_a35c12a0d58a745182f0d1f3e06d30a2d}{AbslContainerInternalSampleEverything}})();}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00272\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00273\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00275\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CONTAINER\_INTERNAL\_HASHTABLEZ\_SAMPLER\_H\_}}
+
+\end{DoxyCode}

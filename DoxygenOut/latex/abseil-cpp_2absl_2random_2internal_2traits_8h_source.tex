@@ -1,0 +1,155 @@
+\doxysection{traits.\+h}
+\hypertarget{abseil-cpp_2absl_2random_2internal_2traits_8h_source}{}\label{abseil-cpp_2absl_2random_2internal_2traits_8h_source}\index{abseil-\/cpp/absl/random/internal/traits.h@{abseil-\/cpp/absl/random/internal/traits.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2random_2internal_2traits_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_RANDOM\_INTERNAL\_TRAITS\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_RANDOM\_INTERNAL\_TRAITS\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/numeric/bits.h"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/numeric/int128.h"{}}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00027\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00028\ \textcolor{keyword}{namespace\ }random\_internal\ \{}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ random\_internal::is\_widening\_convertible<A,\ B>}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ Returns\ whether\ a\ type\ A\ is\ widening-\/convertible\ to\ a\ type\ B.}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ A\ is\ widening-\/convertible\ to\ B\ means:}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ \ \ A\ a\ =\ <any\ number>;}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ \ \ B\ b\ =\ a;}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ \ \ A\ c\ =\ b;}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ \ \ EXPECT\_EQ(a,\ c);}}
+\DoxyCodeLine{00039\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A,\ \textcolor{keyword}{typename}\ B>}
+\DoxyCodeLine{00040\ \textcolor{keyword}{class\ }is\_widening\_convertible\ \{}
+\DoxyCodeLine{00041\ \ \ \textcolor{comment}{//\ As\ long\ as\ there\ are\ enough\ bits\ in\ the\ exact\ part\ of\ a\ number:}}
+\DoxyCodeLine{00042\ \ \ \textcolor{comment}{//\ -\/\ unsigned\ can\ fit\ in\ float,\ signed,\ unsigned}}
+\DoxyCodeLine{00043\ \ \ \textcolor{comment}{//\ -\/\ signed\ can\ fit\ in\ float,\ signed}}
+\DoxyCodeLine{00044\ \ \ \textcolor{comment}{//\ -\/\ float\ can\ fit\ in\ float}}
+\DoxyCodeLine{00045\ \ \ \textcolor{comment}{//\ So\ we\ define\ rank\ to\ be:}}
+\DoxyCodeLine{00046\ \ \ \textcolor{comment}{//\ -\/\ rank(float)\ -\/>\ 2}}
+\DoxyCodeLine{00047\ \ \ \textcolor{comment}{//\ -\/\ rank(signed)\ -\/>\ 1}}
+\DoxyCodeLine{00048\ \ \ \textcolor{comment}{//\ -\/\ rank(unsigned)\ -\/>\ 0}}
+\DoxyCodeLine{00049\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00050\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ rank()\ \{}
+\DoxyCodeLine{00051\ \ \ \ \ \textcolor{keywordflow}{return}\ !std::numeric\_limits<T>::is\_integer\ +}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \ \ \ \ \ std::numeric\_limits<T>::is\_signed;}
+\DoxyCodeLine{00053\ \ \ \}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00056\ \ \ \textcolor{comment}{//\ If\ an\ arithmetic-\/type\ B\ can\ represent\ at\ least\ as\ many\ digits\ as\ a\ type\ A,}}
+\DoxyCodeLine{00057\ \ \ \textcolor{comment}{//\ and\ B\ belongs\ to\ a\ rank\ no\ lower\ than\ A,\ then\ A\ can\ be\ safely\ represented}}
+\DoxyCodeLine{00058\ \ \ \textcolor{comment}{//\ by\ B\ through\ a\ widening-\/conversion.}}
+\DoxyCodeLine{00059\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1random__internal_1_1is__widening__convertible_a6188eea2f9dc6c88a2d84dbdeeac2e24}{value}}\ =}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ std::numeric\_limits<A>::digits\ <=\ std::numeric\_limits<B>::digits\ \&\&}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ rank<A>()\ <=\ rank<B>();}
+\DoxyCodeLine{00062\ \};}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00065\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1IsIntegral}{IsIntegral}}\ :\ std::is\_integral<T>\ \{\};}
+\DoxyCodeLine{00066\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00067\ \textcolor{keyword}{struct\ }IsIntegral<\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1int128}{int128}}>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00068\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00069\ \textcolor{keyword}{struct\ }IsIntegral<\mbox{\hyperlink{namespaceabsl}{absl}}::uint128>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00072\ \textcolor{keyword}{struct\ }MakeUnsigned\ :\ std::make\_unsigned<T>\ \{\};}
+\DoxyCodeLine{00073\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00074\ \textcolor{keyword}{struct\ }MakeUnsigned<\mbox{\hyperlink{namespaceabsl}{absl}}::int128>\ \{}
+\DoxyCodeLine{00075\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1uint128}{type}}\ =\ \mbox{\hyperlink{classabsl_1_1uint128}{absl::uint128}};}
+\DoxyCodeLine{00076\ \};}
+\DoxyCodeLine{00077\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00078\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1MakeUnsigned}{MakeUnsigned}}<\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1uint128}{uint128}}>\ \{}
+\DoxyCodeLine{00079\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1uint128}{type}}\ =\ \mbox{\hyperlink{classabsl_1_1uint128}{absl::uint128}};}
+\DoxyCodeLine{00080\ \};}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00083\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1IsUnsigned}{IsUnsigned}}\ :\ std::is\_unsigned<T>\ \{\};}
+\DoxyCodeLine{00084\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00085\ \textcolor{keyword}{struct\ }IsUnsigned<\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1int128}{int128}}>\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00086\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00087\ \textcolor{keyword}{struct\ }IsUnsigned<\mbox{\hyperlink{namespaceabsl}{absl}}::uint128>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ unsigned\_bits<N>::type\ returns\ the\ unsigned\ int\ type\ with\ the\ indicated}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ number\ of\ bits.}}
+\DoxyCodeLine{00091\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00092\ \textcolor{keyword}{struct\ }unsigned\_bits;}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00095\ \textcolor{keyword}{struct\ }unsigned\_bits<8>\ \{}
+\DoxyCodeLine{00096\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits_3_018_01_4_adb918a6b4a4716ca9fe0e3d637f8b650}{type}}\ =\ uint8\_t;}
+\DoxyCodeLine{00097\ \};}
+\DoxyCodeLine{00098\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00099\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits}{unsigned\_bits}}<16>\ \{}
+\DoxyCodeLine{00100\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits_3_0116_01_4_a5162108624f1cc47b14d10ddd3b9ea15}{type}}\ =\ uint16\_t;}
+\DoxyCodeLine{00101\ \};}
+\DoxyCodeLine{00102\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00103\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits}{unsigned\_bits}}<32>\ \{}
+\DoxyCodeLine{00104\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits_3_0132_01_4_a44ce18838441ba9f491b98ec0a243edb}{type}}\ =\ uint32\_t;}
+\DoxyCodeLine{00105\ \};}
+\DoxyCodeLine{00106\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00107\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits}{unsigned\_bits}}<64>\ \{}
+\DoxyCodeLine{00108\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits_3_0164_01_4_ac307143fadf9fe9ce6d23cb64698bf04}{type}}\ =\ uint64\_t;}
+\DoxyCodeLine{00109\ \};}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00112\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits}{unsigned\_bits}}<128>\ \{}
+\DoxyCodeLine{00113\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1uint128}{type}}\ =\ \mbox{\hyperlink{classabsl_1_1uint128}{absl::uint128}};}
+\DoxyCodeLine{00114\ \};}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ 256-\/bit\ wrapper\ for\ wide\ multiplications.}}
+\DoxyCodeLine{00117\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1U256}{U256}}\ \{}
+\DoxyCodeLine{00118\ \ \ \mbox{\hyperlink{classabsl_1_1uint128}{uint128}}\ \mbox{\hyperlink{structabsl_1_1random__internal_1_1U256_a211df5e345a67dbd443230f8e9aa7c4e}{hi}};}
+\DoxyCodeLine{00119\ \ \ \mbox{\hyperlink{classabsl_1_1uint128}{uint128}}\ \mbox{\hyperlink{structabsl_1_1random__internal_1_1U256_ab5f43eda79c27db564b046f768426a6d}{lo}};}
+\DoxyCodeLine{00120\ \};}
+\DoxyCodeLine{00121\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00122\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits}{unsigned\_bits}}<256>\ \{}
+\DoxyCodeLine{00123\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1U256}{type}}\ =\ \mbox{\hyperlink{structabsl_1_1random__internal_1_1U256}{U256}};}
+\DoxyCodeLine{00124\ \};}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ IntType>}
+\DoxyCodeLine{00127\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1make__unsigned__bits}{make\_unsigned\_bits}}\ \{}
+\DoxyCodeLine{00128\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1make__unsigned__bits_ad981b88ee0ae902e24952b0823abc4d6}{type}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1random__internal_1_1unsigned__bits}{unsigned\_bits}}<}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ std::numeric\_limits<typename\ MakeUnsigned<IntType>::type>::digits>\mbox{\hyperlink{structabsl_1_1random__internal_1_1make__unsigned__bits_ad981b88ee0ae902e24952b0823abc4d6}{::type}};}
+\DoxyCodeLine{00130\ \};}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00133\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_acc3617b19385daf3b0afba2457f7dab8}{BitWidth}}(T\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00134\ \ \ \textcolor{comment}{//\ Workaround\ for\ bit\_width\ not\ supporting\ int128.}}
+\DoxyCodeLine{00135\ \ \ \textcolor{comment}{//\ Don't\ hardcode\ \`{}64`\ to\ make\ sure\ this\ code\ does\ not\ trigger\ compiler}}
+\DoxyCodeLine{00136\ \ \ \textcolor{comment}{//\ warnings\ in\ smaller\ types.}}
+\DoxyCodeLine{00137\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ half\_bits\ =\ \textcolor{keyword}{sizeof}(T)\ *\ 8\ /\ 2;}
+\DoxyCodeLine{00138\ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{sizeof}(T)\ ==\ 16\ \&\&\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ >>\ half\_bits)\ !=\ 0)\ \{}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_ae465b7ecd1979e26e7baa6d21e71a28a}{bit\_width}}(\textcolor{keyword}{static\_cast<}uint64\_t\textcolor{keyword}{>}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ >>\ half\_bits))\ +\ half\_bits;}
+\DoxyCodeLine{00140\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_ae465b7ecd1979e26e7baa6d21e71a28a}{bit\_width}}(\textcolor{keyword}{static\_cast<}uint64\_t\textcolor{keyword}{>}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}));}
+\DoxyCodeLine{00142\ \ \ \}}
+\DoxyCodeLine{00143\ \}}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \}\ \ \textcolor{comment}{//\ namespace\ random\_internal}}
+\DoxyCodeLine{00146\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00147\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_RANDOM\_INTERNAL\_TRAITS\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,391 @@
+\doxysection{common.\+h}
+\hypertarget{dev_2cuda_2common_8h_source}{}\label{dev_2cuda_2common_8h_source}\index{dev/cuda/common.h@{dev/cuda/common.h}}
+\mbox{\hyperlink{dev_2cuda_2common_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#include\ <stdlib.h>}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#include\ <stdio.h>}}
+\DoxyCodeLine{00003\ \textcolor{preprocessor}{\#include\ <cuda\_runtime.h>}}
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ <cublas\_v2.h>}}
+\DoxyCodeLine{00005\ \textcolor{preprocessor}{\#include\ <cublasLt.h>}}
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#include\ <float.h>}}
+\DoxyCodeLine{00007\ }
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#define\ WARP\_SIZE\ 32U}}
+\DoxyCodeLine{00009\ \textcolor{keyword}{extern}\ cudaDeviceProp\ \mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}};}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{keyword}{template}<\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00012\ \_\_host\_\_\ \_\_device\_\_\ T\ \mbox{\hyperlink{dev_2cuda_2common_8h_a8e23eb2b9d263418e48faa46a970c8de}{ceil\_div}}(T\ dividend,\ T\ divisor)\ \{}
+\DoxyCodeLine{00013\ \ \ \ \ \textcolor{keywordflow}{return}\ (dividend\ +\ divisor-\/1)\ /\ divisor;}
+\DoxyCodeLine{00014\ \}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \_\_device\_\_\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{dev_2cuda_2common_8h_aea0b9da84eda98a65df350391638786b}{warpReduceSum}}(\textcolor{keywordtype}{float}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}})\ \{}
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ offset\ =\ 16;\ offset\ >\ 0;\ offset\ /=\ 2)\ \{}
+\DoxyCodeLine{00018\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ +=\ \_\_shfl\_xor\_sync(0xFFFFFFFF,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}},\ offset);}
+\DoxyCodeLine{00019\ \ \ \ \ \}}
+\DoxyCodeLine{00020\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}};}
+\DoxyCodeLine{00021\ \}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ requires\ all\ 32\ threads\ in\ the\ warp\ to\ be\ active,\ but\ should\ work\ for\ any\ block\ size}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ uses\ non-\/dynamic\ shared\ memory\ so\ every\ call\ increases\ shared\ memory\ requirements\ by\ 128\ bytes}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ the\ fact\ it's\ unique\ shared\ memory\ allows\ us\ to\ avoid\ an\ extra\ \_\_syncthreads()\ call\ at\ the\ end}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ but\ if\ called\ inside\ a\ loop,\ the\ shared\ memory\ will\ be\ implicitly\ reused,\ so\ set\ final\_sync\ to\ 1}}
+\DoxyCodeLine{00027\ \textcolor{keyword}{using\ }\mbox{\hyperlink{dev_2cuda_2common_8h_a571566035252c64b30b652c9abf93269}{reduction\_func\_t}}\ =\ float\ (*)\ (float);}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{keyword}{template}<reduction\_func\_t\ warp\_reduction>}
+\DoxyCodeLine{00030\ \_\_device\_\_\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a80c116fd5225f40c017ca5d22b3e4f72}{blockReduce}}(\textcolor{keywordtype}{float}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}},\ \textcolor{keywordtype}{bool}\ final\_sync,\ \textcolor{keywordtype}{float}\ out\_of\_bounds)\ \{}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{comment}{//\ two\ reductions\ of\ up\ to\ 1024\ threads:}}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{comment}{//\ 1)\ inside\ warp\ (shuffle),\ 2)\ cross-\/warp\ (shared\ memory),\ 3)\ inside\ warp\ (shuffle)}}
+\DoxyCodeLine{00033\ \ \ \ \ \_\_shared\_\_\ \textcolor{keywordtype}{float}\ shared\_val[\mbox{\hyperlink{dev_2cuda_2common_8h_a9ea0293fb7dcba88f071c44fd145819e}{WARP\_SIZE}}];}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ lane\_id\ =\ threadIdx.x\ \%\ \mbox{\hyperlink{dev_2cuda_2common_8h_a9ea0293fb7dcba88f071c44fd145819e}{WARP\_SIZE}};}
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ warp\_id\ =\ threadIdx.x\ /\ \mbox{\hyperlink{dev_2cuda_2common_8h_a9ea0293fb7dcba88f071c44fd145819e}{WARP\_SIZE}};}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_warps\ =\ blockDim.x\ /\ \mbox{\hyperlink{dev_2cuda_2common_8h_a9ea0293fb7dcba88f071c44fd145819e}{WARP\_SIZE}};}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \ \ \ \ \textcolor{keywordtype}{float}\ warp\_val\ =\ warp\_reduction(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}});}
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keywordflow}{if}\ (lane\_id\ ==\ 0)\ \{\ shared\_val[warp\_id]\ =\ warp\_val;\ \}}
+\DoxyCodeLine{00040\ \ \ \ \ \_\_syncthreads();}
+\DoxyCodeLine{00041\ \ \ \ \ warp\_val\ =\ (lane\_id\ <\ num\_warps)\ ?\ shared\_val[lane\_id]\ :\ out\_of\_bounds;}
+\DoxyCodeLine{00042\ \ \ \ \ \textcolor{keywordtype}{float}\ block\_val\ =\ warp\_reduction(warp\_val);}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{keywordflow}{if}\ (final\_sync)\ \{}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \ \ \_\_syncthreads();\ \textcolor{comment}{//\ only\ needed\ in\ loops\ when\ effectively\ reusing\ shared\ memory\ etc.}}
+\DoxyCodeLine{00046\ \ \ \ \ \}}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keywordflow}{return}\ block\_val;}
+\DoxyCodeLine{00048\ \}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ Helper\ function\ to\ call\ blockReduce\ with\ default\ arguments}}
+\DoxyCodeLine{00051\ \textcolor{keyword}{template}<reduction\_func\_t\ warp\_reduction>}
+\DoxyCodeLine{00052\ \_\_device\_\_\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a80c116fd5225f40c017ca5d22b3e4f72}{blockReduce}}(\textcolor{keywordtype}{float}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}})\ \{}
+\DoxyCodeLine{00053\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a80c116fd5225f40c017ca5d22b3e4f72}{blockReduce<warp\_reduction>}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}},\ \textcolor{keyword}{false},\ 0.0f);}
+\DoxyCodeLine{00054\ \}}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ checking\ utils}}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ CUDA\ error\ checking}}
+\DoxyCodeLine{00060\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a81f1f8bb3fc6a7b2047471887b63a23a}{cuda\_check}}(cudaError\_t\ error,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ *file,\ \textcolor{keywordtype}{int}\ line)\ \{}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keywordflow}{if}\ (error\ !=\ cudaSuccess)\ \{}
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}[CUDA\ ERROR]\ at\ file\ \%s:\%d:\(\backslash\)n\%s\(\backslash\)n"{}},\ file,\ line,}
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ cudaGetErrorString(error));}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00065\ \ \ \ \ \}}
+\DoxyCodeLine{00066\ \};}
+\DoxyCodeLine{00067\ \textcolor{preprocessor}{\#define\ cudaCheck(err)\ (cuda\_check(err,\ \_\_FILE\_\_,\ \_\_LINE\_\_))}}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ cuBLAS\ error\ checking}}
+\DoxyCodeLine{00070\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a437b0c0051de005c7620314d33d49be9}{cublasCheck}}(cublasStatus\_t\ status,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ *file,\ \textcolor{keywordtype}{int}\ line)}
+\DoxyCodeLine{00071\ \{}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keywordflow}{if}\ (status\ !=\ CUBLAS\_STATUS\_SUCCESS)\ \{}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}[cuBLAS\ ERROR]:\ \%d\ \%s\ \%d\(\backslash\)n"{}},\ status,\ file,\ line);}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00075\ \ \ \ \ \}}
+\DoxyCodeLine{00076\ \}}
+\DoxyCodeLine{00077\ \textcolor{preprocessor}{\#define\ cublasCheck(status)\ \{\ cublasCheck((status),\ \_\_FILE\_\_,\ \_\_LINE\_\_);\ \}}}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ cuBLAS\ setup}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ these\ will\ be\ initialized\ by\ setup\_main}}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ cuBLAS\ workspace.\ Hardcoding\ to\ 32MiB\ but\ only\ Hopper\ needs\ 32,\ for\ others\ 4\ is\ OK}}
+\DoxyCodeLine{00084\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{dev_2cuda_2common_8h_ae0833978066643c6cb7f2121b089ea00}{cublaslt\_workspace\_size}}\ =\ 32\ *\ 1024\ *\ 1024;}
+\DoxyCodeLine{00085\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{dev_2cuda_2common_8h_aef9dd98366e2fee8e91c53cbe8bf248f}{cublaslt\_workspace}}\ =\ NULL;}
+\DoxyCodeLine{00086\ \textcolor{keyword}{static}\ cublasComputeType\_t\ \mbox{\hyperlink{dev_2cuda_2common_8h_a7cc52d1f8a6ed1f9dc26a9f67e24f314}{cublas\_compute\_type}};}
+\DoxyCodeLine{00087\ cublasHandle\_t\ \mbox{\hyperlink{dev_2cuda_2common_8h_ab85516b4be3ea4d5320a30fe5875bd3f}{cublas\_handle}};}
+\DoxyCodeLine{00088\ cublasLtHandle\_t\ \mbox{\hyperlink{dev_2cuda_2common_8h_aef5c96aae6ae1c3fc4a74f4a78aba3ab}{cublaslt\_handle}};}
+\DoxyCodeLine{00089\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a53503e69acdbc9ead27d3a0ccefd1408}{cuda\_arch\_major}}\ =\ 0;}
+\DoxyCodeLine{00090\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a14fbc4ef8e3ce0443c7dd9badfbb337a}{cuda\_arch\_minor}}\ =\ 0;}
+\DoxyCodeLine{00091\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a86ea9a51fbf1f4ad2209320e5a9c3996}{cuda\_num\_SMs}}\ =\ 0;\ \textcolor{comment}{//\ for\ persistent\ threads\ where\ we\ want\ 1\ threadblock\ per\ SM}}
+\DoxyCodeLine{00092\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{dev_2cuda_2common_8h_ac1ea0691b0b757d8c453c1f16f65215b}{cuda\_threads\_per\_SM}}\ =\ 0;\ \ \ \ \textcolor{comment}{//\ needed\ to\ calculate\ how\ many\ blocks\ to\ launch\ to\ fill\ up\ the\ GPU}}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ to\ make\ sure\ that\ 2\ blocks\ fit\ on\ A100/H100\ to\ maximise\ latency\ tolerance}}
+\DoxyCodeLine{00096\ \textcolor{preprocessor}{\#if\ \_\_CUDA\_ARCH\_\_\ ==\ 800\ ||\ \_\_CUDA\_ARCH\_\_\ >=\ 900}}
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\#define\ MAX\_1024\_THREADS\_BLOCKS\ 2}}
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00099\ \textcolor{preprocessor}{\#define\ MAX\_1024\_THREADS\_BLOCKS\ 1}}
+\DoxyCodeLine{00100\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//\ Packed128\ data\ structure,\ which\ forces\ the\ compiler\ to\ use\ 128-\/bit\ loads/stores}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ in\ GPUs\ that\ support\ (the\ LDG.128\ and\ STS.128\ instructions)}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ This\ is\ a\ bit\ similar\ to\ the\ use\ of\ float4\ in\ the\ case\ of\ 32-\/bit\ floats,\ but}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ supports\ arbitrary\ precision.}}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \textcolor{keyword}{template}<\textcolor{keyword}{class}\ ElementType>}
+\DoxyCodeLine{00109\ \textcolor{keyword}{struct\ }\textcolor{keyword}{alignas}(16)\ \mbox{\hyperlink{structPacked128}{Packed128}}\ \{}
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{comment}{//\ Note:\ =\ default\ implicitly\ generates\ a\ \_\_device\_\_\ function,\ but\ explicitly}}
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{comment}{//\ adding\ \_\_device\_\_\ causes\ a\ lot\ of\ warnings.}}
+\DoxyCodeLine{00112\ \ \ \ \ \mbox{\hyperlink{structPacked128_a33a3824f7bb90741e8495ed5a9e4b892}{Packed128}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00113\ \ \ \ \ \_\_device\_\_\ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structPacked128_a79e304d88e9ee85b07141f144a43e66f}{Packed128}}(int4\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}})\ \{}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_assert}(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}})\ ==\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structPacked128_a338dc23a81208fa88566455b65688ef5}{payload}}),\ \textcolor{stringliteral}{"{}Size\ mismatch."{}});}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ memcpy(\&\mbox{\hyperlink{structPacked128_a338dc23a81208fa88566455b65688ef5}{payload}},\ \&\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}));}
+\DoxyCodeLine{00116\ \ \ \ \ \}}
+\DoxyCodeLine{00117\ }
+\DoxyCodeLine{00118\ \ \ \ \ \_\_device\_\_\ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structPacked128}{Packed128}}\ \mbox{\hyperlink{structPacked128_a861567b28ceae19abea1bd0faf90bcec}{constant}}(ElementType\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}})\ \{}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structPacked128}{Packed128}}\ result;}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\textcolor{keywordtype}{int}\ k\ =\ 0;\ k\ <\ \mbox{\hyperlink{structPacked128_a69c3a5be199705850ba190ecebf48f8e}{size}};\ ++k)\ \{}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \ \ \ \ \ \ result.\mbox{\hyperlink{structPacked128_a338dc23a81208fa88566455b65688ef5}{payload}}[k]\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}};}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00124\ \ \ \ \ \}}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \ \ \ \ \_\_device\_\_\ \textcolor{keyword}{static}\ \mbox{\hyperlink{structPacked128}{Packed128}}\ \mbox{\hyperlink{structPacked128_a87266f3dd086fc73d4fb709f8c28fa18}{zeros}}()\ \{}
+\DoxyCodeLine{00127\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structPacked128_a861567b28ceae19abea1bd0faf90bcec}{constant}}(0);}
+\DoxyCodeLine{00128\ \ \ \ \ \}}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ \ \ \ \ \_\_device\_\_\ \textcolor{keyword}{static}\ \mbox{\hyperlink{structPacked128}{Packed128}}\ \mbox{\hyperlink{structPacked128_a18cf947080745551082de6255dced088}{ones}}()\ \{}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structPacked128_a861567b28ceae19abea1bd0faf90bcec}{constant}}(1);}
+\DoxyCodeLine{00132\ \ \ \ \ \}}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \ \ \ \ \_\_device\_\_\ ElementType\&\ \mbox{\hyperlink{structPacked128_a6101fb688b886139753763a58ae465e1}{operator[]}}(\textcolor{keywordtype}{int}\ index)\ \{}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structPacked128_a338dc23a81208fa88566455b65688ef5}{payload}}[index];}
+\DoxyCodeLine{00136\ \ \ \ \ \}}
+\DoxyCodeLine{00137\ \ \ \ \ \_\_device\_\_\ \textcolor{keyword}{const}\ ElementType\&\ \mbox{\hyperlink{structPacked128_ab95d456ef86973eab6441205338dc5e4}{operator[]}}(\textcolor{keywordtype}{int}\ index)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structPacked128_a338dc23a81208fa88566455b65688ef5}{payload}}[index];}
+\DoxyCodeLine{00139\ \ \ \ \ \}}
+\DoxyCodeLine{00140\ \ \ \ \ \_\_device\_\_\ int4\ \mbox{\hyperlink{structPacked128_a7c7666c21b637cf746942ecdca2bebd3}{get\_bits}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \ \ int4\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}};}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_assert}(\textcolor{keyword}{sizeof}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}})\ ==\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structPacked128_a338dc23a81208fa88566455b65688ef5}{payload}}),\ \textcolor{stringliteral}{"{}Size\ mismatch."{}});}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \ \ memcpy(\&\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}},\ \&\mbox{\hyperlink{structPacked128_a338dc23a81208fa88566455b65688ef5}{payload}},\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}));}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}};}
+\DoxyCodeLine{00145\ \ \ \ \ \}}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{comment}{//\ e.g.\ sizeof(int4)\ is\ 16\ (4\ X\ 4\ bytes),\ sizeof(bfloat16)\ =\ 2,\ so\ size\ =\ 8}}
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{comment}{//\ so\ in\ the\ case\ where\ ElementType\ =\ bfloat16,\ we\ store\ 8\ elements\ in\ one\ Packed128}}
+\DoxyCodeLine{00148\ \ \ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structPacked128_a69c3a5be199705850ba190ecebf48f8e}{size}}\ =\ \textcolor{keyword}{sizeof}(int4)\ /\ \textcolor{keyword}{sizeof}(ElementType);}
+\DoxyCodeLine{00149\ \ \ \ \ ElementType\ \mbox{\hyperlink{structPacked128_a338dc23a81208fa88566455b65688ef5}{payload}}[\mbox{\hyperlink{structPacked128_a69c3a5be199705850ba190ecebf48f8e}{size}}];}
+\DoxyCodeLine{00150\ \};}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \textcolor{comment}{//\ short-\/form\ typedef}}
+\DoxyCodeLine{00153\ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structPacked128}{Packed128<float>}}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a7e02e98e3a2c0ba3713b810ce9b499a1}{f128}};}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ load\ a\ Packed128\ from\ an\ aligned\ memory\ address}}
+\DoxyCodeLine{00156\ \textcolor{keyword}{template}<\textcolor{keyword}{class}\ ElementType>}
+\DoxyCodeLine{00157\ \_\_device\_\_\ \mbox{\hyperlink{structPacked128}{Packed128<ElementType>}}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a15a666055aec29bea6af8472426b4b12}{load128}}(\textcolor{keyword}{const}\ ElementType*\ address)\ \{}
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structPacked128}{Packed128<ElementType>}}\{*\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }int4*\textcolor{keyword}{>}(address)\};}
+\DoxyCodeLine{00159\ \}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ load\ a\ Packed128\ from\ an\ aligned\ memory\ address\ with\ streaming\ cache\ hint}}
+\DoxyCodeLine{00161\ \textcolor{keyword}{template}<\textcolor{keyword}{class}\ ElementType>}
+\DoxyCodeLine{00162\ \_\_device\_\_\ \mbox{\hyperlink{structPacked128}{Packed128<ElementType>}}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a5371e60b9232fed30575673b3b619d22}{load128cs}}(\textcolor{keyword}{const}\ ElementType*\ address)\ \{}
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structPacked128}{Packed128<ElementType>}}\{\_\_ldcs(\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }int4*\textcolor{keyword}{>}(address))\};}
+\DoxyCodeLine{00164\ \}}
+\DoxyCodeLine{00165\ \textcolor{comment}{//\ store\ a\ Packed128\ to\ an\ aligned\ memory\ address}}
+\DoxyCodeLine{00166\ \textcolor{keyword}{template}<\textcolor{keyword}{class}\ ElementType>}
+\DoxyCodeLine{00167\ \_\_device\_\_\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a58d51bbab6562effab475d6582a87766}{store128}}(ElementType*\ target,\ \mbox{\hyperlink{structPacked128}{Packed128<ElementType>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}})\ \{}
+\DoxyCodeLine{00168\ \ \ \ \ *\textcolor{keyword}{reinterpret\_cast<}int4*\textcolor{keyword}{>}(target)\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}.\mbox{\hyperlink{structPacked128_a7c7666c21b637cf746942ecdca2bebd3}{get\_bits}}();}
+\DoxyCodeLine{00169\ \}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ store\ a\ Packed128\ to\ an\ aligned\ memory\ address\ with\ streaming\ cache\ hint}}
+\DoxyCodeLine{00171\ \textcolor{keyword}{template}<\textcolor{keyword}{class}\ ElementType>}
+\DoxyCodeLine{00172\ \_\_device\_\_\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a8385667d8ffc8cb6d4638d87b49f8c11}{store128cs}}(ElementType*\ target,\ \mbox{\hyperlink{structPacked128}{Packed128<ElementType>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}})\ \{}
+\DoxyCodeLine{00173\ \ \ \ \ \_\_stcs(\textcolor{keyword}{reinterpret\_cast<}int4*\textcolor{keyword}{>}(target),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}.get\_bits());}
+\DoxyCodeLine{00174\ \}}
+\DoxyCodeLine{00175\ \textcolor{comment}{//\ store\ a\ Packed128\ to\ an\ aligned\ memory\ address\ while\ caching\ in\ L2\ but\ bypassing\ L1}}
+\DoxyCodeLine{00176\ \textcolor{keyword}{template}<\textcolor{keyword}{class}\ ElementType>}
+\DoxyCodeLine{00177\ \_\_device\_\_\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dev_2cuda_2common_8h_af1d876cbb741996f34d8089ce70dd53c}{store128cg}}(ElementType*\ target,\ \mbox{\hyperlink{structPacked128}{Packed128<ElementType>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}})\ \{}
+\DoxyCodeLine{00178\ \ \ \ \ \_\_stcg(\textcolor{keyword}{reinterpret\_cast<}int4*\textcolor{keyword}{>}(target),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}.get\_bits());}
+\DoxyCodeLine{00179\ \}}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00182\ \textcolor{comment}{//\ reduced/mixed\ precision\ utilities}}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \textcolor{preprocessor}{\#if\ defined(ENABLE\_BF16)}}
+\DoxyCodeLine{00185\ }
+\DoxyCodeLine{00186\ \textcolor{keyword}{typedef}\ \_\_nv\_bfloat16\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00187\ \textcolor{keyword}{typedef}\ \_\_nv\_bfloat16\ \mbox{\hyperlink{dev_2cuda_2common_8h_a512001f2a9aab0597080982cf701201d}{floatN}};}
+\DoxyCodeLine{00188\ \textcolor{preprocessor}{\#define\ CUBLAS\_LOWP\ CUDA\_R\_16BF\ }\textcolor{comment}{//\ CUDA\_R\_16F\ or\ CUDA\_R\_16BF\ (or\ CUDA\_R\_32F)}}
+\DoxyCodeLine{00189\ \textcolor{comment}{//\ CUBLAS\_COMPUTE\_32F\ or\ CUBLAS\_COMPUTE\_16F\ (for\ CUDA\_R\_16F\ only,\ potentially\ slower?!)}}
+\DoxyCodeLine{00190\ \textcolor{preprocessor}{\#define\ CUBLAS\_LOWP\_COMPUTE\ CUBLAS\_COMPUTE\_32F}}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \textcolor{preprocessor}{\#elif\ defined(ENABLE\_FP16)}}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \textcolor{keyword}{typedef}\ half\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00195\ \textcolor{keyword}{typedef}\ half\ \mbox{\hyperlink{dev_2cuda_2common_8h_a512001f2a9aab0597080982cf701201d}{floatN}};}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ \textcolor{keyword}{typedef}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00200\ \textcolor{keyword}{typedef}\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a512001f2a9aab0597080982cf701201d}{floatN}};}
+\DoxyCodeLine{00201\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structPacked128}{Packed128<floatX>}}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a18b9fccbab81c08ee50f5b5bd5be0606}{x128}};}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00205\ }
+\DoxyCodeLine{00206\ \textcolor{comment}{//\ older\ nvcc\ does\ not\ provide\ \_\_ldcs\ and\ \_\_stcs\ for\ bfloat16,\ despite\ these\ actually\ just\ being\ unsigned\ shorts.}}
+\DoxyCodeLine{00207\ \textcolor{comment}{//\ we\ need\ to\ be\ careful\ here\ to\ only\ define\ our\ own\ versions\ if\ none\ already\ exist,\ otherwise\ the\ compiler\ will}}
+\DoxyCodeLine{00208\ \textcolor{comment}{//\ complain.}}
+\DoxyCodeLine{00209\ \textcolor{comment}{//\ If\ not,\ you\ easily\ get\ "{}no\ viable\ overload"{}\ (for\ sm52)\ and\ "{}function\ already\ exists"{}\ (sm\_80)}}
+\DoxyCodeLine{00210\ \textcolor{preprocessor}{\#if\ defined(ENABLE\_BF16)\ \&\&\ (\_\_CUDACC\_VER\_MAJOR\_\_\ <\ 12)\ \&\&\ !((\_\_CUDA\_ARCH\_\_\ >=\ 800)\ ||\ !defined(\_\_CUDA\_ARCH\_\_))}}
+\DoxyCodeLine{00211\ \_\_device\_\_\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}}\ \_\_ldcs(\textcolor{keyword}{const}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}}*\ address)\ \{}
+\DoxyCodeLine{00212\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ bf\ =\ \_\_ldcs(\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}*\textcolor{keyword}{>}(address));}
+\DoxyCodeLine{00213\ \ \ \ \ \textcolor{keywordflow}{return}\ \_\_nv\_bfloat16\_raw\{bf\};}
+\DoxyCodeLine{00214\ \}}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \_\_device\_\_\ \textcolor{keywordtype}{void}\ \_\_stcs(\mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}}*\ address,\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}})\ \{}
+\DoxyCodeLine{00217\ \ \ \ \ \_\_stcs(\textcolor{keyword}{reinterpret\_cast<}\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}*\textcolor{keyword}{>}(address),\ ((\_\_nv\_bfloat16\_raw)\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}).x);}
+\DoxyCodeLine{00218\ \}}
+\DoxyCodeLine{00219\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00223\ \textcolor{comment}{//\ random\ utils}}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00225\ \textcolor{keywordtype}{float}*\ \mbox{\hyperlink{dev_2cuda_2common_8h_ad95a810db42c458bf90adce978756cc6}{make\_random\_float\_01}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}})\ \{}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keywordtype}{float}*\ arr\ =\ (\textcolor{keywordtype}{float}*)malloc(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00227\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}};\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)\ \{}
+\DoxyCodeLine{00228\ \ \ \ \ \ \ \ \ arr[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ ((float)rand()\ /\ RAND\_MAX);\ \textcolor{comment}{//\ range\ 0..1}}
+\DoxyCodeLine{00229\ \ \ \ \ \}}
+\DoxyCodeLine{00230\ \ \ \ \ \textcolor{keywordflow}{return}\ arr;}
+\DoxyCodeLine{00231\ \}}
+\DoxyCodeLine{00232\ }
+\DoxyCodeLine{00233\ \textcolor{keywordtype}{float}*\ \mbox{\hyperlink{dev_2cuda_2common_8h_aa0e273ca1cef650865e144929578ab90}{make\_random\_float}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}})\ \{}
+\DoxyCodeLine{00234\ \ \ \ \ \textcolor{keywordtype}{float}*\ arr\ =\ (\textcolor{keywordtype}{float}*)malloc(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00235\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}};\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)\ \{}
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \ \ arr[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ ((float)rand()\ /\ RAND\_MAX)\ *\ 2.0\ -\/\ 1.0;\ \textcolor{comment}{//\ range\ -\/1..1}}
+\DoxyCodeLine{00237\ \ \ \ \ \}}
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keywordflow}{return}\ arr;}
+\DoxyCodeLine{00239\ \}}
+\DoxyCodeLine{00240\ }
+\DoxyCodeLine{00241\ \textcolor{keywordtype}{int}*\ \mbox{\hyperlink{dev_2cuda_2common_8h_a23aff99fbaddf88203bd9f8fc1c875a4}{make\_random\_int}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}},\ \textcolor{keywordtype}{int}\ V)\ \{}
+\DoxyCodeLine{00242\ \ \ \ \ \textcolor{keywordtype}{int}*\ arr\ =\ (\textcolor{keywordtype}{int}*)malloc(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{int}));}
+\DoxyCodeLine{00243\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}};\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)\ \{}
+\DoxyCodeLine{00244\ \ \ \ \ \ \ \ \ arr[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ rand()\ \%\ V;\ \textcolor{comment}{//\ range\ 0..V-\/1}}
+\DoxyCodeLine{00245\ \ \ \ \ \}}
+\DoxyCodeLine{00246\ \ \ \ \ \textcolor{keywordflow}{return}\ arr;}
+\DoxyCodeLine{00247\ \}}
+\DoxyCodeLine{00248\ }
+\DoxyCodeLine{00249\ \textcolor{keywordtype}{float}*\ \mbox{\hyperlink{dev_2cuda_2common_8h_a8b0b59ac27b0fa897ba4765ff49b57b6}{make\_zeros\_float}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}})\ \{}
+\DoxyCodeLine{00250\ \ \ \ \ \textcolor{keywordtype}{float}*\ arr\ =\ (\textcolor{keywordtype}{float}*)malloc(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00251\ \ \ \ \ memset(arr,\ 0,\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));\ \textcolor{comment}{//\ all\ zero}}
+\DoxyCodeLine{00252\ \ \ \ \ \textcolor{keywordflow}{return}\ arr;}
+\DoxyCodeLine{00253\ \}}
+\DoxyCodeLine{00254\ }
+\DoxyCodeLine{00255\ \textcolor{keywordtype}{float}*\ \mbox{\hyperlink{dev_2cuda_2common_8h_a07631d20ee7ae20a7d3cad180a826219}{make\_ones\_float}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}})\ \{}
+\DoxyCodeLine{00256\ \ \ \ \ \textcolor{keywordtype}{float}*\ arr\ =\ (\textcolor{keywordtype}{float}*)malloc(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{float}));}
+\DoxyCodeLine{00257\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}};\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)\ \{}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \ \ arr[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ 1.0f;}
+\DoxyCodeLine{00259\ \ \ \ \ \}}
+\DoxyCodeLine{00260\ \ \ \ \ \textcolor{keywordflow}{return}\ arr;}
+\DoxyCodeLine{00261\ \}}
+\DoxyCodeLine{00262\ }
+\DoxyCodeLine{00263\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00264\ \textcolor{comment}{//\ testing\ and\ benchmarking\ utils}}
+\DoxyCodeLine{00265\ }
+\DoxyCodeLine{00266\ \textcolor{keyword}{template}<\textcolor{keyword}{class}\ TargetType>}
+\DoxyCodeLine{00267\ [[nodiscard]]\ cudaError\_t\ \mbox{\hyperlink{dev_2cuda_2common_8h_a20b171d98f49e8d85f74b39c26161304}{memcpy\_convert}}(TargetType*\ d\_ptr,\ \textcolor{keywordtype}{float}*\ h\_ptr,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\ \{}
+\DoxyCodeLine{00268\ \ \ \ \ \textcolor{comment}{//\ copy\ from\ host\ to\ device\ with\ data\ type\ conversion.}}
+\DoxyCodeLine{00269\ \ \ \ \ TargetType*\ converted\ =\ (TargetType*)malloc(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}\ *\ \textcolor{keyword}{sizeof}(TargetType));}
+\DoxyCodeLine{00270\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}};\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)\ \{}
+\DoxyCodeLine{00271\ \ \ \ \ \ \ \ \ converted[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ (TargetType)h\_ptr[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00272\ \ \ \ \ \}}
+\DoxyCodeLine{00273\ }
+\DoxyCodeLine{00274\ \ \ \ \ cudaError\_t\ status\ =\ cudaMemcpy(d\_ptr,\ converted,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}\ *\ \textcolor{keyword}{sizeof}(TargetType),\ cudaMemcpyHostToDevice);}
+\DoxyCodeLine{00275\ \ \ \ \ free(converted);}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00277\ \ \ \ \ \textcolor{comment}{//\ instead\ of\ checking\ the\ status\ at\ cudaMemcpy,\ we\ return\ it\ from\ here.\ This\ way,\ we}}
+\DoxyCodeLine{00278\ \ \ \ \ \textcolor{comment}{//\ still\ need\ to\ use\ our\ checking\ macro,\ and\ get\ better\ line\ info\ as\ to\ where\ the\ error}}
+\DoxyCodeLine{00279\ \ \ \ \ \textcolor{comment}{//\ happened.}}
+\DoxyCodeLine{00280\ \ \ \ \ \textcolor{keywordflow}{return}\ status;}
+\DoxyCodeLine{00281\ \}}
+\DoxyCodeLine{00282\ }
+\DoxyCodeLine{00283\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dev_2cuda_2common_8h_aa34675c2dc6eb3d0744844d8e67e3af8}{setup\_main}}()\ \{}
+\DoxyCodeLine{00284\ \ \ \ \ srand(0);\ \ \ \textcolor{comment}{//\ determinism}}
+\DoxyCodeLine{00285\ }
+\DoxyCodeLine{00286\ \ \ \ \ \textcolor{comment}{//\ set\ up\ the\ device}}
+\DoxyCodeLine{00287\ \ \ \ \ \textcolor{keywordtype}{int}\ deviceIdx\ =\ 0;}
+\DoxyCodeLine{00288\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaSetDevice(deviceIdx));}
+\DoxyCodeLine{00289\ \ \ \ \ cudaDeviceProp\ \mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}};}
+\DoxyCodeLine{00290\ \ \ \ \ cudaGetDeviceProperties(\&\mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}},\ deviceIdx);}
+\DoxyCodeLine{00291\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a86ea9a51fbf1f4ad2209320e5a9c3996}{cuda\_num\_SMs}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}}.multiProcessorCount;}
+\DoxyCodeLine{00292\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_ac1ea0691b0b757d8c453c1f16f65215b}{cuda\_threads\_per\_SM}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}}.maxThreadsPerMultiProcessor;}
+\DoxyCodeLine{00293\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a53503e69acdbc9ead27d3a0ccefd1408}{cuda\_arch\_major}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}}.major;}
+\DoxyCodeLine{00294\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a14fbc4ef8e3ce0443c7dd9badfbb337a}{cuda\_arch\_minor}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}}.minor;}
+\DoxyCodeLine{00295\ }
+\DoxyCodeLine{00296\ \ \ \ \ \textcolor{comment}{//\ setup\ cuBLAS\ and\ cuBLASLt}}
+\DoxyCodeLine{00297\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a437b0c0051de005c7620314d33d49be9}{cublasCheck}}(cublasCreate(\&\mbox{\hyperlink{dev_2cuda_2common_8h_ab85516b4be3ea4d5320a30fe5875bd3f}{cublas\_handle}}));}
+\DoxyCodeLine{00298\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a437b0c0051de005c7620314d33d49be9}{cublasCheck}}(cublasLtCreate(\&\mbox{\hyperlink{dev_2cuda_2common_8h_aef5c96aae6ae1c3fc4a74f4a78aba3ab}{cublaslt\_handle}}));}
+\DoxyCodeLine{00299\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaMalloc(\&\mbox{\hyperlink{dev_2cuda_2common_8h_aef9dd98366e2fee8e91c53cbe8bf248f}{cublaslt\_workspace}},\ \mbox{\hyperlink{dev_2cuda_2common_8h_ae0833978066643c6cb7f2121b089ea00}{cublaslt\_workspace\_size}}));}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \ \ \ \ \textcolor{comment}{//\ TF32\ precision\ is\ equivalent\ to\ torch.set\_float32\_matmul\_precision('high')}}
+\DoxyCodeLine{00302\ \ \ \ \ \textcolor{keywordtype}{int}\ enable\_tf32\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a53503e69acdbc9ead27d3a0ccefd1408}{cuda\_arch\_major}}\ >=\ 8\ ?\ 1\ :\ 0;}
+\DoxyCodeLine{00303\ \ \ \ \ \textcolor{comment}{//\ TODO\ implement\ common\ CLI\ for\ all\ tests/benchmarks}}
+\DoxyCodeLine{00304\ \ \ \ \ \textcolor{comment}{//\ if\ (override\_enable\_tf32\ ==\ 0)\ \{\ enable\_tf32\ =\ 0;\ \}\ //\ force\ to\ zero\ via\ arg}}
+\DoxyCodeLine{00305\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a7cc52d1f8a6ed1f9dc26a9f67e24f314}{cublas\_compute\_type}}\ =\ enable\_tf32\ ?\ CUBLAS\_COMPUTE\_32F\_FAST\_TF32\ :\ CUBLAS\_COMPUTE\_32F;}
+\DoxyCodeLine{00306\ \ \ \ \ cublasMath\_t\ cublas\_math\_mode\ =\ enable\_tf32\ ?\ CUBLAS\_TF32\_TENSOR\_OP\_MATH\ :\ CUBLAS\_DEFAULT\_MATH;}
+\DoxyCodeLine{00307\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a437b0c0051de005c7620314d33d49be9}{cublasCheck}}(cublasSetMathMode(\mbox{\hyperlink{dev_2cuda_2common_8h_ab85516b4be3ea4d5320a30fe5875bd3f}{cublas\_handle}},\ cublas\_math\_mode));}
+\DoxyCodeLine{00308\ \}}
+\DoxyCodeLine{00309\ }
+\DoxyCodeLine{00310\ \textcolor{keyword}{template}<\textcolor{keyword}{class}\ D,\ \textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00311\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a276c603ffdc28519635a8e42cf682877}{validate\_result}}(D*\ device\_result,\ \textcolor{keyword}{const}\ T*\ cpu\_reference,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}},\ std::size\_t\ num\_elements,\ T\ tolerance=1e-\/4)\ \{}
+\DoxyCodeLine{00312\ \ \ \ \ D*\ out\_gpu\ =\ (D*)malloc(num\_elements\ *\ \textcolor{keyword}{sizeof}(D));}
+\DoxyCodeLine{00313\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaMemcpy(out\_gpu,\ device\_result,\ num\_elements\ *\ \textcolor{keyword}{sizeof}(D),\ cudaMemcpyDeviceToHost));}
+\DoxyCodeLine{00314\ \ \ \ \ \textcolor{keywordtype}{int}\ nfaults\ =\ 0;}
+\DoxyCodeLine{00315\ \textcolor{preprocessor}{\#ifndef\ ENABLE\_BF16}}
+\DoxyCodeLine{00316\ \ \ \ \ \textcolor{keywordtype}{float}\ epsilon\ =\ FLT\_EPSILON;}
+\DoxyCodeLine{00317\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00318\ \ \ \ \ \textcolor{keywordtype}{float}\ epsilon\ =\ 0.079;}
+\DoxyCodeLine{00319\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00320\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ num\_elements;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)\ \{}
+\DoxyCodeLine{00321\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Skip\ masked\ elements}}
+\DoxyCodeLine{00322\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(!isfinite(cpu\_reference[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]))}
+\DoxyCodeLine{00323\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{00324\ }
+\DoxyCodeLine{00325\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ print\ the\ first\ few\ comparisons}}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ 5)\ \{}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}\%f\ \%f\(\backslash\)n"{}},\ cpu\_reference[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}],\ (T)out\_gpu[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]);}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00329\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ effective\ tolerance\ is\ based\ on\ expected\ rounding\ error\ (epsilon),}}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ plus\ any\ specified\ additional\ tolerance}}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ t\_eff\ =\ tolerance\ +\ fabs(cpu\_reference[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}])\ *\ epsilon;}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ ensure\ correctness\ for\ all\ elements.}}
+\DoxyCodeLine{00333\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (fabs(cpu\_reference[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ -\/\ (T)out\_gpu[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}])\ >\ t\_eff)\ \{}
+\DoxyCodeLine{00334\ \ \ \ \ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Mismatch\ of\ \%s\ at\ \%d:\ CPU\_ref:\ \%f\ vs\ GPU:\ \%f\(\backslash\)n"{}},\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ cpu\_reference[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}],\ (T)out\_gpu[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]);}
+\DoxyCodeLine{00335\ \ \ \ \ \ \ \ \ \ \ \ \ nfaults\ ++;}
+\DoxyCodeLine{00336\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (nfaults\ >=\ 10)\ \{}
+\DoxyCodeLine{00337\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ free(out\_gpu);}
+\DoxyCodeLine{00338\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00339\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00340\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00341\ \ \ \ \ \}}
+\DoxyCodeLine{00342\ }
+\DoxyCodeLine{00343\ \ \ \ \ \textcolor{keywordflow}{if}\ (nfaults\ >\ 0)\ \{}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \ \ free(out\_gpu);}
+\DoxyCodeLine{00345\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00346\ \ \ \ \ \}}
+\DoxyCodeLine{00347\ }
+\DoxyCodeLine{00348\ \ \ \ \ free(out\_gpu);}
+\DoxyCodeLine{00349\ \}}
+\DoxyCodeLine{00350\ }
+\DoxyCodeLine{00351\ \textcolor{keyword}{template}<\textcolor{keyword}{class\ }Kernel,\ \textcolor{keyword}{class}...\ KernelArgs>}
+\DoxyCodeLine{00352\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{dev_2cuda_2common_8h_a1476a02401b8f3605431fe3d2df625f0}{benchmark\_kernel}}(\textcolor{keywordtype}{int}\ repeats,\ Kernel\ kernel,\ KernelArgs\&\&...\ kernel\_args)\ \{}
+\DoxyCodeLine{00353\ \ \ \ \ cudaEvent\_t\ start,\ stop;}
+\DoxyCodeLine{00354\ \ \ \ \ \textcolor{comment}{//\ prepare\ buffer\ to\ scrub\ L2\ cache\ between\ benchmarks}}
+\DoxyCodeLine{00355\ \ \ \ \ \textcolor{comment}{//\ just\ memset\ a\ large\ dummy\ array,\ recommended\ by}}
+\DoxyCodeLine{00356\ \ \ \ \ \textcolor{comment}{//\ https://stackoverflow.com/questions/31429377/how-\/can-\/i-\/clear-\/flush-\/the-\/l2-\/cache-\/and-\/the-\/tlb-\/of-\/a-\/gpu}}
+\DoxyCodeLine{00357\ \ \ \ \ \textcolor{comment}{//\ and\ apparently\ used\ in\ nvbench.}}
+\DoxyCodeLine{00358\ \ \ \ \ \textcolor{keywordtype}{int}\ deviceIdx\ =\ 0;}
+\DoxyCodeLine{00359\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaSetDevice(deviceIdx));}
+\DoxyCodeLine{00360\ \ \ \ \ cudaDeviceProp\ \mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}};}
+\DoxyCodeLine{00361\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaGetDeviceProperties(\&\mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}},\ deviceIdx));}
+\DoxyCodeLine{00362\ \ \ \ \ \textcolor{keywordtype}{void}*\ flush\_buffer;}
+\DoxyCodeLine{00363\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaMalloc(\&flush\_buffer,\ \mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}}.l2CacheSize));}
+\DoxyCodeLine{00364\ }
+\DoxyCodeLine{00365\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaEventCreate(\&start));}
+\DoxyCodeLine{00366\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaEventCreate(\&stop));}
+\DoxyCodeLine{00367\ \ \ \ \ \textcolor{keywordtype}{float}\ elapsed\_time\ =\ 0.f;}
+\DoxyCodeLine{00368\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ repeats;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)\ \{}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ clear\ L2}}
+\DoxyCodeLine{00370\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaMemset(flush\_buffer,\ 0,\ \mbox{\hyperlink{dev_2cuda_2common_8h_abc437f342049ab295e33fd1f4b74c46d}{deviceProp}}.l2CacheSize));}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ now\ we\ can\ start\ recording\ the\ timing\ of\ the\ kernel}}
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaEventRecord(start,\ \textcolor{keyword}{nullptr}));}
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \ \ kernel(std::forward<KernelArgs>(kernel\_args)...);}
+\DoxyCodeLine{00374\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaEventRecord(stop,\ \textcolor{keyword}{nullptr}));}
+\DoxyCodeLine{00375\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaEventSynchronize(start));}
+\DoxyCodeLine{00376\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaEventSynchronize(stop));}
+\DoxyCodeLine{00377\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ single\_call;}
+\DoxyCodeLine{00378\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaEventElapsedTime(\&single\_call,\ start,\ stop));}
+\DoxyCodeLine{00379\ \ \ \ \ \ \ \ \ elapsed\_time\ +=\ single\_call;}
+\DoxyCodeLine{00380\ \ \ \ \ \}}
+\DoxyCodeLine{00381\ }
+\DoxyCodeLine{00382\ \ \ \ \ \mbox{\hyperlink{dev_2cuda_2common_8h_a6929c1a4ff9043ad4cbef5734f36ea69}{cudaCheck}}(cudaFree(flush\_buffer));}
+\DoxyCodeLine{00383\ }
+\DoxyCodeLine{00384\ \ \ \ \ \textcolor{keywordflow}{return}\ elapsed\_time\ /\ repeats;}
+\DoxyCodeLine{00385\ \}}
+
+\end{DoxyCode}

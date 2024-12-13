@@ -1,0 +1,67 @@
+\chapter{Abseil FAQ}
+\hypertarget{md_OriginalStuff_2abseil-cpp_2FAQ}{}\label{md_OriginalStuff_2abseil-cpp_2FAQ}\index{Abseil FAQ@{Abseil FAQ}}
+\label{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md77}%
+\Hypertarget{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md77}%
+\hypertarget{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md78}{}\doxysection{\texorpdfstring{Is Abseil the right home for my utility library?}{Is Abseil the right home for my utility library?}}\label{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md78}
+Most often the answer to the question is "{}no."{} As both the \href{https://abseil.io/about/}{\texttt{ About Abseil}} page and our \href{https://github.com/abseil/abseil-cpp/blob/master/CONTRIBUTING.md\#contribution-guidelines}{\texttt{ contributing guidelines}} explain, Abseil contains a variety of core C++ library code that is widely used at \href{https://www.google.com/}{\texttt{ Google}}. As such, Abseil\textquotesingle{}s primary purpose is to be used as a dependency by Google\textquotesingle{}s open source C++ projects. While we do hope that Abseil is also useful to the C++ community at large, this added constraint also means that we are unlikely to accept a contribution of utility code that isn\textquotesingle{}t already widely used by Google.\hypertarget{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md79}{}\doxysection{\texorpdfstring{How to I set the C++ dialect used to build Abseil?}{How to I set the C++ dialect used to build Abseil?}}\label{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md79}
+The short answer is that whatever mechanism you choose, you need to make sure that you set this option consistently at the global level for your entire project. If, for example, you want to set the C++ dialect to C++17, with \href{https://bazel/build/}{\texttt{ Bazel}} as the build system and {\ttfamily gcc} or {\ttfamily clang} as the compiler, there several ways to do this\+:
+\begin{DoxyItemize}
+\item Pass {\ttfamily -\/-\/cxxopt=-\/std=c++17} on the command line (for example, {\ttfamily bazel build -\/-\/cxxopt=-\/std=c++17 ...})
+\item Set the environment variable {\ttfamily BAZEL\+\_\+\+CXXOPTS} (for example, {\ttfamily BAZEL\+\_\+\+CXXOPTS=-\/std=c++17})
+\item Add {\ttfamily build -\/-\/cxxopt=-\/std=c++17} to your \href{https://docs.bazel.build/versions/master/guide.html\#bazelrc}{\texttt{ {\ttfamily .bazelrc} file}}
+\end{DoxyItemize}
+
+If you are using CMake as the build system, you\textquotesingle{}ll need to add a line like {\ttfamily set(\+CMAKE\+\_\+\+CXX\+\_\+\+STANDARD 17)} to your top level {\ttfamily CMake\+Lists.\+txt} file. If you are developing a library designed to be used by other clients, you should instead leave {\ttfamily CMAKE\+\_\+\+CXX\+\_\+\+STANDARD} unset and configure the minimum C++ standard required by each of your library targets via {\ttfamily target\+\_\+compile\+\_\+features}. See the \href{https://github.com/abseil/abseil-cpp/blob/master/CMake/README.md}{\texttt{ CMake build instructions}} for more information.
+
+For a longer answer to this question and to understand why some other approaches don\textquotesingle{}t work, see the answer to \mbox{[}"{}\+What is ABI and why don\textquotesingle{}t you recommend using a pre-\/compiled version of \+Abseil?"{}\mbox{]}(\#what-\/is-\/abi-\/and-\/why-\/dont-\/you-\/recommend-\/using-\/a-\/pre-\/compiled-\/version-\/of-\/abseil)\hypertarget{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md80}{}\doxysection{\texorpdfstring{What is ABI and why don\textquotesingle{}t you recommend using a pre-\/compiled version of Abseil?}{What is ABI and why don\textquotesingle{}t you recommend using a pre-\/compiled version of Abseil?}}\label{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md80}
+For the purposes of this discussion, you can think of \href{https://en.wikipedia.org/wiki/Application_binary_interface}{\texttt{ ABI}} as the compiled representation of the interfaces in code. This is in contrast to \href{https://en.wikipedia.org/wiki/Application_programming_interface}{\texttt{ API}}, which you can think of as the interfaces as defined by the code itself. \mbox{[}Abseil has a strong promise of API compatibility, but does not make any promise of ABI compatibility\mbox{]}(\href{https://abseil.io/about/compatibility}{\texttt{ https\+://abseil.\+io/about/compatibility}}). Let\textquotesingle{}s take a look at what this means in practice.
+
+You might be tempted to do something like this in a \href{https://bazel.build/}{\texttt{ Bazel}} {\ttfamily BUILD} file\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{\#\ DON'T\ DO\ THIS!!!}
+\DoxyCodeLine{cc\_library(}
+\DoxyCodeLine{\ \ \ \ name\ =\ "{}my\_library"{},}
+\DoxyCodeLine{\ \ \ \ srcs\ =\ ["{}my\_library.cc"{}],}
+\DoxyCodeLine{\ \ \ \ copts\ =\ ["{}-\/std=c++17"{}],\ \ \#\ May\ create\ a\ mixed-\/mode\ compile!}
+\DoxyCodeLine{\ \ \ \ deps\ =\ ["{}@com\_google\_absl//absl/strings"{}],}
+\DoxyCodeLine{)}
+
+\end{DoxyCode}
+
+
+Applying {\ttfamily -\/std=c++17} to an individual target in your {\ttfamily BUILD} file is going to compile that specific target in C++17 mode, but it isn\textquotesingle{}t going to ensure the Abseil library is built in C++17 mode, since the Abseil library itself is a different build target. If your code includes an Abseil header, then your program may contain conflicting definitions of the same class/function/variable/enum, etc. As a rule, all compile options that affect the ABI of a program need to be applied to the entire build on a global basis.
+
+C++ has something called the \href{https://en.wikipedia.org/wiki/One_Definition_Rule}{\texttt{ One Definition Rule}} (ODR). C++ doesn\textquotesingle{}t allow multiple definitions of the same class/function/variable/enum, etc. ODR violations sometimes result in linker errors, but linkers do not always catch violations. Uncaught ODR violations can result in strange runtime behaviors or crashes that can be hard to debug.
+
+If you build the Abseil library and your code using different compile options that affect ABI, there is a good chance you will run afoul of the One Definition Rule. Examples of GCC compile options that affect ABI include (but aren\textquotesingle{}t limited to) language dialect (e.\+g. {\ttfamily -\/std=}), optimization level (e.\+g. {\ttfamily -\/O2}), code generation flags (e.\+g. {\ttfamily -\/fexceptions}), and preprocessor defines (e.\+g. {\ttfamily -\/DNDEBUG}).
+
+If you use a pre-\/compiled version of Abseil, (for example, from your Linux distribution package manager or from something like \href{https://github.com/microsoft/vcpkg}{\texttt{ vcpkg}}) you have to be very careful to ensure ABI compatibility across the components of your program. The only way you can be sure your program is going to be correct regarding ABI is to ensure you\textquotesingle{}ve used the exact same compile options as were used to build the pre-\/compiled library. This does not mean that Abseil cannot work as part of a Linux distribution since a knowledgeable binary packager will have ensured that all packages have been built with consistent compile options. This is one of the reasons we warn against -\/ though do not outright reject -\/ using Abseil as a pre-\/compiled library.
+
+Another possible way that you might afoul of ABI issues is if you accidentally include two versions of Abseil in your program. Multiple versions of Abseil can end up within the same binary if your program uses the Abseil library and another library also transitively depends on Abseil (resulting in what is sometimes called the diamond dependency problem). In cases such as this you must structure your build so that all libraries use the same version of Abseil. \href{https://abseil.io/about/compatibility}{\texttt{ Abseil\textquotesingle{}s strong promise of API compatibility between releases}} means the latest "{}\+HEAD"{} release of Abseil is almost certainly the right choice if you are doing as we recommend and building all of your code from source.
+
+For these reasons we recommend you avoid pre-\/compiled code and build the Abseil library yourself in a consistent manner with the rest of your code.\hypertarget{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md81}{}\doxysection{\texorpdfstring{What is "{}live at head"{} and how do I do it?}{What is "{}live at head"{} and how do I do it?}}\label{md_OriginalStuff_2abseil-cpp_2FAQ_autotoc_md81}
+From Abseil\textquotesingle{}s point-\/of-\/view, "{}live at head"{} means that every Abseil source release (which happens on an almost daily basis) is either API compatible with the previous release, or comes with an automated tool that you can run over code to make it compatible. In practice, the need to use an automated tool is extremely rare. This means that upgrading from one source release to another should be a routine practice that can and should be performed often.
+
+We recommend you update to the \href{https://github.com/abseil/abseil-cpp/commits/master}{\texttt{ latest commit in the {\ttfamily master} branch of Abseil}} as often as possible. Not only will you pick up bug fixes more quickly, but if you have good automated testing, you will catch and be able to fix any \href{https://www.hyrumslaw.com/}{\texttt{ Hyrum\textquotesingle{}s Law}} dependency problems on an incremental basis instead of being overwhelmed by them and having difficulty isolating them if you wait longer between updates.
+
+If you are using the \href{https://bazel.build/}{\texttt{ Bazel}} build system and its \href{https://docs.bazel.build/versions/master/external.html}{\texttt{ external dependencies}} feature, updating the \href{https://docs.bazel.build/versions/master/repo/http.html\#http_archive}{\texttt{ {\ttfamily http\+\_\+archive}}} rule in your \href{https://docs.bazel.build/versions/master/be/workspace.html}{\texttt{ {\ttfamily WORKSPACE}}} for {\ttfamily com\+\_\+google\+\_\+abseil} to point to the \href{https://github.com/abseil/abseil-cpp/commits/master}{\texttt{ latest commit in the {\ttfamily master} branch of Abseil}} is all you need to do. For example, on February 11, 2020, the latest commit to the master branch was {\ttfamily 98eb410c93ad059f9bba1bf43f5bb916fc92a5ea}. To update to this commit, you would add the following snippet to your {\ttfamily WORKSPACE} file\+:
+
+
+\begin{DoxyCode}{0}
+\DoxyCodeLine{http\_archive(}
+\DoxyCodeLine{\ \ name\ =\ "{}com\_google\_absl"{},}
+\DoxyCodeLine{\ \ urls\ =\ ["{}https://github.com/abseil/abseil-\/cpp/archive/98eb410c93ad059f9bba1bf43f5bb916fc92a5ea.zip"{}],\ \ \#\ 2020-\/02-\/11T18:50:53Z}
+\DoxyCodeLine{\ \ strip\_prefix\ =\ "{}abseil-\/cpp-\/98eb410c93ad059f9bba1bf43f5bb916fc92a5ea"{},}
+\DoxyCodeLine{\ \ sha256\ =\ "{}aabf6c57e3834f8dc3873a927f37eaf69975d4b28117fc7427dfb1c661542a87"{},}
+\DoxyCodeLine{)}
+
+\end{DoxyCode}
+
+
+To get the {\ttfamily sha256} of this URL, run {\ttfamily curl -\/sL -\/-\/output -\/ \href{https://github.com/abseil/abseil-cpp/archive/98eb410c93ad059f9bba1bf43f5bb916fc92a5ea.zip}{\texttt{ https\+://github.\+com/abseil/abseil-\/cpp/archive/98eb410c93ad059f9bba1bf43f5bb916fc92a5ea.\+zip}} \texorpdfstring{$\vert$}{|} sha256sum -\/}.
+
+You can commit the updated {\ttfamily WORKSPACE} file to your source control every time you update, and if you have good automated testing, you might even consider automating this.
+
+One thing we don\textquotesingle{}t recommend is using Git\+Hub\textquotesingle{}s {\ttfamily master.\+zip} files (for example \href{https://github.com/abseil/abseil-cpp/archive/master.zip}{\texttt{ https\+://github.\+com/abseil/abseil-\/cpp/archive/master.\+zip}}), which are always the latest commit in the {\ttfamily master} branch, to implement live at head. Since these {\ttfamily master.\+zip} URLs are not versioned, you will lose build reproducibility. In addition, some build systems, including Bazel, will simply cache this file, which means you won\textquotesingle{}t actually be updating to the latest release until your cache is cleared or invalidated. 

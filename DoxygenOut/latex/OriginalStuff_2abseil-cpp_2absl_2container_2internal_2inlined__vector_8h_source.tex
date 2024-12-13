@@ -1,0 +1,1111 @@
+\doxysection{inlined\+\_\+vector.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2inlined__vector_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2inlined__vector_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/container/internal/inlined\_vector.h@{OriginalStuff/abseil-\/cpp/absl/container/internal/inlined\_vector.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2inlined__vector_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2019\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CONTAINER\_INTERNAL\_INLINED\_VECTOR\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_CONTAINER\_INTERNAL\_INLINED\_VECTOR\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <cstring>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <iterator>}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ <new>}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/identity.h"{}}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}absl/container/internal/compressed\_tuple.h"{}}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ "{}absl/memory/memory.h"{}}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ "{}absl/types/span.h"{}}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00038\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00039\ \textcolor{keyword}{namespace\ }inlined\_vector\_internal\ \{}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ GCC\ does\ not\ deal\ very\ well\ with\ the\ below\ code}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#if\ !defined(\_\_clang\_\_)\ \&\&\ defined(\_\_GNUC\_\_)}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ push}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ ignored\ "{}-\/Warray-\/bounds"{}}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00048\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab1fecc7c615346c74c750aee13c703dc}{AllocatorTraits}}\ =\ std::allocator\_traits<A>;}
+\DoxyCodeLine{00049\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00050\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType}}\ =\ \textcolor{keyword}{typename}\ AllocatorTraits<A>::value\_type;}
+\DoxyCodeLine{00051\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00052\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType}}\ =\ \textcolor{keyword}{typename}\ AllocatorTraits<A>::size\_type;}
+\DoxyCodeLine{00053\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00054\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer}}\ =\ \textcolor{keyword}{typename}\ AllocatorTraits<A>::pointer;}
+\DoxyCodeLine{00055\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00056\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a8533138917d8735d0e93111b8ee8cbcb}{ConstPointer}}\ =\ \textcolor{keyword}{typename}\ AllocatorTraits<A>::const\_pointer;}
+\DoxyCodeLine{00057\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00058\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType}}\ =\ \textcolor{keyword}{typename}\ AllocatorTraits<A>::size\_type;}
+\DoxyCodeLine{00059\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00060\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a18c6a33b7618f2c5f3d855fe208436c3}{DifferenceType}}\ =\ \textcolor{keyword}{typename}\ AllocatorTraits<A>::difference\_type;}
+\DoxyCodeLine{00061\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00062\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a0c1f14aedd4c6129077ee761c4191651}{Reference}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}\&;}
+\DoxyCodeLine{00063\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00064\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a19afc0e32060da2971ccd0620755d381}{ConstReference}}\ =\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}\&;}
+\DoxyCodeLine{00065\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00066\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}};}
+\DoxyCodeLine{00067\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00068\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_abf04c7a42e53097f26011300c50c5a2a}{ConstIterator}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a8533138917d8735d0e93111b8ee8cbcb}{ConstPointer<A>}};}
+\DoxyCodeLine{00069\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00070\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_afae923b98aba74f7e005db29b926c7bc}{ReverseIterator}}\ =\ \textcolor{keyword}{typename}\ std::reverse\_iterator<Iterator<A>>;}
+\DoxyCodeLine{00071\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00072\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_adb30f8d8b64d05406bfae7ab27b48bee}{ConstReverseIterator}}\ =\ \textcolor{keyword}{typename}\ std::reverse\_iterator<ConstIterator<A>>;}
+\DoxyCodeLine{00073\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00074\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator}}\ =\ \textcolor{keyword}{typename}\ std::move\_iterator<Iterator<A>>;}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Iterator>}
+\DoxyCodeLine{00077\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a0a6de2debaf73cef2bf4581afc71bced}{IsAtLeastForwardIterator}}\ =\ std::is\_convertible<}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keyword}{typename}\ std::iterator\_traits<Iterator>::iterator\_category,}
+\DoxyCodeLine{00079\ \ \ \ \ std::forward\_iterator\_tag>;}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00082\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a4d6ff151a990dcaa5fdb7af44bfe6ef7}{IsMoveAssignOk}}\ =\ std::is\_move\_assignable<ValueType<A>>;}
+\DoxyCodeLine{00083\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00084\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab882869592b0341b11655047658cbe3f}{IsSwapOk}}\ =\ \mbox{\hyperlink{structabsl_1_1swap__internal_1_1IsSwappable}{absl::type\_traits\_internal::IsSwappable<ValueType<A>}}>;}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7fc56270e7a70fa81a5935b72eacbe29}{A}},\ \textcolor{keywordtype}{bool}\ IsTriviallyDestructible\ =}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::is\_trivially\_destructible<ValueType<A>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}>}
+\DoxyCodeLine{00088\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1DestroyAdapter}{DestroyAdapter}};}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00091\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1DestroyAdapter}{DestroyAdapter}}<A,\ \textcolor{comment}{/*\ IsTriviallyDestructible\ */}\ false>\ \{}
+\DoxyCodeLine{00092\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1DestroyAdapter_3_01A_00_01false_01_4_a05c121868ff56630295aed3583ebff88}{DestroyElements}}(A\&\ allocator,\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ destroy\_first,}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ destroy\_size)\ \{}
+\DoxyCodeLine{00094\ \ \ \ \ \textcolor{keywordflow}{for}\ (\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ destroy\_size;\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ !=\ 0;)\ \{}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ -\/-\/\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}};}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab1fecc7c615346c74c750aee13c703dc}{AllocatorTraits<A>::destroy}}(allocator,\ destroy\_first\ +\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}});}
+\DoxyCodeLine{00097\ \ \ \ \ \}}
+\DoxyCodeLine{00098\ \ \ \}}
+\DoxyCodeLine{00099\ \};}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00102\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1DestroyAdapter}{DestroyAdapter}}<A,\ \textcolor{comment}{/*\ IsTriviallyDestructible\ */}\ true>\ \{}
+\DoxyCodeLine{00103\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1DestroyAdapter_3_01A_00_01true_01_4_aa012342e28705c4785ba35601d7abf18}{DestroyElements}}(A\&\ allocator,\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ destroy\_first,}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ destroy\_size)\ \{}
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}\textcolor{keyword}{>}(allocator);}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}\textcolor{keyword}{>}(destroy\_first);}
+\DoxyCodeLine{00107\ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}\textcolor{keyword}{>}(destroy\_size);}
+\DoxyCodeLine{00108\ \ \ \}}
+\DoxyCodeLine{00109\ \};}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00112\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation}{Allocation}}\ \{}
+\DoxyCodeLine{00113\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation_a5852915d8f726d49d9f3102189112484}{data}}\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00114\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation_a031e6892d2579beed3006fec85df0a7e}{capacity}}\ =\ 0;}
+\DoxyCodeLine{00115\ \};}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7fc56270e7a70fa81a5935b72eacbe29}{A}},}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ IsOverAligned\ =}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keyword}{alignof}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}})\ >\ \mbox{\hyperlink{abseil-cpp_2absl_2meta_2type__traits_8h_a3d81d169e819a6c11f08e42f11e66a2c}{ABSL\_INTERNAL\_DEFAULT\_NEW\_ALIGNMENT}})>}
+\DoxyCodeLine{00120\ \textcolor{keyword}{struct}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1MallocAdapter}{MallocAdapter}}\ \{}
+\DoxyCodeLine{00121\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation}{Allocation<A>}}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1MallocAdapter_a5cc7b7f3378ef58e3d2e5bf94fdc7aa6}{Allocate}}(A\&\ allocator,\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity)\ \{}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab1fecc7c615346c74c750aee13c703dc}{AllocatorTraits<A>::allocate}}(allocator,\ requested\_capacity),}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \ \ \ \ requested\_capacity\};}
+\DoxyCodeLine{00124\ \ \ \}}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1MallocAdapter_ade6a952f81ed18482de3b0e87d6fa416}{Deallocate}}(A\&\ allocator,\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ pointer,}
+\DoxyCodeLine{00127\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ capacity)\ \{}
+\DoxyCodeLine{00128\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab1fecc7c615346c74c750aee13c703dc}{AllocatorTraits<A>::deallocate}}(allocator,\ pointer,\ capacity);}
+\DoxyCodeLine{00129\ \ \ \}}
+\DoxyCodeLine{00130\ \};}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A,\ \textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00133\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements}}(\mbox{\hyperlink{namespaceabsl_1_1internal_a040f50f1e4898b77da6d9736087c8b03}{absl::internal::type\_identity\_t<A>}}\&\ allocator,}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ construct\_first,\ ValueAdapter\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ construct\_size)\ \{}
+\DoxyCodeLine{00136\ \ \ \textcolor{keywordflow}{for}\ (\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ 0;\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ <\ construct\_size;\ ++\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}})\ \{}
+\DoxyCodeLine{00137\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a1bceb3976b8fb4255b537303007faf5f}{ABSL\_INTERNAL\_TRY}}\ \{\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}}.ConstructNext(allocator,\ construct\_first\ +\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}});\ \}}
+\DoxyCodeLine{00138\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a93cc06084e25e050f466657e61729cdf}{ABSL\_INTERNAL\_CATCH\_ANY}}\ \{}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ DestroyAdapter<A>::DestroyElements(allocator,\ construct\_first,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}});}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a6b0c9c2591294693a57febd708062538}{ABSL\_INTERNAL\_RETHROW}};}
+\DoxyCodeLine{00141\ \ \ \ \ \}}
+\DoxyCodeLine{00142\ \ \ \}}
+\DoxyCodeLine{00143\ \}}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A,\ \textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00146\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a4b75f37627f1e030d9e2a8803e56d724}{AssignElements}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ assign\_first,\ ValueAdapter\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ assign\_size)\ \{}
+\DoxyCodeLine{00148\ \ \ \textcolor{keywordflow}{for}\ (\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ 0;\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ <\ assign\_size;\ ++\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}})\ \{}
+\DoxyCodeLine{00149\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}}.AssignNext(assign\_first\ +\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}});}
+\DoxyCodeLine{00150\ \ \ \}}
+\DoxyCodeLine{00151\ \}}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00154\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1StorageView}{StorageView}}\ \{}
+\DoxyCodeLine{00155\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1StorageView_a7936596dbe1dddccd93665febad0831c}{data}};}
+\DoxyCodeLine{00156\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1StorageView_ac33abc1e68b19ccbfdec0ef4adc41d49}{size}};}
+\DoxyCodeLine{00157\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1StorageView_af4b52b980d54d498362cc48f5b00ea16}{capacity}};}
+\DoxyCodeLine{00158\ \};}
+\DoxyCodeLine{00159\ }
+\DoxyCodeLine{00160\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A,\ \textcolor{keyword}{typename}\ Iterator>}
+\DoxyCodeLine{00161\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1IteratorValueAdapter}{IteratorValueAdapter}}\ \{}
+\DoxyCodeLine{00162\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00163\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1IteratorValueAdapter_aadc7c18a779b4e562bb1109fd2c84616}{IteratorValueAdapter}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator}}\&\ it)\ :\ it\_(it)\ \{\}}
+\DoxyCodeLine{00164\ }
+\DoxyCodeLine{00165\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1IteratorValueAdapter_a3e7aad95ccda6b5085a5ccbbbfaf3a0e}{ConstructNext}}(A\&\ allocator,\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ construct\_at)\ \{}
+\DoxyCodeLine{00166\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab1fecc7c615346c74c750aee13c703dc}{AllocatorTraits<A>::construct}}(allocator,\ construct\_at,\ *it\_);}
+\DoxyCodeLine{00167\ \ \ \ \ ++it\_;}
+\DoxyCodeLine{00168\ \ \ \}}
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00170\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1IteratorValueAdapter_aadcb9a29b7c144baac25777341423ca3}{AssignNext}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ assign\_at)\ \{}
+\DoxyCodeLine{00171\ \ \ \ \ *assign\_at\ =\ *it\_;}
+\DoxyCodeLine{00172\ \ \ \ \ ++it\_;}
+\DoxyCodeLine{00173\ \ \ \}}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00176\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator}}\ it\_;}
+\DoxyCodeLine{00177\ \};}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00180\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1CopyValueAdapter}{CopyValueAdapter}}\ \{}
+\DoxyCodeLine{00181\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00182\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1CopyValueAdapter_a51f91d86239a931ae07a4f4910263d21}{CopyValueAdapter}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a8533138917d8735d0e93111b8ee8cbcb}{ConstPointer<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ :\ ptr\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \{\}}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1CopyValueAdapter_a741591bc9c9bb987dde824b3217caa4d}{ConstructNext}}(A\&\ allocator,\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ construct\_at)\ \{}
+\DoxyCodeLine{00185\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab1fecc7c615346c74c750aee13c703dc}{AllocatorTraits<A>::construct}}(allocator,\ construct\_at,\ *ptr\_);}
+\DoxyCodeLine{00186\ \ \ \}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1CopyValueAdapter_a0ea144c0257143d7d74e93d6f2abdb57}{AssignNext}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ assign\_at)\ \{\ *assign\_at\ =\ *ptr\_;\ \}}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00190\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00191\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a8533138917d8735d0e93111b8ee8cbcb}{ConstPointer<A>}}\ ptr\_;}
+\DoxyCodeLine{00192\ \};}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00195\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1DefaultValueAdapter}{DefaultValueAdapter}}\ \{}
+\DoxyCodeLine{00196\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00197\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1DefaultValueAdapter_ab09a118668cb9e7e2caa8bb0a2dc4c4a}{DefaultValueAdapter}}()\ \{\}}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1DefaultValueAdapter_ac2f1e530ece11e7bd4722a991aa3a3ea}{ConstructNext}}(A\&\ allocator,\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ construct\_at)\ \{}
+\DoxyCodeLine{00200\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab1fecc7c615346c74c750aee13c703dc}{AllocatorTraits<A>::construct}}(allocator,\ construct\_at);}
+\DoxyCodeLine{00201\ \ \ \}}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1DefaultValueAdapter_a0a47e109fdff7be415ed30cf6df03975}{AssignNext}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ assign\_at)\ \{\ *assign\_at\ =\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}();\ \}}
+\DoxyCodeLine{00204\ \};}
+\DoxyCodeLine{00205\ }
+\DoxyCodeLine{00206\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00207\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction}{AllocationTransaction}}\ \{}
+\DoxyCodeLine{00208\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00209\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_a31e91ec009e7805bc37b6ae6f5b2a089}{AllocationTransaction}}(A\&\ allocator)}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ :\ allocator\_data\_(allocator,\ nullptr),\ capacity\_(0)\ \{\}}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_a168091c78fba8e35a665895bd879e4dd}{\string~AllocationTransaction}}()\ \{}
+\DoxyCodeLine{00213\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_addc027d8bab2ec7992dae47b0cbdd06f}{DidAllocate}}())\ \{}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1MallocAdapter_ade6a952f81ed18482de3b0e87d6fa416}{MallocAdapter<A>::Deallocate}}(\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_ab1c8971ddc982e74dfd17d85eadeab93}{GetAllocator}}(),\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_adc9fab3731b79190c5b96ccc00106284}{GetData}}(),\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_ac92d4c076c1740c8b93bb464df5d21c6}{GetCapacity}}());}
+\DoxyCodeLine{00215\ \ \ \ \ \}}
+\DoxyCodeLine{00216\ \ \ \}}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_a3d193d5edbad40029d133c45e9060f49}{AllocationTransaction}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction}{AllocationTransaction}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00219\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_a1f9b69c9bcd161c4bb1e72c4a0549969}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction}{AllocationTransaction}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00221\ \ \ A\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_ab1c8971ddc982e74dfd17d85eadeab93}{GetAllocator}}()\ \{\ \textcolor{keywordflow}{return}\ allocator\_data\_.template\ \mbox{\hyperlink{namespaceabsl_a786564346b52d407c7388b20655238a9}{get<0>}}();\ \}}
+\DoxyCodeLine{00222\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_adc9fab3731b79190c5b96ccc00106284}{GetData}}()\ \{\ \textcolor{keywordflow}{return}\ allocator\_data\_.template\ \mbox{\hyperlink{namespaceabsl_a786564346b52d407c7388b20655238a9}{get<1>}}();\ \}}
+\DoxyCodeLine{00223\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_ac92d4c076c1740c8b93bb464df5d21c6}{GetCapacity}}()\ \{\ \textcolor{keywordflow}{return}\ capacity\_;\ \}}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00225\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_addc027d8bab2ec7992dae47b0cbdd06f}{DidAllocate}}()\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_adc9fab3731b79190c5b96ccc00106284}{GetData}}()\ !=\ \textcolor{keyword}{nullptr};\ \}}
+\DoxyCodeLine{00226\ }
+\DoxyCodeLine{00227\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_a50f9fb839ac6f044bff5f870819eb67c}{Allocate}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity)\ \{}
+\DoxyCodeLine{00228\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation}{Allocation<A>}}\ result\ =}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1MallocAdapter_a5cc7b7f3378ef58e3d2e5bf94fdc7aa6}{MallocAdapter<A>::Allocate}}(\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_ab1c8971ddc982e74dfd17d85eadeab93}{GetAllocator}}(),\ requested\_capacity);}
+\DoxyCodeLine{00230\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_adc9fab3731b79190c5b96ccc00106284}{GetData}}()\ =\ result.\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation_a5852915d8f726d49d9f3102189112484}{data}};}
+\DoxyCodeLine{00231\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_ac92d4c076c1740c8b93bb464df5d21c6}{GetCapacity}}()\ =\ result.\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation_a031e6892d2579beed3006fec85df0a7e}{capacity}};}
+\DoxyCodeLine{00232\ \ \ \ \ \textcolor{keywordflow}{return}\ result.\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation_a5852915d8f726d49d9f3102189112484}{data}};}
+\DoxyCodeLine{00233\ \ \ \}}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00235\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation}{Allocation<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_a31050b2f443ba7cce1bbb3351b53614a}{Release}}()\ \&\&\ \{}
+\DoxyCodeLine{00236\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation}{Allocation<A>}}\ result\ =\ \{\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_adc9fab3731b79190c5b96ccc00106284}{GetData}}(),\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_ac92d4c076c1740c8b93bb464df5d21c6}{GetCapacity}}()\};}
+\DoxyCodeLine{00237\ \ \ \ \ Reset();}
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00239\ \ \ \}}
+\DoxyCodeLine{00240\ }
+\DoxyCodeLine{00241\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00242\ \ \ \textcolor{keywordtype}{void}\ Reset()\ \{}
+\DoxyCodeLine{00243\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_adc9fab3731b79190c5b96ccc00106284}{GetData}}()\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00244\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1AllocationTransaction_ac92d4c076c1740c8b93bb464df5d21c6}{GetCapacity}}()\ =\ 0;}
+\DoxyCodeLine{00245\ \ \ \}}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{container\_internal::CompressedTuple<A,\ Pointer<A>}}>\ allocator\_data\_;}
+\DoxyCodeLine{00248\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ capacity\_;}
+\DoxyCodeLine{00249\ \};}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00251\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00252\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction}{ConstructionTransaction}}\ \{}
+\DoxyCodeLine{00253\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00254\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_ac83d26a6d192a28791e3b7e80a8e6e83}{ConstructionTransaction}}(A\&\ allocator)}
+\DoxyCodeLine{00255\ \ \ \ \ \ \ :\ allocator\_data\_(allocator,\ nullptr),\ size\_(0)\ \{\}}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_ae0e8ba2c13193520a2e35a2f766c2aa9}{\string~ConstructionTransaction}}()\ \{}
+\DoxyCodeLine{00258\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a3c81e26bc66bc69691d835f5f1f75546}{DidConstruct}}())\ \{}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1DestroyAdapter}{DestroyAdapter<A>::DestroyElements}}(\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a89eb6fe022a590d877faa96947269bf0}{GetAllocator}}(),\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_ad1a365bafb3ef296bdff00efea590af9}{GetData}}(),\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a0e89835ede90217a512fb3847b7ddca6}{GetSize}}());}
+\DoxyCodeLine{00260\ \ \ \ \ \}}
+\DoxyCodeLine{00261\ \ \ \}}
+\DoxyCodeLine{00262\ }
+\DoxyCodeLine{00263\ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a041ab0fea4d057afa511a7c706f61a23}{ConstructionTransaction}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction}{ConstructionTransaction}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00264\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a40e71fb243a13aed0d1c301ef7ec6070}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction}{ConstructionTransaction}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00265\ }
+\DoxyCodeLine{00266\ \ \ A\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a89eb6fe022a590d877faa96947269bf0}{GetAllocator}}()\ \{\ \textcolor{keywordflow}{return}\ allocator\_data\_.template\ \mbox{\hyperlink{namespaceabsl_a786564346b52d407c7388b20655238a9}{get<0>}}();\ \}}
+\DoxyCodeLine{00267\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_ad1a365bafb3ef296bdff00efea590af9}{GetData}}()\ \{\ \textcolor{keywordflow}{return}\ allocator\_data\_.template\ \mbox{\hyperlink{namespaceabsl_a786564346b52d407c7388b20655238a9}{get<1>}}();\ \}}
+\DoxyCodeLine{00268\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a0e89835ede90217a512fb3847b7ddca6}{GetSize}}()\ \{\ \textcolor{keywordflow}{return}\ size\_;\ \}}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00270\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a3c81e26bc66bc69691d835f5f1f75546}{DidConstruct}}()\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_ad1a365bafb3ef296bdff00efea590af9}{GetData}}()\ !=\ \textcolor{keyword}{nullptr};\ \}}
+\DoxyCodeLine{00271\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00272\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a600cad746af5be86c6558a91ad8e7bc1}{Construct}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}},\ ValueAdapter\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00273\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a89eb6fe022a590d877faa96947269bf0}{GetAllocator}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00274\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_ad1a365bafb3ef296bdff00efea590af9}{GetData}}()\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}};}
+\DoxyCodeLine{00275\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a0e89835ede90217a512fb3847b7ddca6}{GetSize}}()\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}};}
+\DoxyCodeLine{00276\ \ \ \}}
+\DoxyCodeLine{00277\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a0fbe21c56a585a9ba08540eea69a2719}{Commit}}()\ \&\&\ \{}
+\DoxyCodeLine{00278\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_ad1a365bafb3ef296bdff00efea590af9}{GetData}}()\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00279\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1ConstructionTransaction_a0e89835ede90217a512fb3847b7ddca6}{GetSize}}()\ =\ 0;}
+\DoxyCodeLine{00280\ \ \ \}}
+\DoxyCodeLine{00281\ }
+\DoxyCodeLine{00282\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00283\ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{container\_internal::CompressedTuple<A,\ Pointer<A>}}>\ allocator\_data\_;}
+\DoxyCodeLine{00284\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ size\_;}
+\DoxyCodeLine{00285\ \};}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00287\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00288\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage}{Storage}}\ \{}
+\DoxyCodeLine{00289\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00290\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1MemcpyPolicy}{MemcpyPolicy}}\ \{\};}
+\DoxyCodeLine{00291\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1ElementwiseAssignPolicy}{ElementwiseAssignPolicy}}\ \{\};}
+\DoxyCodeLine{00292\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1ElementwiseSwapPolicy}{ElementwiseSwapPolicy}}\ \{\};}
+\DoxyCodeLine{00293\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1ElementwiseConstructPolicy}{ElementwiseConstructPolicy}}\ \{\};}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a7c768fcad27894ac93023e00f0dde5a5}{MoveAssignmentPolicy}}\ =\ \mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{absl::conditional\_t}}<}
+\DoxyCodeLine{00296\ \ \ \ \ \ \ \textcolor{comment}{//\ Fast\ path:\ if\ the\ value\ type\ can\ be\ trivially\ move\ assigned\ and}}
+\DoxyCodeLine{00297\ \ \ \ \ \ \ \textcolor{comment}{//\ destroyed,\ and\ we\ know\ the\ allocator\ doesn't\ do\ anything\ fancy,\ then}}
+\DoxyCodeLine{00298\ \ \ \ \ \ \ \textcolor{comment}{//\ it's\ safe\ for\ us\ to\ simply\ adopt\ the\ contents\ of\ the\ storage\ for}}
+\DoxyCodeLine{00299\ \ \ \ \ \ \ \textcolor{comment}{//\ \`{}other`\ and\ remove\ its\ own\ reference\ to\ them.\ It's\ as\ if\ we\ had}}
+\DoxyCodeLine{00300\ \ \ \ \ \ \ \textcolor{comment}{//\ individually\ move-\/assigned\ each\ value\ and\ then\ destroyed\ the\ original.}}
+\DoxyCodeLine{00301\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1conjunction}{absl::conjunction<absl::is\_trivially\_move\_assignable<ValueType<A>}}>,}
+\DoxyCodeLine{00302\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::is\_trivially\_destructible<ValueType<A>>,}
+\DoxyCodeLine{00303\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<A,\ std::allocator<ValueType<A>>>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00304\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1MemcpyPolicy}{MemcpyPolicy}},}
+\DoxyCodeLine{00305\ \ \ \ \ \ \ \textcolor{comment}{//\ Otherwise\ we\ use\ move\ assignment\ if\ possible.\ If\ not,\ we\ simulate}}
+\DoxyCodeLine{00306\ \ \ \ \ \ \ \textcolor{comment}{//\ move\ assignment\ using\ move\ construction.}}
+\DoxyCodeLine{00307\ \ \ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00308\ \ \ \ \ \ \ \textcolor{comment}{//\ Note\ that\ this\ is\ in\ contrast\ to\ e.g.\ std::vector\ and\ std::optional,}}
+\DoxyCodeLine{00309\ \ \ \ \ \ \ \textcolor{comment}{//\ which\ are\ themselves\ not\ move-\/assignable\ when\ their\ contained\ type\ is}}
+\DoxyCodeLine{00310\ \ \ \ \ \ \ \textcolor{comment}{//\ not.}}
+\DoxyCodeLine{00311\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{absl::conditional\_t<IsMoveAssignOk<A>::value}},\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1ElementwiseAssignPolicy}{ElementwiseAssignPolicy}},}
+\DoxyCodeLine{00312\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1ElementwiseConstructPolicy}{ElementwiseConstructPolicy}}>>;}
+\DoxyCodeLine{00313\ }
+\DoxyCodeLine{00314\ \ \ \textcolor{comment}{//\ The\ policy\ to\ be\ used\ specifically\ when\ swapping\ inlined\ elements.}}
+\DoxyCodeLine{00315\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a931b1b46e2313378250abf4b9b5fdcd1}{SwapInlinedElementsPolicy}}\ =\ \mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{absl::conditional\_t}}<}
+\DoxyCodeLine{00316\ \ \ \ \ \ \ \textcolor{comment}{//\ Fast\ path:\ if\ the\ value\ type\ can\ be\ trivially\ relocated,\ and\ we}}
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \textcolor{comment}{//\ know\ the\ allocator\ doesn't\ do\ anything\ fancy,\ then\ it's\ safe\ for\ us}}
+\DoxyCodeLine{00318\ \ \ \ \ \ \ \textcolor{comment}{//\ to\ simply\ swap\ the\ bytes\ in\ the\ inline\ storage.\ It's\ as\ if\ we\ had}}
+\DoxyCodeLine{00319\ \ \ \ \ \ \ \textcolor{comment}{//\ relocated\ the\ first\ vector's\ elements\ into\ temporary\ storage,}}
+\DoxyCodeLine{00320\ \ \ \ \ \ \ \textcolor{comment}{//\ relocated\ the\ second's\ elements\ into\ the\ (now-\/empty)\ first's,}}
+\DoxyCodeLine{00321\ \ \ \ \ \ \ \textcolor{comment}{//\ and\ then\ relocated\ from\ temporary\ storage\ into\ the\ second.}}
+\DoxyCodeLine{00322\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1conjunction}{absl::conjunction<absl::is\_trivially\_relocatable<ValueType<A>}}>,}
+\DoxyCodeLine{00323\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<A,\ std::allocator<ValueType<A>>>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00324\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1MemcpyPolicy}{MemcpyPolicy}},}
+\DoxyCodeLine{00325\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{absl::conditional\_t<IsSwapOk<A>::value}},\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1ElementwiseSwapPolicy}{ElementwiseSwapPolicy}},}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Storage_1_1ElementwiseConstructPolicy}{ElementwiseConstructPolicy}}>>;}
+\DoxyCodeLine{00327\ }
+\DoxyCodeLine{00328\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a3722e3f77d644d5bd6f788196d9f3e90}{NextCapacity}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ current\_capacity)\ \{}
+\DoxyCodeLine{00329\ \ \ \ \ \textcolor{keywordflow}{return}\ current\_capacity\ *\ 2;}
+\DoxyCodeLine{00330\ \ \ \}}
+\DoxyCodeLine{00331\ }
+\DoxyCodeLine{00332\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a0d2b10e550744fb0f47d579738a80074}{ComputeCapacity}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ current\_capacity,}
+\DoxyCodeLine{00333\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity)\ \{}
+\DoxyCodeLine{00334\ \ \ \ \ \textcolor{keywordflow}{return}\ (std::max)(\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a3722e3f77d644d5bd6f788196d9f3e90}{NextCapacity}}(current\_capacity),\ requested\_capacity);}
+\DoxyCodeLine{00335\ \ \ \}}
+\DoxyCodeLine{00336\ }
+\DoxyCodeLine{00337\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00338\ \ \ \textcolor{comment}{//\ Storage\ Constructors\ and\ Destructor}}
+\DoxyCodeLine{00339\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00340\ }
+\DoxyCodeLine{00341\ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8a9cb9ce226b6f8a572d7453e8f2a52a}{Storage}}()\ :\ metadata\_(A(),\ \textcolor{comment}{/*\ size\ and\ is\_allocated\ */}\ 0\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b774effe4a349c6dd82ad4f4f21d34c}{u}})\ \{\}}
+\DoxyCodeLine{00342\ }
+\DoxyCodeLine{00343\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_aae9076ecaf65b7c245767f6cee365478}{Storage}}(\textcolor{keyword}{const}\ A\&\ allocator)}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ :\ metadata\_(allocator,\ \textcolor{comment}{/*\ size\ and\ is\_allocated\ */}\ 0\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b774effe4a349c6dd82ad4f4f21d34c}{u}})\ \{\}}
+\DoxyCodeLine{00345\ }
+\DoxyCodeLine{00346\ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a582b356c6807121b8dfe051ed8c0f612}{\string~Storage}}()\ \{}
+\DoxyCodeLine{00347\ \ \ \ \ \textcolor{comment}{//\ Fast\ path:\ if\ we\ are\ empty\ and\ not\ allocated,\ there's\ nothing\ to\ do.}}
+\DoxyCodeLine{00348\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ ==\ 0)\ \{}
+\DoxyCodeLine{00349\ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00350\ \ \ \ \ \}}
+\DoxyCodeLine{00351\ }
+\DoxyCodeLine{00352\ \ \ \ \ \textcolor{comment}{//\ Fast\ path:\ if\ no\ destructors\ need\ to\ be\ run\ and\ we\ know\ the\ allocator}}
+\DoxyCodeLine{00353\ \ \ \ \ \textcolor{comment}{//\ doesn't\ do\ anything\ fancy,\ then\ all\ we\ need\ to\ do\ is\ deallocate\ (and}}
+\DoxyCodeLine{00354\ \ \ \ \ \textcolor{comment}{//\ maybe\ not\ even\ that).}}
+\DoxyCodeLine{00355\ \ \ \ \ \textcolor{keywordflow}{if}\ (absl::is\_trivially\_destructible<\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ \&\&}
+\DoxyCodeLine{00356\ \ \ \ \ \ \ \ \ std::is\_same<A,\ std::allocator<\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}})\ \{}
+\DoxyCodeLine{00357\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a76b455bcaab4d2d1c421a83c5fa9f0c1}{DeallocateIfAllocated}}();}
+\DoxyCodeLine{00358\ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00359\ \ \ \ \ \}}
+\DoxyCodeLine{00360\ }
+\DoxyCodeLine{00361\ \ \ \ \ DestroyContents();}
+\DoxyCodeLine{00362\ \ \ \}}
+\DoxyCodeLine{00363\ }
+\DoxyCodeLine{00364\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00365\ \ \ \textcolor{comment}{//\ Storage\ Member\ Accessors}}
+\DoxyCodeLine{00366\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00367\ }
+\DoxyCodeLine{00368\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ \{\ \textcolor{keywordflow}{return}\ metadata\_.template\ \mbox{\hyperlink{namespaceabsl_a786564346b52d407c7388b20655238a9}{get<1>}}();\ \}}
+\DoxyCodeLine{00369\ }
+\DoxyCodeLine{00370\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a69e1e1facd30f035acba47d4fd0ca8b2}{GetSizeAndIsAllocated}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00371\ \ \ \ \ \textcolor{keywordflow}{return}\ metadata\_.template\ \mbox{\hyperlink{namespaceabsl_a786564346b52d407c7388b20655238a9}{get<1>}}();}
+\DoxyCodeLine{00372\ \ \ \}}
+\DoxyCodeLine{00373\ }
+\DoxyCodeLine{00374\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8bc5eef2eee9172f3d3c83c30ff204ca}{GetSize}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ >>\ 1;\ \}}
+\DoxyCodeLine{00375\ }
+\DoxyCodeLine{00376\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ae20ad1a37301391211c181ef2a52645a}{GetIsAllocated}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ \&\ 1;\ \}}
+\DoxyCodeLine{00377\ }
+\DoxyCodeLine{00378\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a23778222a94782ce221b19077c40bcb9}{GetAllocatedData}}()\ \{}
+\DoxyCodeLine{00379\ \ \ \ \ \textcolor{comment}{//\ GCC\ 12\ has\ a\ false-\/positive\ -\/Wmaybe-\/uninitialized\ warning\ here.}}
+\DoxyCodeLine{00380\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_HAVE\_MIN\_GNUC\_VERSION(12,\ 0)}}
+\DoxyCodeLine{00381\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ push}}
+\DoxyCodeLine{00382\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ ignored\ "{}-\/Wmaybe-\/uninitialized"{}}}
+\DoxyCodeLine{00383\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00384\ \ \ \ \ \textcolor{keywordflow}{return}\ data\_.allocated.allocated\_data;}
+\DoxyCodeLine{00385\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_HAVE\_MIN\_GNUC\_VERSION(12,\ 0)}}
+\DoxyCodeLine{00386\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ pop}}
+\DoxyCodeLine{00387\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00388\ \ \ \}}
+\DoxyCodeLine{00389\ }
+\DoxyCodeLine{00390\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a8533138917d8735d0e93111b8ee8cbcb}{ConstPointer<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_af96befed980e97a5cef2d8286de47161}{GetAllocatedData}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00391\ \ \ \ \ \textcolor{keywordflow}{return}\ data\_.allocated.allocated\_data;}
+\DoxyCodeLine{00392\ \ \ \}}
+\DoxyCodeLine{00393\ }
+\DoxyCodeLine{00394\ \ \ \textcolor{comment}{//\ ABSL\_ATTRIBUTE\_NO\_SANITIZE\_CFI\ is\ used\ because\ the\ memory\ pointed\ to\ may\ be}}
+\DoxyCodeLine{00395\ \ \ \textcolor{comment}{//\ uninitialized,\ a\ common\ pattern\ in\ allocate()+construct()\ APIs.}}
+\DoxyCodeLine{00396\ \ \ \textcolor{comment}{//\ https://clang.llvm.org/docs/ControlFlowIntegrity.html\#bad-\/cast-\/checking}}
+\DoxyCodeLine{00397\ \ \ \textcolor{comment}{//\ NOTE:\ When\ this\ was\ written,\ LLVM\ documentation\ did\ not\ explicitly}}
+\DoxyCodeLine{00398\ \ \ \textcolor{comment}{//\ mention\ that\ casting\ \`{}char*`\ and\ using\ \`{}reinterpret\_cast`\ qualifies}}
+\DoxyCodeLine{00399\ \ \ \textcolor{comment}{//\ as\ a\ bad\ cast.}}
+\DoxyCodeLine{00400\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a903711fdcd76659292c996e267e90f02}{ABSL\_ATTRIBUTE\_NO\_SANITIZE\_CFI}}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a02170461c8383acbc2af07c6268c3d14}{GetInlinedData}}()\ \{}
+\DoxyCodeLine{00401\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\textcolor{keyword}{>}(data\_.inlined.inlined\_data);}
+\DoxyCodeLine{00402\ \ \ \}}
+\DoxyCodeLine{00403\ }
+\DoxyCodeLine{00404\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a903711fdcd76659292c996e267e90f02}{ABSL\_ATTRIBUTE\_NO\_SANITIZE\_CFI}}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a8533138917d8735d0e93111b8ee8cbcb}{ConstPointer<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a7efe5e2f144b3db95c248267d5c5f5e7}{GetInlinedData}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00405\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a8533138917d8735d0e93111b8ee8cbcb}{ConstPointer<A>}}\textcolor{keyword}{>}(data\_.inlined.inlined\_data);}
+\DoxyCodeLine{00406\ \ \ \}}
+\DoxyCodeLine{00407\ }
+\DoxyCodeLine{00408\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ab35d83058e1ce9ed36178376c90f8d3e}{GetAllocatedCapacity}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00409\ \ \ \ \ \textcolor{keywordflow}{return}\ data\_.allocated.allocated\_capacity;}
+\DoxyCodeLine{00410\ \ \ \}}
+\DoxyCodeLine{00411\ }
+\DoxyCodeLine{00412\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a371141ca4198059ac4cc0f879e90543b}{GetInlinedCapacity}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00413\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\textcolor{keyword}{>}(kOptimalInlinedSize);}
+\DoxyCodeLine{00414\ \ \ \}}
+\DoxyCodeLine{00415\ }
+\DoxyCodeLine{00416\ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1StorageView}{StorageView<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_afb70c39163803606fdf81f750289ad23}{MakeStorageView}}()\ \{}
+\DoxyCodeLine{00417\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ae20ad1a37301391211c181ef2a52645a}{GetIsAllocated}}()\ ?\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1StorageView}{StorageView<A>}}\{\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a23778222a94782ce221b19077c40bcb9}{GetAllocatedData}}(),\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8bc5eef2eee9172f3d3c83c30ff204ca}{GetSize}}(),}
+\DoxyCodeLine{00418\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ab35d83058e1ce9ed36178376c90f8d3e}{GetAllocatedCapacity}}()\}}
+\DoxyCodeLine{00419\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1StorageView}{StorageView<A>}}\{\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a02170461c8383acbc2af07c6268c3d14}{GetInlinedData}}(),\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8bc5eef2eee9172f3d3c83c30ff204ca}{GetSize}}(),}
+\DoxyCodeLine{00420\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a371141ca4198059ac4cc0f879e90543b}{GetInlinedCapacity}}()\};}
+\DoxyCodeLine{00421\ \ \ \}}
+\DoxyCodeLine{00422\ }
+\DoxyCodeLine{00423\ \ \ A\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a06bf0840337ba46d5e6d546cca120b0b}{GetAllocator}}()\ \{\ \textcolor{keywordflow}{return}\ metadata\_.template\ \mbox{\hyperlink{namespaceabsl_a786564346b52d407c7388b20655238a9}{get<0>}}();\ \}}
+\DoxyCodeLine{00424\ }
+\DoxyCodeLine{00425\ \ \ \textcolor{keyword}{const}\ A\&\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a2e9f54eeca798de16ab68b7e6104254b}{GetAllocator}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ metadata\_.template\ \mbox{\hyperlink{namespaceabsl_a786564346b52d407c7388b20655238a9}{get<0>}}();\ \}}
+\DoxyCodeLine{00426\ }
+\DoxyCodeLine{00427\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00428\ \ \ \textcolor{comment}{//\ Storage\ Member\ Mutators}}
+\DoxyCodeLine{00429\ \ \ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00430\ }
+\DoxyCodeLine{00431\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_afd390450c1dbf6ec5d52fc04e73027c5}{InitFrom}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage}{Storage}}\&\ other);}
+\DoxyCodeLine{00432\ }
+\DoxyCodeLine{00433\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00434\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ab4adf41cf8a4ff8b647ec429774c64a2}{Initialize}}(ValueAdapter\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ new\_size);}
+\DoxyCodeLine{00435\ }
+\DoxyCodeLine{00436\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00437\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_afd84d3e93d2f3c766989c1b058754b3b}{Assign}}(ValueAdapter\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ new\_size);}
+\DoxyCodeLine{00438\ }
+\DoxyCodeLine{00439\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00440\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a36f1698d05ec9c46db90a1e4f55b75a5}{Resize}}(ValueAdapter\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ new\_size);}
+\DoxyCodeLine{00441\ }
+\DoxyCodeLine{00442\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00443\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_af72db502183bd2a79f648aaa142f9205}{Insert}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_abf04c7a42e53097f26011300c50c5a2a}{ConstIterator<A>}}\ pos,\ ValueAdapter\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00444\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ insert\_count);}
+\DoxyCodeLine{00445\ }
+\DoxyCodeLine{00446\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00447\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a0c1f14aedd4c6129077ee761c4191651}{Reference<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a4b53dab7cb6945ebe00ae3f2b5a48514}{EmplaceBack}}(Args\&\&...\ args);}
+\DoxyCodeLine{00448\ }
+\DoxyCodeLine{00449\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator<A>}}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ac88fe6dc9067420c61a572d175b22d87}{Erase}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_abf04c7a42e53097f26011300c50c5a2a}{ConstIterator<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a66a6152caa0d2dec6985ed86838ba876}{from}},\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_abf04c7a42e53097f26011300c50c5a2a}{ConstIterator<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a633ab603a49d0a046734a0f3e6de45e9}{to}});}
+\DoxyCodeLine{00450\ }
+\DoxyCodeLine{00451\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a225594d5c8582854d39464fdd9532fbc}{Reserve}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity);}
+\DoxyCodeLine{00452\ }
+\DoxyCodeLine{00453\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a084578c5196e2601e0579512b4453ddd}{ShrinkToFit}}();}
+\DoxyCodeLine{00454\ }
+\DoxyCodeLine{00455\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_af05ab474ed78a47daeb129b67b68e74f}{Swap}}(\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage}{Storage}}*\ other\_storage\_ptr);}
+\DoxyCodeLine{00456\ }
+\DoxyCodeLine{00457\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a01a37574e2559bcb2cad24c821e90cb4}{SetIsAllocated}}()\ \{}
+\DoxyCodeLine{00458\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ |=\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\textcolor{keyword}{>}(1);}
+\DoxyCodeLine{00459\ \ \ \}}
+\DoxyCodeLine{00460\ }
+\DoxyCodeLine{00461\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8a2fabcd37fc39ae4444ba2032b69c08}{UnsetIsAllocated}}()\ \{}
+\DoxyCodeLine{00462\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ \&=\ ((std::numeric\_limits<SizeType<A>>::max)()\ -\/\ 1);}
+\DoxyCodeLine{00463\ \ \ \}}
+\DoxyCodeLine{00464\ }
+\DoxyCodeLine{00465\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ae53fd4f3ffd40853f46381b3905418f9}{SetSize}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00466\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ =}
+\DoxyCodeLine{00467\ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size\ <<\ 1)\ |\ static\_cast<SizeType<A>}}>(\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ae20ad1a37301391211c181ef2a52645a}{GetIsAllocated}}());}
+\DoxyCodeLine{00468\ \ \ \}}
+\DoxyCodeLine{00469\ }
+\DoxyCodeLine{00470\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_aff3dbf5590b05d075513165c85e2e050}{SetAllocatedSize}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00471\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ =\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size\ <<\ 1)\ |\ static\_cast<SizeType<A>}}>(1);}
+\DoxyCodeLine{00472\ \ \ \}}
+\DoxyCodeLine{00473\ }
+\DoxyCodeLine{00474\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_af9e625d802a729b2d02c7677d7e79bf4}{SetInlinedSize}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00475\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size\ <<\ static\_cast<SizeType<A>}}>(1);}
+\DoxyCodeLine{00476\ \ \ \}}
+\DoxyCodeLine{00477\ }
+\DoxyCodeLine{00478\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a340d5793176f65d89a3a9a8984f53790}{AddSize}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\ \{}
+\DoxyCodeLine{00479\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ +=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count\ <<\ static\_cast<SizeType<A>}}>(1);}
+\DoxyCodeLine{00480\ \ \ \}}
+\DoxyCodeLine{00481\ }
+\DoxyCodeLine{00482\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a5fd44bd5d82c0dc87b227871dab466d8}{SubtractSize}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\ \{}
+\DoxyCodeLine{00483\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}\ <=\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8bc5eef2eee9172f3d3c83c30ff204ca}{GetSize}}());}
+\DoxyCodeLine{00484\ }
+\DoxyCodeLine{00485\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ -\/=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count\ <<\ static\_cast<SizeType<A>}}>(1);}
+\DoxyCodeLine{00486\ \ \ \}}
+\DoxyCodeLine{00487\ }
+\DoxyCodeLine{00488\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ab27913729b9a9a9d41f31d6eab7d3912}{SetAllocation}}(\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation}{Allocation<A>}}\ allocation)\ \{}
+\DoxyCodeLine{00489\ \ \ \ \ data\_.allocated.allocated\_data\ =\ allocation.\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation_a5852915d8f726d49d9f3102189112484}{data}};}
+\DoxyCodeLine{00490\ \ \ \ \ data\_.allocated.allocated\_capacity\ =\ allocation.\mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1Allocation_a031e6892d2579beed3006fec85df0a7e}{capacity}};}
+\DoxyCodeLine{00491\ \ \ \}}
+\DoxyCodeLine{00492\ }
+\DoxyCodeLine{00493\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_af7b4b751086734dd792f052450d89d29}{MemcpyFrom}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage}{Storage}}\&\ other\_storage)\ \{}
+\DoxyCodeLine{00494\ \ \ \ \ \textcolor{comment}{//\ Assumption\ check:\ it\ doesn't\ make\ sense\ to\ memcpy\ inlined\ elements\ unless}}
+\DoxyCodeLine{00495\ \ \ \ \ \textcolor{comment}{//\ we\ know\ the\ allocator\ doesn't\ do\ anything\ fancy,\ and\ one\ of\ the\ following}}
+\DoxyCodeLine{00496\ \ \ \ \ \textcolor{comment}{//\ holds:}}
+\DoxyCodeLine{00497\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00498\ \ \ \ \ \textcolor{comment}{//\ \ *\ \ The\ elements\ are\ trivially\ relocatable.}}
+\DoxyCodeLine{00499\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00500\ \ \ \ \ \textcolor{comment}{//\ \ *\ \ It's\ possible\ to\ trivially\ assign\ the\ elements\ and\ then\ destroy\ the}}
+\DoxyCodeLine{00501\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ source.}}
+\DoxyCodeLine{00502\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00503\ \ \ \ \ \textcolor{comment}{//\ \ *\ \ It's\ possible\ to\ trivially\ copy\ construct/assign\ the\ elements.}}
+\DoxyCodeLine{00504\ \ \ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00505\ \ \ \ \ \{}
+\DoxyCodeLine{00506\ \ \ \ \ \ \ \textcolor{keyword}{using\ }V\ =\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}};}
+\DoxyCodeLine{00507\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(}
+\DoxyCodeLine{00508\ \ \ \ \ \ \ \ \ \ \ other\_storage.\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ae20ad1a37301391211c181ef2a52645a}{GetIsAllocated}}()\ ||}
+\DoxyCodeLine{00509\ \ \ \ \ \ \ \ \ \ \ (std::is\_same<A,\ std::allocator<V>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ \&\&}
+\DoxyCodeLine{00510\ \ \ \ \ \ \ \ \ \ \ \ (}
+\DoxyCodeLine{00511\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ First\ case\ above}}
+\DoxyCodeLine{00512\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1is__trivially__relocatable}{absl::is\_trivially\_relocatable<V>::value}}\ ||}
+\DoxyCodeLine{00513\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Second\ case\ above}}
+\DoxyCodeLine{00514\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (absl::is\_trivially\_move\_assignable<V>::value\ \&\&}
+\DoxyCodeLine{00515\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::is\_trivially\_destructible<V>::value)\ ||}
+\DoxyCodeLine{00516\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Third\ case\ above}}
+\DoxyCodeLine{00517\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (absl::is\_trivially\_copy\_constructible<V>::value\ ||}
+\DoxyCodeLine{00518\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::is\_trivially\_copy\_assignable<V>::value))));}
+\DoxyCodeLine{00519\ \ \ \ \ \}}
+\DoxyCodeLine{00520\ }
+\DoxyCodeLine{00521\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}()\ =\ other\_storage.\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8ebb6237005fa8723aeb113f5994557f}{GetSizeAndIsAllocated}}();}
+\DoxyCodeLine{00522\ \ \ \ \ data\_\ =\ other\_storage.data\_;}
+\DoxyCodeLine{00523\ \ \ \}}
+\DoxyCodeLine{00524\ }
+\DoxyCodeLine{00525\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a76b455bcaab4d2d1c421a83c5fa9f0c1}{DeallocateIfAllocated}}()\ \{}
+\DoxyCodeLine{00526\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ae20ad1a37301391211c181ef2a52645a}{GetIsAllocated}}())\ \{}
+\DoxyCodeLine{00527\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1MallocAdapter_ade6a952f81ed18482de3b0e87d6fa416}{MallocAdapter<A>::Deallocate}}(\mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a06bf0840337ba46d5e6d546cca120b0b}{GetAllocator}}(),\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a23778222a94782ce221b19077c40bcb9}{GetAllocatedData}}(),}
+\DoxyCodeLine{00528\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ab35d83058e1ce9ed36178376c90f8d3e}{GetAllocatedCapacity}}());}
+\DoxyCodeLine{00529\ \ \ \ \ \}}
+\DoxyCodeLine{00530\ \ \ \}}
+\DoxyCodeLine{00531\ }
+\DoxyCodeLine{00532\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00533\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}}\ \textcolor{keywordtype}{void}\ DestroyContents();}
+\DoxyCodeLine{00534\ }
+\DoxyCodeLine{00535\ \ \ \textcolor{keyword}{using\ }Metadata\ =\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1CompressedTuple}{container\_internal::CompressedTuple<A,\ SizeType<A>}}>;}
+\DoxyCodeLine{00536\ }
+\DoxyCodeLine{00537\ \ \ \textcolor{keyword}{struct\ }Allocated\ \{}
+\DoxyCodeLine{00538\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ allocated\_data;}
+\DoxyCodeLine{00539\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ allocated\_capacity;}
+\DoxyCodeLine{00540\ \ \ \};}
+\DoxyCodeLine{00541\ }
+\DoxyCodeLine{00542\ \ \ \textcolor{comment}{//\ \`{}kOptimalInlinedSize`\ is\ an\ automatically\ adjusted\ inlined\ capacity\ of\ the}}
+\DoxyCodeLine{00543\ \ \ \textcolor{comment}{//\ \`{}InlinedVector`.\ Sometimes,\ it\ is\ possible\ to\ increase\ the\ capacity\ (from}}
+\DoxyCodeLine{00544\ \ \ \textcolor{comment}{//\ the\ user\ requested\ \`{}N`)\ without\ increasing\ the\ size\ of\ the\ \`{}InlinedVector`.}}
+\DoxyCodeLine{00545\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ kOptimalInlinedSize\ =}
+\DoxyCodeLine{00546\ \ \ \ \ \ \ (std::max)(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}},\ \textcolor{keyword}{sizeof}(Allocated)\ /\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}));}
+\DoxyCodeLine{00547\ }
+\DoxyCodeLine{00548\ \ \ \textcolor{keyword}{struct\ }Inlined\ \{}
+\DoxyCodeLine{00549\ \ \ \ \ \textcolor{keyword}{alignas}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}})\ \textcolor{keywordtype}{char}\ inlined\_data[\textcolor{keyword}{sizeof}(}
+\DoxyCodeLine{00550\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}[kOptimalInlinedSize])];}
+\DoxyCodeLine{00551\ \ \ \};}
+\DoxyCodeLine{00552\ }
+\DoxyCodeLine{00553\ \ \ \textcolor{keyword}{union\ }Data\ \{}
+\DoxyCodeLine{00554\ \ \ \ \ Allocated\ allocated;}
+\DoxyCodeLine{00555\ \ \ \ \ Inlined\ inlined;}
+\DoxyCodeLine{00556\ \ \ \};}
+\DoxyCodeLine{00557\ }
+\DoxyCodeLine{00558\ \ \ \textcolor{keywordtype}{void}\ SwapN(ElementwiseSwapPolicy,\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8a9cb9ce226b6f8a572d7453e8f2a52a}{Storage}}*\ other,\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}});}
+\DoxyCodeLine{00559\ \ \ \textcolor{keywordtype}{void}\ SwapN(ElementwiseConstructPolicy,\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8a9cb9ce226b6f8a572d7453e8f2a52a}{Storage}}*\ other,\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}});}
+\DoxyCodeLine{00560\ }
+\DoxyCodeLine{00561\ \ \ \textcolor{keywordtype}{void}\ SwapInlinedElements(MemcpyPolicy,\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8a9cb9ce226b6f8a572d7453e8f2a52a}{Storage}}*\ other);}
+\DoxyCodeLine{00562\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ NotMemcpyPolicy>}
+\DoxyCodeLine{00563\ \ \ \textcolor{keywordtype}{void}\ SwapInlinedElements(NotMemcpyPolicy,\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a8a9cb9ce226b6f8a572d7453e8f2a52a}{Storage}}*\ other);}
+\DoxyCodeLine{00564\ }
+\DoxyCodeLine{00565\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00566\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a0c1f14aedd4c6129077ee761c4191651}{Reference<A>}}\ EmplaceBackSlow(Args\&\&...\ args);}
+\DoxyCodeLine{00567\ }
+\DoxyCodeLine{00568\ \ \ Metadata\ metadata\_;}
+\DoxyCodeLine{00569\ \ \ Data\ data\_;}
+\DoxyCodeLine{00570\ \};}
+\DoxyCodeLine{00571\ }
+\DoxyCodeLine{00572\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00573\ \textcolor{keywordtype}{void}\ Storage<T,\ N,\ A>::DestroyContents()\ \{}
+\DoxyCodeLine{00574\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ =\ GetIsAllocated()\ ?\ GetAllocatedData()\ :\ GetInlinedData();}
+\DoxyCodeLine{00575\ \ \ DestroyAdapter<A>::DestroyElements(GetAllocator(),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}},\ GetSize());}
+\DoxyCodeLine{00576\ \ \ DeallocateIfAllocated();}
+\DoxyCodeLine{00577\ \}}
+\DoxyCodeLine{00578\ }
+\DoxyCodeLine{00579\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00580\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_aad8bb283ee55555968f221dce947f650}{Storage<T,\ N,\ A>::InitFrom}}(\textcolor{keyword}{const}\ Storage\&\ other)\ \{}
+\DoxyCodeLine{00581\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ =\ other.GetSize();}
+\DoxyCodeLine{00582\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ >\ 0);\ \ \textcolor{comment}{//\ Empty\ sources\ handled\ handled\ in\ caller.}}
+\DoxyCodeLine{00583\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a8533138917d8735d0e93111b8ee8cbcb}{ConstPointer<A>}}\ src;}
+\DoxyCodeLine{00584\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ dst;}
+\DoxyCodeLine{00585\ \ \ \textcolor{keywordflow}{if}\ (!other.GetIsAllocated())\ \{}
+\DoxyCodeLine{00586\ \ \ \ \ dst\ =\ GetInlinedData();}
+\DoxyCodeLine{00587\ \ \ \ \ src\ =\ other.GetInlinedData();}
+\DoxyCodeLine{00588\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00589\ \ \ \ \ \textcolor{comment}{//\ Because\ this\ is\ only\ called\ from\ the\ \`{}InlinedVector`\ constructors,\ it's}}
+\DoxyCodeLine{00590\ \ \ \ \ \textcolor{comment}{//\ safe\ to\ take\ on\ the\ allocation\ with\ size\ \`{}0`.\ If\ \`{}ConstructElements(...)`}}
+\DoxyCodeLine{00591\ \ \ \ \ \textcolor{comment}{//\ throws,\ deallocation\ will\ be\ automatically\ handled\ by\ \`{}\string~Storage()`.}}
+\DoxyCodeLine{00592\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity\ =\ ComputeCapacity(GetInlinedCapacity(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}});}
+\DoxyCodeLine{00593\ \ \ \ \ Allocation<A>\ allocation\ =}
+\DoxyCodeLine{00594\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1MallocAdapter_a5cc7b7f3378ef58e3d2e5bf94fdc7aa6}{MallocAdapter<A>::Allocate}}(GetAllocator(),\ requested\_capacity);}
+\DoxyCodeLine{00595\ \ \ \ \ SetAllocation(allocation);}
+\DoxyCodeLine{00596\ \ \ \ \ dst\ =\ allocation.data;}
+\DoxyCodeLine{00597\ \ \ \ \ src\ =\ other.GetAllocatedData();}
+\DoxyCodeLine{00598\ \ \ \}}
+\DoxyCodeLine{00599\ }
+\DoxyCodeLine{00600\ \ \ \textcolor{comment}{//\ Fast\ path:\ if\ the\ value\ type\ is\ trivially\ copy\ constructible\ and\ we\ know}}
+\DoxyCodeLine{00601\ \ \ \textcolor{comment}{//\ the\ allocator\ doesn't\ do\ anything\ fancy,\ then\ we\ know\ it\ is\ legal\ for\ us\ to}}
+\DoxyCodeLine{00602\ \ \ \textcolor{comment}{//\ simply\ memcpy\ the\ other\ vector's\ elements.}}
+\DoxyCodeLine{00603\ \ \ \textcolor{keywordflow}{if}\ (absl::is\_trivially\_copy\_constructible<\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ \&\&}
+\DoxyCodeLine{00604\ \ \ \ \ \ \ std::is\_same<A,\ std::allocator<\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}})\ \{}
+\DoxyCodeLine{00605\ \ \ \ \ std::memcpy(\textcolor{keyword}{reinterpret\_cast<}\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(dst),}
+\DoxyCodeLine{00606\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(src),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}));}
+\DoxyCodeLine{00607\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00608\ \ \ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}}\ =\ IteratorValueAdapter<A,\ ConstPointer<A>>(src);}
+\DoxyCodeLine{00609\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(GetAllocator(),\ dst,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}});}
+\DoxyCodeLine{00610\ \ \ \}}
+\DoxyCodeLine{00611\ }
+\DoxyCodeLine{00612\ \ \ GetSizeAndIsAllocated()\ =\ other.GetSizeAndIsAllocated();}
+\DoxyCodeLine{00613\ \}}
+\DoxyCodeLine{00614\ }
+\DoxyCodeLine{00615\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00616\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00617\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ab4adf41cf8a4ff8b647ec429774c64a2}{Storage<T,\ N,\ A>::Initialize}}(ValueAdapter\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00618\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ new\_size)\ -\/>\ \textcolor{keywordtype}{void}\ \{}
+\DoxyCodeLine{00619\ \ \ \textcolor{comment}{//\ Only\ callable\ from\ constructors!}}
+\DoxyCodeLine{00620\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(!GetIsAllocated());}
+\DoxyCodeLine{00621\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(GetSize()\ ==\ 0);}
+\DoxyCodeLine{00622\ }
+\DoxyCodeLine{00623\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ construct\_data;}
+\DoxyCodeLine{00624\ \ \ \textcolor{keywordflow}{if}\ (new\_size\ >\ GetInlinedCapacity())\ \{}
+\DoxyCodeLine{00625\ \ \ \ \ \textcolor{comment}{//\ Because\ this\ is\ only\ called\ from\ the\ \`{}InlinedVector`\ constructors,\ it's}}
+\DoxyCodeLine{00626\ \ \ \ \ \textcolor{comment}{//\ safe\ to\ take\ on\ the\ allocation\ with\ size\ \`{}0`.\ If\ \`{}ConstructElements(...)`}}
+\DoxyCodeLine{00627\ \ \ \ \ \textcolor{comment}{//\ throws,\ deallocation\ will\ be\ automatically\ handled\ by\ \`{}\string~Storage()`.}}
+\DoxyCodeLine{00628\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity\ =}
+\DoxyCodeLine{00629\ \ \ \ \ \ \ \ \ ComputeCapacity(GetInlinedCapacity(),\ new\_size);}
+\DoxyCodeLine{00630\ \ \ \ \ Allocation<A>\ allocation\ =}
+\DoxyCodeLine{00631\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1MallocAdapter_a5cc7b7f3378ef58e3d2e5bf94fdc7aa6}{MallocAdapter<A>::Allocate}}(GetAllocator(),\ requested\_capacity);}
+\DoxyCodeLine{00632\ \ \ \ \ construct\_data\ =\ allocation.data;}
+\DoxyCodeLine{00633\ \ \ \ \ SetAllocation(allocation);}
+\DoxyCodeLine{00634\ \ \ \ \ SetIsAllocated();}
+\DoxyCodeLine{00635\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00636\ \ \ \ \ construct\_data\ =\ GetInlinedData();}
+\DoxyCodeLine{00637\ \ \ \}}
+\DoxyCodeLine{00638\ }
+\DoxyCodeLine{00639\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(GetAllocator(),\ construct\_data,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ new\_size);}
+\DoxyCodeLine{00640\ }
+\DoxyCodeLine{00641\ \ \ \textcolor{comment}{//\ Since\ the\ initial\ size\ was\ guaranteed\ to\ be\ \`{}0`\ and\ the\ allocated\ bit\ is}}
+\DoxyCodeLine{00642\ \ \ \textcolor{comment}{//\ already\ correct\ for\ either\ case,\ *adding*\ \`{}new\_size`\ gives\ us\ the\ correct}}
+\DoxyCodeLine{00643\ \ \ \textcolor{comment}{//\ result\ faster\ than\ setting\ it\ directly.}}
+\DoxyCodeLine{00644\ \ \ AddSize(new\_size);}
+\DoxyCodeLine{00645\ \}}
+\DoxyCodeLine{00646\ }
+\DoxyCodeLine{00647\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00648\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00649\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_afd84d3e93d2f3c766989c1b058754b3b}{Storage<T,\ N,\ A>::Assign}}(ValueAdapter\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00650\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ new\_size)\ -\/>\ \textcolor{keywordtype}{void}\ \{}
+\DoxyCodeLine{00651\ \ \ StorageView<A>\ storage\_view\ =\ MakeStorageView();}
+\DoxyCodeLine{00652\ }
+\DoxyCodeLine{00653\ \ \ AllocationTransaction<A>\ allocation\_tx(GetAllocator());}
+\DoxyCodeLine{00654\ }
+\DoxyCodeLine{00655\ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<ValueType<A>}}>\ assign\_loop;}
+\DoxyCodeLine{00656\ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<ValueType<A>}}>\ construct\_loop;}
+\DoxyCodeLine{00657\ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<ValueType<A>}}>\ destroy\_loop;}
+\DoxyCodeLine{00658\ }
+\DoxyCodeLine{00659\ \ \ \textcolor{keywordflow}{if}\ (new\_size\ >\ storage\_view.capacity)\ \{}
+\DoxyCodeLine{00660\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity\ =}
+\DoxyCodeLine{00661\ \ \ \ \ \ \ \ \ ComputeCapacity(storage\_view.capacity,\ new\_size);}
+\DoxyCodeLine{00662\ \ \ \ \ construct\_loop\ =\ \{allocation\_tx.Allocate(requested\_capacity),\ new\_size\};}
+\DoxyCodeLine{00663\ \ \ \ \ destroy\_loop\ =\ \{storage\_view.data,\ storage\_view.size\};}
+\DoxyCodeLine{00664\ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (new\_size\ >\ storage\_view.size)\ \{}
+\DoxyCodeLine{00665\ \ \ \ \ assign\_loop\ =\ \{storage\_view.data,\ storage\_view.size\};}
+\DoxyCodeLine{00666\ \ \ \ \ construct\_loop\ =\ \{storage\_view.data\ +\ storage\_view.size,}
+\DoxyCodeLine{00667\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ new\_size\ -\/\ storage\_view.size\};}
+\DoxyCodeLine{00668\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00669\ \ \ \ \ assign\_loop\ =\ \{storage\_view.data,\ new\_size\};}
+\DoxyCodeLine{00670\ \ \ \ \ destroy\_loop\ =\ \{storage\_view.data\ +\ new\_size,\ storage\_view.size\ -\/\ new\_size\};}
+\DoxyCodeLine{00671\ \ \ \}}
+\DoxyCodeLine{00672\ }
+\DoxyCodeLine{00673\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a4b75f37627f1e030d9e2a8803e56d724}{AssignElements<A>}}(assign\_loop.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ assign\_loop.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00674\ }
+\DoxyCodeLine{00675\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(GetAllocator(),\ construct\_loop.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00676\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ construct\_loop.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00677\ }
+\DoxyCodeLine{00678\ \ \ DestroyAdapter<A>::DestroyElements(GetAllocator(),\ destroy\_loop.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),}
+\DoxyCodeLine{00679\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ destroy\_loop.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00680\ }
+\DoxyCodeLine{00681\ \ \ \textcolor{keywordflow}{if}\ (allocation\_tx.DidAllocate())\ \{}
+\DoxyCodeLine{00682\ \ \ \ \ DeallocateIfAllocated();}
+\DoxyCodeLine{00683\ \ \ \ \ SetAllocation(std::move(allocation\_tx).Release());}
+\DoxyCodeLine{00684\ \ \ \ \ SetIsAllocated();}
+\DoxyCodeLine{00685\ \ \ \}}
+\DoxyCodeLine{00686\ }
+\DoxyCodeLine{00687\ \ \ SetSize(new\_size);}
+\DoxyCodeLine{00688\ \}}
+\DoxyCodeLine{00689\ }
+\DoxyCodeLine{00690\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00691\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00692\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a36f1698d05ec9c46db90a1e4f55b75a5}{Storage<T,\ N,\ A>::Resize}}(ValueAdapter\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00693\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ new\_size)\ -\/>\ \textcolor{keywordtype}{void}\ \{}
+\DoxyCodeLine{00694\ \ \ StorageView<A>\ storage\_view\ =\ MakeStorageView();}
+\DoxyCodeLine{00695\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \textcolor{keyword}{const}\ base\ =\ storage\_view.data;}
+\DoxyCodeLine{00696\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ storage\_view.size;}
+\DoxyCodeLine{00697\ \ \ A\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}}\ =\ GetAllocator();}
+\DoxyCodeLine{00698\ \ \ \textcolor{keywordflow}{if}\ (new\_size\ <=\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00699\ \ \ \ \ \textcolor{comment}{//\ Destroy\ extra\ old\ elements.}}
+\DoxyCodeLine{00700\ \ \ \ \ DestroyAdapter<A>::DestroyElements(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ base\ +\ new\_size,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ -\/\ new\_size);}
+\DoxyCodeLine{00701\ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (new\_size\ <=\ storage\_view.capacity)\ \{}
+\DoxyCodeLine{00702\ \ \ \ \ \textcolor{comment}{//\ Construct\ new\ elements\ in\ place.}}
+\DoxyCodeLine{00703\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ base\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ new\_size\ -\/\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00704\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00705\ \ \ \ \ \textcolor{comment}{//\ Steps:}}
+\DoxyCodeLine{00706\ \ \ \ \ \textcolor{comment}{//\ \ a.\ Allocate\ new\ backing\ store.}}
+\DoxyCodeLine{00707\ \ \ \ \ \textcolor{comment}{//\ \ b.\ Construct\ new\ elements\ in\ new\ backing\ store.}}
+\DoxyCodeLine{00708\ \ \ \ \ \textcolor{comment}{//\ \ c.\ Move\ existing\ elements\ from\ old\ backing\ store\ to\ new\ backing\ store.}}
+\DoxyCodeLine{00709\ \ \ \ \ \textcolor{comment}{//\ \ d.\ Destroy\ all\ elements\ in\ old\ backing\ store.}}
+\DoxyCodeLine{00710\ \ \ \ \ \textcolor{comment}{//\ Use\ transactional\ wrappers\ for\ the\ first\ two\ steps\ so\ we\ can\ roll}}
+\DoxyCodeLine{00711\ \ \ \ \ \textcolor{comment}{//\ back\ if\ necessary\ due\ to\ exceptions.}}
+\DoxyCodeLine{00712\ \ \ \ \ AllocationTransaction<A>\ allocation\_tx(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}});}
+\DoxyCodeLine{00713\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity\ =}
+\DoxyCodeLine{00714\ \ \ \ \ \ \ \ \ ComputeCapacity(storage\_view.capacity,\ new\_size);}
+\DoxyCodeLine{00715\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ new\_data\ =\ allocation\_tx.Allocate(requested\_capacity);}
+\DoxyCodeLine{00716\ }
+\DoxyCodeLine{00717\ \ \ \ \ ConstructionTransaction<A>\ construction\_tx(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}});}
+\DoxyCodeLine{00718\ \ \ \ \ construction\_tx.Construct(new\_data\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ new\_size\ -\/\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00719\ }
+\DoxyCodeLine{00720\ \ \ \ \ IteratorValueAdapter<A,\ MoveIterator<A>>\ move\_values(}
+\DoxyCodeLine{00721\ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator<A>}}(base)));}
+\DoxyCodeLine{00722\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ new\_data,\ move\_values,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00723\ }
+\DoxyCodeLine{00724\ \ \ \ \ DestroyAdapter<A>::DestroyElements(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ base,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00725\ \ \ \ \ std::move(construction\_tx).Commit();}
+\DoxyCodeLine{00726\ \ \ \ \ DeallocateIfAllocated();}
+\DoxyCodeLine{00727\ \ \ \ \ SetAllocation(std::move(allocation\_tx).Release());}
+\DoxyCodeLine{00728\ \ \ \ \ SetIsAllocated();}
+\DoxyCodeLine{00729\ \ \ \}}
+\DoxyCodeLine{00730\ \ \ SetSize(new\_size);}
+\DoxyCodeLine{00731\ \}}
+\DoxyCodeLine{00732\ }
+\DoxyCodeLine{00733\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00734\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueAdapter>}
+\DoxyCodeLine{00735\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_af72db502183bd2a79f648aaa142f9205}{Storage<T,\ N,\ A>::Insert}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_abf04c7a42e53097f26011300c50c5a2a}{ConstIterator<A>}}\ pos,\ ValueAdapter\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00736\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ insert\_count)\ -\/>\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator<A>}}\ \{}
+\DoxyCodeLine{00737\ \ \ StorageView<A>\ storage\_view\ =\ MakeStorageView();}
+\DoxyCodeLine{00738\ }
+\DoxyCodeLine{00739\ \ \ \textcolor{keyword}{auto}\ insert\_index\ =\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\textcolor{keyword}{>}(}
+\DoxyCodeLine{00740\ \ \ \ \ \ \ std::distance(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_abf04c7a42e53097f26011300c50c5a2a}{ConstIterator<A>}}(storage\_view.data),\ pos));}
+\DoxyCodeLine{00741\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ insert\_end\_index\ =\ insert\_index\ +\ insert\_count;}
+\DoxyCodeLine{00742\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ new\_size\ =\ storage\_view.size\ +\ insert\_count;}
+\DoxyCodeLine{00743\ }
+\DoxyCodeLine{00744\ \ \ \textcolor{keywordflow}{if}\ (new\_size\ >\ storage\_view.capacity)\ \{}
+\DoxyCodeLine{00745\ \ \ \ \ AllocationTransaction<A>\ allocation\_tx(GetAllocator());}
+\DoxyCodeLine{00746\ \ \ \ \ ConstructionTransaction<A>\ construction\_tx(GetAllocator());}
+\DoxyCodeLine{00747\ \ \ \ \ ConstructionTransaction<A>\ move\_construction\_tx(GetAllocator());}
+\DoxyCodeLine{00748\ }
+\DoxyCodeLine{00749\ \ \ \ \ IteratorValueAdapter<A,\ MoveIterator<A>>\ move\_values(}
+\DoxyCodeLine{00750\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator<A>}}(storage\_view.data));}
+\DoxyCodeLine{00751\ }
+\DoxyCodeLine{00752\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity\ =}
+\DoxyCodeLine{00753\ \ \ \ \ \ \ \ \ ComputeCapacity(storage\_view.capacity,\ new\_size);}
+\DoxyCodeLine{00754\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ new\_data\ =\ allocation\_tx.Allocate(requested\_capacity);}
+\DoxyCodeLine{00755\ }
+\DoxyCodeLine{00756\ \ \ \ \ construction\_tx.Construct(new\_data\ +\ insert\_index,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},\ insert\_count);}
+\DoxyCodeLine{00757\ }
+\DoxyCodeLine{00758\ \ \ \ \ move\_construction\_tx.Construct(new\_data,\ move\_values,\ insert\_index);}
+\DoxyCodeLine{00759\ }
+\DoxyCodeLine{00760\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(GetAllocator(),\ new\_data\ +\ insert\_end\_index,}
+\DoxyCodeLine{00761\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ move\_values,\ storage\_view.size\ -\/\ insert\_index);}
+\DoxyCodeLine{00762\ }
+\DoxyCodeLine{00763\ \ \ \ \ DestroyAdapter<A>::DestroyElements(GetAllocator(),\ storage\_view.data,}
+\DoxyCodeLine{00764\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ storage\_view.size);}
+\DoxyCodeLine{00765\ }
+\DoxyCodeLine{00766\ \ \ \ \ std::move(construction\_tx).Commit();}
+\DoxyCodeLine{00767\ \ \ \ \ std::move(move\_construction\_tx).Commit();}
+\DoxyCodeLine{00768\ \ \ \ \ DeallocateIfAllocated();}
+\DoxyCodeLine{00769\ \ \ \ \ SetAllocation(std::move(allocation\_tx).Release());}
+\DoxyCodeLine{00770\ }
+\DoxyCodeLine{00771\ \ \ \ \ SetAllocatedSize(new\_size);}
+\DoxyCodeLine{00772\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator<A>}}(new\_data\ +\ insert\_index);}
+\DoxyCodeLine{00773\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00774\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ move\_construction\_destination\_index\ =}
+\DoxyCodeLine{00775\ \ \ \ \ \ \ \ \ (std::max)(insert\_end\_index,\ storage\_view.size);}
+\DoxyCodeLine{00776\ }
+\DoxyCodeLine{00777\ \ \ \ \ ConstructionTransaction<A>\ move\_construction\_tx(GetAllocator());}
+\DoxyCodeLine{00778\ }
+\DoxyCodeLine{00779\ \ \ \ \ IteratorValueAdapter<A,\ MoveIterator<A>>\ move\_construction\_values(}
+\DoxyCodeLine{00780\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator<A>}}(storage\_view.data\ +}
+\DoxyCodeLine{00781\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (move\_construction\_destination\_index\ -\/\ insert\_count)));}
+\DoxyCodeLine{00782\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<ValueType<A>}}>\ move\_construction\ =\ \{}
+\DoxyCodeLine{00783\ \ \ \ \ \ \ \ \ storage\_view.data\ +\ move\_construction\_destination\_index,}
+\DoxyCodeLine{00784\ \ \ \ \ \ \ \ \ new\_size\ -\/\ move\_construction\_destination\_index\};}
+\DoxyCodeLine{00785\ }
+\DoxyCodeLine{00786\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ move\_assignment\_values\ =\ storage\_view.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}\ +\ insert\_index;}
+\DoxyCodeLine{00787\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<ValueType<A>}}>\ move\_assignment\ =\ \{}
+\DoxyCodeLine{00788\ \ \ \ \ \ \ \ \ storage\_view.data\ +\ insert\_end\_index,}
+\DoxyCodeLine{00789\ \ \ \ \ \ \ \ \ move\_construction\_destination\_index\ -\/\ insert\_end\_index\};}
+\DoxyCodeLine{00790\ }
+\DoxyCodeLine{00791\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<ValueType<A>}}>\ insert\_assignment\ =\ \{move\_assignment\_values,}
+\DoxyCodeLine{00792\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ move\_construction.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}()\};}
+\DoxyCodeLine{00793\ }
+\DoxyCodeLine{00794\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<ValueType<A>}}>\ insert\_construction\ =\ \{}
+\DoxyCodeLine{00795\ \ \ \ \ \ \ \ \ insert\_assignment.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}()\ +\ insert\_assignment.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}(),}
+\DoxyCodeLine{00796\ \ \ \ \ \ \ \ \ insert\_count\ -\/\ insert\_assignment.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}()\};}
+\DoxyCodeLine{00797\ }
+\DoxyCodeLine{00798\ \ \ \ \ move\_construction\_tx.Construct(move\_construction.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),}
+\DoxyCodeLine{00799\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ move\_construction\_values,}
+\DoxyCodeLine{00800\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ move\_construction.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00801\ }
+\DoxyCodeLine{00802\ \ \ \ \ \textcolor{keywordflow}{for}\ (\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}}
+\DoxyCodeLine{00803\ \ \ \ \ \ \ \ \ \ \ \ \ \ destination\ =\ move\_assignment.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}()\ +\ move\_assignment.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}(),}
+\DoxyCodeLine{00804\ \ \ \ \ \ \ \ \ \ \ \ \ \ last\_destination\ =\ move\_assignment.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),}
+\DoxyCodeLine{00805\ \ \ \ \ \ \ \ \ \ \ \ \ \ source\ =\ move\_assignment\_values\ +\ move\_assignment.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}();}
+\DoxyCodeLine{00806\ \ \ \ \ \ \ \ \ \ ;)\ \{}
+\DoxyCodeLine{00807\ \ \ \ \ \ \ -\/-\/destination;}
+\DoxyCodeLine{00808\ \ \ \ \ \ \ -\/-\/source;}
+\DoxyCodeLine{00809\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (destination\ <\ last\_destination)\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00810\ \ \ \ \ \ \ *destination\ =\ std::move(*source);}
+\DoxyCodeLine{00811\ \ \ \ \ \}}
+\DoxyCodeLine{00812\ }
+\DoxyCodeLine{00813\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a4b75f37627f1e030d9e2a8803e56d724}{AssignElements<A>}}(insert\_assignment.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00814\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ insert\_assignment.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00815\ }
+\DoxyCodeLine{00816\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(GetAllocator(),\ insert\_construction.\mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}},}
+\DoxyCodeLine{00817\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ insert\_construction.\mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}());}
+\DoxyCodeLine{00818\ }
+\DoxyCodeLine{00819\ \ \ \ \ std::move(move\_construction\_tx).Commit();}
+\DoxyCodeLine{00820\ }
+\DoxyCodeLine{00821\ \ \ \ \ AddSize(insert\_count);}
+\DoxyCodeLine{00822\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator<A>}}(storage\_view.data\ +\ insert\_index);}
+\DoxyCodeLine{00823\ \ \ \}}
+\DoxyCodeLine{00824\ \}}
+\DoxyCodeLine{00825\ }
+\DoxyCodeLine{00826\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00827\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00828\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a4b53dab7cb6945ebe00ae3f2b5a48514}{Storage<T,\ N,\ A>::EmplaceBack}}(Args\&\&...\ args)\ -\/>\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a0c1f14aedd4c6129077ee761c4191651}{Reference<A>}}\ \{}
+\DoxyCodeLine{00829\ \ \ StorageView<A>\ storage\_view\ =\ MakeStorageView();}
+\DoxyCodeLine{00830\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ =\ storage\_view.size;}
+\DoxyCodeLine{00831\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ !=\ storage\_view.capacity))\ \{}
+\DoxyCodeLine{00832\ \ \ \ \ \textcolor{comment}{//\ Fast\ path;\ new\ element\ fits.}}
+\DoxyCodeLine{00833\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ last\_ptr\ =\ storage\_view.data\ +\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}};}
+\DoxyCodeLine{00834\ \ \ \ \ AllocatorTraits<A>::construct(GetAllocator(),\ last\_ptr,}
+\DoxyCodeLine{00835\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Args>(args)...);}
+\DoxyCodeLine{00836\ \ \ \ \ AddSize(1);}
+\DoxyCodeLine{00837\ \ \ \ \ \textcolor{keywordflow}{return}\ *last\_ptr;}
+\DoxyCodeLine{00838\ \ \ \}}
+\DoxyCodeLine{00839\ \ \ \textcolor{comment}{//\ TODO(b/173712035):\ Annotate\ with\ musttail\ attribute\ to\ prevent\ regression.}}
+\DoxyCodeLine{00840\ \ \ \textcolor{keywordflow}{return}\ EmplaceBackSlow(std::forward<Args>(args)...);}
+\DoxyCodeLine{00841\ \}}
+\DoxyCodeLine{00842\ }
+\DoxyCodeLine{00843\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00844\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00845\ \textcolor{keyword}{auto}\ Storage<T,\ N,\ A>::EmplaceBackSlow(Args\&\&...\ args)\ -\/>\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a0c1f14aedd4c6129077ee761c4191651}{Reference<A>}}\ \{}
+\DoxyCodeLine{00846\ \ \ StorageView<A>\ storage\_view\ =\ MakeStorageView();}
+\DoxyCodeLine{00847\ \ \ AllocationTransaction<A>\ allocation\_tx(GetAllocator());}
+\DoxyCodeLine{00848\ \ \ IteratorValueAdapter<A,\ MoveIterator<A>>\ move\_values(}
+\DoxyCodeLine{00849\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator<A>}}(storage\_view.data));}
+\DoxyCodeLine{00850\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity\ =\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_afca4cacd9eddec3583fa4c1262577b0a}{NextCapacity}}(storage\_view.capacity);}
+\DoxyCodeLine{00851\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ construct\_data\ =\ allocation\_tx.Allocate(requested\_capacity);}
+\DoxyCodeLine{00852\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ last\_ptr\ =\ construct\_data\ +\ storage\_view.size;}
+\DoxyCodeLine{00853\ }
+\DoxyCodeLine{00854\ \ \ \textcolor{comment}{//\ Construct\ new\ element.}}
+\DoxyCodeLine{00855\ \ \ AllocatorTraits<A>::construct(GetAllocator(),\ last\_ptr,}
+\DoxyCodeLine{00856\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Args>(args)...);}
+\DoxyCodeLine{00857\ \ \ \textcolor{comment}{//\ Move\ elements\ from\ old\ backing\ store\ to\ new\ backing\ store.}}
+\DoxyCodeLine{00858\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a1bceb3976b8fb4255b537303007faf5f}{ABSL\_INTERNAL\_TRY}}\ \{}
+\DoxyCodeLine{00859\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(GetAllocator(),\ allocation\_tx.GetData(),\ move\_values,}
+\DoxyCodeLine{00860\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ storage\_view.size);}
+\DoxyCodeLine{00861\ \ \ \}}
+\DoxyCodeLine{00862\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a93cc06084e25e050f466657e61729cdf}{ABSL\_INTERNAL\_CATCH\_ANY}}\ \{}
+\DoxyCodeLine{00863\ \ \ \ \ AllocatorTraits<A>::destroy(GetAllocator(),\ last\_ptr);}
+\DoxyCodeLine{00864\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a6b0c9c2591294693a57febd708062538}{ABSL\_INTERNAL\_RETHROW}};}
+\DoxyCodeLine{00865\ \ \ \}}
+\DoxyCodeLine{00866\ \ \ \textcolor{comment}{//\ Destroy\ elements\ in\ old\ backing\ store.}}
+\DoxyCodeLine{00867\ \ \ DestroyAdapter<A>::DestroyElements(GetAllocator(),\ storage\_view.data,}
+\DoxyCodeLine{00868\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ storage\_view.size);}
+\DoxyCodeLine{00869\ }
+\DoxyCodeLine{00870\ \ \ DeallocateIfAllocated();}
+\DoxyCodeLine{00871\ \ \ SetAllocation(std::move(allocation\_tx).Release());}
+\DoxyCodeLine{00872\ \ \ SetIsAllocated();}
+\DoxyCodeLine{00873\ \ \ AddSize(1);}
+\DoxyCodeLine{00874\ \ \ \textcolor{keywordflow}{return}\ *last\_ptr;}
+\DoxyCodeLine{00875\ \}}
+\DoxyCodeLine{00876\ }
+\DoxyCodeLine{00877\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00878\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_acc7058fe30e9353b25e1e0264f4fef03}{Storage<T,\ N,\ A>::Erase}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_abf04c7a42e53097f26011300c50c5a2a}{ConstIterator<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a66a6152caa0d2dec6985ed86838ba876}{from}},}
+\DoxyCodeLine{00879\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_abf04c7a42e53097f26011300c50c5a2a}{ConstIterator<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a633ab603a49d0a046734a0f3e6de45e9}{to}})\ -\/>\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator<A>}}\ \{}
+\DoxyCodeLine{00880\ \ \ StorageView<A>\ storage\_view\ =\ MakeStorageView();}
+\DoxyCodeLine{00881\ }
+\DoxyCodeLine{00882\ \ \ \textcolor{keyword}{auto}\ erase\_size\ =\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\textcolor{keyword}{>}(std::distance(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a66a6152caa0d2dec6985ed86838ba876}{from}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a633ab603a49d0a046734a0f3e6de45e9}{to}}));}
+\DoxyCodeLine{00883\ \ \ \textcolor{keyword}{auto}\ erase\_index\ =\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\textcolor{keyword}{>}(}
+\DoxyCodeLine{00884\ \ \ \ \ \ \ std::distance(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_abf04c7a42e53097f26011300c50c5a2a}{ConstIterator<A>}}(storage\_view.data),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_a66a6152caa0d2dec6985ed86838ba876}{from}}));}
+\DoxyCodeLine{00885\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ erase\_end\_index\ =\ erase\_index\ +\ erase\_size;}
+\DoxyCodeLine{00886\ }
+\DoxyCodeLine{00887\ \ \ \textcolor{comment}{//\ Fast\ path:\ if\ the\ value\ type\ is\ trivially\ relocatable\ and\ we\ know}}
+\DoxyCodeLine{00888\ \ \ \textcolor{comment}{//\ the\ allocator\ doesn't\ do\ anything\ fancy,\ then\ we\ know\ it\ is\ legal\ for\ us\ to}}
+\DoxyCodeLine{00889\ \ \ \textcolor{comment}{//\ simply\ destroy\ the\ elements\ in\ the\ "{}erasure\ window"{}\ (which\ cannot\ throw)}}
+\DoxyCodeLine{00890\ \ \ \textcolor{comment}{//\ and\ then\ memcpy\ downward\ to\ close\ the\ window.}}
+\DoxyCodeLine{00891\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structabsl_1_1is__trivially__relocatable}{absl::is\_trivially\_relocatable}}<\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ \&\&}
+\DoxyCodeLine{00892\ \ \ \ \ \ \ std::is\_nothrow\_destructible<\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ \&\&}
+\DoxyCodeLine{00893\ \ \ \ \ \ \ std::is\_same<A,\ std::allocator<\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}})\ \{}
+\DoxyCodeLine{00894\ \ \ \ \ DestroyAdapter<A>::DestroyElements(}
+\DoxyCodeLine{00895\ \ \ \ \ \ \ \ \ GetAllocator(),\ storage\_view.data\ +\ erase\_index,\ erase\_size);}
+\DoxyCodeLine{00896\ \ \ \ \ std::memmove(}
+\DoxyCodeLine{00897\ \ \ \ \ \ \ \ \ \textcolor{keyword}{reinterpret\_cast<}\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(storage\_view.data\ +\ erase\_index),}
+\DoxyCodeLine{00898\ \ \ \ \ \ \ \ \ \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(storage\_view.data\ +\ erase\_end\_index),}
+\DoxyCodeLine{00899\ \ \ \ \ \ \ \ \ (storage\_view.size\ -\/\ erase\_end\_index)\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}));}
+\DoxyCodeLine{00900\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00901\ \ \ \ \ IteratorValueAdapter<A,\ MoveIterator<A>>\ move\_values(}
+\DoxyCodeLine{00902\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator<A>}}(storage\_view.data\ +\ erase\_end\_index));}
+\DoxyCodeLine{00903\ }
+\DoxyCodeLine{00904\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a4b75f37627f1e030d9e2a8803e56d724}{AssignElements<A>}}(storage\_view.data\ +\ erase\_index,\ move\_values,}
+\DoxyCodeLine{00905\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ storage\_view.size\ -\/\ erase\_end\_index);}
+\DoxyCodeLine{00906\ }
+\DoxyCodeLine{00907\ \ \ \ \ DestroyAdapter<A>::DestroyElements(}
+\DoxyCodeLine{00908\ \ \ \ \ \ \ \ \ GetAllocator(),\ storage\_view.data\ +\ (storage\_view.size\ -\/\ erase\_size),}
+\DoxyCodeLine{00909\ \ \ \ \ \ \ \ \ erase\_size);}
+\DoxyCodeLine{00910\ \ \ \}}
+\DoxyCodeLine{00911\ \ \ SubtractSize(erase\_size);}
+\DoxyCodeLine{00912\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator<A>}}(storage\_view.data\ +\ erase\_index);}
+\DoxyCodeLine{00913\ \}}
+\DoxyCodeLine{00914\ }
+\DoxyCodeLine{00915\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00916\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_a5ce80381ad96ce41c6108a765eb915d1}{Storage<T,\ N,\ A>::Reserve}}(\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity)\ -\/>\ \textcolor{keywordtype}{void}\ \{}
+\DoxyCodeLine{00917\ \ \ StorageView<A>\ storage\_view\ =\ MakeStorageView();}
+\DoxyCodeLine{00918\ }
+\DoxyCodeLine{00919\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(requested\_capacity\ <=\ storage\_view.capacity))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00920\ }
+\DoxyCodeLine{00921\ \ \ AllocationTransaction<A>\ allocation\_tx(GetAllocator());}
+\DoxyCodeLine{00922\ }
+\DoxyCodeLine{00923\ \ \ IteratorValueAdapter<A,\ MoveIterator<A>>\ move\_values(}
+\DoxyCodeLine{00924\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator<A>}}(storage\_view.data));}
+\DoxyCodeLine{00925\ }
+\DoxyCodeLine{00926\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ new\_requested\_capacity\ =}
+\DoxyCodeLine{00927\ \ \ \ \ \ \ ComputeCapacity(storage\_view.capacity,\ requested\_capacity);}
+\DoxyCodeLine{00928\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ new\_data\ =\ allocation\_tx.Allocate(new\_requested\_capacity);}
+\DoxyCodeLine{00929\ }
+\DoxyCodeLine{00930\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(GetAllocator(),\ new\_data,\ move\_values,}
+\DoxyCodeLine{00931\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ storage\_view.size);}
+\DoxyCodeLine{00932\ }
+\DoxyCodeLine{00933\ \ \ DestroyAdapter<A>::DestroyElements(GetAllocator(),\ storage\_view.data,}
+\DoxyCodeLine{00934\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ storage\_view.size);}
+\DoxyCodeLine{00935\ }
+\DoxyCodeLine{00936\ \ \ DeallocateIfAllocated();}
+\DoxyCodeLine{00937\ \ \ SetAllocation(std::move(allocation\_tx).Release());}
+\DoxyCodeLine{00938\ \ \ SetIsAllocated();}
+\DoxyCodeLine{00939\ \}}
+\DoxyCodeLine{00940\ }
+\DoxyCodeLine{00941\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00942\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ab16c919d8f1cdb0a3d7a6f1abac91b69}{Storage<T,\ N,\ A>::ShrinkToFit}}()\ -\/>\ \textcolor{keywordtype}{void}\ \{}
+\DoxyCodeLine{00943\ \ \ \textcolor{comment}{//\ May\ only\ be\ called\ on\ allocated\ instances!}}
+\DoxyCodeLine{00944\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(GetIsAllocated());}
+\DoxyCodeLine{00945\ }
+\DoxyCodeLine{00946\ \ \ StorageView<A>\ storage\_view\{GetAllocatedData(),\ GetSize(),}
+\DoxyCodeLine{00947\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ GetAllocatedCapacity()\};}
+\DoxyCodeLine{00948\ }
+\DoxyCodeLine{00949\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(storage\_view.size\ ==\ storage\_view.capacity))\ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00950\ }
+\DoxyCodeLine{00951\ \ \ AllocationTransaction<A>\ allocation\_tx(GetAllocator());}
+\DoxyCodeLine{00952\ }
+\DoxyCodeLine{00953\ \ \ IteratorValueAdapter<A,\ MoveIterator<A>>\ move\_values(}
+\DoxyCodeLine{00954\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator<A>}}(storage\_view.data));}
+\DoxyCodeLine{00955\ }
+\DoxyCodeLine{00956\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ construct\_data;}
+\DoxyCodeLine{00957\ \ \ \textcolor{keywordflow}{if}\ (storage\_view.size\ >\ GetInlinedCapacity())\ \{}
+\DoxyCodeLine{00958\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ requested\_capacity\ =\ storage\_view.size;}
+\DoxyCodeLine{00959\ \ \ \ \ construct\_data\ =\ allocation\_tx.Allocate(requested\_capacity);}
+\DoxyCodeLine{00960\ \ \ \ \ \textcolor{keywordflow}{if}\ (allocation\_tx.GetCapacity()\ >=\ storage\_view.capacity)\ \{}
+\DoxyCodeLine{00961\ \ \ \ \ \ \ \textcolor{comment}{//\ Already\ using\ the\ smallest\ available\ heap\ allocation.}}
+\DoxyCodeLine{00962\ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00963\ \ \ \ \ \}}
+\DoxyCodeLine{00964\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00965\ \ \ \ \ construct\_data\ =\ GetInlinedData();}
+\DoxyCodeLine{00966\ \ \ \}}
+\DoxyCodeLine{00967\ }
+\DoxyCodeLine{00968\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a1bceb3976b8fb4255b537303007faf5f}{ABSL\_INTERNAL\_TRY}}\ \{}
+\DoxyCodeLine{00969\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(GetAllocator(),\ construct\_data,\ move\_values,}
+\DoxyCodeLine{00970\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ storage\_view.size);}
+\DoxyCodeLine{00971\ \ \ \}}
+\DoxyCodeLine{00972\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a93cc06084e25e050f466657e61729cdf}{ABSL\_INTERNAL\_CATCH\_ANY}}\ \{}
+\DoxyCodeLine{00973\ \ \ \ \ SetAllocation(\{storage\_view.data,\ storage\_view.capacity\});}
+\DoxyCodeLine{00974\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a6b0c9c2591294693a57febd708062538}{ABSL\_INTERNAL\_RETHROW}};}
+\DoxyCodeLine{00975\ \ \ \}}
+\DoxyCodeLine{00976\ }
+\DoxyCodeLine{00977\ \ \ DestroyAdapter<A>::DestroyElements(GetAllocator(),\ storage\_view.data,}
+\DoxyCodeLine{00978\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ storage\_view.size);}
+\DoxyCodeLine{00979\ }
+\DoxyCodeLine{00980\ \ \ \mbox{\hyperlink{structabsl_1_1inlined__vector__internal_1_1MallocAdapter_ade6a952f81ed18482de3b0e87d6fa416}{MallocAdapter<A>::Deallocate}}(GetAllocator(),\ storage\_view.data,}
+\DoxyCodeLine{00981\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ storage\_view.capacity);}
+\DoxyCodeLine{00982\ }
+\DoxyCodeLine{00983\ \ \ \textcolor{keywordflow}{if}\ (allocation\_tx.DidAllocate())\ \{}
+\DoxyCodeLine{00984\ \ \ \ \ SetAllocation(std::move(allocation\_tx).Release());}
+\DoxyCodeLine{00985\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00986\ \ \ \ \ UnsetIsAllocated();}
+\DoxyCodeLine{00987\ \ \ \}}
+\DoxyCodeLine{00988\ \}}
+\DoxyCodeLine{00989\ }
+\DoxyCodeLine{00990\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00991\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1inlined__vector__internal_1_1Storage_ae6f4ba4e2fc13d51949f3d36e202e7dd}{Storage<T,\ N,\ A>::Swap}}(Storage*\ other\_storage\_ptr)\ -\/>\ \textcolor{keywordtype}{void}\ \{}
+\DoxyCodeLine{00992\ \ \ \textcolor{keyword}{using\ }std::swap;}
+\DoxyCodeLine{00993\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\textcolor{keyword}{this}\ !=\ other\_storage\_ptr);}
+\DoxyCodeLine{00994\ }
+\DoxyCodeLine{00995\ \ \ \textcolor{keywordflow}{if}\ (GetIsAllocated()\ \&\&\ other\_storage\_ptr-\/>GetIsAllocated())\ \{}
+\DoxyCodeLine{00996\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a6d0e7d492f9cf75a00239615f076e456}{swap}}(data\_.allocated,\ other\_storage\_ptr-\/>data\_.allocated);}
+\DoxyCodeLine{00997\ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (!GetIsAllocated()\ \&\&\ !other\_storage\_ptr-\/>GetIsAllocated())\ \{}
+\DoxyCodeLine{00998\ \ \ \ \ SwapInlinedElements(SwapInlinedElementsPolicy\{\},\ other\_storage\_ptr);}
+\DoxyCodeLine{00999\ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01000\ \ \ \ \ Storage*\ allocated\_ptr\ =\ \textcolor{keyword}{this};}
+\DoxyCodeLine{01001\ \ \ \ \ Storage*\ inlined\_ptr\ =\ other\_storage\_ptr;}
+\DoxyCodeLine{01002\ \ \ \ \ \textcolor{keywordflow}{if}\ (!allocated\_ptr-\/>GetIsAllocated())\ \mbox{\hyperlink{namespaceabsl_a6d0e7d492f9cf75a00239615f076e456}{swap}}(allocated\_ptr,\ inlined\_ptr);}
+\DoxyCodeLine{01003\ }
+\DoxyCodeLine{01004\ \ \ \ \ StorageView<A>\ allocated\_storage\_view\{}
+\DoxyCodeLine{01005\ \ \ \ \ \ \ \ \ allocated\_ptr-\/>GetAllocatedData(),\ allocated\_ptr-\/>GetSize(),}
+\DoxyCodeLine{01006\ \ \ \ \ \ \ \ \ allocated\_ptr-\/>GetAllocatedCapacity()\};}
+\DoxyCodeLine{01007\ }
+\DoxyCodeLine{01008\ \ \ \ \ IteratorValueAdapter<A,\ MoveIterator<A>>\ move\_values(}
+\DoxyCodeLine{01009\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator<A>}}(inlined\_ptr-\/>GetInlinedData()));}
+\DoxyCodeLine{01010\ }
+\DoxyCodeLine{01011\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a1bceb3976b8fb4255b537303007faf5f}{ABSL\_INTERNAL\_TRY}}\ \{}
+\DoxyCodeLine{01012\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(inlined\_ptr-\/>GetAllocator(),}
+\DoxyCodeLine{01013\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ allocated\_ptr-\/>GetInlinedData(),\ move\_values,}
+\DoxyCodeLine{01014\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ inlined\_ptr-\/>GetSize());}
+\DoxyCodeLine{01015\ \ \ \ \ \}}
+\DoxyCodeLine{01016\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a93cc06084e25e050f466657e61729cdf}{ABSL\_INTERNAL\_CATCH\_ANY}}\ \{}
+\DoxyCodeLine{01017\ \ \ \ \ \ \ allocated\_ptr-\/>SetAllocation(Allocation<A>\{}
+\DoxyCodeLine{01018\ \ \ \ \ \ \ \ \ \ \ allocated\_storage\_view.data,\ allocated\_storage\_view.capacity\});}
+\DoxyCodeLine{01019\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a6b0c9c2591294693a57febd708062538}{ABSL\_INTERNAL\_RETHROW}};}
+\DoxyCodeLine{01020\ \ \ \ \ \}}
+\DoxyCodeLine{01021\ }
+\DoxyCodeLine{01022\ \ \ \ \ DestroyAdapter<A>::DestroyElements(inlined\_ptr-\/>GetAllocator(),}
+\DoxyCodeLine{01023\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ inlined\_ptr-\/>GetInlinedData(),}
+\DoxyCodeLine{01024\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ inlined\_ptr-\/>GetSize());}
+\DoxyCodeLine{01025\ }
+\DoxyCodeLine{01026\ \ \ \ \ inlined\_ptr-\/>SetAllocation(Allocation<A>\{allocated\_storage\_view.data,}
+\DoxyCodeLine{01027\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ allocated\_storage\_view.capacity\});}
+\DoxyCodeLine{01028\ \ \ \}}
+\DoxyCodeLine{01029\ }
+\DoxyCodeLine{01030\ \ \ \mbox{\hyperlink{namespaceabsl_a6d0e7d492f9cf75a00239615f076e456}{swap}}(GetSizeAndIsAllocated(),\ other\_storage\_ptr-\/>GetSizeAndIsAllocated());}
+\DoxyCodeLine{01031\ \ \ \mbox{\hyperlink{namespaceabsl_a6d0e7d492f9cf75a00239615f076e456}{swap}}(GetAllocator(),\ other\_storage\_ptr-\/>GetAllocator());}
+\DoxyCodeLine{01032\ \}}
+\DoxyCodeLine{01033\ }
+\DoxyCodeLine{01034\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{01035\ \textcolor{keywordtype}{void}\ Storage<T,\ N,\ A>::SwapN(ElementwiseSwapPolicy,\ Storage*\ other,}
+\DoxyCodeLine{01036\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}})\ \{}
+\DoxyCodeLine{01037\ \ \ std::swap\_ranges(GetInlinedData(),\ GetInlinedData()\ +\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}},}
+\DoxyCodeLine{01038\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ other-\/>GetInlinedData());}
+\DoxyCodeLine{01039\ \}}
+\DoxyCodeLine{01040\ }
+\DoxyCodeLine{01041\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{01042\ \textcolor{keywordtype}{void}\ Storage<T,\ N,\ A>::SwapN(ElementwiseConstructPolicy,\ Storage*\ other,}
+\DoxyCodeLine{01043\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}})\ \{}
+\DoxyCodeLine{01044\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ =\ GetInlinedData();}
+\DoxyCodeLine{01045\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a2edb9abb05a32dec26878e15a29878d6}{Pointer<A>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ =\ other-\/>GetInlinedData();}
+\DoxyCodeLine{01046\ \ \ \textcolor{comment}{//\ see\ note\ on\ allocators\ in\ \`{}SwapInlinedElements`.}}
+\DoxyCodeLine{01047\ \ \ A\&\ allocator\_a\ =\ GetAllocator();}
+\DoxyCodeLine{01048\ \ \ A\&\ allocator\_b\ =\ other-\/>GetAllocator();}
+\DoxyCodeLine{01049\ \ \ \textcolor{keywordflow}{for}\ (\mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ab988b94c007b490844dbd6437861b347}{SizeType<A>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ 0;\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}};\ ++\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}},\ ++\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{01050\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType<A>}}\ tmp(std::move(*\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}));}
+\DoxyCodeLine{01051\ }
+\DoxyCodeLine{01052\ \ \ \ \ AllocatorTraits<A>::destroy(allocator\_a,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}});}
+\DoxyCodeLine{01053\ \ \ \ \ AllocatorTraits<A>::construct(allocator\_b,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ std::move(*\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}));}
+\DoxyCodeLine{01054\ }
+\DoxyCodeLine{01055\ \ \ \ \ AllocatorTraits<A>::destroy(allocator\_b,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{01056\ \ \ \ \ AllocatorTraits<A>::construct(allocator\_a,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ std::move(tmp));}
+\DoxyCodeLine{01057\ \ \ \}}
+\DoxyCodeLine{01058\ \}}
+\DoxyCodeLine{01059\ }
+\DoxyCodeLine{01060\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{01061\ \textcolor{keywordtype}{void}\ Storage<T,\ N,\ A>::SwapInlinedElements(MemcpyPolicy,\ Storage*\ other)\ \{}
+\DoxyCodeLine{01062\ \ \ Data\ tmp\ =\ data\_;}
+\DoxyCodeLine{01063\ \ \ data\_\ =\ other-\/>data\_;}
+\DoxyCodeLine{01064\ \ \ other-\/>data\_\ =\ tmp;}
+\DoxyCodeLine{01065\ \}}
+\DoxyCodeLine{01066\ }
+\DoxyCodeLine{01067\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{01068\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ NotMemcpyPolicy>}
+\DoxyCodeLine{01069\ \textcolor{keywordtype}{void}\ Storage<T,\ N,\ A>::SwapInlinedElements(NotMemcpyPolicy\ policy,}
+\DoxyCodeLine{01070\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Storage*\ other)\ \{}
+\DoxyCodeLine{01071\ \ \ \textcolor{comment}{//\ Note:\ \`{}destroy`\ needs\ to\ use\ pre-\/swap\ allocator\ while\ \`{}construct`\ -\/}}
+\DoxyCodeLine{01072\ \ \ \textcolor{comment}{//\ post-\/swap\ allocator.\ Allocators\ will\ be\ swapped\ later\ on\ outside\ of}}
+\DoxyCodeLine{01073\ \ \ \textcolor{comment}{//\ \`{}SwapInlinedElements`.}}
+\DoxyCodeLine{01074\ \ \ Storage*\ small\_ptr\ =\ \textcolor{keyword}{this};}
+\DoxyCodeLine{01075\ \ \ Storage*\ large\_ptr\ =\ other;}
+\DoxyCodeLine{01076\ \ \ \textcolor{keywordflow}{if}\ (small\_ptr-\/>GetSize()\ >\ large\_ptr-\/>GetSize())\ \{}
+\DoxyCodeLine{01077\ \ \ \ \ std::swap(small\_ptr,\ large\_ptr);}
+\DoxyCodeLine{01078\ \ \ \}}
+\DoxyCodeLine{01079\ }
+\DoxyCodeLine{01080\ \ \ \textcolor{keyword}{auto}\ small\_size\ =\ small\_ptr-\/>GetSize();}
+\DoxyCodeLine{01081\ \ \ \textcolor{keyword}{auto}\ diff\ =\ large\_ptr-\/>GetSize()\ -\/\ small\_size;}
+\DoxyCodeLine{01082\ \ \ SwapN(policy,\ other,\ small\_size);}
+\DoxyCodeLine{01083\ }
+\DoxyCodeLine{01084\ \ \ IteratorValueAdapter<A,\ MoveIterator<A>>\ move\_values(}
+\DoxyCodeLine{01085\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a20ff5b8d76c8bb894987da108e96c94c}{MoveIterator<A>}}(large\_ptr-\/>GetInlinedData()\ +\ small\_size));}
+\DoxyCodeLine{01086\ }
+\DoxyCodeLine{01087\ \ \ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a1033da78aa7c3c9381f32f6b98c683a3}{ConstructElements<A>}}(large\_ptr-\/>GetAllocator(),}
+\DoxyCodeLine{01088\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ small\_ptr-\/>GetInlinedData()\ +\ small\_size,\ move\_values,}
+\DoxyCodeLine{01089\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ diff);}
+\DoxyCodeLine{01090\ }
+\DoxyCodeLine{01091\ \ \ DestroyAdapter<A>::DestroyElements(large\_ptr-\/>GetAllocator(),}
+\DoxyCodeLine{01092\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ large\_ptr-\/>GetInlinedData()\ +\ small\_size,}
+\DoxyCodeLine{01093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ diff);}
+\DoxyCodeLine{01094\ \}}
+\DoxyCodeLine{01095\ }
+\DoxyCodeLine{01096\ \textcolor{comment}{//\ End\ ignore\ "{}array-\/bounds"{}}}
+\DoxyCodeLine{01097\ \textcolor{preprocessor}{\#if\ !defined(\_\_clang\_\_)\ \&\&\ defined(\_\_GNUC\_\_)}}
+\DoxyCodeLine{01098\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ pop}}
+\DoxyCodeLine{01099\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01100\ }
+\DoxyCodeLine{01101\ \}\ \ \textcolor{comment}{//\ namespace\ inlined\_vector\_internal}}
+\DoxyCodeLine{01102\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{01103\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{01104\ }
+\DoxyCodeLine{01105\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CONTAINER\_INTERNAL\_INLINED\_VECTOR\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,120 @@
+\doxysection{MLP.\+hpp}
+\hypertarget{MLP_8hpp_source}{}\label{MLP_8hpp_source}\index{nn/MLP.hpp@{nn/MLP.hpp}}
+\mbox{\hyperlink{MLP_8hpp}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{preprocessor}{\#ifndef\ LLM\_CPP\_\_MLP\_HPP\_}}
+\DoxyCodeLine{00002\ \textcolor{preprocessor}{\#define\ LLM\_CPP\_\_MLP\_HPP\_}}
+\DoxyCodeLine{00003\ }
+\DoxyCodeLine{00004\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{nn_2nn_8hpp}{nn.hpp}}"{}}}
+\DoxyCodeLine{00005\ }
+\DoxyCodeLine{00006\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_USE\_GPU}}
+\DoxyCodeLine{00007\ \textcolor{preprocessor}{\#include\ "{}cuda\_profile\_util.hpp"{}}}
+\DoxyCodeLine{00008\ \textcolor{preprocessor}{\#define\ PROFILE\_TRACE\_FN(prefix)\ NVTX\_RANGE\_FN(prefix)}}
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#define\ PROFILE\_TRACE\_FN(prefix)}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespacegpt}{gpt}}\ \{}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{keyword}{struct\ }MLP\ \{}
+\DoxyCodeLine{00016\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}\ =\ \mbox{\hyperlink{dev_2cuda_2common_8h_a73bc90d2e378d172e206b528b3756c5a}{floatX}};}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \ \ \textcolor{comment}{//I\ think\ this\ is\ the\ structure\ for\ the\ class/structure?}}
+\DoxyCodeLine{00019\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structgpt_1_1MLP_af6bb3ab401ab185e2d8182b6fc9ed984}{MLP}}(\textcolor{keywordtype}{int}\ n\_embed)\ :\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}}(n\_embed)\ \{}
+\DoxyCodeLine{00020\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a0ab0f956db591ee93dda7a940a2f08b3}{c\_fc\_}}\ =\ std::make\_unique<nn::Linear>(n\_embed,\ 4\ *\ n\_embed);}
+\DoxyCodeLine{00021\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a1e466005d99f124b5fce454f6bb70a35}{c\_proj\_}}\ =\ std::make\_unique<nn::Linear>(4\ *\ n\_embed,\ n\_embed);}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{comment}{//\ activation}}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keyword}{auto}\ dtype\ =\ \mbox{\hyperlink{structnn_1_1DataTypeToEnum}{nn::DataTypeToEnum<T>::value}};}
+\DoxyCodeLine{00025\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}}\ =\ std::make\_unique<nn::Activation>(dtype);}
+\DoxyCodeLine{00026\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}\ =\ std::make\_unique<nn::Activation>(dtype);}
+\DoxyCodeLine{00027\ \ \ \}}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \ \ \textcolor{comment}{//This\ is\ the\ forward\ pass\ for\ the\ MLP}}
+\DoxyCodeLine{00030\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt_1_1MLP_ac516d9e8ce57af9524e6f138fdcc4a1c}{Forward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ x,}
+\DoxyCodeLine{00031\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ y)\ \{}
+\DoxyCodeLine{00032\ \ \ \ \ \mbox{\hyperlink{AttentionLayer_8hpp_a55d80b5525abdb6c4403e3c4052edb84}{PROFILE\_TRACE\_FN}}(\textcolor{stringliteral}{"{}MLP"{}});}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{comment}{//\ x:\ [B*T,\ 4*n\_embed],\ y:\ [B*T,\ 4*n\_embed]}}
+\DoxyCodeLine{00035\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(1),\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{comment}{//\ x.shape\ ==\ y.shape}}
+\DoxyCodeLine{00037\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(0),\ y.dimension(0));}
+\DoxyCodeLine{00038\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(1),\ y.dimension(1));}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{keywordtype}{int}\ BT\ =\ x.dimension(0);}
+\DoxyCodeLine{00041\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}}-\/>LazyAllocate(BT\ *\ 4\ *\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00042\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}-\/>LazyAllocate(BT\ *\ 4\ *\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \ \ \ \ \textcolor{comment}{//\ forward}}
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keyword}{auto}\ fch\ =\ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}}-\/>matrix<\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}>(BT,\ 4\ *\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keyword}{auto}\ fch\_gelu\ =\ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}-\/>matrix<\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}>(BT,\ 4\ *\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00047\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a0ab0f956db591ee93dda7a940a2f08b3}{c\_fc\_}}-\/>Forward(x,\ fch);}
+\DoxyCodeLine{00048\ \ \ \ \ \mbox{\hyperlink{structnn_1_1NewGELU_aa83faf7441c0ebe6c33fd3f7610eb1dc}{nn::NewGELU::Forward}}(\mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a21ac3a103525fe44360b799a17466f7c}{MakeConstFlat}}(fch.data(),\ fch.size()),}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{OriginalStuff_2tensor__util_8hpp_a9a087a9b5b6b2f4a06af705501667b9b}{MakeFlat}}(fch\_gelu.data(),\ fch\_gelu.size()));}
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keyword}{auto}\ fch\_gelu\_const\ =\ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}-\/>const\_matrix<\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}>(BT,\ 4\ *\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00051\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a1e466005d99f124b5fce454f6bb70a35}{c\_proj\_}}-\/>Forward(fch\_gelu\_const,\ y);}
+\DoxyCodeLine{00052\ \ \ \}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \ \ \textcolor{comment}{//Backward\ pass\ for\ the\ MLP}}
+\DoxyCodeLine{00055\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt_1_1MLP_a5d59dea1f875ec77e9ff33de595183f4}{Backward}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ x,}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::ConstMatrix}}\ y\_grad,}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorMap}{TTypes<T>::Matrix}}\ x\_grad)\ \{}
+\DoxyCodeLine{00058\ \ \ \ \ \mbox{\hyperlink{AttentionLayer_8hpp_a55d80b5525abdb6c4403e3c4052edb84}{PROFILE\_TRACE\_FN}}(\textcolor{stringliteral}{"{}MLP"{}});}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{comment}{//\ x:\ [B*T,\ 4*n\_embed],\ y\_grad:\ [B*T,\ 4*n\_embed]}}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{comment}{//\ x\_grad:\ [B*T,\ 4*n\_embed]}}
+\DoxyCodeLine{00062\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(1),\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{comment}{//\ x.shape\ ==\ y\_grad.shape\ ==\ x\_grad.shape}}
+\DoxyCodeLine{00064\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(0),\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00065\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(1),\ y\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00066\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(0),\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(0));}
+\DoxyCodeLine{00067\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2check_8h_a7c0ce053b28d53aa4eaf3eb7fb71663b}{CHECK\_EQ}}(x.dimension(1),\ x\_grad.\mbox{\hyperlink{classEigen_1_1TensorMap_adfb930b8289836aad40d64171bde46a1}{dimension}}(1));}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{comment}{//\ Lazily\ allocate\ the\ memory\ for\ activation}}
+\DoxyCodeLine{00070\ \ \ \ \ \textcolor{keywordtype}{int}\ BT\ =\ x.dimension(0);}
+\DoxyCodeLine{00071\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00072\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}-\/>LazyAllocateGradient();}
+\DoxyCodeLine{00073\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}}-\/>ZeroGrad();}
+\DoxyCodeLine{00074\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}-\/>ZeroGrad();}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keyword}{auto}\ fch\_gelu\ =\ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}-\/>const\_matrix<\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}>(BT,\ 4\ *\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{keyword}{auto}\ fch\_gelu\_grad\ =\ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}-\/>matrix\_grad<\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}>(BT,\ 4\ *\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00078\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a1e466005d99f124b5fce454f6bb70a35}{c\_proj\_}}-\/>Backward(fch\_gelu,\ y\_grad,\ fch\_gelu\_grad);}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \ \ \textcolor{keyword}{auto}\ fch\ =\ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}}-\/>const\_flat<\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}>();}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keyword}{auto}\ fch\_gelu\_grad\_flat\ =\ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}-\/>const\_flat\_grad<\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}>();}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keyword}{auto}\ fch\_grad\ =\ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}}-\/>flat\_grad<\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}>();}
+\DoxyCodeLine{00083\ \ \ \ \ \mbox{\hyperlink{structnn_1_1NewGELU_a61bfcf96b22838809e7ed1c217df351f}{nn::NewGELU::Backward}}(fch,\ fch\_gelu\_grad\_flat,\ fch\_grad);}
+\DoxyCodeLine{00084\ }
+\DoxyCodeLine{00085\ \ \ \ \ \textcolor{keyword}{auto}\ fch\_grad\_2d\ =\ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}}-\/>const\_matrix\_grad<\mbox{\hyperlink{structgpt_1_1MLP_aabebcafbcdc4b528f90f89f6e492a06f}{T}}>(BT,\ 4\ *\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}});}
+\DoxyCodeLine{00086\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a0ab0f956db591ee93dda7a940a2f08b3}{c\_fc\_}}-\/>Backward(x,\ fch\_grad\_2d,\ x\_grad);}
+\DoxyCodeLine{00087\ \ \ \}}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structgpt_1_1MLP_a0f398e6354d87bbe7e104cfd71304dcd}{NumParameters}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structgpt_1_1MLP_a0ab0f956db591ee93dda7a940a2f08b3}{c\_fc\_}}-\/>NumParameters()\ +\ \mbox{\hyperlink{structgpt_1_1MLP_a1e466005d99f124b5fce454f6bb70a35}{c\_proj\_}}-\/>NumParameters();}
+\DoxyCodeLine{00091\ \ \ \}}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structgpt_1_1MLP_a576764a9c2f9496fbb9ad22a53bb2c7e}{NumActivations}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00094\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structgpt_1_1MLP_a0ab0f956db591ee93dda7a940a2f08b3}{c\_fc\_}}-\/>NumActivations()\ +\ \mbox{\hyperlink{structgpt_1_1MLP_a1e466005d99f124b5fce454f6bb70a35}{c\_proj\_}}-\/>NumActivations()\ +\ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}}-\/>size()\ +}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}}-\/>size();}
+\DoxyCodeLine{00096\ \ \ \}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structgpt_1_1MLP_afaee1d128a14da211230b851d784ded6}{Parameters}}(std::vector<nn::Parameter*>*\ parameters)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00099\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a0ab0f956db591ee93dda7a940a2f08b3}{c\_fc\_}}-\/>Parameters(parameters);}
+\DoxyCodeLine{00100\ \ \ \ \ \mbox{\hyperlink{structgpt_1_1MLP_a1e466005d99f124b5fce454f6bb70a35}{c\_proj\_}}-\/>Parameters(parameters);}
+\DoxyCodeLine{00101\ \ \ \}}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structgpt_1_1MLP_a92a6156467d72bcf2f61fa74b1132d19}{n\_embed\_}};}
+\DoxyCodeLine{00104\ \ \ std::unique\_ptr<nn::Linear>\ \mbox{\hyperlink{structgpt_1_1MLP_a0ab0f956db591ee93dda7a940a2f08b3}{c\_fc\_}};}
+\DoxyCodeLine{00105\ \ \ std::unique\_ptr<nn::Linear>\ \mbox{\hyperlink{structgpt_1_1MLP_a1e466005d99f124b5fce454f6bb70a35}{c\_proj\_}};}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \ \ \textcolor{comment}{//\ activation\ tensors}}
+\DoxyCodeLine{00108\ \ \ std::unique\_ptr<nn::Activation>\ \mbox{\hyperlink{structgpt_1_1MLP_a0b3352290050ff88ded128f1959c1247}{fch\_}};\ \ \ \ \ \ \ \textcolor{comment}{//\ [B*T,\ 4*C]}}
+\DoxyCodeLine{00109\ \ \ std::unique\_ptr<nn::Activation>\ \mbox{\hyperlink{structgpt_1_1MLP_a4946d36e42b80c39f8b984ed7ac1d5d0}{fch\_gelu\_}};\ \ \textcolor{comment}{//\ [B*T,\ 4*C]}}
+\DoxyCodeLine{00110\ \};}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \}\ \ \textcolor{comment}{//\ namespace\ gpt}}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00114\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ LLM\_CPP\_\_NN\_HPP\_}}
+
+\end{DoxyCode}

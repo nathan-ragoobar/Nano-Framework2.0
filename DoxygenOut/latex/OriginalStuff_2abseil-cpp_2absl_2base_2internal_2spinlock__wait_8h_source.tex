@@ -1,0 +1,101 @@
+\doxysection{spinlock\+\_\+wait.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2base_2internal_2spinlock__wait_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2base_2internal_2spinlock__wait_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/base/internal/spinlock\_wait.h@{OriginalStuff/abseil-\/cpp/absl/base/internal/spinlock\_wait.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2base_2internal_2spinlock__wait_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_SPINLOCK\_WAIT\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_SPINLOCK\_WAIT\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Operations\ to\ make\ atomic\ transitions\ on\ a\ word,\ and\ to\ allow}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ waiting\ for\ those\ transitions\ to\ become\ possible.}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/scheduling\_mode.h"{}}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00027\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00028\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ SpinLockWait()\ waits\ until\ it\ can\ perform\ one\ of\ several\ transitions\ from}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ "{}from"{}\ to\ "{}to"{}.\ \ It\ returns\ when\ it\ performs\ a\ transition\ where\ done==true.}}
+\DoxyCodeLine{00032\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1SpinLockWaitTransition}{SpinLockWaitTransition}}\ \{}
+\DoxyCodeLine{00033\ \ \ uint32\_t\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1SpinLockWaitTransition_a0be22a3a68217acce791663635f2023e}{from}};}
+\DoxyCodeLine{00034\ \ \ uint32\_t\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1SpinLockWaitTransition_ac4f4292dc443d4d9bcc67d42d82ad3ba}{to}};}
+\DoxyCodeLine{00035\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1SpinLockWaitTransition_afc28aa675a33f5ab6bda8d9cbad7e3af}{done}};}
+\DoxyCodeLine{00036\ \};}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ Wait\ until\ *w\ can\ transition\ from\ trans[i].from\ to\ trans[i].to\ for\ some\ i}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ satisfying\ 0<=i<n\ \&\&\ trans[i].done,\ atomically\ make\ the\ transition,}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ then\ return\ the\ old\ value\ of\ *w.\ \ \ Make\ any\ other\ atomic\ transitions}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ where\ !trans[i].done,\ but\ continue\ waiting.}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ Wakeups\ for\ threads\ blocked\ on\ SpinLockWait\ do\ not\ respect\ priorities.}}
+\DoxyCodeLine{00044\ uint32\_t\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a3bbc8f55826a12fa68770a4f781f2bb0}{SpinLockWait}}(std::atomic<uint32\_t>\ *w,\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}},}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1SpinLockWaitTransition}{SpinLockWaitTransition}}\ trans[],}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{SchedulingMode}}\ scheduling\_mode);}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ If\ possible,\ wake\ some\ thread\ that\ has\ called\ SpinLockDelay(w,\ ...).\ If\ \`{}all`}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ is\ true,\ wake\ all\ such\ threads.\ On\ some\ systems,\ this\ may\ be\ a\ no-\/op;\ on}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ those\ systems,\ threads\ calling\ SpinLockDelay()\ will\ always\ wake\ eventually}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ even\ if\ SpinLockWake()\ is\ never\ called.}}
+\DoxyCodeLine{00052\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a0fa12d4815dc0c9414cadb619e0d6a6b}{SpinLockWake}}(std::atomic<uint32\_t>\ *w,\ \textcolor{keywordtype}{bool}\ all);}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ Wait\ for\ an\ appropriate\ spin\ delay\ on\ iteration\ "{}loop"{}\ of\ a}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ spin\ loop\ on\ location\ *w,\ whose\ previously\ observed\ value\ was\ "{}value"{}.}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ SpinLockDelay()\ may\ do\ nothing,\ may\ yield\ the\ CPU,\ may\ sleep\ a\ clock\ tick,}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ or\ may\ wait\ for\ a\ call\ to\ SpinLockWake(w).}}
+\DoxyCodeLine{00058\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ab6d44a991f77b7b56e088fbdb23a2a8b}{SpinLockDelay}}(std::atomic<uint32\_t>\ *w,\ uint32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}},\ \textcolor{keywordtype}{int}\ loop,}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{base\_internal::SchedulingMode}}\ scheduling\_mode);}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ Helper\ used\ by\ AbslInternalSpinLockDelay.}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ Returns\ a\ suggested\ delay\ in\ nanoseconds\ for\ iteration\ number\ "{}loop"{}.}}
+\DoxyCodeLine{00063\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a556848f727cc1bfd21c3a78e1e9f448f}{SpinLockSuggestedDelayNS}}(\textcolor{keywordtype}{int}\ loop);}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00066\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00067\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ In\ some\ build\ configurations\ we\ pass\ -\/-\/detect-\/odr-\/violations\ to\ the}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ gold\ linker.\ \ This\ causes\ it\ to\ flag\ weak\ symbol\ overrides\ as\ ODR}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ violations.\ \ Because\ ODR\ only\ applies\ to\ C++\ and\ not\ C,}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ -\/-\/detect-\/odr-\/violations\ ignores\ symbols\ not\ mangled\ with\ C++\ names.}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ By\ changing\ our\ extension\ points\ to\ be\ extern\ "{}C"{},\ we\ dodge\ this}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ check.}}
+\DoxyCodeLine{00075\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \{}
+\DoxyCodeLine{00076\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2spinlock__wait_8h_aa90168ffbb15faedc677d56f2e13e688}{AbslInternalSpinLockWake}})(std::atomic<uint32\_t>\ *w,}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ all);}
+\DoxyCodeLine{00078\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2spinlock__wait_8h_a4ed9d87e6731193af50c16ae52438a5f}{AbslInternalSpinLockDelay}})(}
+\DoxyCodeLine{00079\ \ \ \ \ std::atomic<uint32\_t>\ *w,\ uint32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}},\ \textcolor{keywordtype}{int}\ loop,}
+\DoxyCodeLine{00080\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{absl::base\_internal::SchedulingMode}}\ scheduling\_mode);}
+\DoxyCodeLine{00081\ \}}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a0fa12d4815dc0c9414cadb619e0d6a6b}{absl::base\_internal::SpinLockWake}}(std::atomic<uint32\_t>\ *w,}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ all)\ \{}
+\DoxyCodeLine{00085\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2spinlock__wait_8h_aa90168ffbb15faedc677d56f2e13e688}{AbslInternalSpinLockWake}})(w,\ all);}
+\DoxyCodeLine{00086\ \}}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ab6d44a991f77b7b56e088fbdb23a2a8b}{absl::base\_internal::SpinLockDelay}}(}
+\DoxyCodeLine{00089\ \ \ \ \ std::atomic<uint32\_t>\ *w,\ uint32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}},\ \textcolor{keywordtype}{int}\ loop,}
+\DoxyCodeLine{00090\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{absl::base\_internal::SchedulingMode}}\ scheduling\_mode)\ \{}
+\DoxyCodeLine{00091\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2spinlock__wait_8h_a4ed9d87e6731193af50c16ae52438a5f}{AbslInternalSpinLockDelay}})}
+\DoxyCodeLine{00092\ \ \ (w,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}},\ loop,\ scheduling\_mode);}
+\DoxyCodeLine{00093\ \}}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_SPINLOCK\_WAIT\_H\_}}
+
+\end{DoxyCode}

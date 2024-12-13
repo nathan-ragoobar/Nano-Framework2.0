@@ -1,0 +1,288 @@
+\doxysection{log\+\_\+impl.\+h}
+\hypertarget{abseil-cpp_2absl_2log_2internal_2log__impl_8h_source}{}\label{abseil-cpp_2absl_2log_2internal_2log__impl_8h_source}\index{abseil-\/cpp/absl/log/internal/log\_impl.h@{abseil-\/cpp/absl/log/internal/log\_impl.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2log__impl_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2022\ The\ Abseil\ Authors}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_LOG\_INTERNAL\_LOG\_IMPL\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_IMPL\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ "{}absl/log/absl\_vlog\_is\_on.h"{}}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ "{}absl/log/internal/conditions.h"{}}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ "{}absl/log/internal/log\_message.h"{}}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}absl/log/internal/strip.h"{}}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ ABSL\_LOG()}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_IMPL(severity)\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATELESS,\ true)\ \(\backslash\)}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ ABSL\_PLOG()}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_IMPL(severity)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATELESS,\ true)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \(\backslash\)}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ ABSL\_DLOG()}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#ifndef\ NDEBUG}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IMPL(severity)\ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATELESS,\ true)\ \(\backslash\)}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IMPL(severity)\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATELESS,\ false)\ \(\backslash\)}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ The\ \`{}switch`\ ensures\ that\ this\ expansion\ is\ the\ beginning\ of\ a\ statement\ (as}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ opposed\ to\ an\ expression).\ The\ use\ of\ both\ \`{}case\ 0`\ and\ \`{}default`\ is\ to}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ suppress\ a\ compiler\ warning.}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_VLOG\_IMPL(verbose\_level)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\ \ switch\ (const\ int\ absl\_logging\_internal\_verbose\_level\ =\ (verbose\_level))\ \(\backslash\)}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\ \ case\ 0:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\ \ default:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_LOG\_IF\_IMPL(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \_INFO,\ ABSL\_VLOG\_IS\_ON(absl\_logging\_internal\_verbose\_level))\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ .WithVerbosity(absl\_logging\_internal\_verbose\_level)}}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#ifndef\ NDEBUG}}
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DVLOG\_IMPL(verbose\_level)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\ \ switch\ (const\ int\ absl\_logging\_internal\_verbose\_level\ =\ (verbose\_level))\ \(\backslash\)}}
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\ \ case\ 0:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\ \ default:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_IMPL(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \_INFO,\ ABSL\_VLOG\_IS\_ON(absl\_logging\_internal\_verbose\_level))\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ .WithVerbosity(absl\_logging\_internal\_verbose\_level)}}
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DVLOG\_IMPL(verbose\_level)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\ \ switch\ (const\ int\ absl\_logging\_internal\_verbose\_level\ =\ (verbose\_level))\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00067\ \textcolor{preprocessor}{\ \ case\ 0:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\ \ default:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_IMPL(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00070\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \_INFO,\ false\ \&\&\ ABSL\_VLOG\_IS\_ON(absl\_logging\_internal\_verbose\_level))\ \(\backslash\)}}
+\DoxyCodeLine{00071\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ .WithVerbosity(absl\_logging\_internal\_verbose\_level)}}
+\DoxyCodeLine{00072\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00074\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_IF\_IMPL(severity,\ condition)\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATELESS,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00076\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00077\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_IMPL(severity,\ condition)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00078\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATELESS,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00080\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \textcolor{preprocessor}{\#ifndef\ NDEBUG}}
+\DoxyCodeLine{00083\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_IMPL(severity,\ condition)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATELESS,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00086\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_IMPL(severity,\ condition)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATELESS,\ false\ \&\&\ (condition))\ \(\backslash\)}}
+\DoxyCodeLine{00089\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ ABSL\_LOG\_EVERY\_N}}
+\DoxyCodeLine{00093\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_EVERY\_N\_IMPL(severity,\ n)\ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00094\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ true)(EveryN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00095\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ ABSL\_LOG\_FIRST\_N}}
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_FIRST\_N\_IMPL(severity,\ n)\ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00099\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ true)(FirstN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00100\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ ABSL\_LOG\_EVERY\_POW\_2}}
+\DoxyCodeLine{00103\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_EVERY\_POW\_2\_IMPL(severity)\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00104\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ true)(EveryPow2)\ \(\backslash\)}}
+\DoxyCodeLine{00105\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ ABSL\_LOG\_EVERY\_N\_SEC}}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_EVERY\_N\_SEC\_IMPL(severity,\ n\_seconds)\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00109\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ true)(EveryNSec,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_EVERY\_N\_IMPL(severity,\ n)\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00113\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ true)(EveryN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00114\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00115\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_FIRST\_N\_IMPL(severity,\ n)\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00118\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ true)(FirstN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00119\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00120\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_EVERY\_POW\_2\_IMPL(severity)\ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00123\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ true)(EveryPow2)\ \(\backslash\)}}
+\DoxyCodeLine{00124\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00125\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_EVERY\_N\_SEC\_IMPL(severity,\ n\_seconds)\ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00128\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ true)(EveryNSec,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00129\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00130\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \textcolor{preprocessor}{\#ifndef\ NDEBUG}}
+\DoxyCodeLine{00133\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_EVERY\_N\_IMPL(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00134\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(STATEFUL,\ true)\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00135\ \textcolor{preprocessor}{\ \ (EveryN,\ n)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00137\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_FIRST\_N\_IMPL(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00138\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(STATEFUL,\ true)\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00139\ \textcolor{preprocessor}{\ \ (FirstN,\ n)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_EVERY\_POW\_2\_IMPL(severity)\ \(\backslash\)}}
+\DoxyCodeLine{00142\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(STATEFUL,\ true)\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00143\ \textcolor{preprocessor}{\ \ (EveryPow2)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_EVERY\_N\_SEC\_IMPL(severity,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00146\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(STATEFUL,\ true)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00147\ \textcolor{preprocessor}{\ \ (EveryNSec,\ n\_seconds)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ def\ NDEBUG}}
+\DoxyCodeLine{00150\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_EVERY\_N\_IMPL(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00151\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(STATEFUL,\ false)\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00152\ \textcolor{preprocessor}{\ \ (EveryN,\ n)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_FIRST\_N\_IMPL(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00155\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(STATEFUL,\ false)\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00156\ \textcolor{preprocessor}{\ \ (FirstN,\ n)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_EVERY\_POW\_2\_IMPL(severity)\ \(\backslash\)}}
+\DoxyCodeLine{00159\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(STATEFUL,\ false)\ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00160\ \textcolor{preprocessor}{\ \ (EveryPow2)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_EVERY\_N\_SEC\_IMPL(severity,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00163\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(STATEFUL,\ false)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00164\ \textcolor{preprocessor}{\ \ (EveryNSec,\ n\_seconds)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00165\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ def\ NDEBUG}}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_VLOG\_EVERY\_N\_IMPL(verbose\_level,\ n)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00168\ \textcolor{preprocessor}{\ \ switch\ (const\ int\ absl\_logging\_internal\_verbose\_level\ =\ (verbose\_level))\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00169\ \textcolor{preprocessor}{\ \ case\ 0:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00170\ \textcolor{preprocessor}{\ \ default:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00171\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00172\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ STATEFUL,\ ABSL\_VLOG\_IS\_ON(absl\_logging\_internal\_verbose\_level))\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00173\ \textcolor{preprocessor}{\ \ (EveryN,\ n)\ ABSL\_LOGGING\_INTERNAL\_LOG\_INFO.InternalStream().WithVerbosity(\ \(\backslash\)}}
+\DoxyCodeLine{00174\ \textcolor{preprocessor}{\ \ \ \ \ \ absl\_logging\_internal\_verbose\_level)}}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_VLOG\_FIRST\_N\_IMPL(verbose\_level,\ n)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00177\ \textcolor{preprocessor}{\ \ switch\ (const\ int\ absl\_logging\_internal\_verbose\_level\ =\ (verbose\_level))\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00178\ \textcolor{preprocessor}{\ \ case\ 0:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00179\ \textcolor{preprocessor}{\ \ default:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00180\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00181\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ STATEFUL,\ ABSL\_VLOG\_IS\_ON(absl\_logging\_internal\_verbose\_level))\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00182\ \textcolor{preprocessor}{\ \ (FirstN,\ n)\ ABSL\_LOGGING\_INTERNAL\_LOG\_INFO.InternalStream().WithVerbosity(\ \(\backslash\)}}
+\DoxyCodeLine{00183\ \textcolor{preprocessor}{\ \ \ \ \ \ absl\_logging\_internal\_verbose\_level)}}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_VLOG\_EVERY\_POW\_2\_IMPL(verbose\_level)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00186\ \textcolor{preprocessor}{\ \ switch\ (const\ int\ absl\_logging\_internal\_verbose\_level\ =\ (verbose\_level))\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00187\ \textcolor{preprocessor}{\ \ case\ 0:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00188\ \textcolor{preprocessor}{\ \ default:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00189\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00190\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ STATEFUL,\ ABSL\_VLOG\_IS\_ON(absl\_logging\_internal\_verbose\_level))\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00191\ \textcolor{preprocessor}{\ \ (EveryPow2)\ ABSL\_LOGGING\_INTERNAL\_LOG\_INFO.InternalStream().WithVerbosity(\ \(\backslash\)}}
+\DoxyCodeLine{00192\ \textcolor{preprocessor}{\ \ \ \ \ \ absl\_logging\_internal\_verbose\_level)}}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_VLOG\_EVERY\_N\_SEC\_IMPL(verbose\_level,\ n\_seconds)\ \ \(\backslash\)}}
+\DoxyCodeLine{00195\ \textcolor{preprocessor}{\ \ switch\ (const\ int\ absl\_logging\_internal\_verbose\_level\ =\ (verbose\_level))\ \(\backslash\)}}
+\DoxyCodeLine{00196\ \textcolor{preprocessor}{\ \ case\ 0:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00197\ \textcolor{preprocessor}{\ \ default:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00198\ \textcolor{preprocessor}{\ \ \ \ ABSL\_LOG\_INTERNAL\_CONDITION\_INFO(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00199\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ STATEFUL,\ ABSL\_VLOG\_IS\_ON(absl\_logging\_internal\_verbose\_level))\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00200\ \textcolor{preprocessor}{\ \ (EveryNSec,\ n\_seconds)\ ABSL\_LOGGING\_INTERNAL\_LOG\_INFO.InternalStream()\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00201\ \textcolor{preprocessor}{\ \ \ \ \ \ .WithVerbosity(absl\_logging\_internal\_verbose\_level)}}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_IF\_EVERY\_N\_IMPL(severity,\ condition,\ n)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00204\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(EveryN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00205\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_IF\_FIRST\_N\_IMPL(severity,\ condition,\ n)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00208\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(FirstN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00209\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_IF\_EVERY\_POW\_2\_IMPL(severity,\ condition)\ \ \(\backslash\)}}
+\DoxyCodeLine{00212\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(EveryPow2)\ \(\backslash\)}}
+\DoxyCodeLine{00213\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_IF\_EVERY\_N\_SEC\_IMPL(severity,\ condition,\ \ \(\backslash\)}}
+\DoxyCodeLine{00216\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n\_seconds)\ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00217\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(EveryNSec,\ \(\backslash\)}}
+\DoxyCodeLine{00218\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00219\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00221\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_EVERY\_N\_IMPL(severity,\ condition,\ n)\ \ \(\backslash\)}}
+\DoxyCodeLine{00222\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(EveryN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00223\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00224\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_FIRST\_N\_IMPL(severity,\ condition,\ n)\ \ \(\backslash\)}}
+\DoxyCodeLine{00227\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(FirstN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00228\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00229\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_EVERY\_POW\_2\_IMPL(severity,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00232\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(EveryPow2)\ \(\backslash\)}}
+\DoxyCodeLine{00233\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00234\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_EVERY\_N\_SEC\_IMPL(severity,\ condition,\ \(\backslash\)}}
+\DoxyCodeLine{00237\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n\_seconds)\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00238\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(EveryNSec,\ \(\backslash\)}}
+\DoxyCodeLine{00239\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00240\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_LOG\#\#severity.InternalStream()\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00241\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ .WithPerror()}}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \textcolor{preprocessor}{\#ifndef\ NDEBUG}}
+\DoxyCodeLine{00244\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_EVERY\_N\_IMPL(severity,\ condition,\ n)\ \ \(\backslash\)}}
+\DoxyCodeLine{00245\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(EveryN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00246\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00247\ }
+\DoxyCodeLine{00248\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_FIRST\_N\_IMPL(severity,\ condition,\ n)\ \ \(\backslash\)}}
+\DoxyCodeLine{00249\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(FirstN,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00250\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00251\ }
+\DoxyCodeLine{00252\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_EVERY\_POW\_2\_IMPL(severity,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00253\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(EveryPow2)\ \(\backslash\)}}
+\DoxyCodeLine{00254\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_EVERY\_N\_SEC\_IMPL(severity,\ condition,\ \(\backslash\)}}
+\DoxyCodeLine{00257\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n\_seconds)\ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00258\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ condition)(EveryNSec,\ \(\backslash\)}}
+\DoxyCodeLine{00259\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00260\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ def\ NDEBUG}}
+\DoxyCodeLine{00263\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_EVERY\_N\_IMPL(severity,\ condition,\ n)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00264\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ false\ \&\&\ (condition))(\ \(\backslash\)}}
+\DoxyCodeLine{00265\ \textcolor{preprocessor}{\ \ \ \ \ \ EveryN,\ n)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_FIRST\_N\_IMPL(severity,\ condition,\ n)\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00268\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ false\ \&\&\ (condition))(\ \(\backslash\)}}
+\DoxyCodeLine{00269\ \textcolor{preprocessor}{\ \ \ \ \ \ FirstN,\ n)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_EVERY\_POW\_2\_IMPL(severity,\ condition)\ \ \(\backslash\)}}
+\DoxyCodeLine{00272\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ false\ \&\&\ (condition))(\ \(\backslash\)}}
+\DoxyCodeLine{00273\ \textcolor{preprocessor}{\ \ \ \ \ \ EveryPow2)\ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00275\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_EVERY\_N\_SEC\_IMPL(severity,\ condition,\ \ \(\backslash\)}}
+\DoxyCodeLine{00276\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ n\_seconds)\ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00277\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_CONDITION\#\#severity(STATEFUL,\ false\ \&\&\ (condition))(\ \(\backslash\)}}
+\DoxyCodeLine{00278\ \textcolor{preprocessor}{\ \ \ \ \ \ EveryNSec,\ n\_seconds)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00279\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_LOGGING\_INTERNAL\_DLOG\#\#severity.InternalStream()}}
+\DoxyCodeLine{00280\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ def\ NDEBUG}}
+\DoxyCodeLine{00281\ }
+\DoxyCodeLine{00282\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_LOG\_INTERNAL\_LOG\_IMPL\_H\_}}
+
+\end{DoxyCode}

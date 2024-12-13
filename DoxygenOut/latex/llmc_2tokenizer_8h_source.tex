@@ -1,0 +1,117 @@
+\doxysection{tokenizer.\+h}
+\hypertarget{llmc_2tokenizer_8h_source}{}\label{llmc_2tokenizer_8h_source}\index{llmc/tokenizer.h@{llmc/tokenizer.h}}
+\mbox{\hyperlink{llmc_2tokenizer_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{/*}}
+\DoxyCodeLine{00002\ \textcolor{comment}{Defines\ the\ GPT-\/2\ Tokenizer.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{Only\ supports\ decoding,\ i.e.:\ tokens\ (integers)\ -\/>\ strings}}
+\DoxyCodeLine{00004\ \textcolor{comment}{This\ is\ all\ we\ need\ for\ unconditional\ generation.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{If\ we\ wanted\ to\ later\ prompt\ the\ model,\ we'd\ have\ to\ add\ decoding.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{Which\ could\ be\ tricky\ in\ C\ because\ of\ the\ regex\ involved,\ to\ look\ into\ later.}}
+\DoxyCodeLine{00007\ \textcolor{comment}{*/}}
+\DoxyCodeLine{00008\ }
+\DoxyCodeLine{00009\ \textcolor{preprocessor}{\#ifndef\ TOKENIZER\_H}}
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#define\ TOKENIZER\_H}}
+\DoxyCodeLine{00011\ }
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00013\ \textcolor{preprocessor}{\#include\ <ctype.h>}}
+\DoxyCodeLine{00014\ \textcolor{preprocessor}{\#include\ <assert.h>}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ our\ own\ utilities}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ defines\ fopenCheck,\ freadCheck,\ fcloseCheck,\ fseekCheck,\ mallocCheck}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#include\ "{}\mbox{\hyperlink{llmc_2utils_8h}{utils.h}}"{}}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{keyword}{typedef}\ \textcolor{keyword}{struct\ }\{}
+\DoxyCodeLine{00022\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{structTokenizer_a3e2f73c8b58ed9b78b2c0e51ab5ed417}{vocab\_size}};}
+\DoxyCodeLine{00023\ \ \ \ \ \textcolor{keywordtype}{char}\ **\mbox{\hyperlink{structTokenizer_ae6c8f2ec0c0e0dead4ad975951540b67}{token\_table}};}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structTokenizer_a9a75e9498db50dbf291cd1609d28a4e6}{init\_ok}};}
+\DoxyCodeLine{00025\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structTokenizer_a2918e7077bb2f08d25377d3c20da5af5}{eot\_token}};\ \textcolor{comment}{//\ <|endoftext|>\ token\ id}}
+\DoxyCodeLine{00026\ \}\ \mbox{\hyperlink{structTokenizer}{Tokenizer}};}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{llmc_2tokenizer_8h_ac78b869a7e4dff7a7f33aa548c248acf}{safe\_printf}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ *piece)\ \{}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{comment}{//\ the\ tokens\ are\ raw\ bytes,\ and\ we\ we\ only\ want\ to\ print\ the\ printable\ ones}}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{comment}{//\ many\ bytes\ can\ be\ various\ control\ codes,\ backspace,\ etc.}}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{keywordflow}{if}\ (piece\ ==\ NULL)\ \{\ \textcolor{keywordflow}{return};\ \}}
+\DoxyCodeLine{00032\ \ \ \ \ \textcolor{keywordflow}{if}\ (piece[0]\ ==\ \textcolor{charliteral}{'\(\backslash\)0'})\ \{\ \textcolor{keywordflow}{return};\ \}}
+\DoxyCodeLine{00033\ \ \ \ \ \textcolor{comment}{//\ handle\ individual\ byte\ tokens}}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{comment}{//\ every\ token\ is\ asserted\ to\ be\ at\ least\ one\ byte\ so\ doing\ piece[1]\ is\ ok}}
+\DoxyCodeLine{00035\ \ \ \ \ \textcolor{keywordflow}{if}\ (piece[1]\ ==\ \textcolor{charliteral}{'\(\backslash\)0'})\ \{}
+\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ byte\_val\ =\ piece[0];}
+\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (!(isprint(byte\_val)\ ||\ isspace(byte\_val)))\ \{}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};\ \textcolor{comment}{//\ weird\ byte,\ don't\ print\ it}}
+\DoxyCodeLine{00039\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00040\ \ \ \ \ \}}
+\DoxyCodeLine{00041\ \ \ \ \ printf(\textcolor{stringliteral}{"{}\%s"{}},\ piece);}
+\DoxyCodeLine{00042\ \}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{llmc_2tokenizer_8h_ad4e8c42503c3a216d7d7a19495a4ffdc}{tokenizer\_init}}(\mbox{\hyperlink{structTokenizer}{Tokenizer}}\ *tokenizer,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ *filename)\ \{}
+\DoxyCodeLine{00045\ \ \ \ \ FILE\ *file\ =\ fopen(filename,\ \textcolor{stringliteral}{"{}rb"{}});}
+\DoxyCodeLine{00046\ \ \ \ \ \textcolor{keywordflow}{if}\ (file\ ==\ NULL)\ \{}
+\DoxyCodeLine{00047\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ try\ to\ be\ more\ helpful\ as\ we\ just\ added\ this\ feature,\ erase\ later}}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}-\/-\/-\/\(\backslash\)n"{}});}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}WARNING:\ Failed\ to\ open\ the\ tokenizer\ file\ \%s\(\backslash\)n"{}},\ filename);}
+\DoxyCodeLine{00050\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}The\ Tokenizer\ is\ a\ new\ feature\ added\ April\ 14\ 2024.\(\backslash\)n"{}});}
+\DoxyCodeLine{00051\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}Re-\/run\ \`{}python\ train\_gpt2.py`\ to\ write\ it\(\backslash\)n"{}});}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}-\/-\/-\/\(\backslash\)n"{}});}
+\DoxyCodeLine{00053\ \ \ \ \ \ \ \ \ tokenizer-\/>\mbox{\hyperlink{structTokenizer_a9a75e9498db50dbf291cd1609d28a4e6}{init\_ok}}\ =\ 0;}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00055\ \ \ \ \ \}}
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{comment}{//\ read\ in\ the\ header}}
+\DoxyCodeLine{00057\ \ \ \ \ uint32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a85861428b812bc81bc5362c43c423cbd}{header}}[256];}
+\DoxyCodeLine{00058\ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_aeaeb423fa1a9bddb0cf4c1e0120b09ee}{freadCheck}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a85861428b812bc81bc5362c43c423cbd}{header}},\ \textcolor{keyword}{sizeof}(uint32\_t),\ 256,\ file);}
+\DoxyCodeLine{00059\ \ \ \ \ assert(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a85861428b812bc81bc5362c43c423cbd}{header}}[0]\ ==\ 20240328);}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8cc_acd99bb05ca015e7d74448acb1deba7ca}{version}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a85861428b812bc81bc5362c43c423cbd}{header}}[1];}
+\DoxyCodeLine{00061\ \ \ \ \ tokenizer-\/>\mbox{\hyperlink{structTokenizer_a3e2f73c8b58ed9b78b2c0e51ab5ed417}{vocab\_size}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a85861428b812bc81bc5362c43c423cbd}{header}}[2];}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8cc_acd99bb05ca015e7d74448acb1deba7ca}{version}}\ ==\ 1)\ \{}
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ version\ 1\ didn't\ include\ the\ EOT\ token\ id}}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ so\ we\ assume\ it\ is\ 50256,\ the\ EOT\ in\ GPT-\/2}}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ assert(tokenizer-\/>\mbox{\hyperlink{structTokenizer_a3e2f73c8b58ed9b78b2c0e51ab5ed417}{vocab\_size}}\ ==\ 50257);\ \textcolor{comment}{//\ let's\ be\ defensive\ here}}
+\DoxyCodeLine{00066\ \ \ \ \ \ \ \ \ tokenizer-\/>\mbox{\hyperlink{structTokenizer_a2918e7077bb2f08d25377d3c20da5af5}{eot\_token}}\ =\ 50256;}
+\DoxyCodeLine{00067\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8cc_acd99bb05ca015e7d74448acb1deba7ca}{version}}\ ==\ 2)\ \{}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ tokenizer-\/>\mbox{\hyperlink{structTokenizer_a2918e7077bb2f08d25377d3c20da5af5}{eot\_token}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_a85861428b812bc81bc5362c43c423cbd}{header}}[3];}
+\DoxyCodeLine{00069\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ fprintf(stderr,\ \textcolor{stringliteral}{"{}Tokenizer\ model\ file\ \%s\ has\ bad\ version:\ \%d\(\backslash\)n"{}},\ filename,\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2internal_2graphcycles_8cc_acd99bb05ca015e7d74448acb1deba7ca}{version}});}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ exit(EXIT\_FAILURE);}
+\DoxyCodeLine{00072\ \ \ \ \ \}}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{comment}{//\ read\ in\ all\ the\ tokens}}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ length;}
+\DoxyCodeLine{00075\ \ \ \ \ tokenizer-\/>\mbox{\hyperlink{structTokenizer_ae6c8f2ec0c0e0dead4ad975951540b67}{token\_table}}\ =\ (\textcolor{keywordtype}{char}\ **)\mbox{\hyperlink{llmc_2utils_8h_a4be764aabd56cde98ff89be72c51a128}{mallocCheck}}(tokenizer-\/>\mbox{\hyperlink{structTokenizer_a3e2f73c8b58ed9b78b2c0e51ab5ed417}{vocab\_size}}\ *\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}\ *));}
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ tokenizer-\/>\mbox{\hyperlink{structTokenizer_a3e2f73c8b58ed9b78b2c0e51ab5ed417}{vocab\_size}};\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)\ \{}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_aeaeb423fa1a9bddb0cf4c1e0120b09ee}{freadCheck}}(\&length,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}),\ 1,\ file);}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ assert(length\ >\ 0);\ \textcolor{comment}{//\ every\ token\ should\ be\ at\ least\ one\ character}}
+\DoxyCodeLine{00079\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{char}\ *token\_bytes\ =\ (\textcolor{keywordtype}{char}\ *)\mbox{\hyperlink{llmc_2utils_8h_a4be764aabd56cde98ff89be72c51a128}{mallocCheck}}(length\ +\ 1);}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_aeaeb423fa1a9bddb0cf4c1e0120b09ee}{freadCheck}}(token\_bytes,\ \textcolor{keyword}{sizeof}(\textcolor{keywordtype}{char}),\ length,\ file);}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ token\_bytes[length]\ =\ \textcolor{charliteral}{'\(\backslash\)0'};\ \ \textcolor{comment}{//\ Add\ null\ terminator\ for\ printing}}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ tokenizer-\/>\mbox{\hyperlink{structTokenizer_ae6c8f2ec0c0e0dead4ad975951540b67}{token\_table}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ token\_bytes;}
+\DoxyCodeLine{00083\ \ \ \ \ \}}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{comment}{//\ cleanups}}
+\DoxyCodeLine{00085\ \ \ \ \ \mbox{\hyperlink{llmc_2utils_8h_ae094d98ede0500b8f5acba043487a5c1}{fcloseCheck}}(file);}
+\DoxyCodeLine{00086\ \ \ \ \ tokenizer-\/>\mbox{\hyperlink{structTokenizer_a9a75e9498db50dbf291cd1609d28a4e6}{init\_ok}}\ =\ 1;}
+\DoxyCodeLine{00087\ \}}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ *\mbox{\hyperlink{llmc_2tokenizer_8h_ae7ab7be3a4e2e231ef6e250b40f3860a}{tokenizer\_decode}}(\mbox{\hyperlink{structTokenizer}{Tokenizer}}\ *tokenizer,\ uint32\_t\ token\_id)\ \{}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{keywordflow}{if}\ (tokenizer-\/>\mbox{\hyperlink{structTokenizer_a9a75e9498db50dbf291cd1609d28a4e6}{init\_ok}}\ ==\ 0)\ \{}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00092\ \ \ \ \ \}}
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{keywordflow}{if}\ (token\_id\ <\ tokenizer-\/>vocab\_size)\ \{}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ tokenizer-\/>\mbox{\hyperlink{structTokenizer_ae6c8f2ec0c0e0dead4ad975951540b67}{token\_table}}[token\_id];}
+\DoxyCodeLine{00095\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ printf(\textcolor{stringliteral}{"{}invalid\ token\ id\ \%u!\(\backslash\)n"{}},\ token\_id);}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ NULL;}
+\DoxyCodeLine{00098\ \ \ \ \ \}}
+\DoxyCodeLine{00099\ \}}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{llmc_2tokenizer_8h_a1ad5d732e055fb3781fd817049d6cd09}{tokenizer\_free}}(\mbox{\hyperlink{structTokenizer}{Tokenizer}}\ *tokenizer)\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{keywordflow}{if}\ (tokenizer-\/>\mbox{\hyperlink{structTokenizer_a9a75e9498db50dbf291cd1609d28a4e6}{init\_ok}})\ \{}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ tokenizer-\/>\mbox{\hyperlink{structTokenizer_a3e2f73c8b58ed9b78b2c0e51ab5ed417}{vocab\_size}};\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)\ \{}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \ \ \ \ free(tokenizer-\/>\mbox{\hyperlink{structTokenizer_ae6c8f2ec0c0e0dead4ad975951540b67}{token\_table}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]);}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ free(tokenizer-\/>\mbox{\hyperlink{structTokenizer_ae6c8f2ec0c0e0dead4ad975951540b67}{token\_table}});}
+\DoxyCodeLine{00107\ \ \ \ \ \}}
+\DoxyCodeLine{00108\ \}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

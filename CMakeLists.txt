@@ -28,12 +28,18 @@ add_definitions(-DEIGEN_USE_THREADS)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 
+
+
+
+
 # Source files
 
 # Add libraries and executables
 add_subdirectory(nn)
 
 add_subdirectory(optimizer)
+
+add_subdirectory(NanoDash)
 
 add_library(nano nano.hpp)
 target_link_libraries(nano nn)
@@ -48,5 +54,7 @@ target_link_libraries(gpt2 gpt)
 #target_link_libraries(optim nn)
 
 add_executable(train_gpt2_cpu train_gpt2.cpp)
-target_link_libraries(train_gpt2_cpu gpt2 optim profiler)
+target_link_libraries(train_gpt2_cpu gpt2 optim profiler NanoDash)
 target_compile_options(train_gpt2_cpu PRIVATE -Ofast -march=native)
+
+

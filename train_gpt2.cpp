@@ -36,6 +36,14 @@ int sample_mult(float* probabilities, int n, float coin) {
 bool USE_FAST_SOFTMAX = true;
 
 int main(int argc, char** argv) {
+    // Initialize Qt application
+    TrainingVisualizer::initialize(argc, argv);
+    
+    // Create visualizer
+    TrainingVisualizer viz;
+    viz.show();
+
+
   gpt2::GPT2 model;
   model.BuildFromCheckpoint("./gpt2_124M.bin");
 

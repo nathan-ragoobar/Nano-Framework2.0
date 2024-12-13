@@ -1,0 +1,110 @@
+\doxysection{seed\+\_\+material.\+h}
+\hypertarget{abseil-cpp_2absl_2random_2internal_2seed__material_8h_source}{}\label{abseil-cpp_2absl_2random_2internal_2seed__material_8h_source}\index{abseil-\/cpp/absl/random/internal/seed\_material.h@{abseil-\/cpp/absl/random/internal/seed\_material.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2random_2internal_2seed__material_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_RANDOM\_INTERNAL\_SEED\_MATERIAL\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_RANDOM\_INTERNAL\_SEED\_MATERIAL\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <cstdlib>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}absl/random/internal/fast\_uniform\_bits.h"{}}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ "{}absl/types/optional.h"{}}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ "{}absl/types/span.h"{}}}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00030\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00031\ \textcolor{keyword}{namespace\ }random\_internal\ \{}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ Returns\ the\ number\ of\ 32-\/bit\ blocks\ needed\ to\ contain\ the\ given\ number\ of}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ bits.}}
+\DoxyCodeLine{00035\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_ad81c48ab068a4b409b52f29b53995fe8}{SeedBitsToBlocks}}(\textcolor{keywordtype}{size\_t}\ seed\_size)\ \{}
+\DoxyCodeLine{00036\ \ \ \textcolor{keywordflow}{return}\ (seed\_size\ +\ 31)\ /\ 32;}
+\DoxyCodeLine{00037\ \}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ Amount\ of\ entropy\ (measured\ in\ bits)\ used\ to\ instantiate\ a\ Seed\ Sequence,}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ with\ which\ to\ create\ a\ URBG.}}
+\DoxyCodeLine{00041\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_aa12151c26a05df89059533d2ab0d7d9d}{kEntropyBitsNeeded}}\ =\ 256;}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ Amount\ of\ entropy\ (measured\ in\ 32-\/bit\ blocks)\ used\ to\ instantiate\ a\ Seed}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ Sequence,\ with\ which\ to\ create\ a\ URBG.}}
+\DoxyCodeLine{00045\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_af8774e91cce8ec4666e8f729714af656}{kEntropyBlocksNeeded}}\ =}
+\DoxyCodeLine{00046\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1random__internal_ad81c48ab068a4b409b52f29b53995fe8}{random\_internal::SeedBitsToBlocks}}(\mbox{\hyperlink{namespaceabsl_1_1random__internal_aa12151c26a05df89059533d2ab0d7d9d}{kEntropyBitsNeeded}});}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{namespaceabsl_1_1random__internal_af8774e91cce8ec4666e8f729714af656}{kEntropyBlocksNeeded}}\ >\ 0,}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Entropy\ used\ to\ seed\ URBGs\ must\ be\ nonzero."{}});}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ Attempts\ to\ fill\ a\ span\ of\ uint32\_t-\/values\ using\ an\ OS-\/provided\ source\ of}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ true\ entropy\ (eg.\ /dev/urandom)\ into\ an\ array\ of\ uint32\_t\ blocks\ of\ data.\ The}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ resulting\ array\ may\ be\ used\ to\ initialize\ an\ instance\ of\ a\ class\ conforming}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ to\ the\ C++\ Standard\ "{}Seed\ Sequence"{}\ concept\ [rand.req.seedseq].}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ If\ values.data()\ ==\ nullptr,\ the\ behavior\ is\ undefined.}}
+\DoxyCodeLine{00057\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}}
+\DoxyCodeLine{00058\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a112dd3702e9277b5519d2a06ec54d4cd}{ReadSeedMaterialFromOSEntropy}}(\mbox{\hyperlink{classabsl_1_1Span}{absl::Span<uint32\_t>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}});}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ Attempts\ to\ fill\ a\ span\ of\ uint32\_t-\/values\ using\ variates\ generated\ by\ an}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ existing\ instance\ of\ a\ class\ conforming\ to\ the\ C++\ Standard\ "{}Uniform\ Random}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ Bit\ Generator"{}\ concept\ [rand.req.urng].\ The\ resulting\ data\ may\ be\ used\ to}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ initialize\ an\ instance\ of\ a\ class\ conforming\ to\ the\ C++\ Standard}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ "{}Seed\ Sequence"{}\ concept\ [rand.req.seedseq].}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ If\ urbg\ ==\ nullptr\ or\ values.data()\ ==\ nullptr,\ the\ behavior\ is\ undefined.}}
+\DoxyCodeLine{00067\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ URBG>}
+\DoxyCodeLine{00068\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_ad3388ffb9a4b2443a11d3ab2dee6ef4e}{ABSL\_MUST\_USE\_RESULT}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_ae5cf1f696dc8ef95338a5dbe9feabcbc}{ReadSeedMaterialFromURBG}}(}
+\DoxyCodeLine{00069\ \ \ \ \ URBG*\ urbg,\ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<uint32\_t>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}})\ \{}
+\DoxyCodeLine{00070\ \ \ \mbox{\hyperlink{classabsl_1_1random__internal_1_1FastUniformBits}{random\_internal::FastUniformBits<uint32\_t>}}\ distr;}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \ assert(urbg\ !=\ \textcolor{keyword}{nullptr}\ \&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}}.data()\ !=\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00073\ \ \ \textcolor{keywordflow}{if}\ (urbg\ ==\ \textcolor{keyword}{nullptr}\ ||\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}}.data()\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00075\ \ \ \}}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\&\ seed\_value\ :\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_aebb4d6d7e0b8636f5d395185b123a626}{values}})\ \{}
+\DoxyCodeLine{00078\ \ \ \ \ seed\_value\ =\ distr(*urbg);}
+\DoxyCodeLine{00079\ \ \ \}}
+\DoxyCodeLine{00080\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00081\ \}}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ Mixes\ given\ sequence\ of\ values\ with\ into\ given\ sequence\ of\ seed\ material.}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ Time\ complexity\ of\ this\ function\ is\ O(sequence.size()\ *}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ seed\_material.size()).}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ Algorithm\ is\ based\ on\ code\ available\ at}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ https://gist.github.com/imneme/540829265469e673d045}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ by\ Melissa\ O'Neill.}}
+\DoxyCodeLine{00090\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a116a22eae6c9b53f3ce5d57cbe8f00f6}{MixIntoSeedMaterial}}(\mbox{\hyperlink{classabsl_1_1Span}{absl::Span<const\ uint32\_t>}}\ sequence,}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<uint32\_t>}}\ seed\_material);}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ Returns\ salt\ value.}}
+\DoxyCodeLine{00094\ \textcolor{comment}{//}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ Salt\ is\ obtained\ only\ once\ and\ stored\ in\ static\ variable.}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//}}
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ May\ return\ empty\ value\ if\ optaining\ the\ salt\ was\ not\ possible.}}
+\DoxyCodeLine{00098\ \mbox{\hyperlink{classabsl_1_1optional}{absl::optional<uint32\_t>}}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a8dbc464152febcbb3573caf16f2b0e46}{GetSaltMaterial}}();}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \}\ \ \textcolor{comment}{//\ namespace\ random\_internal}}
+\DoxyCodeLine{00101\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00102\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_RANDOM\_INTERNAL\_SEED\_MATERIAL\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,156 @@
+\doxysection{leak\+\_\+check.\+h}
+\hypertarget{abseil-cpp_2absl_2debugging_2leak__check_8h_source}{}\label{abseil-cpp_2absl_2debugging_2leak__check_8h_source}\index{abseil-\/cpp/absl/debugging/leak\_check.h@{abseil-\/cpp/absl/debugging/leak\_check.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2debugging_2leak__check_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ leak\_check.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ file\ contains\ functions\ that\ affect\ leak\ checking\ behavior\ within}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ targets\ built\ with\ the\ LeakSanitizer\ (LSan),\ a\ memory\ leak\ detector\ that\ is}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ integrated\ within\ the\ AddressSanitizer\ (ASan)\ as\ an\ additional\ component,\ or}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ which\ can\ be\ used\ standalone.\ LSan\ and\ ASan\ are\ included\ (or\ can\ be\ provided)}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ as\ additional\ components\ for\ most\ compilers\ such\ as\ Clang,\ gcc\ and\ MSVC.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ Note:\ this\ leak\ checking\ API\ is\ not\ yet\ supported\ in\ MSVC.}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ Leak\ checking\ is\ enabled\ by\ default\ in\ all\ ASan\ builds.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ https://clang.llvm.org/docs/LeakSanitizer.html}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ https://github.com/google/sanitizers/wiki/AddressSanitizerLeakSanitizer}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ GCC\ and\ Clang\ both\ automatically\ enable\ LeakSanitizer\ when\ AddressSanitizer}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ is\ enabled.\ To\ use\ the\ mode,\ simply\ pass\ \`{}-\/fsanitize=address`\ to\ both\ the}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ compiler\ and\ linker.\ An\ example\ Bazel\ command\ could\ be}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ \ \ \$\ bazel\ test\ -\/-\/copt=-\/fsanitize=address\ -\/-\/linkopt=-\/fsanitize=address\ ...}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ GCC\ and\ Clang\ auto\ support\ a\ standalone\ LeakSanitizer\ mode\ (a\ mode\ which\ does}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ not\ also\ use\ AddressSanitizer).\ To\ use\ the\ mode,\ simply\ pass}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ \`{}-\/fsanitize=leak`\ to\ both\ the\ compiler\ and\ linker.\ Since\ GCC\ does\ not}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ currently\ provide\ a\ way\ of\ detecting\ this\ mode\ at\ compile-\/time,\ GCC\ users}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ must\ also\ pass\ -\/DLEAK\_SANITIZER\ to\ the\ compiler.\ An\ example\ Bazel\ command}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ could\ be}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ \$\ bazel\ test\ -\/-\/copt=-\/DLEAK\_SANITIZER\ -\/-\/copt=-\/fsanitize=leak}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \ \ \ \ -\/-\/linkopt=-\/fsanitize=leak\ ...}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#ifndef\ ABSL\_DEBUGGING\_LEAK\_CHECK\_H\_}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#define\ ABSL\_DEBUGGING\_LEAK\_CHECK\_H\_}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00055\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ HaveLeakSanitizer()}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ Returns\ true\ if\ a\ leak-\/checking\ sanitizer\ (either\ ASan\ or\ standalone\ LSan)\ is}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ currently\ built\ into\ this\ target.}}
+\DoxyCodeLine{00061\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a9dac30e07f1bb81add1e153e56816af4}{HaveLeakSanitizer}}();}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ LeakCheckerIsActive()}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ Returns\ true\ if\ a\ leak-\/checking\ sanitizer\ (either\ ASan\ or\ standalone\ LSan)\ is}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ currently\ built\ into\ this\ target\ and\ is\ turned\ on.}}
+\DoxyCodeLine{00067\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a27ac5b4722c1b3fe91f44efa931d7a6a}{LeakCheckerIsActive}}();}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ DoIgnoreLeak()}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ Implements\ \`{}IgnoreLeak()`\ below.\ This\ function\ should\ usually}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ not\ be\ called\ directly;\ calling\ \`{}IgnoreLeak()`\ is\ preferred.}}
+\DoxyCodeLine{00073\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_a6a1f119e80b6a0d7c593686be341c1b1}{DoIgnoreLeak}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}});}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ IgnoreLeak()}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ Instruct\ the\ leak\ sanitizer\ to\ ignore\ leak\ warnings\ on\ the\ object\ referenced}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ by\ the\ passed\ pointer,\ as\ well\ as\ all\ heap\ objects\ transitively\ referenced}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ by\ it.\ The\ passed\ object\ pointer\ can\ point\ to\ either\ the\ beginning\ of\ the}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ object\ or\ anywhere\ within\ it.}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ \ \ static\ T*\ obj\ =\ IgnoreLeak(new\ T(...));}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ If\ the\ passed\ \`{}ptr`\ does\ not\ point\ to\ an\ actively\ allocated\ object\ at\ the}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ time\ \`{}IgnoreLeak()`\ is\ called,\ the\ call\ is\ a\ no-\/op;\ if\ it\ is\ actively}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ allocated,\ leak\ sanitizer\ will\ assume\ this\ object\ is\ referenced\ even\ if}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ there\ is\ no\ actual\ reference\ in\ user\ memory.}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//}}
+\DoxyCodeLine{00091\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00092\ T*\ \mbox{\hyperlink{namespaceabsl_a4795678a5171a5eb8443f1b6ce787497}{IgnoreLeak}}(T*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})\ \{}
+\DoxyCodeLine{00093\ \ \ \mbox{\hyperlink{namespaceabsl_a6a1f119e80b6a0d7c593686be341c1b1}{DoIgnoreLeak}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}});}
+\DoxyCodeLine{00094\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}};}
+\DoxyCodeLine{00095\ \}}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ FindAndReportLeaks()}}
+\DoxyCodeLine{00098\ \textcolor{comment}{//}}
+\DoxyCodeLine{00099\ \textcolor{comment}{//\ If\ any\ leaks\ are\ detected,\ prints\ a\ leak\ report\ and\ returns\ true.\ \ This}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ function\ may\ be\ called\ repeatedly,\ and\ does\ not\ affect\ end-\/of-\/process\ leak}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//\ checking.}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ if\ (FindAndReportLeaks())\ \{}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ \ \ ...\ diagnostic\ already\ printed.\ Exit\ with\ failure\ code.}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ \ \ exit(1)}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ \}}}
+\DoxyCodeLine{00108\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a95217873597cb538d97eb19ab3d0261a}{FindAndReportLeaks}}();}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \textcolor{comment}{//\ LeakCheckDisabler}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//}}
+\DoxyCodeLine{00112\ \textcolor{comment}{//\ This\ helper\ class\ indicates\ that\ any\ heap\ allocations\ done\ in\ the\ code\ block}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ covered\ by\ the\ scoped\ object,\ which\ should\ be\ allocated\ on\ the\ stack,\ will}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ not\ be\ reported\ as\ leaks.\ Leak\ check\ disabling\ will\ occur\ within\ the\ code}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ block\ and\ any\ nested\ function\ calls\ within\ the\ code\ block.}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ \ \ void\ Foo()\ \{}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ \ \ \ \ LeakCheckDisabler\ disabler;}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ \ \ \ \ ...\ code\ that\ allocates\ objects\ whose\ leaks\ should\ be\ ignored\ ...}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ REQUIRES:\ Destructor\ runs\ in\ same\ thread\ as\ constructor}}
+\DoxyCodeLine{00125\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1LeakCheckDisabler}{LeakCheckDisabler}}\ \{}
+\DoxyCodeLine{00126\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00127\ \ \ \mbox{\hyperlink{classabsl_1_1LeakCheckDisabler_aa3f293a1d92b2ba3992d1a654084e71a}{LeakCheckDisabler}}();}
+\DoxyCodeLine{00128\ \ \ \mbox{\hyperlink{classabsl_1_1LeakCheckDisabler_a5e9aea93a0c9dfc13c3d5beac53b0f58}{LeakCheckDisabler}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1LeakCheckDisabler}{LeakCheckDisabler}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00129\ \ \ \mbox{\hyperlink{classabsl_1_1LeakCheckDisabler}{LeakCheckDisabler}}\&\ \mbox{\hyperlink{classabsl_1_1LeakCheckDisabler_ac49cd0defb45136327631719cc29e0ea}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1LeakCheckDisabler}{LeakCheckDisabler}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00130\ \ \ \mbox{\hyperlink{classabsl_1_1LeakCheckDisabler_a35ef309dfb6d4fdb22a047ca23c25041}{\string~LeakCheckDisabler}}();}
+\DoxyCodeLine{00131\ \};}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ RegisterLivePointers()}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ Registers\ \`{}ptr[0,size-\/1]`\ as\ pointers\ to\ memory\ that\ is\ still\ actively\ being}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ referenced\ and\ for\ which\ leak\ checking\ should\ be\ ignored.\ This\ function\ is}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ useful\ if\ you\ store\ pointers\ in\ mapped\ memory,\ for\ memory\ ranges\ that\ we\ know}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ are\ correct\ but\ for\ which\ normal\ analysis\ would\ flag\ as\ leaked\ code.}}
+\DoxyCodeLine{00139\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_aca1c46054a7175ad20d43e34971436a8}{RegisterLivePointers}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ UnRegisterLivePointers()}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ Deregisters\ the\ pointers\ previously\ marked\ as\ active\ in}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ \`{}RegisterLivePointers()`,\ enabling\ leak\ checking\ of\ those\ pointers.}}
+\DoxyCodeLine{00145\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_af6da4654c469c25bdaa00be45e7bd44c}{UnRegisterLivePointers}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00146\ }
+\DoxyCodeLine{00147\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00148\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_DEBUGGING\_LEAK\_CHECK\_H\_}}
+
+\end{DoxyCode}

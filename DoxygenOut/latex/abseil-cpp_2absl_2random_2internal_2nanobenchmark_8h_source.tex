@@ -1,0 +1,178 @@
+\doxysection{nanobenchmark.\+h}
+\hypertarget{abseil-cpp_2absl_2random_2internal_2nanobenchmark_8h_source}{}\label{abseil-cpp_2absl_2random_2internal_2nanobenchmark_8h_source}\index{abseil-\/cpp/absl/random/internal/nanobenchmark.h@{abseil-\/cpp/absl/random/internal/nanobenchmark.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2random_2internal_2nanobenchmark_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ Google\ Inc.\ All\ Rights\ Reserved.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_RANDOM\_INTERNAL\_NANOBENCHMARK\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_RANDOM\_INTERNAL\_NANOBENCHMARK\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Benchmarks\ functions\ of\ a\ single\ integer\ argument\ with\ realistic\ branch}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ prediction\ hit\ rates.\ Uses\ a\ robust\ estimator\ to\ summarize\ the\ measurements.}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ The\ precision\ is\ about\ 0.2\%.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ Examples:\ see\ nanobenchmark\_test.cc.}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ Background:\ Microbenchmarks\ such\ as\ http://github.com/google/benchmark}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ can\ measure\ elapsed\ times\ on\ the\ order\ of\ a\ microsecond.\ Shorter\ functions}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ are\ typically\ measured\ by\ repeating\ them\ thousands\ of\ times\ and\ dividing}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ the\ total\ elapsed\ time\ by\ this\ count.\ Unfortunately,\ repetition\ (especially}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ with\ the\ same\ input\ parameter!)\ influences\ the\ runtime.\ In\ time-\/critical}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ code,\ it\ is\ reasonable\ to\ expect\ warm\ instruction/data\ caches\ and\ TLBs,}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ but\ a\ perfect\ record\ of\ which\ branches\ will\ be\ taken\ is\ unrealistic.}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ Unless\ the\ application\ also\ repeatedly\ invokes\ the\ measured\ function\ with}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ the\ same\ parameter,\ the\ benchmark\ is\ measuring\ something\ very\ different\ -\/}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ a\ best-\/case\ result,\ almost\ as\ if\ the\ parameter\ were\ made\ a\ compile-\/time}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ constant.\ This\ may\ lead\ to\ erroneous\ conclusions\ about\ branch-\/heavy}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ algorithms\ outperforming\ branch-\/free\ alternatives.}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ Our\ approach\ differs\ in\ three\ ways.\ Adding\ fences\ to\ the\ timer\ functions}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ reduces\ variability\ due\ to\ instruction\ reordering,\ improving\ the\ timer}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ resolution\ to\ about\ 40\ CPU\ cycles.\ However,\ shorter\ functions\ must\ still}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ be\ invoked\ repeatedly.\ For\ more\ realistic\ branch\ prediction\ performance,}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ we\ vary\ the\ input\ parameter\ according\ to\ a\ user-\/specified\ distribution.}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ Thus,\ instead\ of\ VaryInputs(Measure(Repeat(func))),\ we\ change\ the}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ loop\ nesting\ to\ Measure(Repeat(VaryInputs(func))).\ We\ also\ estimate\ the}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ central\ tendency\ of\ the\ measurement\ samples\ with\ the\ "{}half\ sample\ mode"{},}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ which\ is\ more\ robust\ to\ outliers\ and\ skewed\ data\ than\ the\ mean\ or\ median.}}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ NOTE:\ for\ compatibility\ with\ multiple\ translation\ units\ compiled\ with}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ distinct\ flags,\ avoid\ \#including\ headers\ that\ define\ functions.}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00056\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00057\ \textcolor{keyword}{namespace\ }random\_internal\_nanobenchmark\ \{}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ Input\ influencing\ the\ function\ being\ measured\ (e.g.\ number\ of\ bytes\ to\ copy).}}
+\DoxyCodeLine{00060\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_aa802ee41cc5a5d4663a6ad5edbdf3c8b}{FuncInput}}\ =\ size\_t;}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ "{}Proof\ of\ work"{}\ returned\ by\ Func\ to\ ensure\ the\ compiler\ does\ not\ elide\ it.}}
+\DoxyCodeLine{00063\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_a8e0160fcc7119b8a0c1a064b49a7af6b}{FuncOutput}}\ =\ uint64\_t;}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ Function\ to\ measure:\ either\ 1)\ a\ captureless\ lambda\ or\ function\ with\ two}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ arguments\ or\ 2)\ a\ lambda\ with\ capture,\ in\ which\ case\ the\ first\ argument}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ is\ reserved\ for\ use\ by\ MeasureClosure.}}
+\DoxyCodeLine{00068\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_ae5601f0ee37624b104ba614cece26d83}{Func}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_a8e0160fcc7119b8a0c1a064b49a7af6b}{FuncOutput}}\ (*)(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*,\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_aa802ee41cc5a5d4663a6ad5edbdf3c8b}{FuncInput}});}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ Internal\ parameters\ that\ determine\ precision/resolution/measuring\ time.}}
+\DoxyCodeLine{00071\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params}{Params}}\ \{}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ For\ measuring\ timer\ overhead/resolution.\ Used\ in\ a\ nested\ loop\ =>}}
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ quadratic\ time,\ acceptable\ because\ we\ know\ timer\ overhead\ is\ "{}low"{}.}}
+\DoxyCodeLine{00074\ \ \ \textcolor{comment}{//\ constexpr\ because\ this\ is\ used\ to\ define\ array\ bounds.}}
+\DoxyCodeLine{00075\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_a0163da566b1e568b237af4db57732dae}{kTimerSamples}}\ =\ 256;}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ Best-\/case\ precision,\ expressed\ as\ a\ divisor\ of\ the\ timer\ resolution.}}
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ Larger\ =>\ more\ calls\ to\ Func\ and\ higher\ precision.}}
+\DoxyCodeLine{00079\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_a7c9784fb9b705d8605aee7d869e2004b}{precision\_divisor}}\ =\ 1024;}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ Ratio\ between\ full\ and\ subset\ input\ distribution\ sizes.\ Cannot\ be\ less}}
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{//\ than\ 2;\ larger\ values\ increase\ measurement\ time\ but\ more\ faithfully}}
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{//\ model\ the\ given\ input\ distribution.}}
+\DoxyCodeLine{00084\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_ac09527ff9e50466dc4f8f011704dd735}{subset\_ratio}}\ =\ 2;}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//\ Together\ with\ the\ estimated\ Func\ duration,\ determines\ how\ many\ times\ to}}
+\DoxyCodeLine{00087\ \ \ \textcolor{comment}{//\ call\ Func\ before\ checking\ the\ sample\ variability.\ Larger\ values\ increase}}
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ measurement\ time,\ memory/cache\ use\ and\ precision.}}
+\DoxyCodeLine{00089\ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_add78b123250e2cddb7b55d1e527ff69c}{seconds\_per\_eval}}\ =\ 4\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca3a3ea00cfc35332cedf6e5e9a32e94da}{E}}-\/3;}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ The\ minimum\ number\ of\ samples\ before\ estimating\ the\ central\ tendency.}}
+\DoxyCodeLine{00092\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_a4c94b836d27445abfffeb39ae4f62f64}{min\_samples\_per\_eval}}\ =\ 7;}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//\ The\ mode\ is\ better\ than\ median\ for\ estimating\ the\ central\ tendency\ of}}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//\ skewed/fat-\/tailed\ distributions,\ but\ it\ requires\ sufficient\ samples}}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//\ relative\ to\ the\ width\ of\ half-\/ranges.}}
+\DoxyCodeLine{00097\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_a68d63d6b241189b60f845cda35df0459}{min\_mode\_samples}}\ =\ 64;}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ Maximum\ permissible\ variability\ (=\ median\ absolute\ deviation\ /\ center).}}
+\DoxyCodeLine{00100\ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_a50342d251b9fc8823d9fdce9fa54b1a9}{target\_rel\_mad}}\ =\ 0.002;}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ Abort\ after\ this\ many\ evals\ without\ reaching\ target\_rel\_mad.\ This}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ prevents\ infinite\ loops.}}
+\DoxyCodeLine{00104\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_abc4747100b02ffbb44f97b421694b909}{max\_evals}}\ =\ 9;}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ Retry\ the\ measure\ loop\ up\ to\ this\ many\ times.}}
+\DoxyCodeLine{00107\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_adf82f4e4a6006c5454428cdaf2a69e6b}{max\_measure\_retries}}\ =\ 2;}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ Whether\ to\ print\ additional\ statistics\ to\ stdout.}}
+\DoxyCodeLine{00110\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params_a349ec5368b27bef809b7aecca83a5e8c}{verbose}}\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00111\ \};}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ Measurement\ result\ for\ each\ unique\ input.}}
+\DoxyCodeLine{00114\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Result}{Result}}\ \{}
+\DoxyCodeLine{00115\ \ \ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_aa802ee41cc5a5d4663a6ad5edbdf3c8b}{FuncInput}}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Result_a2774963c9fc15193ae76b1cdf8133d1f}{input}};}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//\ Robust\ estimate\ (mode\ or\ median)\ of\ duration.}}
+\DoxyCodeLine{00118\ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Result_a6a908a6a68b36d960381debb9fa9331b}{ticks}};}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \ \ \textcolor{comment}{//\ Measure\ of\ variability\ (median\ absolute\ deviation\ relative\ to\ "{}ticks"{}).}}
+\DoxyCodeLine{00121\ \ \ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Result_ab6a2d7e8cb3d0850d7b26e2056735bbb}{variability}};}
+\DoxyCodeLine{00122\ \};}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ Ensures\ the\ thread\ is\ running\ on\ the\ specified\ cpu,\ and\ no\ others.}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ Reduces\ noise\ due\ to\ desynchronized\ socket\ RDTSC\ and\ context\ switches.}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ If\ "{}cpu"{}\ is\ negative,\ pin\ to\ the\ currently\ running\ core.}}
+\DoxyCodeLine{00127\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_a9ec110018d4d6541c8c2e154c5b2cd97}{PinThreadToCPU}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ cpu\ =\ -\/1);}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00129\ \textcolor{comment}{//\ Returns\ tick\ rate,\ useful\ for\ converting\ measurements\ to\ seconds.\ Invariant}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ means\ the\ tick\ counter\ frequency\ is\ independent\ of\ CPU\ throttling\ or\ sleep.}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ This\ call\ may\ be\ expensive,\ callers\ should\ cache\ the\ result.}}
+\DoxyCodeLine{00132\ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_ae5b5e166668ae82082a6d7cf15072050}{InvariantTicksPerSecond}}();}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ Precisely\ measures\ the\ number\ of\ ticks\ elapsed\ when\ calling\ "{}func"{}\ with\ the}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ given\ inputs,\ shuffled\ to\ ensure\ realistic\ branch\ prediction\ hit\ rates.}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ "{}func"{}\ returns\ a\ 'proof\ of\ work'\ to\ ensure\ its\ computations\ are\ not\ elided.}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ "{}arg"{}\ is\ passed\ to\ Func,\ or\ reserved\ for\ internal\ use\ by\ MeasureClosure.}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ "{}inputs"{}\ is\ an\ array\ of\ "{}num\_inputs"{}\ (not\ necessarily\ unique)\ arguments\ to}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//\ \ \ "{}func"{}.\ The\ values\ should\ be\ chosen\ to\ maximize\ coverage\ of\ "{}func"{}.\ This}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ \ \ represents\ a\ distribution,\ so\ a\ value's\ frequency\ should\ reflect\ its}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//\ \ \ probability\ in\ the\ real\ application.\ Order\ does\ not\ matter;\ for\ example,\ a}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ \ \ uniform\ distribution\ over\ [0,\ 4)\ could\ be\ represented\ as\ \{3,0,2,1\}.}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ Returns\ how\ many\ Result\ were\ written\ to\ "{}results"{}:\ one\ per\ unique\ input,\ or}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//\ \ \ zero\ if\ the\ measurement\ failed\ (an\ error\ message\ goes\ to\ stderr).}}
+\DoxyCodeLine{00146\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_a2eb91a6d176deed511b78b83507ffbf9}{Measure}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_ae5601f0ee37624b104ba614cece26d83}{Func}}\ func,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a9ce2ec4812a92cb6ab39f6e81e9173a9}{arg}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_aa802ee41cc5a5d4663a6ad5edbdf3c8b}{FuncInput}}*\ inputs,}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ num\_inputs,\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Result}{Result}}*\ results,}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params}{Params}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}\ =\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params}{Params}}());}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \textcolor{comment}{//\ Calls\ operator()\ of\ the\ given\ closure\ (lambda\ function).}}
+\DoxyCodeLine{00151\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Closure>}
+\DoxyCodeLine{00152\ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_a8e0160fcc7119b8a0c1a064b49a7af6b}{FuncOutput}}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_a2b2ad8a613f2e796e0d1bead2f51fbc2}{CallClosure}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_aa802ee41cc5a5d4663a6ad5edbdf3c8b}{FuncInput}}\ input)\ \{}
+\DoxyCodeLine{00153\ \ \ \textcolor{keywordflow}{return}\ (*\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }Closure*\textcolor{keyword}{>}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}))(input);}
+\DoxyCodeLine{00154\ \}}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ Same\ as\ Measure,\ except\ "{}closure"{}\ is\ typically\ a\ lambda\ function\ of}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//\ FuncInput\ -\/>\ FuncOutput\ with\ a\ capture\ list.}}
+\DoxyCodeLine{00158\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Closure>}
+\DoxyCodeLine{00159\ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_ab0a27479e984c6754d77f1d28b309ba9}{MeasureClosure}}(\textcolor{keyword}{const}\ Closure\&\ closure,}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_aa802ee41cc5a5d4663a6ad5edbdf3c8b}{FuncInput}}*\ inputs,}
+\DoxyCodeLine{00161\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ num\_inputs,\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Result}{Result}}*\ results,}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params}{Params}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}\ =\ \mbox{\hyperlink{structabsl_1_1random__internal__nanobenchmark_1_1Params}{Params}}())\ \{}
+\DoxyCodeLine{00163\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_a2eb91a6d176deed511b78b83507ffbf9}{Measure}}(\textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_ae5601f0ee37624b104ba614cece26d83}{Func}}\textcolor{keyword}{>}(\&\mbox{\hyperlink{namespaceabsl_1_1random__internal__nanobenchmark_a2b2ad8a613f2e796e0d1bead2f51fbc2}{CallClosure<Closure>}}),}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&closure),\ inputs,\ num\_inputs,}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ results,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}});}
+\DoxyCodeLine{00166\ \}}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \}\ \ \textcolor{comment}{//\ namespace\ random\_internal\_nanobenchmark}}
+\DoxyCodeLine{00169\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00170\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00172\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_RANDOM\_INTERNAL\_NANOBENCHMARK\_H\_}}
+
+\end{DoxyCode}

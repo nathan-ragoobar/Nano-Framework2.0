@@ -1,0 +1,284 @@
+\doxysection{memory.\+h}
+\hypertarget{abseil-cpp_2absl_2memory_2memory_8h_source}{}\label{abseil-cpp_2absl_2memory_2memory_8h_source}\index{abseil-\/cpp/absl/memory/memory.h@{abseil-\/cpp/absl/memory/memory.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2memory_2memory_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ memory.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ header\ file\ contains\ utility\ functions\ for\ managing\ the\ creation\ and}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ conversion\ of\ smart\ pointers.\ This\ file\ is\ an\ extension\ to\ the\ C++}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ standard\ <memory>\ library\ header\ file.}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#ifndef\ ABSL\_MEMORY\_MEMORY\_H\_}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#define\ ABSL\_MEMORY\_MEMORY\_H\_}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <new>}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00037\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ Function\ Template:\ WrapUnique()}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ Adopts\ ownership\ from\ a\ raw\ pointer\ and\ transfers\ it\ to\ the\ returned}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \`{}std::unique\_ptr`,\ whose\ type\ is\ deduced.\ Because\ of\ this\ deduction,\ *do\ not*}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ specify\ the\ template\ type\ \`{}T`\ when\ calling\ \`{}WrapUnique`.}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \ \ X*\ NewX(int,\ int);}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ \ \ auto\ x\ =\ WrapUnique(NewX(1,\ 2));\ \ //\ 'x'\ is\ std::unique\_ptr<X>.}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ Do\ not\ call\ WrapUnique\ with\ an\ explicit\ type,\ as\ in}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ \`{}WrapUnique<X>(NewX(1,\ 2))`.\ \ The\ purpose\ of\ WrapUnique\ is\ to\ automatically}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ deduce\ the\ pointer\ type.\ If\ you\ wish\ to\ make\ the\ type\ explicit,\ just\ use}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ \`{}std::unique\_ptr`\ directly.}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ \ \ auto\ x\ =\ std::unique\_ptr<X>(NewX(1,\ 2));}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ -\/\ or\ -\/}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ \ \ std::unique\_ptr<X>\ x(NewX(1,\ 2));}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ While\ \`{}absl::WrapUnique`\ is\ useful\ for\ capturing\ the\ output\ of\ a\ raw}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ pointer\ factory,\ prefer\ 'absl::make\_unique<T>(args...)'\ over}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ 'absl::WrapUnique(new\ T(args...))'.}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ \ \ auto\ x\ =\ WrapUnique(new\ X(1,\ 2));\ \ //\ works,\ but\ nonideal.}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ \ \ auto\ x\ =\ make\_unique<X>(1,\ 2);\ \ \ \ \ //\ safer,\ standard,\ avoids\ raw\ 'new'.}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ Note\ that\ \`{}absl::WrapUnique(p)`\ is\ valid\ only\ if\ \`{}delete\ p`\ is\ a\ valid}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ expression.\ In\ particular,\ \`{}absl::WrapUnique()`\ cannot\ wrap\ pointers\ to}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ arrays,\ functions\ or\ void,\ and\ it\ must\ not\ be\ used\ to\ capture\ pointers}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ obtained\ from\ array-\/new\ expressions\ (even\ though\ that\ would\ compile!).}}
+\DoxyCodeLine{00071\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00072\ std::unique\_ptr<T>\ \mbox{\hyperlink{namespaceabsl_a8686909875bb48d554598b7111ee52e3}{WrapUnique}}(T*\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})\ \{}
+\DoxyCodeLine{00073\ \ \ \textcolor{keyword}{static\_assert}(!std::is\_array<T>::value,\ \textcolor{stringliteral}{"{}array\ types\ are\ unsupported"{}});}
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{static\_assert}(std::is\_object<T>::value,\ \textcolor{stringliteral}{"{}non-\/object\ types\ are\ unsupported"{}});}
+\DoxyCodeLine{00075\ \ \ \textcolor{keywordflow}{return}\ std::unique\_ptr<T>(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}});}
+\DoxyCodeLine{00076\ \}}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ Function\ Template:\ make\_unique<T>()}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ Creates\ a\ \`{}std::unique\_ptr<>`,\ while\ avoiding\ issues\ creating\ temporaries}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ during\ the\ construction\ process.\ \`{}absl::make\_unique<>`\ also\ avoids\ redundant}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ type\ declarations,\ by\ avoiding\ the\ need\ to\ explicitly\ use\ the\ \`{}new`\ operator.}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ https://en.cppreference.com/w/cpp/memory/unique\_ptr/make\_unique}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ For\ more\ background\ on\ why\ \`{}std::unique\_ptr<T>(new\ T(a,b))`\ is\ problematic,}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ see\ Herb\ Sutter's\ explanation\ on}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ (Exception-\/Safe\ Function\ Calls)[https://herbsutter.com/gotw/\_102/].}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ (In\ general,\ reviewers\ should\ treat\ \`{}new\ T(a,b)`\ with\ scrutiny.)}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ Historical\ note:\ Abseil\ once\ provided\ a\ C++11\ compatible\ implementation\ of}}
+\DoxyCodeLine{00094\ \textcolor{comment}{//\ the\ C++14's\ \`{}std::make\_unique`.\ Now\ that\ C++11\ support\ has\ been\ sunsetted,}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ \`{}absl::make\_unique`\ simply\ uses\ the\ STL-\/provided\ implementation.\ New\ code}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//\ should\ use\ \`{}std::make\_unique`.}}
+\DoxyCodeLine{00097\ \textcolor{keyword}{using\ }std::make\_unique;}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ Function\ Template:\ RawPtr()}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//\ Extracts\ the\ raw\ pointer\ from\ a\ pointer-\/like\ value\ \`{}ptr`.\ \`{}absl::RawPtr`\ is}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ useful\ within\ templates\ that\ need\ to\ handle\ a\ complement\ of\ raw\ pointers,}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ \`{}std::nullptr\_t`,\ and\ smart\ pointers.}}
+\DoxyCodeLine{00106\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00107\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceabsl_a6785aff437adb65126c75b3bac5f9c56}{RawPtr}}(T\&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})\ -\/>\ \textcolor{keyword}{decltype}(std::addressof(*\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}}))\ \{}
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//\ ptr\ is\ a\ forwarding\ reference\ to\ support\ Ts\ with\ non-\/const\ operators.}}
+\DoxyCodeLine{00109\ \ \ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}}\ !=\ \textcolor{keyword}{nullptr})\ ?\ std::addressof(*\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})\ :\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00110\ \}}
+\DoxyCodeLine{00111\ \textcolor{keyword}{inline}\ std::nullptr\_t\ \mbox{\hyperlink{namespaceabsl_a6785aff437adb65126c75b3bac5f9c56}{RawPtr}}(std::nullptr\_t)\ \{\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{nullptr};\ \}}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ Function\ Template:\ ShareUniquePtr()}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ Adopts\ a\ \`{}std::unique\_ptr`\ rvalue\ and\ returns\ a\ \`{}std::shared\_ptr`\ of\ deduced}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ type.\ Ownership\ (if\ any)\ of\ the\ held\ value\ is\ transferred\ to\ the\ returned}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ shared\ pointer.}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ \ \ \ \ auto\ up\ =\ absl::make\_unique<int>(10);}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ \ \ \ \ auto\ sp\ =\ absl::ShareUniquePtr(std::move(up));\ \ //\ shared\_ptr<int>}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ \ \ \ \ CHECK\_EQ(*sp,\ 10);}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ \ \ \ \ CHECK(up\ ==\ nullptr);}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ Note\ that\ this\ conversion\ is\ correct\ even\ when\ T\ is\ an\ array\ type,\ and\ more}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//\ generally\ it\ works\ for\ *any*\ deleter\ of\ the\ \`{}unique\_ptr`\ (single-\/object}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ deleter,\ array\ deleter,\ or\ any\ custom\ deleter),\ since\ the\ deleter\ is\ adopted}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ by\ the\ shared\ pointer\ as\ well.\ The\ deleter\ is\ copied\ (unless\ it\ is\ a}}
+\DoxyCodeLine{00132\ \textcolor{comment}{//\ reference).}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ Implements\ the\ resolution\ of\ [LWG\ 2415](http://wg21.link/lwg2415),\ by\ which\ a}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ null\ shared\ pointer\ does\ not\ attempt\ to\ call\ the\ deleter.}}
+\DoxyCodeLine{00136\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ D>}
+\DoxyCodeLine{00137\ std::shared\_ptr<T>\ \mbox{\hyperlink{namespaceabsl_a036d74508ca45c6beca1e2ba8c538c5c}{ShareUniquePtr}}(std::unique\_ptr<T,\ D>\&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})\ \{}
+\DoxyCodeLine{00138\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}}\ ?\ std::shared\_ptr<T>(std::move(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}}))\ :\ std::shared\_ptr<T>();}
+\DoxyCodeLine{00139\ \}}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//\ Function\ Template:\ WeakenPtr()}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//\ Creates\ a\ weak\ pointer\ associated\ with\ a\ given\ shared\ pointer.\ The\ returned}}
+\DoxyCodeLine{00146\ \textcolor{comment}{//\ value\ is\ a\ \`{}std::weak\_ptr`\ of\ deduced\ type.}}
+\DoxyCodeLine{00147\ \textcolor{comment}{//}}
+\DoxyCodeLine{00148\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00149\ \textcolor{comment}{//}}
+\DoxyCodeLine{00150\ \textcolor{comment}{//\ \ \ \ auto\ sp\ =\ std::make\_shared<int>(10);}}
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ \ \ \ auto\ wp\ =\ absl::WeakenPtr(sp);}}
+\DoxyCodeLine{00152\ \textcolor{comment}{//\ \ \ \ CHECK\_EQ(sp.get(),\ wp.lock().get());}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ \ \ \ sp.reset();}}
+\DoxyCodeLine{00154\ \textcolor{comment}{//\ \ \ \ CHECK(wp.lock()\ ==\ nullptr);}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//}}
+\DoxyCodeLine{00156\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00157\ std::weak\_ptr<T>\ \mbox{\hyperlink{namespaceabsl_aa3129ca3447de3c3479a51b1ce5ba97c}{WeakenPtr}}(\textcolor{keyword}{const}\ std::shared\_ptr<T>\&\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})\ \{}
+\DoxyCodeLine{00158\ \ \ \textcolor{keywordflow}{return}\ std::weak\_ptr<T>(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}});}
+\DoxyCodeLine{00159\ \}}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00161\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00162\ \textcolor{comment}{//\ Class\ Template:\ pointer\_traits}}
+\DoxyCodeLine{00163\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00164\ \textcolor{comment}{//}}
+\DoxyCodeLine{00165\ \textcolor{comment}{//\ Historical\ note:\ Abseil\ once\ provided\ an\ implementation\ of}}
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ \`{}std::pointer\_traits`\ for\ platforms\ that\ had\ not\ yet\ provided\ it.\ Those}}
+\DoxyCodeLine{00167\ \textcolor{comment}{//\ platforms\ are\ no\ longer\ supported.\ New\ code\ should\ simply\ use}}
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ \`{}std::pointer\_traits`.}}
+\DoxyCodeLine{00169\ \textcolor{keyword}{using\ }std::pointer\_traits;}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ Class\ Template:\ allocator\_traits}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00174\ \textcolor{comment}{//}}
+\DoxyCodeLine{00175\ \textcolor{comment}{//\ Historical\ note:\ Abseil\ once\ provided\ an\ implementation\ of}}
+\DoxyCodeLine{00176\ \textcolor{comment}{//\ \`{}std::allocator\_traits`\ for\ platforms\ that\ had\ not\ yet\ provided\ it.\ Those}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//\ platforms\ are\ no\ longer\ supported.\ New\ code\ should\ simply\ use}}
+\DoxyCodeLine{00178\ \textcolor{comment}{//\ \`{}std::allocator\_traits`.}}
+\DoxyCodeLine{00179\ \textcolor{keyword}{using\ }std::allocator\_traits;}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \textcolor{keyword}{namespace\ }memory\_internal\ \{}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \textcolor{comment}{//\ ExtractOr<E,\ O,\ D>::type\ evaluates\ to\ E<O>\ if\ possible.\ Otherwise,\ D.}}
+\DoxyCodeLine{00184\ \textcolor{keyword}{template}\ <\textcolor{keyword}{template}\ <\textcolor{keyword}{typename}>\ \textcolor{keyword}{class\ }Extract,\ \textcolor{keyword}{typename}\ Obj,\ \textcolor{keyword}{typename}\ Default,}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}>}
+\DoxyCodeLine{00186\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1memory__internal_1_1ExtractOr}{ExtractOr}}\ \{}
+\DoxyCodeLine{00187\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1memory__internal_1_1ExtractOr_a59fe9b40242697a0e180d709e3d20779}{type}}\ =\ Default;}
+\DoxyCodeLine{00188\ \};}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00190\ \textcolor{keyword}{template}\ <\textcolor{keyword}{template}\ <\textcolor{keyword}{typename}>\ \textcolor{keyword}{class\ }Extract,\ \textcolor{keyword}{typename}\ Obj,\ \textcolor{keyword}{typename}\ Default>}
+\DoxyCodeLine{00191\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1memory__internal_1_1ExtractOr}{ExtractOr}}<Extract,\ Obj,\ Default,\ \mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}<Extract<Obj>>>\ \{}
+\DoxyCodeLine{00192\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1memory__internal_1_1ExtractOr_3_01Extract_00_01Obj_00_01Default_00_01void__t_3_01Extract_3_01Obj_01_4_01_4_01_4_adf417c5b83480e1f203ece5a6720c03e}{type}}\ =\ Extract<Obj>;}
+\DoxyCodeLine{00193\ \};}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \textcolor{keyword}{template}\ <\textcolor{keyword}{template}\ <\textcolor{keyword}{typename}>\ \textcolor{keyword}{class\ }Extract,\ \textcolor{keyword}{typename}\ Obj,\ \textcolor{keyword}{typename}\ Default>}
+\DoxyCodeLine{00196\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1memory__internal_a9b9afffb39996c4a0be98b56e1acc910}{ExtractOrT}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1memory__internal_1_1ExtractOr_a59fe9b40242697a0e180d709e3d20779}{ExtractOr<Extract,\ Obj,\ Default,\ void>::type}};}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \textcolor{comment}{//\ This\ template\ alias\ transforms\ Alloc::is\_nothrow\ into\ a\ metafunction\ with}}
+\DoxyCodeLine{00199\ \textcolor{comment}{//\ Alloc\ as\ a\ parameter\ so\ it\ can\ be\ used\ with\ ExtractOrT<>.}}
+\DoxyCodeLine{00200\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Alloc>}
+\DoxyCodeLine{00201\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1memory__internal_a444a27d6a09e4a3272508eb9dc5719ca}{GetIsNothrow}}\ =\ \textcolor{keyword}{typename}\ Alloc::is\_nothrow;}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \}\ \ \textcolor{comment}{//\ namespace\ memory\_internal}}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00205\ \textcolor{comment}{//\ ABSL\_ALLOCATOR\_NOTHROW\ is\ a\ build\ time\ configuration\ macro\ for\ user\ to}}
+\DoxyCodeLine{00206\ \textcolor{comment}{//\ specify\ whether\ the\ default\ allocation\ function\ can\ throw\ or\ never\ throws.}}
+\DoxyCodeLine{00207\ \textcolor{comment}{//\ If\ the\ allocation\ function\ never\ throws,\ user\ should\ define\ it\ to\ a\ non-\/zero}}
+\DoxyCodeLine{00208\ \textcolor{comment}{//\ value\ (e.g.\ via\ \`{}-\/DABSL\_ALLOCATOR\_NOTHROW`).}}
+\DoxyCodeLine{00209\ \textcolor{comment}{//\ If\ the\ allocation\ function\ can\ throw,\ user\ should\ leave\ it\ undefined\ or}}
+\DoxyCodeLine{00210\ \textcolor{comment}{//\ define\ it\ to\ zero.}}
+\DoxyCodeLine{00211\ \textcolor{comment}{//}}
+\DoxyCodeLine{00212\ \textcolor{comment}{//\ allocator\_is\_nothrow<Alloc>\ is\ a\ traits\ class\ that\ derives\ from}}
+\DoxyCodeLine{00213\ \textcolor{comment}{//\ Alloc::is\_nothrow\ if\ present,\ otherwise\ std::false\_type.\ It's\ specialized}}
+\DoxyCodeLine{00214\ \textcolor{comment}{//\ for\ Alloc\ =\ std::allocator<T>\ for\ any\ type\ T\ according\ to\ the\ state\ of}}
+\DoxyCodeLine{00215\ \textcolor{comment}{//\ ABSL\_ALLOCATOR\_NOTHROW.}}
+\DoxyCodeLine{00216\ \textcolor{comment}{//}}
+\DoxyCodeLine{00217\ \textcolor{comment}{//\ default\_allocator\_is\_nothrow\ is\ a\ class\ that\ derives\ from\ std::true\_type}}
+\DoxyCodeLine{00218\ \textcolor{comment}{//\ when\ the\ default\ allocator\ (global\ operator\ new)\ never\ throws,\ and}}
+\DoxyCodeLine{00219\ \textcolor{comment}{//\ std::false\_type\ when\ it\ can\ throw.\ It\ is\ a\ convenience\ shorthand\ for\ writing}}
+\DoxyCodeLine{00220\ \textcolor{comment}{//\ allocator\_is\_nothrow<std::allocator<T>>\ (T\ can\ be\ any\ type).}}
+\DoxyCodeLine{00221\ \textcolor{comment}{//\ NOTE:\ allocator\_is\_nothrow<std::allocator<T>>\ is\ guaranteed\ to\ derive\ from}}
+\DoxyCodeLine{00222\ \textcolor{comment}{//\ the\ same\ type\ for\ all\ T,\ because\ users\ should\ specialize\ neither}}
+\DoxyCodeLine{00223\ \textcolor{comment}{//\ allocator\_is\_nothrow\ nor\ std::allocator.}}
+\DoxyCodeLine{00224\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Alloc>}
+\DoxyCodeLine{00225\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1allocator__is__nothrow}{allocator\_is\_nothrow}}}
+\DoxyCodeLine{00226\ \ \ \ \ :\ \mbox{\hyperlink{namespaceabsl_1_1memory__internal_a9b9afffb39996c4a0be98b56e1acc910}{memory\_internal::ExtractOrT}}<memory\_internal::GetIsNothrow,\ Alloc,}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::false\_type>\ \{\};}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \textcolor{preprocessor}{\#if\ defined(ABSL\_ALLOCATOR\_NOTHROW)\ \&\&\ ABSL\_ALLOCATOR\_NOTHROW}}
+\DoxyCodeLine{00230\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00231\ \textcolor{keyword}{struct\ }allocator\_is\_nothrow<\mbox{\hyperlink{namespacestd}{std}}::allocator<T>>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00232\ \textcolor{keyword}{struct\ }default\_allocator\_is\_nothrow\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00233\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00234\ \textcolor{keyword}{struct\ }default\_allocator\_is\_nothrow\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00235\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00236\ }
+\DoxyCodeLine{00237\ \textcolor{keyword}{namespace\ }memory\_internal\ \{}
+\DoxyCodeLine{00238\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Allocator,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_ae1cf8dea34fd9b939b3dd5a837a9e6d9}{Iterator}},\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00239\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1memory__internal_a6af19f6c2c7f3b8a74f8db8118a34ac8}{ConstructRange}}(Allocator\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ Iterator\ first,\ Iterator\ last,}
+\DoxyCodeLine{00240\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Args\&...\ args)\ \{}
+\DoxyCodeLine{00241\ \ \ \textcolor{keywordflow}{for}\ (Iterator\ cur\ =\ first;\ cur\ !=\ last;\ ++cur)\ \{}
+\DoxyCodeLine{00242\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a1bceb3976b8fb4255b537303007faf5f}{ABSL\_INTERNAL\_TRY}}\ \{}
+\DoxyCodeLine{00243\ \ \ \ \ \ \ std::allocator\_traits<Allocator>::construct(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ std::addressof(*cur),}
+\DoxyCodeLine{00244\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ args...);}
+\DoxyCodeLine{00245\ \ \ \ \ \}}
+\DoxyCodeLine{00246\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a93cc06084e25e050f466657e61729cdf}{ABSL\_INTERNAL\_CATCH\_ANY}}\ \{}
+\DoxyCodeLine{00247\ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (cur\ !=\ first)\ \{}
+\DoxyCodeLine{00248\ \ \ \ \ \ \ \ \ -\/-\/cur;}
+\DoxyCodeLine{00249\ \ \ \ \ \ \ \ \ std::allocator\_traits<Allocator>::destroy(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ std::addressof(*cur));}
+\DoxyCodeLine{00250\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00251\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a6b0c9c2591294693a57febd708062538}{ABSL\_INTERNAL\_RETHROW}};}
+\DoxyCodeLine{00252\ \ \ \ \ \}}
+\DoxyCodeLine{00253\ \ \ \}}
+\DoxyCodeLine{00254\ \}}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Allocator,\ \textcolor{keyword}{typename}\ Iterator,\ \textcolor{keyword}{typename}\ InputIterator>}
+\DoxyCodeLine{00257\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1memory__internal_a6f166185c5376177f3650f5cdac74059}{CopyRange}}(Allocator\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ Iterator\ destination,\ InputIterator\ first,}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ InputIterator\ last)\ \{}
+\DoxyCodeLine{00259\ \ \ \textcolor{keywordflow}{for}\ (Iterator\ cur\ =\ destination;\ first\ !=\ last;}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}\textcolor{keyword}{>}(++cur),\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}\textcolor{keyword}{>}(++first))\ \{}
+\DoxyCodeLine{00261\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a1bceb3976b8fb4255b537303007faf5f}{ABSL\_INTERNAL\_TRY}}\ \{}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ std::allocator\_traits<Allocator>::construct(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ std::addressof(*cur),}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *first);}
+\DoxyCodeLine{00264\ \ \ \ \ \}}
+\DoxyCodeLine{00265\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a93cc06084e25e050f466657e61729cdf}{ABSL\_INTERNAL\_CATCH\_ANY}}\ \{}
+\DoxyCodeLine{00266\ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (cur\ !=\ destination)\ \{}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \ \ -\/-\/cur;}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \ \ std::allocator\_traits<Allocator>::destroy(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ std::addressof(*cur));}
+\DoxyCodeLine{00269\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00270\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a6b0c9c2591294693a57febd708062538}{ABSL\_INTERNAL\_RETHROW}};}
+\DoxyCodeLine{00271\ \ \ \ \ \}}
+\DoxyCodeLine{00272\ \ \ \}}
+\DoxyCodeLine{00273\ \}}
+\DoxyCodeLine{00274\ \}\ \ \textcolor{comment}{//\ namespace\ memory\_internal}}
+\DoxyCodeLine{00275\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00276\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00277\ }
+\DoxyCodeLine{00278\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_MEMORY\_MEMORY\_H\_}}
+
+\end{DoxyCode}

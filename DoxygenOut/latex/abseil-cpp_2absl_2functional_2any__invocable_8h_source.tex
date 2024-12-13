@@ -1,0 +1,340 @@
+\doxysection{any\+\_\+invocable.\+h}
+\hypertarget{abseil-cpp_2absl_2functional_2any__invocable_8h_source}{}\label{abseil-cpp_2absl_2functional_2any__invocable_8h_source}\index{abseil-\/cpp/absl/functional/any\_invocable.h@{abseil-\/cpp/absl/functional/any\_invocable.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2functional_2any__invocable_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2022\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ any\_invocable.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ header\ file\ defines\ an\ \`{}absl::AnyInvocable`\ type\ that\ assumes\ ownership}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ and\ wraps\ an\ object\ of\ an\ invocable\ type.\ (Invocable\ types\ adhere\ to\ the}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ concept\ specified\ in\ https://en.cppreference.com/w/cpp/concepts/invocable.)}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ In\ general,\ prefer\ \`{}absl::AnyInvocable`\ when\ you\ need\ a\ type-\/erased}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ function\ parameter\ that\ needs\ to\ take\ ownership\ of\ the\ type.}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ NOTE:\ \`{}absl::AnyInvocable`\ is\ similar\ to\ the\ C++23\ \`{}std::move\_only\_function`}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ abstraction,\ but\ has\ a\ slightly\ different\ API\ and\ is\ not\ designed\ to\ be\ a}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ drop-\/in\ replacement\ or\ C++11-\/compatible\ backfill\ of\ that\ type.}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ Credits\ to\ Matt\ Calabrese\ (https://github.com/mattcalabrese)\ for\ the\ original}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ implementation.}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#ifndef\ ABSL\_FUNCTIONAL\_ANY\_INVOCABLE\_H\_}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#define\ ABSL\_FUNCTIONAL\_ANY\_INVOCABLE\_H\_}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ <initializer\_list>}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ "{}absl/functional/internal/any\_invocable.h"{}}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#include\ "{}absl/utility/utility.h"{}}}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00048\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ absl::AnyInvocable}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ \`{}absl::AnyInvocable`\ is\ a\ functional\ wrapper\ type,\ like\ \`{}std::function`,\ that}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ assumes\ ownership\ of\ an\ invocable\ object.\ Unlike\ \`{}std::function`,\ an}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ \`{}absl::AnyInvocable`\ is\ more\ type-\/safe\ and\ provides\ the\ following\ additional}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ benefits:}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ *\ Properly\ adheres\ to\ const\ correctness\ of\ the\ underlying\ type}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ *\ Is\ move-\/only\ so\ avoids\ concurrency\ problems\ with\ copied\ invocables\ and}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ \ \ unnecessary\ copies\ in\ general.}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ *\ Supports\ reference\ qualifiers\ allowing\ it\ to\ perform\ unique\ actions\ (noted}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ \ \ below).}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ \`{}absl::AnyInvocable`\ is\ a\ template,\ and\ an\ \`{}absl::AnyInvocable`\ instantiation}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ may\ wrap\ any\ invocable\ object\ with\ a\ compatible\ function\ signature,\ e.g.}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ having\ arguments\ and\ return\ types\ convertible\ to\ types\ matching\ the}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ \`{}absl::AnyInvocable`\ signature,\ and\ also\ matching\ any\ stated\ reference}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ qualifiers,\ as\ long\ as\ that\ type\ is\ moveable.\ It\ therefore\ provides\ broad}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ type\ erasure\ for\ functional\ objects.}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ An\ \`{}absl::AnyInvocable`\ is\ typically\ used\ as\ a\ type-\/erased\ function\ parameter}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ for\ accepting\ various\ functional\ objects:}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ //\ Define\ a\ function\ taking\ an\ AnyInvocable\ parameter.}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ void\ my\_func(absl::AnyInvocable<int()>\ f)\ \{}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ \ \ ...}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ \};}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ //\ That\ function\ can\ accept\ any\ invocable\ type:}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ //\ Accept\ a\ function\ reference.\ We\ don't\ need\ to\ move\ a\ reference.}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ int\ func1()\ \{\ return\ 0;\ \};}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ my\_func(func1);}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ //\ Accept\ a\ lambda.\ We\ use\ std::move\ here\ because\ otherwise\ my\_func\ would}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ //\ copy\ the\ lambda.}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ auto\ lambda\ =\ []()\ \{\ return\ 0;\ \};}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ my\_func(std::move(lambda));}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ //\ Accept\ a\ function\ pointer.\ We\ don't\ need\ to\ move\ a\ function\ pointer.}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ func2\ =\ \&func1;}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ my\_func(func2);}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ //\ Accept\ an\ std::function\ by\ moving\ it.\ Note\ that\ the\ lambda\ is\ copyable}}
+\DoxyCodeLine{00094\ \textcolor{comment}{//\ //\ (satisfying\ std::function\ requirements)\ and\ moveable\ (satisfying}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ //\ absl::AnyInvocable\ requirements).}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//\ std::function<int()>\ func6\ =\ []()\ \{\ return\ 0;\ \};}}
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ my\_func(std::move(func6));}}
+\DoxyCodeLine{00098\ \textcolor{comment}{//}}
+\DoxyCodeLine{00099\ \textcolor{comment}{//\ \`{}AnyInvocable`\ also\ properly\ respects\ \`{}const`\ qualifiers,\ reference}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ qualifiers,\ and\ the\ \`{}noexcept`\ specification\ (only\ in\ C++\ 17\ and\ beyond)\ as}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//\ part\ of\ the\ user-\/specified\ function\ type\ (e.g.}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ \`{}AnyInvocable<void()\ const\ \&\&\ noexcept>`).\ These\ qualifiers\ will\ be\ applied}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//\ to\ the\ \`{}AnyInvocable`\ object's\ \`{}operator()`,\ and\ the\ underlying\ invocable}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ must\ be\ compatible\ with\ those\ qualifiers.}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ Comparison\ of\ const\ and\ non-\/const\ function\ types:}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//}}
+\DoxyCodeLine{00108\ \textcolor{comment}{//\ \ \ //\ Store\ a\ closure\ inside\ of\ \`{}func`\ with\ the\ function\ type\ \`{}int()`.}}
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ \ \ //\ Note\ that\ we\ have\ made\ \`{}func`\ itself\ \`{}const`.}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//\ \ \ const\ AnyInvocable<int()>\ func\ =\ []()\{\ return\ 0;\ \};}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//}}
+\DoxyCodeLine{00112\ \textcolor{comment}{//\ \ \ func();\ \ //\ Compile-\/error:\ the\ passed\ type\ \`{}int()`\ isn't\ \`{}const`.}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ \ \ //\ Store\ a\ closure\ inside\ of\ \`{}const\_func`\ with\ the\ function\ type}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ \ \ //\ \`{}int()\ const`.}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ \ \ //\ Note\ that\ we\ have\ also\ made\ \`{}const\_func`\ itself\ \`{}const`.}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ \ \ const\ AnyInvocable<int()\ const>\ const\_func\ =\ []()\{\ return\ 0;\ \};}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ \ \ const\_func();\ \ //\ Fine:\ \`{}int()\ const`\ is\ \`{}const`.}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ In\ the\ above\ example,\ the\ call\ \`{}func()`\ would\ have\ compiled\ if}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ \`{}std::function`\ were\ used\ even\ though\ the\ types\ are\ not\ const\ compatible.}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ This\ is\ a\ bug,\ and\ using\ \`{}absl::AnyInvocable`\ properly\ detects\ that\ bug.}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ In\ addition\ to\ affecting\ the\ signature\ of\ \`{}operator()`,\ the\ \`{}const`\ and}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ reference\ qualifiers\ of\ the\ function\ type\ also\ appropriately\ constrain\ which}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ kinds\ of\ invocable\ objects\ you\ are\ allowed\ to\ place\ into\ the\ \`{}AnyInvocable`}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ instance.\ If\ you\ specify\ a\ function\ type\ that\ is\ const-\/qualified,\ then}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//\ anything\ that\ you\ attempt\ to\ put\ into\ the\ \`{}AnyInvocable`\ must\ be\ callable\ on}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ a\ \`{}const`\ instance\ of\ that\ type.}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//}}
+\DoxyCodeLine{00132\ \textcolor{comment}{//\ Constraint\ example:}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ \ \ //\ Fine\ because\ the\ lambda\ is\ callable\ when\ \`{}const`.}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ \ \ AnyInvocable<int()\ const>\ func\ =\ [=]()\{\ return\ 0;\ \};}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ \ \ //\ This\ is\ a\ compile-\/error\ because\ the\ lambda\ isn't\ callable\ when\ \`{}const`.}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ \ \ AnyInvocable<int()\ const>\ error\ =\ [=]()\ mutable\ \{\ return\ 0;\ \};}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//\ An\ \`{}\&\&`\ qualifier\ can\ be\ used\ to\ express\ that\ an\ \`{}absl::AnyInvocable`}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ instance\ should\ be\ invoked\ at\ most\ once:}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ \ \ //\ Invokes\ \`{}continuation`\ with\ the\ logical\ result\ of\ an\ operation\ when}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ \ \ //\ that\ operation\ completes\ (common\ in\ asynchronous\ code).}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//\ \ \ void\ CallOnCompletion(AnyInvocable<void(int)\&\&>\ continuation)\ \{}}
+\DoxyCodeLine{00146\ \textcolor{comment}{//\ \ \ \ \ int\ result\_of\_foo\ =\ foo();}}
+\DoxyCodeLine{00147\ \textcolor{comment}{//}}
+\DoxyCodeLine{00148\ \textcolor{comment}{//\ \ \ \ \ //\ \`{}std::move`\ is\ required\ because\ the\ \`{}operator()`\ of\ \`{}continuation`\ is}}
+\DoxyCodeLine{00149\ \textcolor{comment}{//\ \ \ \ \ //\ rvalue-\/reference\ qualified.}}
+\DoxyCodeLine{00150\ \textcolor{comment}{//\ \ \ \ \ std::move(continuation)(result\_of\_foo);}}
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00152\ \textcolor{comment}{//}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ Attempting\ to\ call\ \`{}absl::AnyInvocable`\ multiple\ times\ in\ such\ a\ case}}
+\DoxyCodeLine{00154\ \textcolor{comment}{//\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ Invoking\ an\ empty\ \`{}absl::AnyInvocable`\ results\ in\ undefined\ behavior:}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//}}
+\DoxyCodeLine{00158\ \textcolor{comment}{//\ \ \ //\ Create\ an\ empty\ instance\ using\ the\ default\ constructor.}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ \ \ AnyInvocable<void()>\ empty;}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ \ \ empty();\ \ //\ WARNING:\ Undefined\ behavior!}}
+\DoxyCodeLine{00161\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Sig>}
+\DoxyCodeLine{00162\ \textcolor{keyword}{class\ }AnyInvocable\ :\ \textcolor{keyword}{private}\ internal\_any\_invocable::Impl<Sig>\ \{}
+\DoxyCodeLine{00163\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00164\ \ \ \textcolor{keyword}{static\_assert}(}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ std::is\_function<Sig>::value,}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \textcolor{stringliteral}{"{}The\ template\ argument\ of\ AnyInvocable\ must\ be\ a\ function\ type."{}});}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \ \ \textcolor{keyword}{using\ }Impl\ =\ internal\_any\_invocable::Impl<Sig>;}
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00170\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00171\ \ \ \textcolor{comment}{//\ The\ return\ type\ of\ Sig}}
+\DoxyCodeLine{00172\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1AnyInvocable_aa4c232ce615ab7207905c326ddd63416}{result\_type}}\ =\ \textcolor{keyword}{typename}\ Impl::result\_type;}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \ \ \textcolor{comment}{//\ Constructors}}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ \ \ \textcolor{comment}{//\ Constructs\ the\ \`{}AnyInvocable`\ in\ an\ empty\ state.}}
+\DoxyCodeLine{00177\ \ \ \textcolor{comment}{//\ Invoking\ it\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00178\ \ \ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a4a2b9b8f3f1f90499e5463fef1b82b3f}{AnyInvocable}}()\ noexcept\ =\ default;}
+\DoxyCodeLine{00179\ \ \ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}(\mbox{\hyperlink{namespacestd}{std}}::nullptr\_t)\ noexcept\ \{\}\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \ \ \textcolor{comment}{//\ Constructs\ the\ \`{}AnyInvocable`\ from\ an\ existing\ \`{}AnyInvocable`\ by\ a\ move.}}
+\DoxyCodeLine{00182\ \ \ \textcolor{comment}{//\ Note\ that\ \`{}f`\ is\ not\ guaranteed\ to\ be\ empty\ after\ move-\/construction,}}
+\DoxyCodeLine{00183\ \ \ \textcolor{comment}{//\ although\ it\ may\ be.}}
+\DoxyCodeLine{00184\ \ \ \mbox{\hyperlink{classabsl_1_1AnyInvocable_aeb8f48fa40f953b235d9837400e92f0a}{AnyInvocable}}(\mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\&\ \textcolor{comment}{/*f*/})\ noexcept\ =\ default;}
+\DoxyCodeLine{00185\ }
+\DoxyCodeLine{00186\ \ \ \textcolor{comment}{//\ Constructs\ an\ \`{}AnyInvocable`\ from\ an\ invocable\ object.}}
+\DoxyCodeLine{00187\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00188\ \ \ \textcolor{comment}{//\ Upon\ construction,\ \`{}*this`\ is\ only\ empty\ if\ \`{}f`\ is\ a\ function\ pointer\ or}}
+\DoxyCodeLine{00189\ \ \ \textcolor{comment}{//\ member\ pointer\ type\ and\ is\ null,\ or\ if\ \`{}f`\ is\ an\ \`{}AnyInvocable`\ that\ is}}
+\DoxyCodeLine{00190\ \ \ \textcolor{comment}{//\ empty.}}
+\DoxyCodeLine{00191\ \ \ template\ <class\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ typename\ =\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{enable\_if\_t}}<}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ internal\_any\_invocable::CanConvert<Sig,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}}>::\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}>>}
+\DoxyCodeLine{00193\ \ \ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}}\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1internal__any__invocable_1_1Impl}{Impl}}(internal\_any\_invocable::ConversionConstruct(),}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::forward<\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}}>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}))\ \{\}}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \ \ \textcolor{comment}{//\ Constructs\ an\ \`{}AnyInvocable`\ that\ holds\ an\ invocable\ object\ of\ type\ \`{}T`,}}
+\DoxyCodeLine{00198\ \ \ \textcolor{comment}{//\ which\ is\ constructed\ in-\/place\ from\ the\ given\ arguments.}}
+\DoxyCodeLine{00199\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00200\ \ \ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00201\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00202\ \ \ \textcolor{comment}{//\ \ \ AnyInvocable<int(int)>\ func(}}
+\DoxyCodeLine{00203\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ absl::in\_place\_type<PossiblyImmovableType>,\ arg1,\ arg2);}}
+\DoxyCodeLine{00204\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00205\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }T,\ \textcolor{keyword}{class}...\ Args,}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<}
+\DoxyCodeLine{00207\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1internal__any__invocable_a1bfbcf3b09469593647340a74b2892fc}{internal\_any\_invocable::CanEmplace}}<Sig,\ T,\ Args...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}>>}
+\DoxyCodeLine{00208\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a925313baad551e0d694e94336db60095}{AnyInvocable}}(\mbox{\hyperlink{namespaceabsl_a4364f1b671955c529d6026ad6808bec6}{absl::in\_place\_type\_t<T>}},\ Args\&\&...\ args)}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1internal__any__invocable_1_1Impl}{Impl}}(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_abf350a2f2acae05418152a3cee47bb66}{in\_place\_type}}<\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_af47101d71bf50fda2b5cb36d43a38f2a}{decay\_t}}<T>>,}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::forward<Args>(args)...)\ \{}
+\DoxyCodeLine{00211\ \ \ \ \ \textcolor{keyword}{static\_assert}(std::is\_same<T,\ absl::decay\_t<T>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00212\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}The\ explicit\ template\ argument\ of\ in\_place\_type\ is\ required\ "{}}}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}to\ be\ an\ unqualified\ object\ type."{}});}
+\DoxyCodeLine{00214\ \ \ \}}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \ \ \textcolor{comment}{//\ Overload\ of\ the\ above\ constructor\ to\ support\ list-\/initialization.}}
+\DoxyCodeLine{00217\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }T,\ \textcolor{keyword}{class\ }U,\ \textcolor{keyword}{class}...\ Args,}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<\mbox{\hyperlink{namespaceabsl_1_1internal__any__invocable_a1bfbcf3b09469593647340a74b2892fc}{internal\_any\_invocable::CanEmplace}}<}
+\DoxyCodeLine{00219\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Sig,\ T,\ std::initializer\_list<U>\&,\ Args...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}>>}
+\DoxyCodeLine{00220\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a4ff707f6e469635a130b321186de802f}{AnyInvocable}}(\mbox{\hyperlink{namespaceabsl_a4364f1b671955c529d6026ad6808bec6}{absl::in\_place\_type\_t<T>}},}
+\DoxyCodeLine{00221\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::initializer\_list<U>\ ilist,\ Args\&\&...\ args)}
+\DoxyCodeLine{00222\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1internal__any__invocable_1_1Impl}{Impl}}(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_abf350a2f2acae05418152a3cee47bb66}{in\_place\_type}}<\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_af47101d71bf50fda2b5cb36d43a38f2a}{decay\_t}}<T>>,\ ilist,}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::forward<Args>(args)...)\ \{}
+\DoxyCodeLine{00224\ \ \ \ \ \textcolor{keyword}{static\_assert}(std::is\_same<T,\ absl::decay\_t<T>>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}The\ explicit\ template\ argument\ of\ in\_place\_type\ is\ required\ "{}}}
+\DoxyCodeLine{00226\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}to\ be\ an\ unqualified\ object\ type."{}});}
+\DoxyCodeLine{00227\ \ \ \}}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \ \ \textcolor{comment}{//\ Assignment\ Operators}}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \ \ \textcolor{comment}{//\ Assigns\ an\ \`{}AnyInvocable`\ through\ move-\/assignment.}}
+\DoxyCodeLine{00232\ \ \ \textcolor{comment}{//\ Note\ that\ \`{}f`\ is\ not\ guaranteed\ to\ be\ empty\ after\ move-\/assignment}}
+\DoxyCodeLine{00233\ \ \ \textcolor{comment}{//\ although\ it\ may\ be.}}
+\DoxyCodeLine{00234\ \ \ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a4b78676d50f392ae896af261f9620af3}{operator=}}(\mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\&\ \textcolor{comment}{/*f*/})\ noexcept\ =\ default;}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \ \ \textcolor{comment}{//\ Assigns\ an\ \`{}AnyInvocable`\ from\ a\ nullptr,\ clearing\ the\ \`{}AnyInvocable`.\ If}}
+\DoxyCodeLine{00237\ \ \ \textcolor{comment}{//\ not\ empty,\ destroys\ the\ target,\ putting\ \`{}*this`\ into\ an\ empty\ state.}}
+\DoxyCodeLine{00238\ \ \ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ operator=(\mbox{\hyperlink{namespacestd}{std}}::nullptr\_t)\ noexcept\ \{}
+\DoxyCodeLine{00239\ \ \ \ \ this-\/>Clear();}
+\DoxyCodeLine{00240\ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00241\ \ \ \}}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \ \ \textcolor{comment}{//\ Assigns\ an\ \`{}AnyInvocable`\ from\ an\ existing\ \`{}AnyInvocable`\ instance.}}
+\DoxyCodeLine{00244\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00245\ \ \ \textcolor{comment}{//\ Upon\ assignment,\ \`{}*this`\ is\ only\ empty\ if\ \`{}f`\ is\ a\ function\ pointer\ or}}
+\DoxyCodeLine{00246\ \ \ \textcolor{comment}{//\ member\ pointer\ type\ and\ is\ null,\ or\ if\ \`{}f`\ is\ an\ \`{}AnyInvocable`\ that\ is}}
+\DoxyCodeLine{00247\ \ \ \textcolor{comment}{//\ empty.}}
+\DoxyCodeLine{00248\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<}
+\DoxyCodeLine{00249\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1internal__any__invocable_af235d9f76f086f73b33df358ae917954}{internal\_any\_invocable::CanAssign<Sig,\ F>::value}}>>}
+\DoxyCodeLine{00250\ \ \ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a6df996091bafffd7abdceff550258b75}{operator=}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}}\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \{}
+\DoxyCodeLine{00251\ \ \ \ \ *\textcolor{keyword}{this}\ =\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a4a2b9b8f3f1f90499e5463fef1b82b3f}{AnyInvocable}}(std::forward<F>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}));}
+\DoxyCodeLine{00252\ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00253\ \ \ \}}
+\DoxyCodeLine{00254\ }
+\DoxyCodeLine{00255\ \ \ \textcolor{comment}{//\ Assigns\ an\ \`{}AnyInvocable`\ from\ a\ reference\ to\ an\ invocable\ object.}}
+\DoxyCodeLine{00256\ \ \ \textcolor{comment}{//\ Upon\ assignment,\ stores\ a\ reference\ to\ the\ invocable\ object\ in\ the}}
+\DoxyCodeLine{00257\ \ \ \textcolor{comment}{//\ \`{}AnyInvocable`\ instance.}}
+\DoxyCodeLine{00258\ \ \ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t}}<}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1internal__any__invocable_a012c854310b850a8f0ee47ce7de2efc3}{internal\_any\_invocable::CanAssignReferenceWrapper<Sig,\ F>::value}}>>}
+\DoxyCodeLine{00262\ \ \ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a2769fb4d6bc2ca5c59540618886802d4}{operator=}}(std::reference\_wrapper<F>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00263\ \ \ \ \ *\textcolor{keyword}{this}\ =\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a4a2b9b8f3f1f90499e5463fef1b82b3f}{AnyInvocable}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}});}
+\DoxyCodeLine{00264\ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00265\ \ \ \}}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \ \ \textcolor{comment}{//\ Destructor}}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00269\ \ \ \textcolor{comment}{//\ If\ not\ empty,\ destroys\ the\ target.}}
+\DoxyCodeLine{00270\ \ \ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a882421981bbde9d2dceec77b1b559fed}{\string~AnyInvocable}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00272\ \ \ \textcolor{comment}{//\ absl::AnyInvocable::swap()}}
+\DoxyCodeLine{00273\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00274\ \ \ \textcolor{comment}{//\ Exchanges\ the\ targets\ of\ \`{}*this`\ and\ \`{}other`.}}
+\DoxyCodeLine{00275\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a5c15c0f2016397b976af1e66328acad8}{swap}}(\mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ other)\ \textcolor{keyword}{noexcept}\ \{\ std::swap(*\textcolor{keyword}{this},\ other);\ \}}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00277\ \ \ \textcolor{comment}{//\ absl::AnyInvocable::operator\ bool()}}
+\DoxyCodeLine{00278\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00279\ \ \ \textcolor{comment}{//\ Returns\ \`{}true`\ if\ \`{}*this`\ is\ not\ empty.}}
+\DoxyCodeLine{00280\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00281\ \ \ \textcolor{comment}{//\ WARNING:\ An\ \`{}AnyInvocable`\ that\ wraps\ an\ empty\ \`{}std::function`\ is\ not}}
+\DoxyCodeLine{00282\ \ \ \textcolor{comment}{//\ itself\ empty.\ This\ behavior\ is\ consistent\ with\ the\ standard\ equivalent}}
+\DoxyCodeLine{00283\ \ \ \textcolor{comment}{//\ \`{}std::move\_only\_function`.}}
+\DoxyCodeLine{00284\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00285\ \ \ \textcolor{comment}{//\ In\ other\ words:}}
+\DoxyCodeLine{00286\ \ \ \textcolor{comment}{//\ \ \ std::function<void()>\ f;\ \ //\ empty}}
+\DoxyCodeLine{00287\ \ \ \textcolor{comment}{//\ \ \ absl::AnyInvocable<void()>\ a\ =\ std::move(f);\ \ //\ not\ empty}}
+\DoxyCodeLine{00288\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00289\ \ \ \textcolor{comment}{//\ Invoking\ an\ empty\ \`{}AnyInvocable`\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00290\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{operator}\ bool()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ this-\/>HasValue();\ \}}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \ \ \textcolor{comment}{//\ Invokes\ the\ target\ object\ of\ \`{}*this`.\ \`{}*this`\ must\ not\ be\ empty.}}
+\DoxyCodeLine{00293\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00294\ \ \ \textcolor{comment}{//\ Note:\ The\ signature\ of\ this\ function\ call\ operator\ is\ the\ same\ as\ the}}
+\DoxyCodeLine{00295\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ template\ parameter\ \`{}Sig`.}}
+\DoxyCodeLine{00296\ \ \ \textcolor{keyword}{using\ }Impl::operator();}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00298\ \ \ \textcolor{comment}{//\ Equality\ operators}}
+\DoxyCodeLine{00299\ }
+\DoxyCodeLine{00300\ \ \ \textcolor{comment}{//\ Returns\ \`{}true`\ if\ \`{}*this`\ is\ empty.}}
+\DoxyCodeLine{00301\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a004fc9f6391351c30c8c6c3daa52853b}{operator==}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ std::nullptr\_t)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00302\ \ \ \ \ \textcolor{keywordflow}{return}\ !\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}.HasValue();}
+\DoxyCodeLine{00303\ \ \ \}}
+\DoxyCodeLine{00304\ }
+\DoxyCodeLine{00305\ \ \ \textcolor{comment}{//\ Returns\ \`{}true`\ if\ \`{}*this`\ is\ empty.}}
+\DoxyCodeLine{00306\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_ae3c4ba70dc3afe31073b9dbb3fa5405a}{operator==}}(std::nullptr\_t,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00307\ \ \ \ \ \textcolor{keywordflow}{return}\ !\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}.HasValue();}
+\DoxyCodeLine{00308\ \ \ \}}
+\DoxyCodeLine{00309\ }
+\DoxyCodeLine{00310\ \ \ \textcolor{comment}{//\ Returns\ \`{}false`\ if\ \`{}*this`\ is\ empty.}}
+\DoxyCodeLine{00311\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a0bb93a2b41b7940da617ebc79167537a}{operator!=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ std::nullptr\_t)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00312\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}.HasValue();}
+\DoxyCodeLine{00313\ \ \ \}}
+\DoxyCodeLine{00314\ }
+\DoxyCodeLine{00315\ \ \ \textcolor{comment}{//\ Returns\ \`{}false`\ if\ \`{}*this`\ is\ empty.}}
+\DoxyCodeLine{00316\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a6455348b3f2e8a842c190fd899c21ca8}{operator!=}}(std::nullptr\_t,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00317\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}.HasValue();}
+\DoxyCodeLine{00318\ \ \ \}}
+\DoxyCodeLine{00319\ }
+\DoxyCodeLine{00320\ \ \ \textcolor{comment}{//\ swap()}}
+\DoxyCodeLine{00321\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00322\ \ \ \textcolor{comment}{//\ Exchanges\ the\ targets\ of\ \`{}f1`\ and\ \`{}f2`.}}
+\DoxyCodeLine{00323\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1AnyInvocable_a4b5cff0a055dc955f4c1213faa94459a}{swap}}(\mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ f1,\ \mbox{\hyperlink{classabsl_1_1AnyInvocable}{AnyInvocable}}\&\ f2)\ \textcolor{keyword}{noexcept}\ \{\ f1.swap(f2);\ \}}
+\DoxyCodeLine{00324\ }
+\DoxyCodeLine{00325\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00326\ \ \ \textcolor{comment}{//\ Friending\ other\ instantiations\ is\ necessary\ for\ conversions.}}
+\DoxyCodeLine{00327\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ \textcolor{comment}{/*SigIsNoexcept*/},\ \textcolor{keyword}{class\ }\textcolor{comment}{/*ReturnType*/},\ \textcolor{keyword}{class}...\ \textcolor{comment}{/*P*/}>}
+\DoxyCodeLine{00328\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1internal__any__invocable_1_1CoreImpl}{internal\_any\_invocable::CoreImpl}};}
+\DoxyCodeLine{00329\ \};}
+\DoxyCodeLine{00330\ }
+\DoxyCodeLine{00331\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00332\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00334\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_FUNCTIONAL\_ANY\_INVOCABLE\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,187 @@
+\doxysection{log\+\_\+streamer.\+h}
+\hypertarget{abseil-cpp_2absl_2log_2log__streamer_8h_source}{}\label{abseil-cpp_2absl_2log_2log__streamer_8h_source}\index{abseil-\/cpp/absl/log/log\_streamer.h@{abseil-\/cpp/absl/log/log\_streamer.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2log_2log__streamer_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2022\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ log/log\_streamer.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ header\ declares\ the\ class\ \`{}LogStreamer`\ and\ convenience\ functions\ to}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ construct\ LogStreamer\ objects\ with\ different\ associated\ log\ severity\ levels.}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#ifndef\ ABSL\_LOG\_LOG\_STREAMER\_H\_}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_LOG\_STREAMER\_H\_}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <ios>}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <ostream>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}absl/base/log\_severity.h"{}}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ "{}absl/log/absl\_log.h"{}}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/ostringstream.h"{}}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ "{}absl/strings/string\_view.h"{}}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ "{}absl/types/optional.h"{}}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/utility/utility.h"{}}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00040\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ LogStreamer}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ Although\ you\ can\ stream\ into\ \`{}LOG(INFO)`,\ you\ can't\ pass\ it\ into\ a\ function}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ that\ takes\ a\ \`{}std::ostream`\ parameter.\ \`{}LogStreamer::stream()`\ provides\ a}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \`{}std::ostream`\ that\ buffers\ everything\ that's\ streamed\ in.\ \ The\ buffer's}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ contents\ are\ logged\ as\ if\ by\ \`{}LOG`\ when\ the\ \`{}LogStreamer`\ is\ destroyed.}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ If\ nothing\ is\ streamed\ in,\ an\ empty\ message\ is\ logged.\ \ If\ the\ specified}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ severity\ is\ \`{}absl::LogSeverity::kFatal`,\ the\ program\ will\ be\ terminated\ when}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ the\ \`{}LogStreamer`\ is\ destroyed\ regardless\ of\ whether\ any\ data\ were\ streamed}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ in.}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ Factory\ functions\ corresponding\ to\ the\ \`{}absl::LogSeverity`\ enumerators}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ are\ provided\ for\ convenience;\ if\ the\ desired\ severity\ is\ variable,\ invoke\ the}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ constructor\ directly.}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ LogStreamer\ is\ movable,\ but\ not\ copyable.}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ Examples:}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ \ \ ShaveYakAndWriteToStream(}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ \ \ \ \ \ \ yak,\ absl::LogInfoStreamer(\_\_FILE\_\_,\ \_\_LINE\_\_).stream());}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ \ \ \{}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ \ \ \ \ //\ This\ logs\ a\ single\ line\ containing\ data\ streamed\ by\ all\ three\ function}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ \ \ \ \ //\ calls.}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ \ \ \ \ absl::LogStreamer\ streamer(absl::LogSeverity::kInfo,\ \_\_FILE\_\_,\ \_\_LINE\_\_);}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ \ \ \ \ ShaveYakAndWriteToStream(yak1,\ streamer.stream());}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ \ \ \ \ streamer.stream()\ <<\ "{}\ "{};}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \ \ \ \ ShaveYakAndWriteToStream(yak2,\ streamer.stream());}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ \ \ \ streamer.stream()\ <<\ "{}\ "{};}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ \ \ \ \ ShaveYakAndWriteToStreamPointer(yak3,\ \&streamer.stream());}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00074\ \textcolor{keyword}{class\ }LogStreamer\ final\ \{}
+\DoxyCodeLine{00075\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ LogStreamer::LogStreamer()}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ Creates\ a\ LogStreamer\ with\ a\ given\ \`{}severity`\ that\ will\ log\ a\ message}}
+\DoxyCodeLine{00079\ \ \ \textcolor{comment}{//\ attributed\ to\ the\ given\ \`{}file`\ and\ \`{}line`.}}
+\DoxyCodeLine{00080\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1LogStreamer_a691fa2226e315e69131a40493f16cfd2}{LogStreamer}}(\mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23}{absl::LogSeverity}}\ severity,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ file,}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ line)}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ :\ severity\_(severity),}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ line\_(line),}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \ \ file\_(file),}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ stream\_(\mbox{\hyperlink{namespaceabsl}{absl}}::in\_place,\ \&buf\_)\ \{}
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{comment}{//\ To\ match\ \`{}LOG`'s\ defaults:}}
+\DoxyCodeLine{00087\ \ \ \ \ stream\_-\/>setf(std::ios\_base::showbase\ |\ std::ios\_base::boolalpha);}
+\DoxyCodeLine{00088\ \ \ \}}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ A\ moved-\/from\ \`{}absl::LogStreamer`\ does\ not\ \`{}LOG`\ when\ destroyed,}}
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ and\ a\ program\ that\ streams\ into\ one\ has\ undefined\ behavior.}}
+\DoxyCodeLine{00092\ \ \ \mbox{\hyperlink{classabsl_1_1LogStreamer_aeef7e7b421ab07f5ca00e2502d56f634}{LogStreamer}}(\mbox{\hyperlink{classabsl_1_1LogStreamer}{LogStreamer}}\&\&\ that)\ noexcept}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ :\ severity\_(that.severity\_),}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ line\_(that.line\_),}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \ \ file\_(std::move(that.file\_)),}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ buf\_(std::move(that.buf\_)),}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \ \ stream\_(std::move(that.stream\_))\ \{}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keywordflow}{if}\ (stream\_.\mbox{\hyperlink{classabsl_1_1optional_a555a8b13b6842ed5f7b1de07f1b42162}{has\_value}}())\ stream\_-\/>str(\&buf\_);}
+\DoxyCodeLine{00099\ \ \ \ \ that.stream\_.\mbox{\hyperlink{classabsl_1_1optional_a8dfe8f9b4f502b6e94ca9fc3cc75a15f}{reset}}();}
+\DoxyCodeLine{00100\ \ \ \}}
+\DoxyCodeLine{00101\ \ \ \mbox{\hyperlink{classabsl_1_1LogStreamer}{LogStreamer}}\&\ \mbox{\hyperlink{classabsl_1_1LogStreamer_af71adc5aba582fc367bb0dec6e974e5a}{operator=}}(\mbox{\hyperlink{classabsl_1_1LogStreamer}{LogStreamer}}\&\&\ that)\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2absl__log_8h_abbf85339afac5bdc8dd3cc8d891c34d4}{ABSL\_LOG\_IF}}(LEVEL(severity\_),\ stream\_).AtLocation(file\_,\ line\_)\ <<\ buf\_;}
+\DoxyCodeLine{00103\ \ \ \ \ severity\_\ =\ that.severity\_;}
+\DoxyCodeLine{00104\ \ \ \ \ file\_\ =\ std::move(that.file\_);}
+\DoxyCodeLine{00105\ \ \ \ \ line\_\ =\ that.line\_;}
+\DoxyCodeLine{00106\ \ \ \ \ buf\_\ =\ std::move(that.buf\_);}
+\DoxyCodeLine{00107\ \ \ \ \ stream\_\ =\ std::move(that.stream\_);}
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{keywordflow}{if}\ (stream\_.\mbox{\hyperlink{classabsl_1_1optional_a555a8b13b6842ed5f7b1de07f1b42162}{has\_value}}())\ stream\_-\/>str(\&buf\_);}
+\DoxyCodeLine{00109\ \ \ \ \ that.stream\_.\mbox{\hyperlink{classabsl_1_1optional_a8dfe8f9b4f502b6e94ca9fc3cc75a15f}{reset}}();}
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00111\ \ \ \}}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ LogStreamer::\string~LogStreamer()}}
+\DoxyCodeLine{00114\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//\ Logs\ this\ LogStreamer's\ buffered\ content\ as\ if\ by\ LOG.}}
+\DoxyCodeLine{00116\ \ \ \mbox{\hyperlink{classabsl_1_1LogStreamer_aef66f2dd8ae8518568314f37b24f6713}{\string~LogStreamer}}()\ \{}
+\DoxyCodeLine{00117\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2absl__log_8h_abbf85339afac5bdc8dd3cc8d891c34d4}{ABSL\_LOG\_IF}}(LEVEL(severity\_),\ stream\_.\mbox{\hyperlink{classabsl_1_1optional_a555a8b13b6842ed5f7b1de07f1b42162}{has\_value}}()).AtLocation(file\_,\ line\_)}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ \ \ <<\ buf\_;}
+\DoxyCodeLine{00119\ \ \ \}}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//\ LogStreamer::stream()}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//\ Returns\ the\ \`{}std::ostream`\ to\ use\ to\ write\ into\ this\ LogStreamer'\ internal}}
+\DoxyCodeLine{00124\ \ \ \textcolor{comment}{//\ buffer.}}
+\DoxyCodeLine{00125\ \ \ std::ostream\&\ \mbox{\hyperlink{classabsl_1_1LogStreamer_ad224615071c78f61a8f038e1d015cbbe}{stream}}()\ \{\ \textcolor{keywordflow}{return}\ *stream\_;\ \}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00128\ \ \ \mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23}{absl::LogSeverity}}\ severity\_;}
+\DoxyCodeLine{00129\ \ \ \textcolor{keywordtype}{int}\ line\_;}
+\DoxyCodeLine{00130\ \ \ std::string\ file\_;}
+\DoxyCodeLine{00131\ \ \ std::string\ buf\_;}
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ A\ disengaged\ \`{}stream\_`\ indicates\ a\ moved-\/from\ \`{}LogStreamer`\ that\ should\ not}}
+\DoxyCodeLine{00133\ \ \ \textcolor{comment}{//\ \`{}LOG`\ upon\ destruction.}}
+\DoxyCodeLine{00134\ \ \ \mbox{\hyperlink{classabsl_1_1optional}{absl::optional<absl::strings\_internal::OStringStream>}}\ stream\_;}
+\DoxyCodeLine{00135\ \};}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ LogInfoStreamer()}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ Returns\ a\ LogStreamer\ that\ writes\ at\ level\ LogSeverity::kInfo.}}
+\DoxyCodeLine{00140\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{LogStreamer}}\ \mbox{\hyperlink{namespaceabsl_a85bc088b7b9b02146686cb96f456abf3}{LogInfoStreamer}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ file,\ \textcolor{keywordtype}{int}\ line)\ \{}
+\DoxyCodeLine{00141\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{absl::LogStreamer}}(\mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23a176a473e63c17ccdac91640c67f149bf}{absl::LogSeverity::kInfo}},\ file,\ line);}
+\DoxyCodeLine{00142\ \}}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ LogWarningStreamer()}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//}}
+\DoxyCodeLine{00146\ \textcolor{comment}{//\ Returns\ a\ LogStreamer\ that\ writes\ at\ level\ LogSeverity::kWarning.}}
+\DoxyCodeLine{00147\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{LogStreamer}}\ \mbox{\hyperlink{namespaceabsl_a193dd64f0420eda9bb3b68f003c0ca7e}{LogWarningStreamer}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ file,\ \textcolor{keywordtype}{int}\ line)\ \{}
+\DoxyCodeLine{00148\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{absl::LogStreamer}}(\mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23aec0da41f4e48b52c362303eb27ed5dee}{absl::LogSeverity::kWarning}},\ file,\ line);}
+\DoxyCodeLine{00149\ \}}
+\DoxyCodeLine{00150\ }
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ LogErrorStreamer()}}
+\DoxyCodeLine{00152\ \textcolor{comment}{//}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ Returns\ a\ LogStreamer\ that\ writes\ at\ level\ LogSeverity::kError.}}
+\DoxyCodeLine{00154\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{LogStreamer}}\ \mbox{\hyperlink{namespaceabsl_af9af849b6d22adf3378afca54978a834}{LogErrorStreamer}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ file,\ \textcolor{keywordtype}{int}\ line)\ \{}
+\DoxyCodeLine{00155\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{absl::LogStreamer}}(\mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23ae3587c730cc1aa530fa4ddc9c4204e97}{absl::LogSeverity::kError}},\ file,\ line);}
+\DoxyCodeLine{00156\ \}}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \textcolor{comment}{//\ LogFatalStreamer()}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ Returns\ a\ LogStreamer\ that\ writes\ at\ level\ LogSeverity::kFatal.}}
+\DoxyCodeLine{00161\ \textcolor{comment}{//}}
+\DoxyCodeLine{00162\ \textcolor{comment}{//\ The\ program\ will\ be\ terminated\ when\ this\ \`{}LogStreamer`\ is\ destroyed,}}
+\DoxyCodeLine{00163\ \textcolor{comment}{//\ regardless\ of\ whether\ any\ data\ were\ streamed\ in.}}
+\DoxyCodeLine{00164\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{LogStreamer}}\ \mbox{\hyperlink{namespaceabsl_a81ede0ab63fe926135dd520ffadedc72}{LogFatalStreamer}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ file,\ \textcolor{keywordtype}{int}\ line)\ \{}
+\DoxyCodeLine{00165\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{absl::LogStreamer}}(\mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23ae66f945a3c2423ef09406cf09fa9de26}{absl::LogSeverity::kFatal}},\ file,\ line);}
+\DoxyCodeLine{00166\ \}}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ LogDebugFatalStreamer()}}
+\DoxyCodeLine{00169\ \textcolor{comment}{//}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ Returns\ a\ LogStreamer\ that\ writes\ at\ level\ LogSeverity::kLogDebugFatal.}}
+\DoxyCodeLine{00171\ \textcolor{comment}{//}}
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ In\ debug\ mode,\ the\ program\ will\ be\ terminated\ when\ this\ \`{}LogStreamer`\ is}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//\ destroyed,\ regardless\ of\ whether\ any\ data\ were\ streamed\ in.}}
+\DoxyCodeLine{00174\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{LogStreamer}}\ \mbox{\hyperlink{namespaceabsl_a9c3c90df12b417ec2dcd64423294b1f5}{LogDebugFatalStreamer}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ file,\ \textcolor{keywordtype}{int}\ line)\ \{}
+\DoxyCodeLine{00175\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1LogStreamer}{absl::LogStreamer}}(\mbox{\hyperlink{namespaceabsl_ab7270f73b38a1cdeb4f6228ec2c052bb}{absl::kLogDebugFatal}},\ file,\ line);}
+\DoxyCodeLine{00176\ \}}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00179\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_LOG\_LOG\_STREAMER\_H\_}}
+
+\end{DoxyCode}

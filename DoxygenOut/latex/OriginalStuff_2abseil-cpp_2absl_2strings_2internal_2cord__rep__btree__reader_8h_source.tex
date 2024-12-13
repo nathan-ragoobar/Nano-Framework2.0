@@ -1,0 +1,218 @@
+\doxysection{cord\+\_\+rep\+\_\+btree\+\_\+reader.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2strings_2internal_2cord__rep__btree__reader_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2strings_2internal_2cord__rep__btree__reader_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/strings/internal/cord\_rep\_btree\_reader.h@{OriginalStuff/abseil-\/cpp/absl/strings/internal/cord\_rep\_btree\_reader.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2strings_2internal_2cord__rep__btree__reader_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2021\ The\ Abseil\ Authors}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_INTERNAL\_CORD\_REP\_BTREE\_READER\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_INTERNAL\_CORD\_REP\_BTREE\_READER\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cord\_data\_edge.h"{}}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cord\_internal.h"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cord\_rep\_btree.h"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cord\_rep\_btree\_navigator.h"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cord\_rep\_flat.h"{}}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00028\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00029\ \textcolor{keyword}{namespace\ }cord\_internal\ \{}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ CordRepBtreeReader\ implements\ logic\ to\ iterate\ over\ cord\ btrees.}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ References\ to\ the\ underlying\ data\ are\ returned\ as\ absl::string\_view\ values.}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ The\ most\ typical\ use\ case\ is\ a\ forward\ only\ iteration\ over\ tree\ data.}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ The\ class\ also\ provides\ \`{}Skip()`,\ \`{}Seek()`\ and\ \`{}Read()`\ methods\ similar\ to}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ CordRepBtreeNavigator\ that\ allow\ more\ advanced\ navigation.}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ Example:\ iterate\ over\ all\ data\ inside\ a\ cord\ btree:}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ \ \ CordRepBtreeReader\ reader;}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ \ \ for\ (string\_view\ sv\ =\ reader.Init(tree);\ !sv.Empty();\ sv\ =\ sv.Next())\ \{}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ \ \ \ \ DoSomethingWithDataIn(sv);}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ All\ navigation\ methods\ always\ return\ the\ next\ 'chunk'\ of\ data.\ The\ class}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ assumes\ that\ all\ data\ is\ directly\ 'consumed'\ by\ the\ caller.\ For\ example:}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ invoking\ \`{}Skip()`\ will\ skip\ the\ desired\ number\ of\ bytes,\ and\ directly}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ read\ and\ return\ the\ next\ chunk\ of\ data\ directly\ after\ the\ skipped\ bytes.}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ Example:\ iterate\ over\ all\ data\ inside\ a\ btree\ skipping\ the\ first\ 100\ bytes:}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ \ \ CordRepBtreeReader\ reader;}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ \ \ absl::string\_view\ sv\ =\ reader.Init(tree);}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ \ \ if\ (sv.length()\ >\ 100)\ \{}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ \ \ \ \ sv.RemovePrefix(100);}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ \ \ \}\ else\ \{}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ \ \ \ \ sv\ =\ reader.Skip(100\ -\/\ sv.length());}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ \ \ while\ (!sv.empty())\ \{}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ \ \ \ \ DoSomethingWithDataIn(sv);}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ \ \ \ \ absl::string\_view\ sv\ =\ reader.Next();}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ It\ is\ important\ to\ notice\ that\ \`{}remaining`\ is\ based\ on\ the\ end\ position\ of}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ the\ last\ data\ edge\ returned\ to\ the\ caller,\ not\ the\ cumulative\ data\ returned}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ to\ the\ caller\ which\ can\ be\ less\ in\ cases\ of\ skipping\ or\ seeking\ over\ data.}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ For\ example,\ consider\ a\ cord\ btree\ with\ five\ data\ edges:\ "{}abc"{},\ "{}def"{},\ "{}ghi"{},}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ "{}jkl"{}\ and\ "{}mno"{}:}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \ \ absl::string\_view\ sv;}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ \ CordRepBtreeReader\ reader;}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ \ sv\ =\ reader.Init(tree);\ //\ sv\ =\ "{}abc"{},\ remaining\ =\ 12}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ \ \ sv\ =\ reader.Skip(4);\ \ \ \ //\ sv\ =\ "{}hi"{},\ \ remaining\ =\ 6}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ \ \ sv\ =\ reader.Skip(2);\ \ \ \ //\ sv\ =\ "{}l"{},\ \ \ remaining\ =\ 3}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ \ \ sv\ =\ reader.Next();\ \ \ \ \ //\ sv\ =\ "{}mno"{},\ remaining\ =\ 0}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ \ \ sv\ =\ reader.Seek(1);\ \ \ \ //\ sv\ =\ "{}bc"{},\ remaining\ =\ 12}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//}}
+\DoxyCodeLine{00079\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader}{CordRepBtreeReader}}\ \{}
+\DoxyCodeLine{00080\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00081\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepBtreeNavigator_1_1ReadResult}{ReadResult}}\ =\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepBtreeNavigator_1_1ReadResult}{CordRepBtreeNavigator::ReadResult}};}
+\DoxyCodeLine{00082\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepBtreeNavigator_1_1Position}{Position}}\ =\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepBtreeNavigator_1_1Position}{CordRepBtreeNavigator::Position}};}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \ \ \textcolor{comment}{//\ Returns\ true\ if\ this\ instance\ is\ not\ empty.}}
+\DoxyCodeLine{00085\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{operator}\ bool()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ navigator\_.\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator_a679f1ebc58d714befd5bee0608afb11f}{btree}}()\ !=\ \textcolor{keyword}{nullptr};\ \}}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \ \ \textcolor{comment}{//\ Returns\ the\ tree\ referenced\ by\ this\ instance\ or\ nullptr\ if\ empty.}}
+\DoxyCodeLine{00088\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtree}{CordRepBtree}}*\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a4936b854d7858963e5fac787b526c4ca}{btree}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ navigator\_.\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator_a679f1ebc58d714befd5bee0608afb11f}{btree}}();\ \}}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ Returns\ the\ current\ data\ edge\ inside\ the\ referenced\ btree.}}
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ Requires\ that\ the\ current\ instance\ is\ not\ empty.}}
+\DoxyCodeLine{00092\ \ \ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep}{CordRep}}*\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a1f71651b2bad2c489f2eb43157c6954d}{node}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ navigator\_.\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator_a91dd72305c4412169943c236bd251d66}{Current}}();\ \}}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//\ Returns\ the\ length\ of\ the\ referenced\ tree.}}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//\ Requires\ that\ the\ current\ instance\ is\ not\ empty.}}
+\DoxyCodeLine{00096\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a536230a60ea600ce78894a3766506fa8}{length}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ remaining\ bytes\ available\ for\ iteration,\ which\ is\ the}}
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ number\ of\ bytes\ directly\ following\ the\ end\ of\ the\ last\ chunk\ returned.}}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ This\ value\ will\ be\ zero\ if\ we\ iterated\ over\ the\ last\ edge\ in\ the\ bound}}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ tree,\ in\ which\ case\ any\ call\ to\ Next()\ or\ Skip()\ will\ return\ an\ empty}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ string\_view\ reflecting\ the\ EOF\ state.}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ Note\ that\ a\ call\ to\ \`{}Seek()`\ resets\ \`{}remaining`\ to\ a\ value\ based\ on\ the}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ end\ position\ of\ the\ chunk\ returned\ by\ that\ call.}}
+\DoxyCodeLine{00105\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a5726310c1eacb1b2f0bd27f4362297f9}{remaining}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ remaining\_;\ \}}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \ \ \textcolor{comment}{//\ Resets\ this\ instance\ to\ an\ empty\ value.}}
+\DoxyCodeLine{00108\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a1eb1f1adbe3f1a10b57dcb778ad7f5e3}{Reset}}()\ \{\ navigator\_.\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator_a46fab4b5fff69c83aa651165a80dae05}{Reset}}();\ \}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ Initializes\ this\ instance\ with\ \`{}tree`.\ \`{}tree`\ must\ not\ be\ null.}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ Returns\ a\ reference\ to\ the\ first\ data\ edge\ of\ the\ provided\ tree.}}
+\DoxyCodeLine{00112\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a8d3adf2bf55d9ecde2b43a6479296223}{Init}}(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtree}{CordRepBtree}}*\ tree);}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00114\ \ \ \textcolor{comment}{//\ Navigates\ to\ and\ returns\ the\ next\ data\ edge\ of\ the\ referenced\ tree.}}
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//\ Returns\ an\ empty\ string\_view\ if\ an\ attempt\ is\ made\ to\ read\ beyond\ the\ end}}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ of\ the\ tree,\ i.e.:\ if\ \`{}remaining()`\ is\ zero\ indicating\ an\ EOF\ condition.}}
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//\ Requires\ that\ the\ current\ instance\ is\ not\ empty.}}
+\DoxyCodeLine{00118\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a2c37fccd364c80f88b4ba48c066a6d65}{Next}}();}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \ \ \textcolor{comment}{//\ Skips\ the\ provided\ amount\ of\ bytes\ and\ returns\ a\ reference\ to\ the\ data}}
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//\ directly\ following\ the\ skipped\ bytes.}}
+\DoxyCodeLine{00122\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_ad06b8427a1c1f11fb500b5bc2ccb1a3d}{Skip}}(\textcolor{keywordtype}{size\_t}\ skip);}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \ \ \textcolor{comment}{//\ Reads\ \`{}n`\ bytes\ into\ \`{}tree`.}}
+\DoxyCodeLine{00125\ \ \ \textcolor{comment}{//\ If\ \`{}chunk\_size`\ is\ zero,\ starts\ reading\ at\ the\ next\ data\ edge.\ If}}
+\DoxyCodeLine{00126\ \ \ \textcolor{comment}{//\ \`{}chunk\_size`\ is\ non\ zero,\ the\ read\ starts\ at\ the\ last\ \`{}chunk\_size`\ bytes\ of}}
+\DoxyCodeLine{00127\ \ \ \textcolor{comment}{//\ the\ last\ returned\ data\ edge.\ Effectively,\ this\ means\ that\ the\ read\ starts}}
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ at\ offset\ \`{}consumed()\ -\/\ chunk\_size`.}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ Requires\ that\ \`{}chunk\_size`\ is\ less\ than\ or\ equal\ to\ the\ length\ of\ the}}
+\DoxyCodeLine{00130\ \ \ \textcolor{comment}{//\ last\ returned\ data\ edge.\ The\ purpose\ of\ \`{}chunk\_size`\ is\ to\ simplify\ code}}
+\DoxyCodeLine{00131\ \ \ \textcolor{comment}{//\ partially\ consuming\ a\ returned\ chunk\ and\ wanting\ to\ include\ the\ remaining}}
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ bytes\ in\ the\ Read\ call.\ For\ example,\ the\ below\ code\ will\ read\ 1000\ bytes\ of}}
+\DoxyCodeLine{00133\ \ \ \textcolor{comment}{//\ data\ into\ a\ cord\ tree\ if\ the\ first\ chunk\ starts\ with\ "{}big:"{}:}}
+\DoxyCodeLine{00134\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00135\ \ \ \textcolor{comment}{//\ \ \ CordRepBtreeReader\ reader;}}
+\DoxyCodeLine{00136\ \ \ \textcolor{comment}{//\ \ \ absl::string\_view\ sv\ =\ reader.Init(tree);}}
+\DoxyCodeLine{00137\ \ \ \textcolor{comment}{//\ \ \ if\ (absl::StartsWith(sv,\ "{}big:"{}))\ \{}}
+\DoxyCodeLine{00138\ \ \ \textcolor{comment}{//\ \ \ \ \ CordRepBtree\ tree;}}
+\DoxyCodeLine{00139\ \ \ \textcolor{comment}{//\ \ \ \ \ sv\ =\ reader.Read(1000,\ sv.size()\ -\/\ 4\ /*\ "{}big:"{}\ */,\ \&tree);}}
+\DoxyCodeLine{00140\ \ \ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00141\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00142\ \ \ \textcolor{comment}{//\ This\ method\ will\ return\ an\ empty\ string\ view\ if\ all\ remaining\ data\ was}}
+\DoxyCodeLine{00143\ \ \ \textcolor{comment}{//\ read.\ If\ \`{}n`\ exceeded\ the\ amount\ of\ remaining\ data\ this\ function\ will}}
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//\ return\ an\ empty\ string\ view\ and\ \`{}tree`\ will\ be\ set\ to\ nullptr.}}
+\DoxyCodeLine{00145\ \ \ \textcolor{comment}{//\ In\ both\ cases,\ \`{}consumed`\ will\ be\ set\ to\ \`{}length`.}}
+\DoxyCodeLine{00146\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_abddb0afdd664abbc8315b9efb2d77d8e}{Read}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}},\ \textcolor{keywordtype}{size\_t}\ chunk\_size,\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep}{CordRep}}*\&\ tree);}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \ \ \textcolor{comment}{//\ Navigates\ to\ the\ chunk\ at\ offset\ \`{}offset`.}}
+\DoxyCodeLine{00149\ \ \ \textcolor{comment}{//\ Returns\ a\ reference\ into\ the\ navigated\ to\ chunk,\ adjusted\ for\ the\ relative}}
+\DoxyCodeLine{00150\ \ \ \textcolor{comment}{//\ position\ of\ \`{}offset`\ into\ that\ chunk.\ For\ example,\ calling\ \`{}Seek(13)`\ on\ a}}
+\DoxyCodeLine{00151\ \ \ \textcolor{comment}{//\ cord\ tree\ containing\ 2\ chunks\ of\ 10\ and\ 20\ bytes\ respectively\ will\ return}}
+\DoxyCodeLine{00152\ \ \ \textcolor{comment}{//\ a\ string\ view\ into\ the\ second\ chunk\ starting\ at\ offset\ 3\ with\ a\ size\ of\ 17.}}
+\DoxyCodeLine{00153\ \ \ \textcolor{comment}{//\ Returns\ an\ empty\ string\ view\ if\ \`{}offset`\ is\ equal\ to\ or\ greater\ than\ the}}
+\DoxyCodeLine{00154\ \ \ \textcolor{comment}{//\ length\ of\ the\ referenced\ tree.}}
+\DoxyCodeLine{00155\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a489e0a723934c5b77bd0ec23f2438ae7}{Seek}}(\textcolor{keywordtype}{size\_t}\ offset);}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00158\ \ \ \textcolor{keywordtype}{size\_t}\ remaining\_\ =\ 0;}
+\DoxyCodeLine{00159\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator}{CordRepBtreeNavigator}}\ navigator\_;}
+\DoxyCodeLine{00160\ \};}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a536230a60ea600ce78894a3766506fa8}{CordRepBtreeReader::length}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00163\ \ \ assert(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a4936b854d7858963e5fac787b526c4ca}{btree}}()\ !=\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00164\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a4936b854d7858963e5fac787b526c4ca}{btree}}()-\/>\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_af1380a03e3795f21ee242127e607261f}{length}};}
+\DoxyCodeLine{00165\ \}}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a8d3adf2bf55d9ecde2b43a6479296223}{CordRepBtreeReader::Init}}(CordRepBtree*\ tree)\ \{}
+\DoxyCodeLine{00168\ \ \ assert(tree\ !=\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00169\ \ \ \textcolor{keyword}{const}\ CordRep*\ edge\ =\ navigator\_.\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator_a1e378e11f81d488f858ec616b98a4f9c}{InitFirst}}(tree);}
+\DoxyCodeLine{00170\ \ \ remaining\_\ =\ tree-\/>length\ -\/\ edge-\/>length;}
+\DoxyCodeLine{00171\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_ae66daf2fb35dc2cb5d2feba9d24e057c}{EdgeData}}(edge);}
+\DoxyCodeLine{00172\ \}}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a2c37fccd364c80f88b4ba48c066a6d65}{CordRepBtreeReader::Next}}()\ \{}
+\DoxyCodeLine{00175\ \ \ \textcolor{keywordflow}{if}\ (remaining\_\ ==\ 0)\ \textcolor{keywordflow}{return}\ \{\};}
+\DoxyCodeLine{00176\ \ \ \textcolor{keyword}{const}\ CordRep*\ edge\ =\ navigator\_.\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator_ac26596de1b9f3e1895db5d279a4553fd}{Next}}();}
+\DoxyCodeLine{00177\ \ \ assert(edge\ !=\ \textcolor{keyword}{nullptr});}
+\DoxyCodeLine{00178\ \ \ remaining\_\ -\/=\ edge-\/>length;}
+\DoxyCodeLine{00179\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_ae66daf2fb35dc2cb5d2feba9d24e057c}{EdgeData}}(edge);}
+\DoxyCodeLine{00180\ \}}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00182\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_ad06b8427a1c1f11fb500b5bc2ccb1a3d}{CordRepBtreeReader::Skip}}(\textcolor{keywordtype}{size\_t}\ skip)\ \{}
+\DoxyCodeLine{00183\ \ \ \textcolor{comment}{//\ As\ we\ are\ always\ positioned\ on\ the\ last\ 'consumed'\ edge,\ we}}
+\DoxyCodeLine{00184\ \ \ \textcolor{comment}{//\ need\ to\ skip\ the\ current\ edge\ as\ well\ as\ \`{}skip`.}}
+\DoxyCodeLine{00185\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ edge\_length\ =\ navigator\_.\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator_a91dd72305c4412169943c236bd251d66}{Current}}()-\/>\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_af1380a03e3795f21ee242127e607261f}{length}};}
+\DoxyCodeLine{00186\ \ \ CordRepBtreeNavigator::Position\ pos\ =\ navigator\_.\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator_a2e2905a7b306f40799ccade583833381}{Skip}}(skip\ +\ edge\_length);}
+\DoxyCodeLine{00187\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(pos.edge\ ==\ \textcolor{keyword}{nullptr}))\ \{}
+\DoxyCodeLine{00188\ \ \ \ \ remaining\_\ =\ 0;}
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\};}
+\DoxyCodeLine{00190\ \ \ \}}
+\DoxyCodeLine{00191\ \ \ \textcolor{comment}{//\ The\ combined\ length\ of\ all\ edges\ skipped\ before\ \`{}pos.edge`\ is\ \`{}skip\ -\/}}
+\DoxyCodeLine{00192\ \ \ \textcolor{comment}{//\ pos.offset`,\ all\ of\ which\ are\ 'consumed',\ as\ well\ as\ the\ current\ edge.}}
+\DoxyCodeLine{00193\ \ \ remaining\_\ -\/=\ skip\ -\/\ pos.offset\ +\ pos.edge-\/>length;}
+\DoxyCodeLine{00194\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_ae66daf2fb35dc2cb5d2feba9d24e057c}{EdgeData}}(pos.edge).\mbox{\hyperlink{classabsl_1_1string__view_a61929025b41349e63db522ea90f7bc7c}{substr}}(pos.offset);}
+\DoxyCodeLine{00195\ \}}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a489e0a723934c5b77bd0ec23f2438ae7}{CordRepBtreeReader::Seek}}(\textcolor{keywordtype}{size\_t}\ offset)\ \{}
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{const}\ CordRepBtreeNavigator::Position\ pos\ =\ navigator\_.\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeNavigator_aa24bcfb7d39413b903f54a86e212f7e2}{Seek}}(offset);}
+\DoxyCodeLine{00199\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(pos.edge\ ==\ \textcolor{keyword}{nullptr}))\ \{}
+\DoxyCodeLine{00200\ \ \ \ \ remaining\_\ =\ 0;}
+\DoxyCodeLine{00201\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\};}
+\DoxyCodeLine{00202\ \ \ \}}
+\DoxyCodeLine{00203\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ chunk\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_ae66daf2fb35dc2cb5d2feba9d24e057c}{EdgeData}}(pos.edge).\mbox{\hyperlink{classabsl_1_1string__view_a61929025b41349e63db522ea90f7bc7c}{substr}}(pos.offset);}
+\DoxyCodeLine{00204\ \ \ remaining\_\ =\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordRepBtreeReader_a536230a60ea600ce78894a3766506fa8}{length}}()\ -\/\ offset\ -\/\ chunk.\mbox{\hyperlink{classabsl_1_1string__view_a3dd6c567a7bb3cb12763017d275b0f68}{length}}();}
+\DoxyCodeLine{00205\ \ \ \textcolor{keywordflow}{return}\ chunk;}
+\DoxyCodeLine{00206\ \}}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \}\ \ \textcolor{comment}{//\ namespace\ cord\_internal}}
+\DoxyCodeLine{00209\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00210\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_INTERNAL\_CORD\_REP\_BTREE\_READER\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,132 @@
+\doxysection{bounded\+\_\+utf8\+\_\+length\+\_\+sequence.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2debugging_2internal_2bounded__utf8__length__sequence_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2debugging_2internal_2bounded__utf8__length__sequence_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/debugging/internal/bounded\_utf8\_length\_sequence.h@{OriginalStuff/abseil-\/cpp/absl/debugging/internal/bounded\_utf8\_length\_sequence.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2debugging_2internal_2bounded__utf8__length__sequence_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2024\ The\ Abseil\ Authors}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_DEBUGGING\_INTERNAL\_BOUNDED\_UTF8\_LENGTH\_SEQUENCE\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_DEBUGGING\_INTERNAL\_BOUNDED\_UTF8\_LENGTH\_SEQUENCE\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}absl/numeric/bits.h"{}}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00024\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00025\ \textcolor{keyword}{namespace\ }debugging\_internal\ \{}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ A\ sequence\ of\ up\ to\ max\_elements\ integers\ between\ 1\ and\ 4\ inclusive,\ whose}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ insertion\ operation\ computes\ the\ sum\ of\ all\ the\ elements\ before\ the\ insertion}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ point.\ \ This\ is\ useful\ in\ decoding\ Punycode,\ where\ one\ needs\ to\ know\ where\ in}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ a\ UTF-\/8\ byte\ stream\ the\ n-\/th\ code\ point\ begins.}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ BoundedUtf8LengthSequence\ is\ async-\/signal-\/safe\ and\ suitable\ for\ use\ in}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ symbolizing\ stack\ traces\ in\ a\ signal\ handler,\ provided\ max\_elements\ is\ not}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ improvidently\ large.\ \ For\ inputs\ of\ lengths\ accepted\ by\ the\ Rust\ demangler,}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ up\ to\ a\ couple\ hundred\ code\ points,\ InsertAndReturnSumOfPredecessors\ should}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ run\ in\ a\ few\ dozen\ clock\ cycles,\ on\ par\ with\ the\ other\ arithmetic\ required}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ for\ Punycode\ decoding.}}
+\DoxyCodeLine{00038\ \textcolor{keyword}{template}\ <u\textcolor{keywordtype}{int}32\_t\ max\_elements>}
+\DoxyCodeLine{00039\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1debugging__internal_1_1BoundedUtf8LengthSequence}{BoundedUtf8LengthSequence}}\ \{}
+\DoxyCodeLine{00040\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00041\ \ \ \textcolor{comment}{//\ Constructs\ an\ empty\ sequence.}}
+\DoxyCodeLine{00042\ \ \ \mbox{\hyperlink{classabsl_1_1debugging__internal_1_1BoundedUtf8LengthSequence_ac1c67fca6fa4739dd982e79ceb29eb81}{BoundedUtf8LengthSequence}}()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \ \ \textcolor{comment}{//\ Inserts\ \`{}utf\_length`\ at\ position\ \`{}index`,\ shifting\ any\ existing\ elements\ at}}
+\DoxyCodeLine{00045\ \ \ \textcolor{comment}{//\ or\ beyond\ \`{}index`\ one\ position\ to\ the\ right.\ \ If\ the\ sequence\ is\ already}}
+\DoxyCodeLine{00046\ \ \ \textcolor{comment}{//\ full,\ the\ rightmost\ element\ is\ discarded.}}
+\DoxyCodeLine{00047\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00048\ \ \ \textcolor{comment}{//\ Returns\ the\ sum\ of\ the\ elements\ at\ positions\ 0\ to\ \`{}index\ -\/\ 1`\ inclusive.}}
+\DoxyCodeLine{00049\ \ \ \textcolor{comment}{//\ If\ \`{}index`\ is\ greater\ than\ the\ number\ of\ elements\ already\ inserted,\ the}}
+\DoxyCodeLine{00050\ \ \ \textcolor{comment}{//\ excess\ positions\ in\ the\ range\ count\ 1\ apiece.}}
+\DoxyCodeLine{00051\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00052\ \ \ \textcolor{comment}{//\ REQUIRES:\ index\ <\ max\_elements\ and\ 1\ <=\ utf8\_length\ <=\ 4.}}
+\DoxyCodeLine{00053\ \ \ uint32\_t\ \mbox{\hyperlink{classabsl_1_1debugging__internal_1_1BoundedUtf8LengthSequence_a84fe4189beb11ccedf5c0ff0d084513f}{InsertAndReturnSumOfPredecessors}}(}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ uint32\_t\ index,\ uint32\_t\ utf8\_length)\ \{}
+\DoxyCodeLine{00055\ \ \ \ \ \textcolor{comment}{//\ The\ caller\ shouldn't\ pass\ out-\/of-\/bounds\ inputs,\ but\ if\ it\ does\ happen,}}
+\DoxyCodeLine{00056\ \ \ \ \ \textcolor{comment}{//\ clamp\ the\ values\ and\ try\ to\ continue.\ \ If\ we're\ being\ called\ from\ a}}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{comment}{//\ signal\ handler,\ the\ last\ thing\ we\ want\ to\ do\ is\ crash.\ \ Emitting}}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{comment}{//\ malformed\ UTF-\/8\ is\ a\ lesser\ evil.}}
+\DoxyCodeLine{00059\ \ \ \ \ \textcolor{keywordflow}{if}\ (index\ >=\ max\_elements)\ index\ =\ max\_elements\ -\/\ 1;}
+\DoxyCodeLine{00060\ \ \ \ \ \textcolor{keywordflow}{if}\ (utf8\_length\ ==\ 0\ ||\ utf8\_length\ >\ 4)\ utf8\_length\ =\ 1;}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keyword}{const}\ uint32\_t\ word\_index\ =\ index/32;}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keyword}{const}\ uint32\_t\ bit\_index\ =\ 2\ *\ (index\ \%\ 32);}
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ ones\_bit\ =\ uint64\_t\{1\}\ <<\ bit\_index;}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \ \ \textcolor{comment}{//\ Compute\ the\ sum\ of\ predecessors.}}
+\DoxyCodeLine{00067\ \ \ \ \ \textcolor{comment}{//\ \ \ -\/\ Each\ value\ from\ 1\ to\ 4\ is\ represented\ by\ a\ bit\ field\ with\ value\ from}}
+\DoxyCodeLine{00068\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ 0\ to\ 3,\ so\ the\ desired\ sum\ is\ index\ plus\ the\ sum\ of\ the}}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ representations\ actually\ stored.}}
+\DoxyCodeLine{00070\ \ \ \ \ \textcolor{comment}{//\ \ \ -\/\ For\ each\ bit\ field,\ a\ set\ low\ bit\ should\ contribute\ 1\ to\ the\ sum,\ and}}
+\DoxyCodeLine{00071\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ a\ set\ high\ bit\ should\ contribute\ 2.}}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{comment}{//\ \ \ -\/\ Another\ way\ to\ say\ the\ same\ thing\ is\ that\ each\ set\ bit\ contributes\ 1,}}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ and\ each\ set\ high\ bit\ contributes\ an\ additional\ 1.}}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{comment}{//\ \ \ -\/\ So\ the\ sum\ we\ want\ is\ index\ +\ popcount(everything)\ +\ popcount(bits\ in}}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ odd\ positions).}}
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ odd\_bits\_mask\ =\ 0xaaaaaaaaaaaaaaaa;}
+\DoxyCodeLine{00077\ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ lower\_seminibbles\_mask\ =\ ones\_bit\ -\/\ 1;}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ higher\_seminibbles\_mask\ =\ \string~lower\_seminibbles\_mask;}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ same\_word\_bits\_below\_insertion\ =}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ rep\_[word\_index]\ \&\ lower\_seminibbles\_mask;}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{keywordtype}{int}\ full\_popcount\ =\ \mbox{\hyperlink{namespaceabsl_a0d2c81f3600abb7c5c5f160c7276af4b}{absl::popcount}}(same\_word\_bits\_below\_insertion);}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{keywordtype}{int}\ odd\_popcount\ =}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a0d2c81f3600abb7c5c5f160c7276af4b}{absl::popcount}}(same\_word\_bits\_below\_insertion\ \&\ odd\_bits\_mask);}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ =\ word\_index;\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ >\ 0;\ -\/-\/\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}})\ \{}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \textcolor{keyword}{const}\ uint64\_t\ word\_below\_insertion\ =\ rep\_[\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ -\/\ 1];}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ full\_popcount\ +=\ \mbox{\hyperlink{namespaceabsl_a0d2c81f3600abb7c5c5f160c7276af4b}{absl::popcount}}(word\_below\_insertion);}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ odd\_popcount\ +=\ \mbox{\hyperlink{namespaceabsl_a0d2c81f3600abb7c5c5f160c7276af4b}{absl::popcount}}(word\_below\_insertion\ \&\ odd\_bits\_mask);}
+\DoxyCodeLine{00088\ \ \ \ \ \}}
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{keyword}{const}\ uint32\_t\ sum\_of\_predecessors\ =}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ index\ +\ \textcolor{keyword}{static\_cast<}uint32\_t\textcolor{keyword}{>}(full\_popcount\ +\ odd\_popcount);}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \ \ \ \textcolor{comment}{//\ Now\ insert\ utf8\_length's\ representation,\ shifting\ successors\ up\ one}}
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{comment}{//\ place.}}
+\DoxyCodeLine{00094\ \ \ \ \ \textcolor{keywordflow}{for}\ (uint32\_t\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ =\ max\_elements/32\ -\/\ 1;\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ >\ word\_index;\ -\/-\/\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}})\ \{}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ rep\_[\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}]\ =\ (rep\_[\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}]\ <<\ 2)\ |\ (rep\_[\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ -\/\ 1]\ >>\ 62);}
+\DoxyCodeLine{00096\ \ \ \ \ \}}
+\DoxyCodeLine{00097\ \ \ \ \ rep\_[word\_index]\ =}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ (rep\_[word\_index]\ \&\ lower\_seminibbles\_mask)\ |}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ (uint64\_t\{utf8\_length\ -\/\ 1\}\ <<\ bit\_index)\ |}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \ \ ((rep\_[word\_index]\ \&\ higher\_seminibbles\_mask)\ <<\ 2);}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{keywordflow}{return}\ sum\_of\_predecessors;}
+\DoxyCodeLine{00103\ \ \ \}}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ If\ the\ (32\ *\ i\ +\ j)-\/th\ element\ of\ the\ represented\ sequence\ has\ the\ value\ k}}
+\DoxyCodeLine{00107\ \ \ \textcolor{comment}{//\ (0\ <=\ j\ <\ 32,\ 1\ <=\ k\ <=\ 4),\ then\ bits\ 2\ *\ j\ and\ 2\ *\ j\ +\ 1\ of\ rep\_[i]}}
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//\ contain\ the\ seminibble\ (k\ -\/\ 1).}}
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ In\ particular,\ the\ zero-\/initialization\ of\ rep\_\ makes\ positions\ not\ holding}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ any\ inserted\ element\ count\ as\ 1\ in\ InsertAndReturnSumOfPredecessors.}}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ Example:\ rep\_\ =\ \{0xb1,\ ...\ the\ rest\ zeroes\ ...\}\ represents\ the\ sequence}}
+\DoxyCodeLine{00114\ \ \ \textcolor{comment}{//\ (2,\ 1,\ 4,\ 3,\ ...\ the\ rest\ 1's\ ...).\ \ Constructing\ the\ sequence\ of\ Unicode}}
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//\ code\ points\ "{}Àa🂻中"{}\ =\ \{U+00C0,\ U+0061,\ U+1F0BB,\ U+4E2D\}\ (among\ many}}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ other\ examples)\ would\ yield\ this\ value\ of\ rep\_.}}
+\DoxyCodeLine{00117\ \ \ \textcolor{keyword}{static\_assert}(max\_elements\ >\ 0\ \&\&\ max\_elements\ \%\ 32\ ==\ 0,}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}max\_elements\ must\ be\ a\ positive\ multiple\ of\ 32"{}});}
+\DoxyCodeLine{00119\ \ \ uint64\_t\ rep\_[max\_elements/32]\ =\ \{\};}
+\DoxyCodeLine{00120\ \};}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \}\ \ \textcolor{comment}{//\ namespace\ debugging\_internal}}
+\DoxyCodeLine{00123\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00124\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_DEBUGGING\_INTERNAL\_BOUNDED\_UTF8\_LENGTH\_SEQUENCE\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,475 @@
+\doxysection{Redux.\+h}
+\hypertarget{OriginalStuff_2eigen_2Eigen_2src_2Core_2Redux_8h_source}{}\label{OriginalStuff_2eigen_2Eigen_2src_2Core_2Redux_8h_source}\index{OriginalStuff/eigen/Eigen/src/Core/Redux.h@{OriginalStuff/eigen/Eigen/src/Core/Redux.h}}
+\mbox{\hyperlink{OriginalStuff_2eigen_2Eigen_2src_2Core_2Redux_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2008\ Gael\ Guennebaud\ <gael.guennebaud@inria.fr>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ Copyright\ (C)\ 2006-\/2008\ Benoit\ Jacob\ <jacob.benoit.1@gmail.com>}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_REDUX\_H}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#define\ EIGEN\_REDUX\_H}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{\ }
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}\ \{}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ TODO}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ \ *\ implement\ other\ kind\ of\ vectorization}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ \ *\ factorize\ code}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00023\ \textcolor{comment}{*\ Part\ 1\ :\ the\ logic\ deciding\ a\ strategy\ for\ vectorization\ and\ unrolling}}
+\DoxyCodeLine{00024\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator>}
+\DoxyCodeLine{00027\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits}{redux\_traits}}}
+\DoxyCodeLine{00028\ \{}
+\DoxyCodeLine{00029\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1find__best__packet_a74c5256299f16c9f9bad173250bf12be}{find\_best\_packet<typename\ Evaluator::Scalar,Evaluator::SizeAtCompileTime>::type}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_af4de98b40e31808327fbd105791b8760}{PacketType}};}
+\DoxyCodeLine{00031\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00032\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a0c2a90b313d17e2466e66f079fefab5f}{PacketSize}}\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketType>::size}},}
+\DoxyCodeLine{00033\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a531c4543ba7c1973730130866d9ff429}{InnerMaxSize}}\ =\ int(Evaluator::IsRowMajor)}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ Evaluator::MaxColsAtCompileTime}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ Evaluator::MaxRowsAtCompileTime,}
+\DoxyCodeLine{00036\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a789370ee99bb78907c6de80364afb37b}{OuterMaxSize}}\ =\ int(Evaluator::IsRowMajor)}
+\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ Evaluator::MaxRowsAtCompileTime}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ Evaluator::MaxColsAtCompileTime,}
+\DoxyCodeLine{00039\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a8eafd3ce42c0586ace8cc3e4467507b9}{SliceVectorizedWork}}\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a531c4543ba7c1973730130866d9ff429}{InnerMaxSize}})==Dynamic\ ?\ \mbox{\hyperlink{namespaceEigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}}}
+\DoxyCodeLine{00040\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a789370ee99bb78907c6de80364afb37b}{OuterMaxSize}})==Dynamic\ ?\ (int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a531c4543ba7c1973730130866d9ff429}{InnerMaxSize}})>=int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a0c2a90b313d17e2466e66f079fefab5f}{PacketSize}})\ ?\ \mbox{\hyperlink{namespaceEigen_ad81fa7195215a0ce30017dfac309f0b2}{Dynamic}}\ :\ 0)}
+\DoxyCodeLine{00041\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a531c4543ba7c1973730130866d9ff429}{InnerMaxSize}})/int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a0c2a90b313d17e2466e66f079fefab5f}{PacketSize}}))\ *\ \textcolor{keywordtype}{int}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a789370ee99bb78907c6de80364afb37b}{OuterMaxSize}})}
+\DoxyCodeLine{00042\ \ \ \};}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00045\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6afbe966a251f150fdbdd28841ad6e3d9d}{MightVectorize}}\ =\ (int(Evaluator::Flags)\&\mbox{\hyperlink{namespaceEigen_a020f88dc24a123b9afbd756c4b220db2}{ActualPacketAccessBit}})}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \&\&\ (\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<Func>::PacketAccess}}),}
+\DoxyCodeLine{00047\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6aaac5aff3d5afa54730e5e8d98cbd6667}{MayLinearVectorize}}\ =\ bool(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6afbe966a251f150fdbdd28841ad6e3d9d}{MightVectorize}})\ \&\&\ (int(Evaluator::Flags)\&\mbox{\hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit}}),}
+\DoxyCodeLine{00048\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6a15588893a4ac1481441b67e710ba027f}{MaySliceVectorize}}\ \ =\ \textcolor{keywordtype}{bool}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6afbe966a251f150fdbdd28841ad6e3d9d}{MightVectorize}})\ \&\&\ (int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a8eafd3ce42c0586ace8cc3e4467507b9}{SliceVectorizedWork}})==Dynamic\ ||\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a8eafd3ce42c0586ace8cc3e4467507b9}{SliceVectorizedWork}})>=3)}
+\DoxyCodeLine{00049\ \ \ \};}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00052\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00053\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_abbdc1eafd04fafdf4c5b2561e9915463ae68a75cb500dd67b4c584745752969e9}{Traversal}}\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6aaac5aff3d5afa54730e5e8d98cbd6667}{MayLinearVectorize}})\ ?\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}})}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6a15588893a4ac1481441b67e710ba027f}{MaySliceVectorize}})\ \ ?\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a655eb95e8f634fefeef7dd9c8211a88c}{SliceVectorizedTraversal}})}
+\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ int(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a1c6ce6bcccb0a3c8af050b6ad271d46e}{DefaultTraversal}})}
+\DoxyCodeLine{00056\ \ \ \};}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00059\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00060\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a84787d0b2b234564cbccd62f33460082ad42d688bb3795840b6124584884576de}{Cost}}\ =\ Evaluator::SizeAtCompileTime\ ==\ Dynamic\ ?\ \mbox{\hyperlink{namespaceEigen_a3163430a1c13173faffde69016b48aaf}{HugeCost}}}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ \ \ \ :\ int(Evaluator::SizeAtCompileTime)\ *\ int(Evaluator::CoeffReadCost)\ +\ (Evaluator::SizeAtCompileTime-\/1)\ *\ \mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<Func>::Cost}},}
+\DoxyCodeLine{00062\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a84787d0b2b234564cbccd62f33460082a1925695d946b5ce869ee2313bdbf8937}{UnrollingLimit}}\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2arch_2Default_2Settings_8h_a82cebcbf6c1138bd0f956d10fc46ef75}{EIGEN\_UNROLLING\_LIMIT}}\ *\ (\textcolor{keywordtype}{int}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_abbdc1eafd04fafdf4c5b2561e9915463ae68a75cb500dd67b4c584745752969e9}{Traversal}})\ ==\ \textcolor{keywordtype}{int}(\mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a1c6ce6bcccb0a3c8af050b6ad271d46e}{DefaultTraversal}})\ ?\ 1\ :\ \textcolor{keywordtype}{int}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a0c2a90b313d17e2466e66f079fefab5f}{PacketSize}}))}
+\DoxyCodeLine{00063\ \ \ \};}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00066\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00067\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_ae4c10facd20bb6a57204b2b212c28e0fa242a76c275d9049e3d188f91321484c2}{Unrolling}}\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a84787d0b2b234564cbccd62f33460082ad42d688bb3795840b6124584884576de}{Cost}}\ <=\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a84787d0b2b234564cbccd62f33460082a1925695d946b5ce869ee2313bdbf8937}{UnrollingLimit}}\ ?\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}}\ :\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}}}
+\DoxyCodeLine{00068\ \ \ \};}
+\DoxyCodeLine{00069\ \ \ }
+\DoxyCodeLine{00070\ \textcolor{preprocessor}{\#ifdef\ EIGEN\_DEBUG\_ASSIGN}}
+\DoxyCodeLine{00071\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ debug()}
+\DoxyCodeLine{00072\ \ \ \{}
+\DoxyCodeLine{00073\ \ \ \ \ std::cerr\ <<\ \textcolor{stringliteral}{"{}Xpr:\ "{}}\ <<\ \textcolor{keyword}{typeid}(\textcolor{keyword}{typename}\ Evaluator::XprType).\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}}()\ <<\ std::endl;}
+\DoxyCodeLine{00074\ \ \ \ \ std::cerr.setf(std::ios::hex,\ std::ios::basefield);}
+\DoxyCodeLine{00075\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(Evaluator::Flags)}
+\DoxyCodeLine{00076\ \ \ \ \ std::cerr.unsetf(std::ios::hex);}
+\DoxyCodeLine{00077\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a531c4543ba7c1973730130866d9ff429}{InnerMaxSize}})}
+\DoxyCodeLine{00078\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a789370ee99bb78907c6de80364afb37b}{OuterMaxSize}})}
+\DoxyCodeLine{00079\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a8eafd3ce42c0586ace8cc3e4467507b9}{SliceVectorizedWork}})}
+\DoxyCodeLine{00080\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a7f10ba81b48ee224483e0fce27e44a41a0c2a90b313d17e2466e66f079fefab5f}{PacketSize}})}
+\DoxyCodeLine{00081\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6afbe966a251f150fdbdd28841ad6e3d9d}{MightVectorize}})}
+\DoxyCodeLine{00082\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6aaac5aff3d5afa54730e5e8d98cbd6667}{MayLinearVectorize}})}
+\DoxyCodeLine{00083\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a42c53fcd161409c20a63e35c78643fb6a15588893a4ac1481441b67e710ba027f}{MaySliceVectorize}})}
+\DoxyCodeLine{00084\ \ \ \ \ std::cerr\ <<\ \textcolor{stringliteral}{"{}Traversal"{}}\ <<\ \textcolor{stringliteral}{"{}\ =\ "{}}\ <<\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_abbdc1eafd04fafdf4c5b2561e9915463ae68a75cb500dd67b4c584745752969e9}{Traversal}}\ <<\ \textcolor{stringliteral}{"{}\ ("{}}\ <<\ demangle\_traversal(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_abbdc1eafd04fafdf4c5b2561e9915463ae68a75cb500dd67b4c584745752969e9}{Traversal}})\ <<\ \textcolor{stringliteral}{"{})"{}}\ <<\ std::endl;}
+\DoxyCodeLine{00085\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a620fdd8bfd92458f6d21bd5730a6eefb}{EIGEN\_DEBUG\_VAR}}(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_a84787d0b2b234564cbccd62f33460082a1925695d946b5ce869ee2313bdbf8937}{UnrollingLimit}})}
+\DoxyCodeLine{00086\ \ \ \ \ std::cerr\ <<\ \textcolor{stringliteral}{"{}Unrolling"{}}\ <<\ \textcolor{stringliteral}{"{}\ =\ "{}}\ <<\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_ae4c10facd20bb6a57204b2b212c28e0fa242a76c275d9049e3d188f91321484c2}{Unrolling}}\ <<\ \textcolor{stringliteral}{"{}\ ("{}}\ <<\ demangle\_unrolling(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_ae4c10facd20bb6a57204b2b212c28e0fa242a76c275d9049e3d188f91321484c2}{Unrolling}})\ <<\ \textcolor{stringliteral}{"{})"{}}\ <<\ std::endl;}
+\DoxyCodeLine{00087\ \ \ \ \ std::cerr\ <<\ std::endl;}
+\DoxyCodeLine{00088\ \ \ \}}
+\DoxyCodeLine{00089\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00090\ \};}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00093\ \textcolor{comment}{*\ Part\ 2\ :\ unrollers}}
+\DoxyCodeLine{00094\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \textcolor{comment}{/***\ no\ vectorization\ ***/}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator,\ \textcolor{keywordtype}{int}\ Start,\ \textcolor{keywordtype}{int}\ Length>}
+\DoxyCodeLine{00099\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller}{redux\_novec\_unroller}}}
+\DoxyCodeLine{00100\ \{}
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_ac1c43ee26edeef215226f055c674e0eca06fcdc82fb12c65ada539f244915a661}{HalfLength}}\ =\ Length/2}
+\DoxyCodeLine{00103\ \ \ \};}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Evaluator::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_a78c78e0ae6f7be49566b4a207b08393d}{Scalar}};}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}}
+\DoxyCodeLine{00108\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_a78c78e0ae6f7be49566b4a207b08393d}{Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_aa344dd4bfe4d37dd1372f2ca39a3d8ec}{run}}(\textcolor{keyword}{const}\ Evaluator\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ \textcolor{keyword}{const}\ Func\&\ func)}
+\DoxyCodeLine{00109\ \ \ \{}
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{keywordflow}{return}\ func(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller}{redux\_novec\_unroller<Func,\ Evaluator,\ Start,\ HalfLength>::run}}(\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},func),}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller}{redux\_novec\_unroller<Func,\ Evaluator,\ Start+HalfLength,\ Length-\/HalfLength>::run}}(\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},func));}
+\DoxyCodeLine{00112\ \ \ \}}
+\DoxyCodeLine{00113\ \};}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator,\ \textcolor{keywordtype}{int}\ Start>}
+\DoxyCodeLine{00116\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller}{redux\_novec\_unroller}}<Func,\ Evaluator,\ Start,\ 1>}
+\DoxyCodeLine{00117\ \{}
+\DoxyCodeLine{00118\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00119\ \ \ \ \ outer\ =\ Start\ /\ Evaluator::InnerSizeAtCompileTime,}
+\DoxyCodeLine{00120\ \ \ \ \ inner\ =\ Start\ \%\ Evaluator::InnerSizeAtCompileTime}
+\DoxyCodeLine{00121\ \ \ \};}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Evaluator::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_a78c78e0ae6f7be49566b4a207b08393d}{Scalar}};}
+\DoxyCodeLine{00124\ }
+\DoxyCodeLine{00125\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}}
+\DoxyCodeLine{00126\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_3_01Func_00_01Evaluator_00_01Start_00_011_01_4_acb391d86fafd868c1d1484bdd12f0312}{Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_3_01Func_00_01Evaluator_00_01Start_00_011_01_4_a7d5664c3c40dc809f2efe8fb1b8f3f1a}{run}}(\textcolor{keyword}{const}\ Evaluator\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ \textcolor{keyword}{const}\ Func\&)}
+\DoxyCodeLine{00127\ \ \ \{}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.coeffByOuterInner(outer,\ inner);}
+\DoxyCodeLine{00129\ \ \ \}}
+\DoxyCodeLine{00130\ \};}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \textcolor{comment}{//\ This\ is\ actually\ dead\ code\ and\ will\ never\ be\ called.\ It\ is\ required}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ to\ prevent\ false\ warnings\ regarding\ failed\ inlining\ though}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ for\ 0\ length\ run()\ will\ never\ be\ called\ at\ all.}}
+\DoxyCodeLine{00135\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator,\ \textcolor{keywordtype}{int}\ Start>}
+\DoxyCodeLine{00136\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller}{redux\_novec\_unroller}}<Func,\ Evaluator,\ Start,\ 0>}
+\DoxyCodeLine{00137\ \{}
+\DoxyCodeLine{00138\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Evaluator::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_a78c78e0ae6f7be49566b4a207b08393d}{Scalar}};}
+\DoxyCodeLine{00139\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ }
+\DoxyCodeLine{00140\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_3_01Func_00_01Evaluator_00_01Start_00_010_01_4_abbeb0dd8fd7aff0e68a0619fc61d625d}{Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_3_01Func_00_01Evaluator_00_01Start_00_010_01_4_a70712ed123f27f4e6bb5f3aec30ae299}{run}}(\textcolor{keyword}{const}\ Evaluator\&,\ \textcolor{keyword}{const}\ Func\&)\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_a78c78e0ae6f7be49566b4a207b08393d}{Scalar}}();\ \}}
+\DoxyCodeLine{00141\ \};}
+\DoxyCodeLine{00142\ }
+\DoxyCodeLine{00143\ \textcolor{comment}{/***\ vectorization\ ***/}}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator,\ \textcolor{keywordtype}{int}\ Start,\ \textcolor{keywordtype}{int}\ Length>}
+\DoxyCodeLine{00146\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__vec__unroller}{redux\_vec\_unroller}}}
+\DoxyCodeLine{00147\ \{}
+\DoxyCodeLine{00148\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ PacketType>}
+\DoxyCodeLine{00149\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}}
+\DoxyCodeLine{00150\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1PacketType}{PacketType}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__vec__unroller_aea22db013ad36637e60ae9916dbf8d13}{run}}(\textcolor{keyword}{const}\ Evaluator\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ \textcolor{keyword}{const}\ Func\&\ func)}
+\DoxyCodeLine{00151\ \ \ \{}
+\DoxyCodeLine{00152\ \ \ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ PacketSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketType>::size}},}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ HalfLength\ =\ Length/2}
+\DoxyCodeLine{00155\ \ \ \ \ \};}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keywordflow}{return}\ func.packetOp(}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__vec__unroller}{redux\_vec\_unroller<Func,\ Evaluator,\ Start,\ HalfLength>::template}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__vec__unroller_aea22db013ad36637e60ae9916dbf8d13}{run<PacketType>}}(\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},func),}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__vec__unroller}{redux\_vec\_unroller<Func,\ Evaluator,\ Start+HalfLength,\ Length-\/HalfLength>::template}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__vec__unroller_aea22db013ad36637e60ae9916dbf8d13}{run<PacketType>}}(\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},func)\ );}
+\DoxyCodeLine{00160\ \ \ \}}
+\DoxyCodeLine{00161\ \};}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator,\ \textcolor{keywordtype}{int}\ Start>}
+\DoxyCodeLine{00164\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__vec__unroller}{redux\_vec\_unroller}}<Func,\ Evaluator,\ Start,\ 1>}
+\DoxyCodeLine{00165\ \{}
+\DoxyCodeLine{00166\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ PacketType>}
+\DoxyCodeLine{00167\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}}
+\DoxyCodeLine{00168\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1PacketType}{PacketType}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__vec__unroller_3_01Func_00_01Evaluator_00_01Start_00_011_01_4_abcbabb58ed6e25f35c0f90983821bad3}{run}}(\textcolor{keyword}{const}\ Evaluator\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ \textcolor{keyword}{const}\ Func\&)}
+\DoxyCodeLine{00169\ \ \ \{}
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00171\ \ \ \ \ \ \ PacketSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketType>::size}},}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ index\ =\ Start\ *\ PacketSize,}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ outer\ =\ index\ /\ int(Evaluator::InnerSizeAtCompileTime),}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ inner\ =\ index\ \%\ int(Evaluator::InnerSizeAtCompileTime),}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ alignment\ =\ Evaluator::Alignment}
+\DoxyCodeLine{00176\ \ \ \ \ \};}
+\DoxyCodeLine{00177\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.template\ packetByOuterInner<alignment,PacketType>(outer,\ inner);}
+\DoxyCodeLine{00178\ \ \ \}}
+\DoxyCodeLine{00179\ \};}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00182\ \textcolor{comment}{*\ Part\ 3\ :\ implementation\ of\ all\ cases}}
+\DoxyCodeLine{00183\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator,}
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ Traversal\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_abbdc1eafd04fafdf4c5b2561e9915463ae68a75cb500dd67b4c584745752969e9}{redux\_traits<Func,\ Evaluator>::Traversal}},}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ Unrolling\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_ae4c10facd20bb6a57204b2b212c28e0fa242a76c275d9049e3d188f91321484c2}{redux\_traits<Func,\ Evaluator>::Unrolling}}}
+\DoxyCodeLine{00188\ >}
+\DoxyCodeLine{00189\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl}{redux\_impl}};}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator>}
+\DoxyCodeLine{00192\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl}{redux\_impl}}<Func,\ Evaluator,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a1c6ce6bcccb0a3c8af050b6ad271d46e}{DefaultTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}}>}
+\DoxyCodeLine{00193\ \{}
+\DoxyCodeLine{00194\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Evaluator::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01DefaultTraversal_00_01NoUnrolling_01_4_a2fe18b33fd3a2e84ac549da265ef236c}{Scalar}};}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ XprType>}
+\DoxyCodeLine{00197\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00198\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01DefaultTraversal_00_01NoUnrolling_01_4_a2fe18b33fd3a2e84ac549da265ef236c}{Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01DefaultTraversal_00_01NoUnrolling_01_4_ad961269a9117d6a591ceb2d204c12823}{run}}(\textcolor{keyword}{const}\ Evaluator\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ \textcolor{keyword}{const}\ Func\&\ func,\ \textcolor{keyword}{const}\ XprType\&\ xpr)}
+\DoxyCodeLine{00199\ \ \ \{}
+\DoxyCodeLine{00200\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(xpr.rows()>0\ \&\&\ xpr.cols()>0\ \&\&\ \textcolor{stringliteral}{"{}you\ are\ using\ an\ empty\ matrix"{}});}
+\DoxyCodeLine{00201\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01DefaultTraversal_00_01NoUnrolling_01_4_a2fe18b33fd3a2e84ac549da265ef236c}{Scalar}}\ res;}
+\DoxyCodeLine{00202\ \ \ \ \ res\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.coeffByOuterInner(0,\ 0);}
+\DoxyCodeLine{00203\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ xpr.innerSize();\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ res\ =\ func(res,\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.coeffByOuterInner(0,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{00205\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ xpr.outerSize();\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ j\ =\ 0;\ j\ <\ xpr.innerSize();\ ++j)}
+\DoxyCodeLine{00207\ \ \ \ \ \ \ \ \ res\ =\ func(res,\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.coeffByOuterInner(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ j));}
+\DoxyCodeLine{00208\ \ \ \ \ \textcolor{keywordflow}{return}\ res;}
+\DoxyCodeLine{00209\ \ \ \}}
+\DoxyCodeLine{00210\ \};}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator>}
+\DoxyCodeLine{00213\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl}{redux\_impl}}<Func,Evaluator,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a1c6ce6bcccb0a3c8af050b6ad271d46e}{DefaultTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}}>}
+\DoxyCodeLine{00214\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller}{redux\_novec\_unroller}}<Func,Evaluator,\ 0,\ Evaluator::SizeAtCompileTime>}
+\DoxyCodeLine{00215\ \{}
+\DoxyCodeLine{00216\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller}{redux\_novec\_unroller<Func,Evaluator,\ 0,\ Evaluator::SizeAtCompileTime>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller}{Base}};}
+\DoxyCodeLine{00217\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Evaluator::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01DefaultTraversal_00_01CompleteUnrolling_01_4_a912b14bbcf366d6a7b234e6e05cdfe8b}{Scalar}};}
+\DoxyCodeLine{00218\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ XprType>}
+\DoxyCodeLine{00219\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00220\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01DefaultTraversal_00_01CompleteUnrolling_01_4_a912b14bbcf366d6a7b234e6e05cdfe8b}{Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01DefaultTraversal_00_01CompleteUnrolling_01_4_a63e6ad7afdda0f445edd759312f48482}{run}}(\textcolor{keyword}{const}\ Evaluator\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ \textcolor{keyword}{const}\ Func\&\ func,\ \textcolor{keyword}{const}\ XprType\&\ \textcolor{comment}{/*xpr*/})}
+\DoxyCodeLine{00221\ \ \ \{}
+\DoxyCodeLine{00222\ \ \ \ \ \textcolor{keywordflow}{return}\ Base::run(\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},func);}
+\DoxyCodeLine{00223\ \ \ \}}
+\DoxyCodeLine{00224\ \};}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator>}
+\DoxyCodeLine{00227\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl}{redux\_impl}}<Func,\ Evaluator,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669da80b1a3a1fe9bfdc2f5e2a60f9f1ebfd4}{NoUnrolling}}>}
+\DoxyCodeLine{00228\ \{}
+\DoxyCodeLine{00229\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Evaluator::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01NoUnrolling_01_4_aeaf9d6f90b0e617e19285d838a963e20}{Scalar}};}
+\DoxyCodeLine{00230\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_af4de98b40e31808327fbd105791b8760}{redux\_traits<Func,\ Evaluator>::PacketType}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01NoUnrolling_01_4_ad458e7755d623a99618550a0f3c0b26c}{PacketScalar}};}
+\DoxyCodeLine{00231\ }
+\DoxyCodeLine{00232\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ XprType>}
+\DoxyCodeLine{00233\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01NoUnrolling_01_4_aeaf9d6f90b0e617e19285d838a963e20}{Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01NoUnrolling_01_4_adf82d9340288f28d8dcb17eaa2248b85}{run}}(\textcolor{keyword}{const}\ Evaluator\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ \textcolor{keyword}{const}\ Func\&\ func,\ \textcolor{keyword}{const}\ XprType\&\ xpr)}
+\DoxyCodeLine{00234\ \ \ \{}
+\DoxyCodeLine{00235\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ xpr.size();}
+\DoxyCodeLine{00236\ \ \ \ \ }
+\DoxyCodeLine{00237\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ packetSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits}{redux\_traits<Func,\ Evaluator>::PacketSize}};}
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ packetAlignment\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits}{unpacket\_traits<PacketScalar>::alignment}};}
+\DoxyCodeLine{00239\ \ \ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00240\ \ \ \ \ \ \ alignment0\ =\ (bool(Evaluator::Flags\ \&\ \mbox{\hyperlink{group__flags_gabf1e9d0516a933445a4c307ad8f14915}{DirectAccessBit}})\ \&\&\ bool(\mbox{\hyperlink{structEigen_1_1internal_1_1packet__traits}{packet\_traits<Scalar>::AlignedOnScalar}}))\ ?\ \textcolor{keywordtype}{int}(packetAlignment)\ :\ int(\mbox{\hyperlink{group__enums_gga45fe06e29902b7a2773de05ba27b47a1ac935220b4c844108e183ebe30a4d5204}{Unaligned}}),}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ alignment\ =\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a062701c0cea4b04350c0ac6980db81ec}{EIGEN\_PLAIN\_ENUM\_MAX}}(alignment0,\ Evaluator::Alignment)}
+\DoxyCodeLine{00242\ \ \ \ \ \};}
+\DoxyCodeLine{00243\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedStart\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a8f16b915ba954e15a13f76ca3016830a}{internal::first\_default\_aligned}}(xpr);}
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedSize2\ =\ ((\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}-\/alignedStart)/(2*packetSize))*(2*packetSize);}
+\DoxyCodeLine{00245\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedSize\ =\ ((\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}-\/alignedStart)/(packetSize))*(packetSize);}
+\DoxyCodeLine{00246\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedEnd2\ =\ alignedStart\ +\ alignedSize2;}
+\DoxyCodeLine{00247\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ alignedEnd\ \ =\ alignedStart\ +\ alignedSize;}
+\DoxyCodeLine{00248\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01NoUnrolling_01_4_aeaf9d6f90b0e617e19285d838a963e20}{Scalar}}\ res;}
+\DoxyCodeLine{00249\ \ \ \ \ \textcolor{keywordflow}{if}(alignedSize)}
+\DoxyCodeLine{00250\ \ \ \ \ \{}
+\DoxyCodeLine{00251\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01NoUnrolling_01_4_ad458e7755d623a99618550a0f3c0b26c}{PacketScalar}}\ packet\_res0\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.template\ packet<alignment,PacketScalar>(alignedStart);}
+\DoxyCodeLine{00252\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(alignedSize>packetSize)\ \textcolor{comment}{//\ we\ have\ at\ least\ two\ packets\ to\ partly\ unroll\ the\ loop}}
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00254\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01NoUnrolling_01_4_ad458e7755d623a99618550a0f3c0b26c}{PacketScalar}}\ packet\_res1\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.template\ packet<alignment,PacketScalar>(alignedStart+packetSize);}
+\DoxyCodeLine{00255\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index\ =\ alignedStart\ +\ 2*packetSize;\ index\ <\ alignedEnd2;\ index\ +=\ 2*packetSize)}
+\DoxyCodeLine{00256\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00257\ \ \ \ \ \ \ \ \ \ \ packet\_res0\ =\ func.packetOp(packet\_res0,\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.template\ packet<alignment,PacketScalar>(index));}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \ \ \ \ packet\_res1\ =\ func.packetOp(packet\_res1,\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.template\ packet<alignment,PacketScalar>(index+packetSize));}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00260\ }
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ packet\_res0\ =\ func.packetOp(packet\_res0,packet\_res1);}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(alignedEnd>alignedEnd2)}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \ \ packet\_res0\ =\ func.packetOp(packet\_res0,\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.template\ packet<alignment,PacketScalar>(alignedEnd2));}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ res\ =\ func.predux(packet\_res0);}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index\ =\ 0;\ index\ <\ alignedStart;\ ++index)}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \ \ res\ =\ func(res,\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.coeff(index));}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00270\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index\ =\ alignedEnd;\ index\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}};\ ++index)}
+\DoxyCodeLine{00271\ \ \ \ \ \ \ \ \ res\ =\ func(res,\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.coeff(index));}
+\DoxyCodeLine{00272\ \ \ \ \ \}}
+\DoxyCodeLine{00273\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{comment}{//\ too\ small\ to\ vectorize\ anything.}}
+\DoxyCodeLine{00274\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ since\ this\ is\ dynamic-\/size\ hence\ inefficient\ anyway\ for\ such\ small\ sizes,\ don't\ try\ to\ optimize.}}
+\DoxyCodeLine{00275\ \ \ \ \ \{}
+\DoxyCodeLine{00276\ \ \ \ \ \ \ res\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.coeff(0);}
+\DoxyCodeLine{00277\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index\ =\ 1;\ index\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}};\ ++index)}
+\DoxyCodeLine{00278\ \ \ \ \ \ \ \ \ res\ =\ func(res,\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.coeff(index));}
+\DoxyCodeLine{00279\ \ \ \ \ \}}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \ \ \ \ \textcolor{keywordflow}{return}\ res;}
+\DoxyCodeLine{00282\ \ \ \}}
+\DoxyCodeLine{00283\ \};}
+\DoxyCodeLine{00284\ }
+\DoxyCodeLine{00285\ \textcolor{comment}{//\ NOTE:\ for\ SliceVectorizedTraversal\ we\ simply\ bypass\ unrolling}}
+\DoxyCodeLine{00286\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator,\ \textcolor{keywordtype}{int}\ Unrolling>}
+\DoxyCodeLine{00287\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl}{redux\_impl}}<Func,\ Evaluator,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5a655eb95e8f634fefeef7dd9c8211a88c}{SliceVectorizedTraversal}},\ Unrolling>}
+\DoxyCodeLine{00288\ \{}
+\DoxyCodeLine{00289\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Evaluator::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01SliceVectorizedTraversal_00_01Unrolling_01_4_ac4f8bd935f232fd5eeb937f06a9ba958}{Scalar}};}
+\DoxyCodeLine{00290\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_af4de98b40e31808327fbd105791b8760}{redux\_traits<Func,\ Evaluator>::PacketType}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01SliceVectorizedTraversal_00_01Unrolling_01_4_adde82b8707171dfb5903ff6fa0936fb9}{PacketType}};}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ XprType>}
+\DoxyCodeLine{00293\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01SliceVectorizedTraversal_00_01Unrolling_01_4_ac4f8bd935f232fd5eeb937f06a9ba958}{Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01SliceVectorizedTraversal_00_01Unrolling_01_4_a58a759d1cb8a37dac28d5527633f4243}{run}}(\textcolor{keyword}{const}\ Evaluator\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ \textcolor{keyword}{const}\ Func\&\ func,\ \textcolor{keyword}{const}\ XprType\&\ xpr)}
+\DoxyCodeLine{00294\ \ \ \{}
+\DoxyCodeLine{00295\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(xpr.rows()>0\ \&\&\ xpr.cols()>0\ \&\&\ \textcolor{stringliteral}{"{}you\ are\ using\ an\ empty\ matrix"{}});}
+\DoxyCodeLine{00296\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ innerSize\ =\ xpr.innerSize();}
+\DoxyCodeLine{00297\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outerSize\ =\ xpr.outerSize();}
+\DoxyCodeLine{00298\ \ \ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00299\ \ \ \ \ \ \ packetSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits}{redux\_traits<Func,\ Evaluator>::PacketSize}}}
+\DoxyCodeLine{00300\ \ \ \ \ \};}
+\DoxyCodeLine{00301\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ packetedInnerSize\ =\ ((innerSize)/packetSize)*packetSize;}
+\DoxyCodeLine{00302\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01SliceVectorizedTraversal_00_01Unrolling_01_4_ac4f8bd935f232fd5eeb937f06a9ba958}{Scalar}}\ res;}
+\DoxyCodeLine{00303\ \ \ \ \ \textcolor{keywordflow}{if}(packetedInnerSize)}
+\DoxyCodeLine{00304\ \ \ \ \ \{}
+\DoxyCodeLine{00305\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01SliceVectorizedTraversal_00_01Unrolling_01_4_adde82b8707171dfb5903ff6fa0936fb9}{PacketType}}\ packet\_res\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.template\ packet<Unaligned,PacketType>(0,0);}
+\DoxyCodeLine{00306\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ j=0;\ j<outerSize;\ ++j)}
+\DoxyCodeLine{00307\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}=(j==0?packetSize:0);\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}<packetedInnerSize;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}+=\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}(packetSize))}
+\DoxyCodeLine{00308\ \ \ \ \ \ \ \ \ \ \ packet\_res\ =\ func.packetOp(packet\_res,\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.template\ packetByOuterInner<Unaligned,PacketType>(j,\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{00309\ }
+\DoxyCodeLine{00310\ \ \ \ \ \ \ res\ =\ func.predux(packet\_res);}
+\DoxyCodeLine{00311\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ j=0;\ j<outerSize;\ ++j)}
+\DoxyCodeLine{00312\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}=packetedInnerSize;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}<innerSize;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00313\ \ \ \ \ \ \ \ \ \ \ res\ =\ func(res,\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}.coeffByOuterInner(j,\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{00314\ \ \ \ \ \}}
+\DoxyCodeLine{00315\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{comment}{//\ too\ small\ to\ vectorize\ anything.}}
+\DoxyCodeLine{00316\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ since\ this\ is\ dynamic-\/size\ hence\ inefficient\ anyway\ for\ such\ small\ sizes,\ don't\ try\ to\ optimize.}}
+\DoxyCodeLine{00317\ \ \ \ \ \{}
+\DoxyCodeLine{00318\ \ \ \ \ \ \ res\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl}{redux\_impl<Func,\ Evaluator,\ DefaultTraversal,\ NoUnrolling>::run}}(\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ func,\ xpr);}
+\DoxyCodeLine{00319\ \ \ \ \ \}}
+\DoxyCodeLine{00320\ }
+\DoxyCodeLine{00321\ \ \ \ \ \textcolor{keywordflow}{return}\ res;}
+\DoxyCodeLine{00322\ \ \ \}}
+\DoxyCodeLine{00323\ \};}
+\DoxyCodeLine{00324\ }
+\DoxyCodeLine{00325\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func,\ \textcolor{keyword}{typename}\ Evaluator>}
+\DoxyCodeLine{00326\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl}{redux\_impl}}<Func,\ Evaluator,\ \mbox{\hyperlink{namespaceEigen_a3d2409f30bc18e288e66de7ac53f71e5aff975f2266ae97d2a651c873c2ff6e13}{LinearVectorizedTraversal}},\ \mbox{\hyperlink{namespaceEigen_ab8c7299b77156ae8c7827ba61787669daa776df3d4ff4888c1554fa19d48c8320}{CompleteUnrolling}}>}
+\DoxyCodeLine{00327\ \{}
+\DoxyCodeLine{00328\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Evaluator::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01CompleteUnrolling_01_4_a277902814ceeffbfda54a8dd238e77c2}{Scalar}};}
+\DoxyCodeLine{00329\ }
+\DoxyCodeLine{00330\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits_af4de98b40e31808327fbd105791b8760}{redux\_traits<Func,\ Evaluator>::PacketType}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01CompleteUnrolling_01_4_a5778ab20263eee35516fb4bc78296390}{PacketType}};}
+\DoxyCodeLine{00331\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00332\ \ \ \ \ PacketSize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__traits}{redux\_traits<Func,\ Evaluator>::PacketSize}},}
+\DoxyCodeLine{00333\ \ \ \ \ Size\ =\ Evaluator::SizeAtCompileTime,}
+\DoxyCodeLine{00334\ \ \ \ \ VectorizedSize\ =\ (int(Size)\ /\ int(PacketSize))\ *\ \textcolor{keywordtype}{int}(PacketSize)}
+\DoxyCodeLine{00335\ \ \ \};}
+\DoxyCodeLine{00336\ }
+\DoxyCodeLine{00337\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ XprType>}
+\DoxyCodeLine{00338\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{static}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00339\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01CompleteUnrolling_01_4_a277902814ceeffbfda54a8dd238e77c2}{Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01CompleteUnrolling_01_4_af9a3564540ddb235f7afb6283343c942}{run}}(\textcolor{keyword}{const}\ Evaluator\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},\ \textcolor{keyword}{const}\ Func\&\ func,\ \textcolor{keyword}{const}\ XprType\ \&xpr)}
+\DoxyCodeLine{00340\ \ \ \{}
+\DoxyCodeLine{00341\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_aa92b5a5bd7b7cbc4754cea71c0866023}{EIGEN\_ONLY\_USED\_FOR\_DEBUG}}(xpr)}
+\DoxyCodeLine{00342\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(xpr.rows()>0\ \&\&\ xpr.cols()>0\ \&\&\ \textcolor{stringliteral}{"{}you\ are\ using\ an\ empty\ matrix"{}});}
+\DoxyCodeLine{00343\ \ \ \ \ \textcolor{keywordflow}{if}\ (VectorizedSize\ >\ 0)\ \{}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__impl_3_01Func_00_01Evaluator_00_01LinearVectorizedTraversal_00_01CompleteUnrolling_01_4_a277902814ceeffbfda54a8dd238e77c2}{Scalar}}\ res\ =\ func.predux(\mbox{\hyperlink{structEigen_1_1internal_1_1redux__vec__unroller}{redux\_vec\_unroller<Func,\ Evaluator,\ 0,\ Size\ /\ PacketSize>::template}}\ run<PacketType>(\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},func));}
+\DoxyCodeLine{00345\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (VectorizedSize\ !=\ Size)}
+\DoxyCodeLine{00346\ \ \ \ \ \ \ \ \ res\ =\ func(res,\mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller}{redux\_novec\_unroller<Func,\ Evaluator,\ VectorizedSize,\ Size-\/VectorizedSize>::run}}(\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},func));}
+\DoxyCodeLine{00347\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ res;}
+\DoxyCodeLine{00348\ \ \ \ \ \}}
+\DoxyCodeLine{00349\ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structEigen_1_1internal_1_1redux__novec__unroller_aa344dd4bfe4d37dd1372f2ca39a3d8ec}{redux\_novec\_unroller<Func,\ Evaluator,\ 0,\ Size>::run}}(\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}},func);}
+\DoxyCodeLine{00351\ \ \ \ \ \}}
+\DoxyCodeLine{00352\ \ \ \}}
+\DoxyCodeLine{00353\ \};}
+\DoxyCodeLine{00354\ }
+\DoxyCodeLine{00355\ \textcolor{comment}{//\ evaluator\ adaptor}}
+\DoxyCodeLine{00356\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ \_XprType>}
+\DoxyCodeLine{00357\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator}{redux\_evaluator}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{internal::evaluator}}<\_XprType>}
+\DoxyCodeLine{00358\ \{}
+\DoxyCodeLine{00359\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{internal::evaluator<\_XprType>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{Base}};}
+\DoxyCodeLine{00360\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00361\ \ \ \textcolor{keyword}{typedef}\ \_XprType\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_acc45bdab9b8f02fe19a183cd18dccaa6}{XprType}};}
+\DoxyCodeLine{00362\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00363\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a8c4a623dd7c8d31f2f3ac0651f827cdf}{redux\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_acc45bdab9b8f02fe19a183cd18dccaa6}{XprType}}\ \&xpr)\ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{Base}}(xpr)\ \{\}}
+\DoxyCodeLine{00364\ \ \ }
+\DoxyCodeLine{00365\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Scalar\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a1bf8a7092dd7275c5d575ad536c29a94}{Scalar}};}
+\DoxyCodeLine{00366\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::CoeffReturnType\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a23b1054b9d1aa504024ca69d9830b9fa}{CoeffReturnType}};}
+\DoxyCodeLine{00367\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::PacketScalar\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a40654b5cbdcd571f0587dcdadfddae19}{PacketScalar}};}
+\DoxyCodeLine{00368\ \ \ }
+\DoxyCodeLine{00369\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00370\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099ac4aca8ae145cdcf0251b4d831872aa7d}{MaxRowsAtCompileTime}}\ =\ XprType::MaxRowsAtCompileTime,}
+\DoxyCodeLine{00371\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099a57a6118e8fb6a22102f242e5d8e8dfdd}{MaxColsAtCompileTime}}\ =\ XprType::MaxColsAtCompileTime,}
+\DoxyCodeLine{00372\ \ \ \ \ \textcolor{comment}{//\ TODO\ we\ should\ not\ remove\ DirectAccessBit\ and\ rather\ find\ an\ elegant\ way\ to\ query\ the\ alignment\ offset\ at\ runtime\ from\ the\ evaluator}}
+\DoxyCodeLine{00373\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099a38f7e0f0c49273664ce6e08eb83ed4d2}{Flags}}\ =\ Base::Flags\ \&\ \string~DirectAccessBit,}
+\DoxyCodeLine{00374\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099a097ee89ae7b18fe9f8519b6b8e41647b}{IsRowMajor}}\ =\ XprType::IsRowMajor,}
+\DoxyCodeLine{00375\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099ae5bfb77e8d41aad32e485ca0d9f2bfc0}{SizeAtCompileTime}}\ =\ XprType::SizeAtCompileTime,}
+\DoxyCodeLine{00376\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099ad381cb12533bd531db7130cc6fe81b1e}{InnerSizeAtCompileTime}}\ =\ XprType::InnerSizeAtCompileTime}
+\DoxyCodeLine{00377\ \ \ \};}
+\DoxyCodeLine{00378\ \ \ }
+\DoxyCodeLine{00379\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00380\ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a23b1054b9d1aa504024ca69d9830b9fa}{CoeffReturnType}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_ad8f9a4fcbd749a167fedbeba51117276}{coeffByOuterInner}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00381\ \textcolor{keyword}{\ \ }\{\ \textcolor{keywordflow}{return}\ Base::coeff(\mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099a097ee89ae7b18fe9f8519b6b8e41647b}{IsRowMajor}}\ ?\ outer\ :\ inner,\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099a097ee89ae7b18fe9f8519b6b8e41647b}{IsRowMajor}}\ ?\ inner\ :\ outer);\ \}}
+\DoxyCodeLine{00382\ \ \ }
+\DoxyCodeLine{00383\ \ \ \textcolor{keyword}{template}<\textcolor{keywordtype}{int}\ LoadMode,\ \textcolor{keyword}{typename}\ PacketType>}
+\DoxyCodeLine{00384\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00385\ \ \ \mbox{\hyperlink{structEigen_1_1PacketType}{PacketType}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_ad768a9e1e63c7157d0b24a5b81c2ddcc}{packetByOuterInner}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inner)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00386\ \textcolor{keyword}{\ \ }\{\ \textcolor{keywordflow}{return}\ Base::template\ packet<LoadMode,PacketType>(\mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099a097ee89ae7b18fe9f8519b6b8e41647b}{IsRowMajor}}\ ?\ outer\ :\ inner,\ \mbox{\hyperlink{classEigen_1_1internal_1_1redux__evaluator_a6dcfc7b0443814ca10b84f6ffca8a099a097ee89ae7b18fe9f8519b6b8e41647b}{IsRowMajor}}\ ?\ inner\ :\ outer);\ \}}
+\DoxyCodeLine{00387\ \ \ }
+\DoxyCodeLine{00388\ \};}
+\DoxyCodeLine{00389\ }
+\DoxyCodeLine{00390\ \}\ \textcolor{comment}{//\ end\ namespace\ internal}}
+\DoxyCodeLine{00391\ }
+\DoxyCodeLine{00392\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00393\ \textcolor{comment}{*\ Part\ 4\ :\ public\ API}}
+\DoxyCodeLine{00394\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00395\ }
+\DoxyCodeLine{00396\ }
+\DoxyCodeLine{00406\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00407\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Func>}
+\DoxyCodeLine{00408\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{typename}\ internal::traits<Derived>::Scalar}
+\DoxyCodeLine{00409\ \mbox{\hyperlink{classEigen_1_1DenseBase_abeb8cc034b4c9c2e36a15590d24a461c}{DenseBase<Derived>::redux}}(\textcolor{keyword}{const}\ Func\&\ func)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00410\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00411\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(this-\/>rows()>0\ \&\&\ this-\/>cols()>0\ \&\&\ \textcolor{stringliteral}{"{}you\ are\ using\ an\ empty\ matrix"{}});}
+\DoxyCodeLine{00412\ }
+\DoxyCodeLine{00413\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ internal::redux\_evaluator<Derived>\ ThisEvaluator;}
+\DoxyCodeLine{00414\ \ \ ThisEvaluator\ thisEval(derived());}
+\DoxyCodeLine{00415\ }
+\DoxyCodeLine{00416\ \ \ \textcolor{comment}{//\ The\ initial\ expression\ is\ passed\ to\ the\ reducer\ as\ an\ additional\ argument\ instead\ of}}
+\DoxyCodeLine{00417\ \ \ \textcolor{comment}{//\ passing\ it\ as\ a\ member\ of\ redux\_evaluator\ to\ help\ \ }}
+\DoxyCodeLine{00418\ \ \ \textcolor{keywordflow}{return}\ internal::redux\_impl<Func,\ ThisEvaluator>::run(thisEval,\ func,\ derived());}
+\DoxyCodeLine{00419\ \}}
+\DoxyCodeLine{00420\ }
+\DoxyCodeLine{00428\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00429\ \textcolor{keyword}{template}<\textcolor{keywordtype}{int}\ NaNPropagation>}
+\DoxyCodeLine{00430\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{typename}\ internal::traits<Derived>::Scalar}
+\DoxyCodeLine{00431\ \mbox{\hyperlink{classEigen_1_1DenseBase_a62d1a22ba775a392784a365265186067}{DenseBase<Derived>::minCoeff}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00432\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00433\ \ \ \textcolor{keywordflow}{return}\ derived().redux(\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__min__op}{Eigen::internal::scalar\_min\_op<Scalar,Scalar,\ NaNPropagation>}}());}
+\DoxyCodeLine{00434\ \}}
+\DoxyCodeLine{00435\ }
+\DoxyCodeLine{00443\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00444\ \textcolor{keyword}{template}<\textcolor{keywordtype}{int}\ NaNPropagation>}
+\DoxyCodeLine{00445\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{typename}\ internal::traits<Derived>::Scalar}
+\DoxyCodeLine{00446\ \mbox{\hyperlink{classEigen_1_1DenseBase_a90f31c27f2a2df8ee729fd081821b9e7}{DenseBase<Derived>::maxCoeff}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00447\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00448\ \ \ \textcolor{keywordflow}{return}\ derived().redux(\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__max__op}{Eigen::internal::scalar\_max\_op<Scalar,Scalar,\ NaNPropagation>}}());}
+\DoxyCodeLine{00449\ \}}
+\DoxyCodeLine{00450\ }
+\DoxyCodeLine{00457\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00458\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{typename}\ internal::traits<Derived>::Scalar}
+\DoxyCodeLine{00459\ \mbox{\hyperlink{classEigen_1_1DenseBase_ac7b6e2d5e05f37b6cd3f213d28fdac24}{DenseBase<Derived>::sum}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00460\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00461\ \ \ \textcolor{keywordflow}{if}(SizeAtCompileTime==0\ ||\ (SizeAtCompileTime==Dynamic\ \&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()==0))}
+\DoxyCodeLine{00462\ \ \ \ \ \textcolor{keywordflow}{return}\ Scalar(0);}
+\DoxyCodeLine{00463\ \ \ \textcolor{keywordflow}{return}\ derived().redux(\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__sum__op}{Eigen::internal::scalar\_sum\_op<Scalar,Scalar>}}());}
+\DoxyCodeLine{00464\ \}}
+\DoxyCodeLine{00465\ }
+\DoxyCodeLine{00470\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00471\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{typename}\ internal::traits<Derived>::Scalar}
+\DoxyCodeLine{00472\ \mbox{\hyperlink{classEigen_1_1DenseBase_acd8b96239d3cd5e5bd4f207e86fafa11}{DenseBase<Derived>::mean}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00473\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00474\ \textcolor{preprocessor}{\#ifdef\ \_\_INTEL\_COMPILER}}
+\DoxyCodeLine{00475\ \textcolor{preprocessor}{\ \ \#pragma\ warning\ push}}
+\DoxyCodeLine{00476\ \textcolor{preprocessor}{\ \ \#pragma\ warning\ (\ disable\ :\ 2259\ )}}
+\DoxyCodeLine{00477\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00478\ \ \ \textcolor{keywordflow}{return}\ Scalar(derived().redux(\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__sum__op}{Eigen::internal::scalar\_sum\_op<Scalar,Scalar>}}()))\ /\ Scalar(this-\/>\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}());}
+\DoxyCodeLine{00479\ \textcolor{preprocessor}{\#ifdef\ \_\_INTEL\_COMPILER}}
+\DoxyCodeLine{00480\ \textcolor{preprocessor}{\ \ \#pragma\ warning\ pop}}
+\DoxyCodeLine{00481\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00482\ \}}
+\DoxyCodeLine{00483\ }
+\DoxyCodeLine{00491\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00492\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{typename}\ internal::traits<Derived>::Scalar}
+\DoxyCodeLine{00493\ \mbox{\hyperlink{classEigen_1_1DenseBase_aba82045810e94956b893911c732fa4a8}{DenseBase<Derived>::prod}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00494\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00495\ \ \ \textcolor{keywordflow}{if}(SizeAtCompileTime==0\ ||\ (SizeAtCompileTime==Dynamic\ \&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()==0))}
+\DoxyCodeLine{00496\ \ \ \ \ \textcolor{keywordflow}{return}\ Scalar(1);}
+\DoxyCodeLine{00497\ \ \ \textcolor{keywordflow}{return}\ derived().redux(\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__product__op}{Eigen::internal::scalar\_product\_op<Scalar>}}());}
+\DoxyCodeLine{00498\ \}}
+\DoxyCodeLine{00499\ }
+\DoxyCodeLine{00506\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00507\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{typename}\ internal::traits<Derived>::Scalar}
+\DoxyCodeLine{00508\ \mbox{\hyperlink{classEigen_1_1MatrixBase_ab5a5b552855d0433cc2e9b6a87237a3a}{MatrixBase<Derived>::trace}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00509\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00510\ \ \ \textcolor{keywordflow}{return}\ derived().diagonal().sum();}
+\DoxyCodeLine{00511\ \}}
+\DoxyCodeLine{00512\ }
+\DoxyCodeLine{00513\ \}\ \textcolor{comment}{//\ end\ namespace\ Eigen}}
+\DoxyCodeLine{00514\ }
+\DoxyCodeLine{00515\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ EIGEN\_REDUX\_H}}
+
+\end{DoxyCode}

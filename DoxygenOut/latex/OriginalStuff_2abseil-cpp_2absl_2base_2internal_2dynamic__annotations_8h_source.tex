@@ -1,0 +1,404 @@
+\doxysection{dynamic\+\_\+annotations.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2base_2internal_2dynamic__annotations_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2base_2internal_2dynamic__annotations_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/base/internal/dynamic\_annotations.h@{OriginalStuff/abseil-\/cpp/absl/base/internal/dynamic\_annotations.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2base_2internal_2dynamic__annotations_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ This\ file\ defines\ dynamic\ annotations\ for\ use\ with\ dynamic\ analysis\ tool}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ such\ as\ valgrind,\ PIN,\ etc.}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ Dynamic\ annotation\ is\ a\ source\ code\ annotation\ that\ affects\ the\ generated}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ code\ (that\ is,\ the\ annotation\ is\ not\ a\ comment).\ Each\ such\ annotation\ is}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ attached\ to\ a\ particular\ instruction\ and/or\ to\ a\ particular\ object\ (address)}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ in\ the\ program.}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ The\ annotations\ that\ should\ be\ used\ by\ users\ are\ macros\ in\ all\ upper-\/case}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ (e.g.,\ ANNOTATE\_THREAD\_NAME).}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ Actual\ implementation\ of\ these\ macros\ may\ differ\ depending\ on\ the\ dynamic}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ analysis\ tool\ being\ used.}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ This\ file\ supports\ the\ following\ configurations:}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ -\/\ Dynamic\ Annotations\ enabled\ (with\ static\ thread-\/safety\ warnings\ disabled).}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ \ \ In\ this\ case,\ macros\ expand\ to\ functions\ implemented\ by\ Thread\ Sanitizer,}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ \ \ when\ building\ with\ TSan.\ When\ not\ provided\ an\ external\ implementation,}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ \ \ dynamic\_annotations.cc\ provides\ no-\/op\ implementations.}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ -\/\ Static\ Clang\ thread-\/safety\ warnings\ enabled.}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ \ \ When\ building\ with\ a\ Clang\ compiler\ that\ supports\ thread-\/safety\ warnings,}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ \ \ a\ subset\ of\ annotations\ can\ be\ statically-\/checked\ at\ compile-\/time.\ We}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ \ \ expand\ these\ macros\ to\ static-\/inline\ functions\ that\ can\ be\ analyzed\ for}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ \ \ thread-\/safety,\ but\ afterwards\ elided\ when\ building\ the\ final\ binary.}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ -\/\ All\ annotations\ are\ disabled.}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ \ \ If\ neither\ Dynamic\ Annotations\ nor\ Clang\ thread-\/safety\ warnings\ are}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ enabled,\ then\ all\ annotation-\/macros\ expand\ to\ empty.}}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_DYNAMIC\_ANNOTATIONS\_H\_}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_DYNAMIC\_ANNOTATIONS\_H\_}}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ Decide\ which\ features\ are\ enabled}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{preprocessor}{\#ifndef\ DYNAMIC\_ANNOTATIONS\_ENABLED}}
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#define\ DYNAMIC\_ANNOTATIONS\_ENABLED\ 0}}
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#if\ defined(\_\_clang\_\_)\ \&\&\ !defined(SWIG)}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_IGNORE\_READS\_ATTRIBUTE\_ENABLED\ 1}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\#if\ DYNAMIC\_ANNOTATIONS\_ENABLED\ !=\ 0}}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_RACE\_ANNOTATIONS\_ENABLED\ 1}}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_READS\_ANNOTATIONS\_ENABLED\ 1}}
+\DoxyCodeLine{00067\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_WRITES\_ANNOTATIONS\_ENABLED\ 1}}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_ANNOTALYSIS\_ENABLED\ 0}}
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_READS\_WRITES\_ANNOTATIONS\_ENABLED\ 1}}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_RACE\_ANNOTATIONS\_ENABLED\ 0}}
+\DoxyCodeLine{00074\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_READS\_ANNOTATIONS\_ENABLED\ 0}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_WRITES\_ANNOTATIONS\_ENABLED\ 0}}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ Clang\ provides\ limited\ support\ for\ static\ thread-\/safety\ analysis\ through\ a}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ feature\ called\ Annotalysis.\ We\ configure\ macro-\/definitions\ according\ to}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ whether\ Annotalysis\ support\ is\ available.\ When\ running\ in\ opt-\/mode,\ GCC}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ will\ issue\ a\ warning,\ if\ these\ attributes\ are\ compiled.\ Only\ include\ them}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ when\ compiling\ using\ Clang.}}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ ANNOTALYSIS\_ENABLED\ ==\ 1\ when\ IGNORE\_READ\_ATTRIBUTE\_ENABLED\ ==\ 1}}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_ANNOTALYSIS\_ENABLED\ \(\backslash\)}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\ \ defined(ABSL\_INTERNAL\_IGNORE\_READS\_ATTRIBUTE\_ENABLED)}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ Read/write\ annotations\ are\ enabled\ in\ Annotalysis\ mode;\ disabled\ otherwise.}}
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_READS\_WRITES\_ANNOTATIONS\_ENABLED\ \(\backslash\)}}
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_ANNOTALYSIS\_ENABLED}}
+\DoxyCodeLine{00089\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00090\ }
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ Memory\ annotations\ are\ also\ made\ available\ to\ LLVM's\ Memory\ Sanitizer}}
+\DoxyCodeLine{00092\ \textcolor{preprocessor}{\#if\ defined(ABSL\_HAVE\_MEMORY\_SANITIZER)\ \&\&\ !defined(\_\_native\_client\_\_)}}
+\DoxyCodeLine{00093\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_MEMORY\_ANNOTATIONS\_ENABLED\ 1}}
+\DoxyCodeLine{00094\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \textcolor{preprocessor}{\#ifndef\ ABSL\_INTERNAL\_MEMORY\_ANNOTATIONS\_ENABLED}}
+\DoxyCodeLine{00097\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_MEMORY\_ANNOTATIONS\_ENABLED\ 0}}
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00101\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_BEGIN\_EXTERN\_C\ extern\ "{}C"{}\ \{}}
+\DoxyCodeLine{00102\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_END\_EXTERN\_C\ \}\ \ }\textcolor{comment}{//\ extern\ "{}C"{}}}
+\DoxyCodeLine{00103\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_GLOBAL\_SCOPED(F)\ ::F}}
+\DoxyCodeLine{00104\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_STATIC\_INLINE\ inline}}
+\DoxyCodeLine{00105\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00106\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_BEGIN\_EXTERN\_C\ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00107\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_END\_EXTERN\_C\ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_GLOBAL\_SCOPED(F)\ F}}
+\DoxyCodeLine{00109\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_STATIC\_INLINE\ static\ inline}}
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ Define\ race\ annotations.}}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_RACE\_ANNOTATIONS\_ENABLED\ ==\ 1}}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ Annotations\ that\ suppress\ errors.\ It\ is\ usually\ better\ to\ express\ the}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ program's\ synchronization\ using\ the\ other\ annotations,\ but\ these\ can\ be\ used}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ when\ all\ else\ fails.}}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ Report\ that\ we\ may\ have\ a\ benign\ race\ at\ \`{}pointer`,\ with\ size}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ "{}sizeof(*(pointer))"{}.\ \`{}pointer`\ must\ be\ a\ non-\/void*\ pointer.\ Insert\ at\ the}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ point\ where\ \`{}pointer`\ has\ been\ allocated,\ preferably\ close\ to\ the\ point}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ where\ the\ race\ happens.\ See\ also\ ANNOTATE\_BENIGN\_RACE\_STATIC.}}
+\DoxyCodeLine{00126\ \textcolor{preprocessor}{\#define\ ANNOTATE\_BENIGN\_RACE(pointer,\ description)\ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00127\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateBenignRaceSized)\ \(\backslash\)}}
+\DoxyCodeLine{00128\ \textcolor{preprocessor}{\ \ (\_\_FILE\_\_,\ \_\_LINE\_\_,\ pointer,\ sizeof(*(pointer)),\ description)}}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ Same\ as\ ANNOTATE\_BENIGN\_RACE(`address`,\ \`{}description`),\ but\ applies\ to}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ the\ memory\ range\ [`address`,\ \`{}address`+`size`).}}
+\DoxyCodeLine{00132\ \textcolor{preprocessor}{\#define\ ANNOTATE\_BENIGN\_RACE\_SIZED(address,\ size,\ description)\ \(\backslash\)}}
+\DoxyCodeLine{00133\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateBenignRaceSized)\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00134\ \textcolor{preprocessor}{\ \ (\_\_FILE\_\_,\ \_\_LINE\_\_,\ address,\ size,\ description)}}
+\DoxyCodeLine{00135\ }
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ Enable\ (`enable`!=0)\ or\ disable\ (`enable`==0)\ race\ detection\ for\ all\ threads.}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ This\ annotation\ could\ be\ useful\ if\ you\ want\ to\ skip\ expensive\ race\ analysis}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ during\ some\ period\ of\ program\ execution,\ e.g.\ during\ initialization.}}
+\DoxyCodeLine{00139\ \textcolor{preprocessor}{\#define\ ANNOTATE\_ENABLE\_RACE\_DETECTION(enable)\ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00140\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateEnableRaceDetection)\ \(\backslash\)}}
+\DoxyCodeLine{00141\ \textcolor{preprocessor}{\ \ (\_\_FILE\_\_,\ \_\_LINE\_\_,\ enable)}}
+\DoxyCodeLine{00142\ }
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ Annotations\ useful\ for\ debugging.}}
+\DoxyCodeLine{00145\ }
+\DoxyCodeLine{00146\ \textcolor{comment}{//\ Report\ the\ current\ thread\ \`{}name`\ to\ a\ race\ detector.}}
+\DoxyCodeLine{00147\ \textcolor{preprocessor}{\#define\ ANNOTATE\_THREAD\_NAME(name)\ \(\backslash\)}}
+\DoxyCodeLine{00148\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateThreadName)(\_\_FILE\_\_,\ \_\_LINE\_\_,\ name)}}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ Annotations\ useful\ when\ implementing\ locks.\ They\ are\ not\ normally\ needed\ by}}
+\DoxyCodeLine{00152\ \textcolor{comment}{//\ modules\ that\ merely\ use\ locks.\ The\ \`{}lock`\ argument\ is\ a\ pointer\ to\ the\ lock}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ object.}}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ Report\ that\ a\ lock\ has\ been\ created\ at\ address\ \`{}lock`.}}
+\DoxyCodeLine{00156\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_CREATE(lock)\ \(\backslash\)}}
+\DoxyCodeLine{00157\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateRWLockCreate)(\_\_FILE\_\_,\ \_\_LINE\_\_,\ lock)}}
+\DoxyCodeLine{00158\ }
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ Report\ that\ a\ linker\ initialized\ lock\ has\ been\ created\ at\ address\ \`{}lock`.}}
+\DoxyCodeLine{00160\ \textcolor{preprocessor}{\#ifdef\ ABSL\_HAVE\_THREAD\_SANITIZER}}
+\DoxyCodeLine{00161\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_CREATE\_STATIC(lock)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00162\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateRWLockCreateStatic)\ \(\backslash\)}}
+\DoxyCodeLine{00163\ \textcolor{preprocessor}{\ \ (\_\_FILE\_\_,\ \_\_LINE\_\_,\ lock)}}
+\DoxyCodeLine{00164\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00165\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_CREATE\_STATIC(lock)\ ANNOTATE\_RWLOCK\_CREATE(lock)}}
+\DoxyCodeLine{00166\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00167\ }
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ Report\ that\ the\ lock\ at\ address\ \`{}lock`\ is\ about\ to\ be\ destroyed.}}
+\DoxyCodeLine{00169\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_DESTROY(lock)\ \(\backslash\)}}
+\DoxyCodeLine{00170\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateRWLockDestroy)(\_\_FILE\_\_,\ \_\_LINE\_\_,\ lock)}}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ Report\ that\ the\ lock\ at\ address\ \`{}lock`\ has\ been\ acquired.}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//\ \`{}is\_w`=1\ for\ writer\ lock,\ \`{}is\_w`=0\ for\ reader\ lock.}}
+\DoxyCodeLine{00174\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_ACQUIRED(lock,\ is\_w)\ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00175\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateRWLockAcquired)\ \(\backslash\)}}
+\DoxyCodeLine{00176\ \textcolor{preprocessor}{\ \ (\_\_FILE\_\_,\ \_\_LINE\_\_,\ lock,\ is\_w)}}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \textcolor{comment}{//\ Report\ that\ the\ lock\ at\ address\ \`{}lock`\ is\ about\ to\ be\ released.}}
+\DoxyCodeLine{00179\ \textcolor{comment}{//\ \`{}is\_w`=1\ for\ writer\ lock,\ \`{}is\_w`=0\ for\ reader\ lock.}}
+\DoxyCodeLine{00180\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_RELEASED(lock,\ is\_w)\ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00181\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateRWLockReleased)\ \(\backslash\)}}
+\DoxyCodeLine{00182\ \textcolor{preprocessor}{\ \ (\_\_FILE\_\_,\ \_\_LINE\_\_,\ lock,\ is\_w)}}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \textcolor{comment}{//\ Apply\ ANNOTATE\_BENIGN\_RACE\_SIZED\ to\ a\ static\ variable\ \`{}static\_var`.}}
+\DoxyCodeLine{00185\ \textcolor{preprocessor}{\#define\ ANNOTATE\_BENIGN\_RACE\_STATIC(static\_var,\ description)\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00186\ \textcolor{preprocessor}{\ \ namespace\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00187\ \textcolor{preprocessor}{\ \ class\ static\_var\#\#\_annotator\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00188\ \textcolor{preprocessor}{\ \ \ public:\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00189\ \textcolor{preprocessor}{\ \ \ \ static\_var\#\#\_annotator()\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00190\ \textcolor{preprocessor}{\ \ \ \ \ \ ANNOTATE\_BENIGN\_RACE\_SIZED(\&static\_var,\ sizeof(static\_var),\ \(\backslash\)}}
+\DoxyCodeLine{00191\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \#static\_var\ "{}:\ "{}\ description);\ \ \ \(\backslash\)}}
+\DoxyCodeLine{00192\ \textcolor{preprocessor}{\ \ \ \ \}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00193\ \textcolor{preprocessor}{\ \ \};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00194\ \textcolor{preprocessor}{\ \ static\ static\_var\#\#\_annotator\ the\#\#static\_var\#\#\_annotator;\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00195\ \textcolor{preprocessor}{\ \ \}\ \ }\textcolor{comment}{//\ namespace}}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ ABSL\_INTERNAL\_RACE\_ANNOTATIONS\_ENABLED\ ==\ 0}}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_CREATE(lock)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00200\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_CREATE\_STATIC(lock)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00201\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_DESTROY(lock)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00202\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_ACQUIRED(lock,\ is\_w)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00203\ \textcolor{preprocessor}{\#define\ ANNOTATE\_RWLOCK\_RELEASED(lock,\ is\_w)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00204\ \textcolor{preprocessor}{\#define\ ANNOTATE\_BENIGN\_RACE(address,\ description)\ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00205\ \textcolor{preprocessor}{\#define\ ANNOTATE\_BENIGN\_RACE\_SIZED(address,\ size,\ description)\ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00206\ \textcolor{preprocessor}{\#define\ ANNOTATE\_THREAD\_NAME(name)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00207\ \textcolor{preprocessor}{\#define\ ANNOTATE\_ENABLE\_RACE\_DETECTION(enable)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00208\ \textcolor{preprocessor}{\#define\ ANNOTATE\_BENIGN\_RACE\_STATIC(static\_var,\ description)\ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_INTERNAL\_RACE\_ANNOTATIONS\_ENABLED}}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00213\ \textcolor{comment}{//\ Define\ memory\ annotations.}}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_MEMORY\_ANNOTATIONS\_ENABLED\ ==\ 1}}
+\DoxyCodeLine{00216\ }
+\DoxyCodeLine{00217\ \textcolor{preprocessor}{\#include\ <sanitizer/msan\_interface.h>}}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \textcolor{preprocessor}{\#define\ ANNOTATE\_MEMORY\_IS\_INITIALIZED(address,\ size)\ \(\backslash\)}}
+\DoxyCodeLine{00220\ \textcolor{preprocessor}{\ \ \_\_msan\_unpoison(address,\ size)}}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \textcolor{preprocessor}{\#define\ ANNOTATE\_MEMORY\_IS\_UNINITIALIZED(address,\ size)\ \(\backslash\)}}
+\DoxyCodeLine{00223\ \textcolor{preprocessor}{\ \ \_\_msan\_allocated\_memory(address,\ size)}}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00225\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ ABSL\_INTERNAL\_MEMORY\_ANNOTATIONS\_ENABLED\ ==\ 0}}
+\DoxyCodeLine{00226\ }
+\DoxyCodeLine{00227\ \textcolor{preprocessor}{\#if\ DYNAMIC\_ANNOTATIONS\_ENABLED\ ==\ 1}}
+\DoxyCodeLine{00228\ \textcolor{preprocessor}{\#define\ ANNOTATE\_MEMORY\_IS\_INITIALIZED(address,\ size)\ \(\backslash\)}}
+\DoxyCodeLine{00229\ \textcolor{preprocessor}{\ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00230\ \textcolor{preprocessor}{\ \ \ \ (void)(address);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00231\ \textcolor{preprocessor}{\ \ \ \ (void)(size);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00232\ \textcolor{preprocessor}{\ \ \}\ while\ (0)}}
+\DoxyCodeLine{00233\ \textcolor{preprocessor}{\#define\ ANNOTATE\_MEMORY\_IS\_UNINITIALIZED(address,\ size)\ \(\backslash\)}}
+\DoxyCodeLine{00234\ \textcolor{preprocessor}{\ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00235\ \textcolor{preprocessor}{\ \ \ \ (void)(address);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00236\ \textcolor{preprocessor}{\ \ \ \ (void)(size);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00237\ \textcolor{preprocessor}{\ \ \}\ while\ (0)}}
+\DoxyCodeLine{00238\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00239\ \textcolor{preprocessor}{\#define\ ANNOTATE\_MEMORY\_IS\_INITIALIZED(address,\ size)\ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00240\ \textcolor{preprocessor}{\#define\ ANNOTATE\_MEMORY\_IS\_UNINITIALIZED(address,\ size)\ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00241\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_INTERNAL\_MEMORY\_ANNOTATIONS\_ENABLED}}
+\DoxyCodeLine{00244\ }
+\DoxyCodeLine{00245\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00246\ \textcolor{comment}{//\ Define\ IGNORE\_READS\_BEGIN/\_END\ attributes.}}
+\DoxyCodeLine{00247\ }
+\DoxyCodeLine{00248\ \textcolor{preprocessor}{\#if\ defined(ABSL\_INTERNAL\_IGNORE\_READS\_ATTRIBUTE\_ENABLED)}}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00250\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_IGNORE\_READS\_BEGIN\_ATTRIBUTE\ \(\backslash\)}}
+\DoxyCodeLine{00251\ \textcolor{preprocessor}{\ \ \_\_attribute((exclusive\_lock\_function("{}*"{})))}}
+\DoxyCodeLine{00252\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_IGNORE\_READS\_END\_ATTRIBUTE\ \(\backslash\)}}
+\DoxyCodeLine{00253\ \textcolor{preprocessor}{\ \ \_\_attribute((unlock\_function("{}*"{})))}}
+\DoxyCodeLine{00254\ }
+\DoxyCodeLine{00255\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ !defined(ABSL\_INTERNAL\_IGNORE\_READS\_ATTRIBUTE\_ENABLED)}}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_IGNORE\_READS\_BEGIN\_ATTRIBUTE\ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00258\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_IGNORE\_READS\_END\_ATTRIBUTE\ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00259\ }
+\DoxyCodeLine{00260\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ defined(ABSL\_INTERNAL\_IGNORE\_READS\_ATTRIBUTE\_ENABLED)}}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00263\ \textcolor{comment}{//\ Define\ IGNORE\_READS\_BEGIN/\_END\ annotations.}}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_READS\_ANNOTATIONS\_ENABLED\ ==\ 1}}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \textcolor{comment}{//\ Request\ the\ analysis\ tool\ to\ ignore\ all\ reads\ in\ the\ current\ thread\ until}}
+\DoxyCodeLine{00268\ \textcolor{comment}{//\ ANNOTATE\_IGNORE\_READS\_END\ is\ called.\ Useful\ to\ ignore\ intentional\ racey}}
+\DoxyCodeLine{00269\ \textcolor{comment}{//\ reads,\ while\ still\ checking\ other\ reads\ and\ all\ writes.}}
+\DoxyCodeLine{00270\ \textcolor{comment}{//\ See\ also\ ANNOTATE\_UNPROTECTED\_READ.}}
+\DoxyCodeLine{00271\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_BEGIN()\ \(\backslash\)}}
+\DoxyCodeLine{00272\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateIgnoreReadsBegin)(\_\_FILE\_\_,\ \_\_LINE\_\_)}}
+\DoxyCodeLine{00273\ }
+\DoxyCodeLine{00274\ \textcolor{comment}{//\ Stop\ ignoring\ reads.}}
+\DoxyCodeLine{00275\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_END()\ \(\backslash\)}}
+\DoxyCodeLine{00276\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateIgnoreReadsEnd)(\_\_FILE\_\_,\ \_\_LINE\_\_)}}
+\DoxyCodeLine{00277\ }
+\DoxyCodeLine{00278\ \textcolor{preprocessor}{\#elif\ defined(ABSL\_INTERNAL\_ANNOTALYSIS\_ENABLED)}}
+\DoxyCodeLine{00279\ }
+\DoxyCodeLine{00280\ \textcolor{comment}{//\ When\ Annotalysis\ is\ enabled\ without\ Dynamic\ Annotations,\ the\ use\ of}}
+\DoxyCodeLine{00281\ \textcolor{comment}{//\ static-\/inline\ functions\ allows\ the\ annotations\ to\ be\ read\ at\ compile-\/time,}}
+\DoxyCodeLine{00282\ \textcolor{comment}{//\ while\ still\ letting\ the\ compiler\ elide\ the\ functions\ from\ the\ final\ build.}}
+\DoxyCodeLine{00283\ \textcolor{comment}{//}}
+\DoxyCodeLine{00284\ \textcolor{comment}{//\ TODO(delesley)\ -\/-\/\ The\ exclusive\ lock\ here\ ignores\ writes\ as\ well,\ but}}
+\DoxyCodeLine{00285\ \textcolor{comment}{//\ allows\ IGNORE\_READS\_AND\_WRITES\ to\ work\ properly.}}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00287\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_BEGIN()\ \(\backslash\)}}
+\DoxyCodeLine{00288\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AbslInternalAnnotateIgnoreReadsBegin)()}}
+\DoxyCodeLine{00289\ }
+\DoxyCodeLine{00290\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_END()\ \(\backslash\)}}
+\DoxyCodeLine{00291\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AbslInternalAnnotateIgnoreReadsEnd)()}}
+\DoxyCodeLine{00292\ }
+\DoxyCodeLine{00293\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_BEGIN()\ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00296\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_END()\ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00297\ }
+\DoxyCodeLine{00298\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00299\ }
+\DoxyCodeLine{00300\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00301\ \textcolor{comment}{//\ Define\ IGNORE\_WRITES\_BEGIN/\_END\ annotations.}}
+\DoxyCodeLine{00302\ }
+\DoxyCodeLine{00303\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_WRITES\_ANNOTATIONS\_ENABLED\ ==\ 1}}
+\DoxyCodeLine{00304\ }
+\DoxyCodeLine{00305\ \textcolor{comment}{//\ Similar\ to\ ANNOTATE\_IGNORE\_READS\_BEGIN,\ but\ ignore\ writes\ instead.}}
+\DoxyCodeLine{00306\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_WRITES\_BEGIN()\ \(\backslash\)}}
+\DoxyCodeLine{00307\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateIgnoreWritesBegin)(\_\_FILE\_\_,\ \_\_LINE\_\_)}}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00309\ \textcolor{comment}{//\ Stop\ ignoring\ writes.}}
+\DoxyCodeLine{00310\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_WRITES\_END()\ \(\backslash\)}}
+\DoxyCodeLine{00311\ \textcolor{preprocessor}{\ \ ABSL\_INTERNAL\_GLOBAL\_SCOPED(AnnotateIgnoreWritesEnd)(\_\_FILE\_\_,\ \_\_LINE\_\_)}}
+\DoxyCodeLine{00312\ }
+\DoxyCodeLine{00313\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00314\ }
+\DoxyCodeLine{00315\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_WRITES\_BEGIN()\ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00316\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_WRITES\_END()\ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00317\ }
+\DoxyCodeLine{00318\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00319\ }
+\DoxyCodeLine{00320\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00321\ \textcolor{comment}{//\ Define\ the\ ANNOTATE\_IGNORE\_READS\_AND\_WRITES\_*\ annotations\ using\ the\ more}}
+\DoxyCodeLine{00322\ \textcolor{comment}{//\ primitive\ annotations\ defined\ above.}}
+\DoxyCodeLine{00323\ \textcolor{comment}{//}}
+\DoxyCodeLine{00324\ \textcolor{comment}{//\ \ \ \ \ Instead\ of\ doing}}
+\DoxyCodeLine{00325\ \textcolor{comment}{//\ \ \ \ \ \ \ \ ANNOTATE\_IGNORE\_READS\_BEGIN();}}
+\DoxyCodeLine{00326\ \textcolor{comment}{//\ \ \ \ \ \ \ \ ...\ =\ x;}}
+\DoxyCodeLine{00327\ \textcolor{comment}{//\ \ \ \ \ \ \ \ ANNOTATE\_IGNORE\_READS\_END();}}
+\DoxyCodeLine{00328\ \textcolor{comment}{//\ \ \ \ \ one\ can\ use}}
+\DoxyCodeLine{00329\ \textcolor{comment}{//\ \ \ \ \ \ \ \ ...\ =\ ANNOTATE\_UNPROTECTED\_READ(x);}}
+\DoxyCodeLine{00330\ }
+\DoxyCodeLine{00331\ \textcolor{preprocessor}{\#if\ defined(ABSL\_INTERNAL\_READS\_WRITES\_ANNOTATIONS\_ENABLED)}}
+\DoxyCodeLine{00332\ }
+\DoxyCodeLine{00333\ \textcolor{comment}{//\ Start\ ignoring\ all\ memory\ accesses\ (both\ reads\ and\ writes).}}
+\DoxyCodeLine{00334\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_AND\_WRITES\_BEGIN()\ \(\backslash\)}}
+\DoxyCodeLine{00335\ \textcolor{preprocessor}{\ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00336\ \textcolor{preprocessor}{\ \ \ \ ANNOTATE\_IGNORE\_READS\_BEGIN();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00337\ \textcolor{preprocessor}{\ \ \ \ ANNOTATE\_IGNORE\_WRITES\_BEGIN();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00338\ \textcolor{preprocessor}{\ \ \}\ while\ (0)}}
+\DoxyCodeLine{00339\ }
+\DoxyCodeLine{00340\ \textcolor{comment}{//\ Stop\ ignoring\ both\ reads\ and\ writes.}}
+\DoxyCodeLine{00341\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_AND\_WRITES\_END()\ \(\backslash\)}}
+\DoxyCodeLine{00342\ \textcolor{preprocessor}{\ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00343\ \textcolor{preprocessor}{\ \ \ \ ANNOTATE\_IGNORE\_WRITES\_END();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00344\ \textcolor{preprocessor}{\ \ \ \ ANNOTATE\_IGNORE\_READS\_END();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00345\ \textcolor{preprocessor}{\ \ \}\ while\ (0)}}
+\DoxyCodeLine{00346\ }
+\DoxyCodeLine{00347\ \textcolor{preprocessor}{\#ifdef\ \_\_cplusplus}}
+\DoxyCodeLine{00348\ \textcolor{comment}{//\ ANNOTATE\_UNPROTECTED\_READ\ is\ the\ preferred\ way\ to\ annotate\ racey\ reads.}}
+\DoxyCodeLine{00349\ \textcolor{preprocessor}{\#define\ ANNOTATE\_UNPROTECTED\_READ(x)\ \(\backslash\)}}
+\DoxyCodeLine{00350\ \textcolor{preprocessor}{\ \ absl::base\_internal::AnnotateUnprotectedRead(x)}}
+\DoxyCodeLine{00351\ }
+\DoxyCodeLine{00352\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00353\ }
+\DoxyCodeLine{00354\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00355\ }
+\DoxyCodeLine{00356\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_AND\_WRITES\_BEGIN()\ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00357\ \textcolor{preprocessor}{\#define\ ANNOTATE\_IGNORE\_READS\_AND\_WRITES\_END()\ \ \ \ }\textcolor{comment}{//\ empty}}
+\DoxyCodeLine{00358\ \textcolor{preprocessor}{\#define\ ANNOTATE\_UNPROTECTED\_READ(x)\ (x)}}
+\DoxyCodeLine{00359\ }
+\DoxyCodeLine{00360\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00361\ }
+\DoxyCodeLine{00362\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00363\ \textcolor{comment}{//\ Address\ sanitizer\ annotations}}
+\DoxyCodeLine{00364\ }
+\DoxyCodeLine{00365\ \textcolor{preprocessor}{\#ifdef\ ABSL\_HAVE\_ADDRESS\_SANITIZER}}
+\DoxyCodeLine{00366\ \textcolor{comment}{//\ Describe\ the\ current\ state\ of\ a\ contiguous\ container\ such\ as\ e.g.}}
+\DoxyCodeLine{00367\ \textcolor{comment}{//\ std::vector\ or\ std::string.\ For\ more\ details\ see}}
+\DoxyCodeLine{00368\ \textcolor{comment}{//\ sanitizer/common\_interface\_defs.h,\ which\ is\ provided\ by\ the\ compiler.}}
+\DoxyCodeLine{00369\ \textcolor{preprocessor}{\#include\ <sanitizer/common\_interface\_defs.h>}}
+\DoxyCodeLine{00370\ }
+\DoxyCodeLine{00371\ \textcolor{preprocessor}{\#define\ ANNOTATE\_CONTIGUOUS\_CONTAINER(beg,\ end,\ old\_mid,\ new\_mid)\ \(\backslash\)}}
+\DoxyCodeLine{00372\ \textcolor{preprocessor}{\ \ \_\_sanitizer\_annotate\_contiguous\_container(beg,\ end,\ old\_mid,\ new\_mid)}}
+\DoxyCodeLine{00373\ \textcolor{preprocessor}{\#define\ ADDRESS\_SANITIZER\_REDZONE(name)\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00374\ \textcolor{preprocessor}{\ \ struct\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00375\ \textcolor{preprocessor}{\ \ \ \ char\ x[8]\ \_\_attribute\_\_((aligned(8)));\ \(\backslash\)}}
+\DoxyCodeLine{00376\ \textcolor{preprocessor}{\ \ \}\ name}}
+\DoxyCodeLine{00377\ }
+\DoxyCodeLine{00378\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00379\ }
+\DoxyCodeLine{00380\ \textcolor{preprocessor}{\#define\ ANNOTATE\_CONTIGUOUS\_CONTAINER(beg,\ end,\ old\_mid,\ new\_mid)}}
+\DoxyCodeLine{00381\ \textcolor{preprocessor}{\#define\ ADDRESS\_SANITIZER\_REDZONE(name)\ static\_assert(true,\ "{}"{})}}
+\DoxyCodeLine{00382\ }
+\DoxyCodeLine{00383\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_HAVE\_ADDRESS\_SANITIZER}}
+\DoxyCodeLine{00384\ }
+\DoxyCodeLine{00385\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00386\ \textcolor{comment}{//\ Undefine\ the\ macros\ intended\ only\ for\ this\ file.}}
+\DoxyCodeLine{00387\ }
+\DoxyCodeLine{00388\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_RACE\_ANNOTATIONS\_ENABLED}}
+\DoxyCodeLine{00389\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_MEMORY\_ANNOTATIONS\_ENABLED}}
+\DoxyCodeLine{00390\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_READS\_ANNOTATIONS\_ENABLED}}
+\DoxyCodeLine{00391\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_WRITES\_ANNOTATIONS\_ENABLED}}
+\DoxyCodeLine{00392\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_ANNOTALYSIS\_ENABLED}}
+\DoxyCodeLine{00393\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_READS\_WRITES\_ANNOTATIONS\_ENABLED}}
+\DoxyCodeLine{00394\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_BEGIN\_EXTERN\_C}}
+\DoxyCodeLine{00395\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_END\_EXTERN\_C}}
+\DoxyCodeLine{00396\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_STATIC\_INLINE}}
+\DoxyCodeLine{00397\ }
+\DoxyCodeLine{00398\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_DYNAMIC\_ANNOTATIONS\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,242 @@
+\doxysection{Run\+Queue.\+h}
+\hypertarget{eigen_2unsupported_2Eigen_2CXX11_2src_2ThreadPool_2RunQueue_8h_source}{}\label{eigen_2unsupported_2Eigen_2CXX11_2src_2ThreadPool_2RunQueue_8h_source}\index{eigen/unsupported/Eigen/CXX11/src/ThreadPool/RunQueue.h@{eigen/unsupported/Eigen/CXX11/src/ThreadPool/RunQueue.h}}
+\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2ThreadPool_2RunQueue_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2016\ Dmitry\ Vyukov\ <dvyukov@google.com>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_CXX11\_THREADPOOL\_RUNQUEUE\_H\_}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#define\ EIGEN\_CXX11\_THREADPOOL\_RUNQUEUE\_H\_}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ RunQueue\ is\ a\ fixed-\/size,\ partially\ non-\/blocking\ deque\ or\ Work\ items.}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ Operations\ on\ front\ of\ the\ queue\ must\ be\ done\ by\ a\ single\ thread\ (owner),}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ operations\ on\ back\ of\ the\ queue\ can\ be\ done\ by\ multiple\ threads\ concurrently.}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ Algorithm\ outline:}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ All\ remote\ threads\ operating\ on\ the\ queue\ back\ are\ serialized\ by\ a\ mutex.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ This\ ensures\ that\ at\ most\ two\ threads\ access\ state:\ owner\ and\ one\ remote}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ thread\ (Size\ aside).\ The\ algorithm\ ensures\ that\ the\ occupied\ region\ of\ the}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ underlying\ array\ is\ logically\ continuous\ (can\ wraparound,\ but\ no\ stray}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ occupied\ elements).\ Owner\ operates\ on\ one\ end\ of\ this\ region,\ remote\ thread}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ operates\ on\ the\ other\ end.\ Synchronization\ between\ these\ threads}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ (potential\ consumption\ of\ the\ last\ element\ and\ take\ up\ of\ the\ last\ empty}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ element)\ happens\ by\ means\ of\ state\ variable\ in\ each\ element.\ States\ are:}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ empty,\ busy\ (in\ process\ of\ insertion\ of\ removal)\ and\ ready.\ Threads\ claim}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ elements\ (empty-\/>busy\ and\ ready-\/>busy\ transitions)\ by\ means\ of\ a\ CAS}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ operation.\ The\ finishing\ transition\ (busy-\/>empty\ and\ busy-\/>ready)\ are\ done}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ with\ plain\ store\ as\ the\ element\ is\ exclusively\ owned\ by\ the\ current\ thread.}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ Note:\ we\ could\ permit\ only\ pointers\ as\ elements,\ then\ we\ would\ not\ need}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ separate\ state\ variable\ as\ null/non-\/null\ pointer\ value\ would\ serve\ as\ state,}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ but\ that\ would\ require\ malloc/free\ per\ operation\ for\ large,\ complex\ values}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ (and\ this\ is\ designed\ to\ store\ std::function<()>).}}
+\DoxyCodeLine{00037\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Work,\ \textcolor{keywordtype}{unsigned}\ kSize>}
+\DoxyCodeLine{00038\ \textcolor{keyword}{class\ }RunQueue\ \{}
+\DoxyCodeLine{00039\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00040\ \ \ \mbox{\hyperlink{classEigen_1_1RunQueue_afd6573d43cd90181d21cedb9c1721672}{RunQueue}}()\ :\ front\_(0),\ back\_(0)\ \{}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{comment}{//\ require\ power-\/of-\/two\ for\ fast\ masking}}
+\DoxyCodeLine{00042\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}((kSize\ \&\ (kSize\ -\/\ 1))\ ==\ 0);}
+\DoxyCodeLine{00043\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}(kSize\ >\ 2);\ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ why\ would\ you\ do\ this?}}
+\DoxyCodeLine{00044\ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}(kSize\ <=\ (64\ <<\ 10));\ \ \textcolor{comment}{//\ leave\ enough\ space\ for\ counter}}
+\DoxyCodeLine{00045\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{unsigned}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ kSize;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ array\_[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}].state.store(kEmpty,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00047\ \ \ \}}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \ \ \mbox{\hyperlink{classEigen_1_1RunQueue_aa746573c5cbc6e13743b19cbc9dd1deb}{\string~RunQueue}}()\ \{\ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}(\mbox{\hyperlink{classEigen_1_1RunQueue_aa193d3baea623281da1886603799dd87}{Size}}()\ ==\ 0);\ \}}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \textcolor{comment}{//\ PushFront\ inserts\ w\ at\ the\ beginning\ of\ the\ queue.}}
+\DoxyCodeLine{00052\ \ \ \textcolor{comment}{//\ If\ queue\ is\ full\ returns\ w,\ otherwise\ returns\ default-\/constructed\ Work.}}
+\DoxyCodeLine{00053\ \ \ Work\ \mbox{\hyperlink{classEigen_1_1RunQueue_aa176e6edcabac0e168f579a968eeb49f}{PushFront}}(Work\ w)\ \{}
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ front\ =\ front\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00055\ \ \ \ \ Elem*\ e\ =\ \&array\_[front\ \&\ kMask];}
+\DoxyCodeLine{00056\ \ \ \ \ uint8\_t\ s\ =\ e-\/>state.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keywordflow}{if}\ (s\ !=\ kEmpty\ ||}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \ \ !e-\/>state.compare\_exchange\_strong(s,\ kBusy,\ std::memory\_order\_acquire))}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ w;}
+\DoxyCodeLine{00060\ \ \ \ \ front\_.store(front\ +\ 1\ +\ (kSize\ <<\ 1),\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00061\ \ \ \ \ e-\/>w\ =\ std::move(w);}
+\DoxyCodeLine{00062\ \ \ \ \ e-\/>state.store(kReady,\ std::memory\_order\_release);}
+\DoxyCodeLine{00063\ \ \ \ \ \textcolor{keywordflow}{return}\ Work();}
+\DoxyCodeLine{00064\ \ \ \}}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ PopFront\ removes\ and\ returns\ the\ first\ element\ in\ the\ queue.}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ If\ the\ queue\ was\ empty\ returns\ default-\/constructed\ Work.}}
+\DoxyCodeLine{00068\ \ \ Work\ \mbox{\hyperlink{classEigen_1_1RunQueue_a70485d807cb89b34d882471f069eeeea}{PopFront}}()\ \{}
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ front\ =\ front\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00070\ \ \ \ \ Elem*\ e\ =\ \&array\_[(front\ -\/\ 1)\ \&\ kMask];}
+\DoxyCodeLine{00071\ \ \ \ \ uint8\_t\ s\ =\ e-\/>state.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keywordflow}{if}\ (s\ !=\ kReady\ ||}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ !e-\/>state.compare\_exchange\_strong(s,\ kBusy,\ std::memory\_order\_acquire))}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Work();}
+\DoxyCodeLine{00075\ \ \ \ \ Work\ w\ =\ std::move(e-\/>w);}
+\DoxyCodeLine{00076\ \ \ \ \ e-\/>state.store(kEmpty,\ std::memory\_order\_release);}
+\DoxyCodeLine{00077\ \ \ \ \ front\ =\ ((front\ -\/\ 1)\ \&\ kMask2)\ |\ (front\ \&\ \string~kMask2);}
+\DoxyCodeLine{00078\ \ \ \ \ front\_.store(front,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00079\ \ \ \ \ \textcolor{keywordflow}{return}\ w;}
+\DoxyCodeLine{00080\ \ \ \}}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{//\ PushBack\ adds\ w\ at\ the\ end\ of\ the\ queue.}}
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{//\ If\ queue\ is\ full\ returns\ w,\ otherwise\ returns\ default-\/constructed\ Work.}}
+\DoxyCodeLine{00084\ \ \ Work\ \mbox{\hyperlink{classEigen_1_1RunQueue_a205fedbfce51498cde3069171ff4790d}{PushBack}}(Work\ w)\ \{}
+\DoxyCodeLine{00085\ \ \ \ \ std::unique\_lock<std::mutex>\ lock(mutex\_);}
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ back\ =\ back\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00087\ \ \ \ \ Elem*\ e\ =\ \&array\_[(back\ -\/\ 1)\ \&\ kMask];}
+\DoxyCodeLine{00088\ \ \ \ \ uint8\_t\ s\ =\ e-\/>state.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{keywordflow}{if}\ (s\ !=\ kEmpty\ ||}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ !e-\/>state.compare\_exchange\_strong(s,\ kBusy,\ std::memory\_order\_acquire))}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ w;}
+\DoxyCodeLine{00092\ \ \ \ \ back\ =\ ((back\ -\/\ 1)\ \&\ kMask2)\ |\ (back\ \&\ \string~kMask2);}
+\DoxyCodeLine{00093\ \ \ \ \ back\_.store(back,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00094\ \ \ \ \ e-\/>w\ =\ std::move(w);}
+\DoxyCodeLine{00095\ \ \ \ \ e-\/>state.store(kReady,\ std::memory\_order\_release);}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keywordflow}{return}\ Work();}
+\DoxyCodeLine{00097\ \ \ \}}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ PopBack\ removes\ and\ returns\ the\ last\ elements\ in\ the\ queue.}}
+\DoxyCodeLine{00100\ \ \ Work\ \mbox{\hyperlink{classEigen_1_1RunQueue_a5f0a65d40022baef3d77abb8226f35b0}{PopBack}}()\ \{}
+\DoxyCodeLine{00101\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classEigen_1_1RunQueue_aa7abe7eea034f24a03843b90109636dc}{Empty}}())\ \textcolor{keywordflow}{return}\ Work();}
+\DoxyCodeLine{00102\ \ \ \ \ std::unique\_lock<std::mutex>\ lock(mutex\_);}
+\DoxyCodeLine{00103\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ back\ =\ back\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00104\ \ \ \ \ Elem*\ e\ =\ \&array\_[back\ \&\ kMask];}
+\DoxyCodeLine{00105\ \ \ \ \ uint8\_t\ s\ =\ e-\/>state.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{keywordflow}{if}\ (s\ !=\ kReady\ ||}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ !e-\/>state.compare\_exchange\_strong(s,\ kBusy,\ std::memory\_order\_acquire))}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ Work();}
+\DoxyCodeLine{00109\ \ \ \ \ Work\ w\ =\ std::move(e-\/>w);}
+\DoxyCodeLine{00110\ \ \ \ \ e-\/>state.store(kEmpty,\ std::memory\_order\_release);}
+\DoxyCodeLine{00111\ \ \ \ \ back\_.store(back\ +\ 1\ +\ (kSize\ <<\ 1),\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{keywordflow}{return}\ w;}
+\DoxyCodeLine{00113\ \ \ \}}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//\ PopBackHalf\ removes\ and\ returns\ half\ last\ elements\ in\ the\ queue.}}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ Returns\ number\ of\ elements\ removed.}}
+\DoxyCodeLine{00117\ \ \ \textcolor{keywordtype}{unsigned}\ \mbox{\hyperlink{classEigen_1_1RunQueue_a583d558af80e41729d7808ed5dfa25d9}{PopBackHalf}}(std::vector<Work>*\ result)\ \{}
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{classEigen_1_1RunQueue_aa7abe7eea034f24a03843b90109636dc}{Empty}}())\ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00119\ \ \ \ \ std::unique\_lock<std::mutex>\ lock(mutex\_);}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ back\ =\ back\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ \mbox{\hyperlink{classEigen_1_1RunQueue_aa193d3baea623281da1886603799dd87}{Size}}();}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ mid\ =\ back;}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ >\ 1)\ mid\ =\ back\ +\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ -\/\ 1)\ /\ 2;}
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ 0;}
+\DoxyCodeLine{00125\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ start\ =\ 0;}
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{keywordflow}{for}\ (;\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(mid\ -\/\ back)\ >=\ 0;\ mid-\/-\/)\ \{}
+\DoxyCodeLine{00127\ \ \ \ \ \ \ Elem*\ e\ =\ \&array\_[mid\ \&\ kMask];}
+\DoxyCodeLine{00128\ \ \ \ \ \ \ uint8\_t\ s\ =\ e-\/>state.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ ==\ 0)\ \{}
+\DoxyCodeLine{00130\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (s\ !=\ kReady\ ||\ !e-\/>state.compare\_exchange\_strong(}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ s,\ kBusy,\ std::memory\_order\_acquire))}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \ \ start\ =\ mid;}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Note:\ no\ need\ to\ store\ temporal\ kBusy,\ we\ exclusively\ own\ these}}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ elements.}}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a000d296c3fca8ba6e784bdcc7d01d91d}{eigen\_plain\_assert}}(s\ ==\ kReady);}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ result-\/>push\_back(std::move(e-\/>w));}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ e-\/>state.store(kEmpty,\ std::memory\_order\_release);}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}++;}
+\DoxyCodeLine{00142\ \ \ \ \ \}}
+\DoxyCodeLine{00143\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ !=\ 0)}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ back\_.store(start\ +\ 1\ +\ (kSize\ <<\ 1),\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00146\ \ \ \}}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \ \ \textcolor{comment}{//\ Size\ returns\ current\ queue\ size.}}
+\DoxyCodeLine{00149\ \ \ \textcolor{comment}{//\ Can\ be\ called\ by\ any\ thread\ at\ any\ time.}}
+\DoxyCodeLine{00150\ \ \ \textcolor{keywordtype}{unsigned}\ \mbox{\hyperlink{classEigen_1_1RunQueue_aa193d3baea623281da1886603799dd87}{Size}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ SizeOrNotEmpty<true>();\ \}}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \ \ \textcolor{comment}{//\ Empty\ tests\ whether\ container\ is\ empty.}}
+\DoxyCodeLine{00153\ \ \ \textcolor{comment}{//\ Can\ be\ called\ by\ any\ thread\ at\ any\ time.}}
+\DoxyCodeLine{00154\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classEigen_1_1RunQueue_aa7abe7eea034f24a03843b90109636dc}{Empty}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ SizeOrNotEmpty<false>()\ ==\ 0;\ \}}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00156\ \ \ \textcolor{comment}{//\ Delete\ all\ the\ elements\ from\ the\ queue.}}
+\DoxyCodeLine{00157\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1RunQueue_a95af89207a30b7a3772a5387ad09c0f7}{Flush}}()\ \{}
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keywordflow}{while}\ (!\mbox{\hyperlink{classEigen_1_1RunQueue_aa7abe7eea034f24a03843b90109636dc}{Empty}}())\ \{}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1RunQueue_a70485d807cb89b34d882471f069eeeea}{PopFront}}();}
+\DoxyCodeLine{00160\ \ \ \ \ \}}
+\DoxyCodeLine{00161\ \ \ \}}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00164\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ kMask\ =\ kSize\ -\/\ 1;}
+\DoxyCodeLine{00165\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ kMask2\ =\ (kSize\ <<\ 1)\ -\/\ 1;}
+\DoxyCodeLine{00166\ \ \ \textcolor{keyword}{struct\ }Elem\ \{}
+\DoxyCodeLine{00167\ \ \ \ \ std::atomic<uint8\_t>\ state;}
+\DoxyCodeLine{00168\ \ \ \ \ Work\ w;}
+\DoxyCodeLine{00169\ \ \ \};}
+\DoxyCodeLine{00170\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00171\ \ \ \ \ kEmpty,}
+\DoxyCodeLine{00172\ \ \ \ \ kBusy,}
+\DoxyCodeLine{00173\ \ \ \ \ kReady,}
+\DoxyCodeLine{00174\ \ \ \};}
+\DoxyCodeLine{00175\ \ \ std::mutex\ mutex\_;}
+\DoxyCodeLine{00176\ \ \ \textcolor{comment}{//\ Low\ log(kSize)\ +\ 1\ bits\ in\ front\_\ and\ back\_\ contain\ rolling\ index\ of}}
+\DoxyCodeLine{00177\ \ \ \textcolor{comment}{//\ front/back,\ respectively.\ The\ remaining\ bits\ contain\ modification\ counters}}
+\DoxyCodeLine{00178\ \ \ \textcolor{comment}{//\ that\ are\ incremented\ on\ Push\ operations.\ This\ allows\ us\ to\ (1)\ distinguish}}
+\DoxyCodeLine{00179\ \ \ \textcolor{comment}{//\ between\ empty\ and\ full\ conditions\ (if\ we\ would\ use\ log(kSize)\ bits\ for}}
+\DoxyCodeLine{00180\ \ \ \textcolor{comment}{//\ position,\ these\ conditions\ would\ be\ indistinguishable);\ (2)\ obtain}}
+\DoxyCodeLine{00181\ \ \ \textcolor{comment}{//\ consistent\ snapshot\ of\ front\_/back\_\ for\ Size\ operation\ using\ the}}
+\DoxyCodeLine{00182\ \ \ \textcolor{comment}{//\ modification\ counters.}}
+\DoxyCodeLine{00183\ \ \ std::atomic<unsigned>\ front\_;}
+\DoxyCodeLine{00184\ \ \ std::atomic<unsigned>\ back\_;}
+\DoxyCodeLine{00185\ \ \ Elem\ array\_[kSize];}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \ \ \textcolor{comment}{//\ SizeOrNotEmpty\ returns\ current\ queue\ size;\ if\ NeedSizeEstimate\ is\ false,}}
+\DoxyCodeLine{00188\ \ \ \textcolor{comment}{//\ only\ whether\ the\ size\ is\ 0\ is\ guaranteed\ to\ be\ correct.}}
+\DoxyCodeLine{00189\ \ \ \textcolor{comment}{//\ Can\ be\ called\ by\ any\ thread\ at\ any\ time.}}
+\DoxyCodeLine{00190\ \ \ \textcolor{keyword}{template}<\textcolor{keywordtype}{bool}\ NeedSizeEstimate>}
+\DoxyCodeLine{00191\ \ \ \textcolor{keywordtype}{unsigned}\ SizeOrNotEmpty()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00192\ \ \ \ \ \textcolor{comment}{//\ Emptiness\ plays\ critical\ role\ in\ thread\ pool\ blocking.\ So\ we\ go\ to\ great}}
+\DoxyCodeLine{00193\ \ \ \ \ \textcolor{comment}{//\ effort\ to\ not\ produce\ false\ positives\ (claim\ non-\/empty\ queue\ as\ empty).}}
+\DoxyCodeLine{00194\ \ \ \ \ \textcolor{keywordtype}{unsigned}\ front\ =\ front\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00195\ \ \ \ \ \textcolor{keywordflow}{for}\ (;;)\ \{}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \textcolor{comment}{//\ Capture\ a\ consistent\ snapshot\ of\ front/tail.}}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \textcolor{keywordtype}{unsigned}\ back\ =\ back\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00198\ \ \ \ \ \ \ \textcolor{keywordtype}{unsigned}\ front1\ =\ front\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (front\ !=\ front1)\ \{}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ front\ =\ front1;}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ \ \ std::atomic\_thread\_fence(std::memory\_order\_acquire);}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{continue};}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (NeedSizeEstimate)\ \{}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ CalculateSize(front,\ back);}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00207\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ This\ value\ will\ be\ 0\ if\ the\ queue\ is\ empty,\ and\ undefined\ otherwise.}}
+\DoxyCodeLine{00208\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{unsigned}\ maybe\_zero\ =\ ((front\ \string^\ back)\ \&\ kMask2);}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Queue\ size\ estimate\ must\ agree\ with\ maybe\ zero\ check\ on\ the\ queue}}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ empty/non-\/empty\ state.}}
+\DoxyCodeLine{00211\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}((CalculateSize(front,\ back)\ ==\ 0)\ ==\ (maybe\_zero\ ==\ 0));}
+\DoxyCodeLine{00212\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ maybe\_zero;}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00214\ \ \ \ \ \}}
+\DoxyCodeLine{00215\ \ \ \}}
+\DoxyCodeLine{00216\ }
+\DoxyCodeLine{00217\ \ \ \mbox{\hyperlink{eigen_2Eigen_2src_2Core_2util_2Macros_8h_a1fdc6f94f20527c7275768d82b2eb9ce}{EIGEN\_ALWAYS\_INLINE}}}
+\DoxyCodeLine{00218\ \ \ \textcolor{keywordtype}{unsigned}\ CalculateSize(\textcolor{keywordtype}{unsigned}\ front,\ \textcolor{keywordtype}{unsigned}\ back)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00219\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ (front\ \&\ kMask2)\ -\/\ (back\ \&\ kMask2);}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{comment}{//\ Fix\ overflow.}}
+\DoxyCodeLine{00221\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ <\ 0)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ +=\ 2\ *\ kSize;}
+\DoxyCodeLine{00222\ \ \ \ \ \textcolor{comment}{//\ Order\ of\ modification\ in\ push/pop\ is\ crafted\ to\ make\ the\ queue\ look}}
+\DoxyCodeLine{00223\ \ \ \ \ \textcolor{comment}{//\ larger\ than\ it\ is\ during\ concurrent\ modifications.\ E.g.\ push\ can}}
+\DoxyCodeLine{00224\ \ \ \ \ \textcolor{comment}{//\ increment\ size\ before\ the\ corresponding\ pop\ has\ decremented\ it.}}
+\DoxyCodeLine{00225\ \ \ \ \ \textcolor{comment}{//\ So\ the\ computed\ size\ can\ be\ up\ to\ kSize\ +\ 1,\ fix\ it.}}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ >\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(kSize))\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ kSize;}
+\DoxyCodeLine{00227\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned}\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00228\ \ \ \}}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00230\ \ \ \mbox{\hyperlink{classEigen_1_1RunQueue_afd6573d43cd90181d21cedb9c1721672}{RunQueue}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1RunQueue_afd6573d43cd90181d21cedb9c1721672}{RunQueue}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00231\ \ \ \textcolor{keywordtype}{void}\ operator=(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1RunQueue_afd6573d43cd90181d21cedb9c1721672}{RunQueue}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00232\ \};}
+\DoxyCodeLine{00233\ }
+\DoxyCodeLine{00234\ \}\ \ \textcolor{comment}{//\ namespace\ Eigen}}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ EIGEN\_CXX11\_THREADPOOL\_RUNQUEUE\_H\_}}
+
+\end{DoxyCode}

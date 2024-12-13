@@ -1,0 +1,850 @@
+\doxysection{layout.\+h}
+\hypertarget{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2layout_8h_source}{}\label{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2layout_8h_source}\index{OriginalStuff/abseil-\/cpp/absl/container/internal/layout.h@{OriginalStuff/abseil-\/cpp/absl/container/internal/layout.h}}
+\mbox{\hyperlink{OriginalStuff_2abseil-cpp_2absl_2container_2internal_2layout_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ MOTIVATION\ AND\ TUTORIAL}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ If\ you\ want\ to\ put\ in\ a\ single\ heap\ allocation\ N\ doubles\ followed\ by\ M\ ints,}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ it's\ easy\ if\ N\ and\ M\ are\ known\ at\ compile\ time.}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ \ \ struct\ S\ \{}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ \ \ \ \ double\ a[N];}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ \ \ \ \ int\ b[M];}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \ \ \};}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ \ \ S*\ p\ =\ new\ S;}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ But\ what\ if\ N\ and\ M\ are\ known\ only\ in\ run\ time?\ Class\ template\ Layout\ to\ the}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ rescue!\ It's\ a\ portable\ generalization\ of\ the\ technique\ known\ as\ struct\ hack.}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ \ \ //\ This\ object\ will\ tell\ us\ everything\ we\ need\ to\ know\ about\ the\ memory}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ \ \ //\ layout\ of\ double[N]\ followed\ by\ int[M].\ It's\ structurally\ identical\ to}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ \ \ //\ size\_t[2]\ that\ stores\ N\ and\ M.\ It's\ very\ cheap\ to\ create.}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ \ \ const\ Layout<double,\ int>\ layout(N,\ M);}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ \ \ //\ Allocate\ enough\ memory\ for\ both\ arrays.\ \`{}AllocSize()`\ tells\ us\ how\ much}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ \ \ //\ memory\ is\ needed.\ We\ are\ free\ to\ use\ any\ allocation\ function\ we\ want\ as}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ \ \ //\ long\ as\ it\ returns\ aligned\ memory.}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ \ \ std::unique\_ptr<unsigned\ char[]>\ p(new\ unsigned\ char[layout.AllocSize()]);}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ \ \ //\ Obtain\ the\ pointer\ to\ the\ array\ of\ doubles.}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ \ \ //\ Equivalent\ to\ \`{}reinterpret\_cast<double*>(p.get())`.}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ \ \ //}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ //\ We\ could\ have\ written\ layout.Pointer<0>(p)\ instead.\ If\ all\ the\ types\ are}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \ \ //\ unique\ you\ can\ use\ either\ form,\ but\ if\ some\ types\ are\ repeated\ you\ must}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ \ \ //\ use\ the\ index\ form.}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \ \ double*\ a\ =\ layout.Pointer<double>(p.get());}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \ \ //\ Obtain\ the\ pointer\ to\ the\ array\ of\ ints.}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ \ \ //\ Equivalent\ to\ \`{}reinterpret\_cast<int*>(p.get()\ +\ N\ *\ 8)`.}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ \ \ int*\ b\ =\ layout.Pointer<int>(p);}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ If\ we\ are\ unable\ to\ specify\ sizes\ of\ all\ fields,\ we\ can\ pass\ as\ many\ sizes\ as}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ we\ can\ to\ \`{}Partial()`.\ In\ return,\ it'll\ allow\ us\ to\ access\ the\ fields\ whose}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ locations\ and\ sizes\ can\ be\ computed\ from\ the\ provided\ information.}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ \`{}Partial()`\ comes\ in\ handy\ when\ the\ array\ sizes\ are\ embedded\ into\ the}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ allocation.}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ \ \ //\ size\_t[0]\ containing\ N,\ size\_t[1]\ containing\ M,\ double[N],\ int[M].}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ \ \ using\ L\ =\ Layout<size\_t,\ size\_t,\ double,\ int>;}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ \ \ unsigned\ char*\ Allocate(size\_t\ n,\ size\_t\ m)\ \{}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ \ \ \ \ const\ L\ layout(1,\ 1,\ n,\ m);}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ \ \ \ \ unsigned\ char*\ p\ =\ new\ unsigned\ char[layout.AllocSize()];}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ \ \ \ \ *layout.Pointer<0>(p)\ =\ n;}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ \ \ \ \ *layout.Pointer<1>(p)\ =\ m;}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ \ \ \ \ return\ p;}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ \ \ void\ Use(unsigned\ char*\ p)\ \{}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \ \ \ \ //\ First,\ extract\ N\ and\ M.}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ \ \ \ //\ Specify\ that\ the\ first\ array\ has\ only\ one\ element.\ Using\ \`{}prefix`\ we}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ \ \ \ \ //\ can\ access\ the\ first\ two\ arrays\ but\ not\ more.}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ \ \ \ constexpr\ auto\ prefix\ =\ L::Partial(1);}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ \ \ \ \ size\_t\ n\ =\ *prefix.Pointer<0>(p);}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ \ \ \ \ size\_t\ m\ =\ *prefix.Pointer<1>(p);}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ \ \ \ \ //\ Now\ we\ can\ get\ pointers\ to\ the\ payload.}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ \ \ \ \ const\ L\ layout(1,\ 1,\ n,\ m);}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ \ \ \ \ double*\ a\ =\ layout.Pointer<double>(p);}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ \ \ \ \ int*\ b\ =\ layout.Pointer<int>(p);}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ The\ layout\ we\ used\ above\ combines\ fixed-\/size\ with\ dynamically-\/sized\ fields.}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ This\ is\ quite\ common.\ Layout\ is\ optimized\ for\ this\ use\ case\ and\ attempts\ to}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ generate\ optimal\ code.\ To\ help\ the\ compiler\ do\ that\ in\ more\ cases,\ you\ can}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ specify\ the\ fixed\ sizes\ using\ \`{}WithStaticSizes`.\ This\ ensures\ that\ all}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ computations\ that\ can\ be\ performed\ at\ compile\ time\ are\ indeed\ performed\ at}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ compile\ time.\ Note\ that\ sometimes\ the\ \`{}template`\ keyword\ is\ needed.\ E.g.:}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ \ \ using\ SL\ =\ L::template\ WithStaticSizes<1,\ 1>;}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ \ \ void\ Use(unsigned\ char*\ p)\ \{}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ \ \ \ \ //\ First,\ extract\ N\ and\ M.}}
+\DoxyCodeLine{00094\ \textcolor{comment}{//\ \ \ \ \ //\ Using\ \`{}prefix`\ we\ can\ access\ the\ first\ three\ arrays\ but\ not\ more.}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ \ \ \ \ //}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//\ \ \ \ \ //\ More\ details:\ The\ first\ element\ always\ has\ offset\ 0.\ \`{}SL`}}
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ \ \ \ \ //\ has\ offsets\ for\ the\ second\ and\ third\ array\ based\ on\ sizes\ of}}
+\DoxyCodeLine{00098\ \textcolor{comment}{//\ \ \ \ \ //\ the\ first\ and\ second\ array,\ specified\ via\ \`{}WithStaticSizes`.}}
+\DoxyCodeLine{00099\ \textcolor{comment}{//\ \ \ \ \ constexpr\ auto\ prefix\ =\ SL::Partial();}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ \ \ \ \ size\_t\ n\ =\ *prefix.Pointer<0>(p);}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//\ \ \ \ \ size\_t\ m\ =\ *prefix.Pointer<1>(p);}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//\ \ \ \ \ //\ Now\ we\ can\ get\ a\ pointer\ to\ the\ final\ payload.}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ \ \ \ \ const\ SL\ layout(n,\ m);}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ \ \ \ \ double*\ a\ =\ layout.Pointer<double>(p);}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ \ \ \ \ int*\ b\ =\ layout.Pointer<int>(p);}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00108\ \textcolor{comment}{//}}
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ Efficiency\ tip:\ The\ order\ of\ fields\ matters.\ In\ \`{}Layout<T1,\ ...,\ TN>`\ try\ to}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//\ ensure\ that\ \`{}alignof(T1)\ >=\ ...\ >=\ alignof(TN)`.\ This\ way\ you'll\ have\ no}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ padding\ in\ between\ arrays.}}
+\DoxyCodeLine{00112\ \textcolor{comment}{//}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ You\ can\ manually\ override\ the\ alignment\ of\ an\ array\ by\ wrapping\ the\ type\ in}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ \`{}Aligned<T,\ N>`.\ \`{}Layout<...,\ Aligned<T,\ N>,\ ...>`\ has\ exactly\ the\ same\ API}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ and\ behavior\ as\ \`{}Layout<...,\ T,\ ...>`\ except\ that\ the\ first\ element\ of\ the}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ array\ of\ \`{}T`\ is\ aligned\ to\ \`{}N`\ (the\ rest\ of\ the\ elements\ follow\ without}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ padding).\ \`{}N`\ cannot\ be\ less\ than\ \`{}alignof(T)`.}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ \`{}AllocSize()`\ and\ \`{}Pointer()`\ are\ the\ most\ basic\ methods\ for\ dealing\ with}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ memory\ layouts.\ Check\ out\ the\ reference\ or\ code\ below\ to\ discover\ more.}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ EXAMPLE}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ \ \ //\ Immutable\ move-\/only\ string\ with\ sizeof\ equal\ to\ sizeof(void*).\ The}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ \ \ //\ string\ size\ and\ the\ characters\ are\ kept\ in\ the\ same\ heap\ allocation.}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ \ \ class\ CompactString\ \{}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ \ \ \ public:}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ \ \ \ \ CompactString(const\ char*\ s\ =\ "{}"{})\ \{}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//\ \ \ \ \ \ \ const\ size\_t\ size\ =\ strlen(s);}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ \ \ \ \ \ \ //\ size\_t[1]\ followed\ by\ char[size\ +\ 1].}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ \ \ \ \ \ \ const\ L\ layout(size\ +\ 1);}}
+\DoxyCodeLine{00132\ \textcolor{comment}{//\ \ \ \ \ \ \ p\_.reset(new\ unsigned\ char[layout.AllocSize()]);}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ \ \ \ \ \ \ //\ If\ running\ under\ ASAN,\ mark\ the\ padding\ bytes,\ if\ any,\ to\ catch}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ \ \ \ \ \ \ //\ memory\ errors.}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ \ \ \ \ \ \ layout.PoisonPadding(p\_.get());}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ \ \ \ \ \ \ //\ Store\ the\ size\ in\ the\ allocation.}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ \ \ \ \ \ \ *layout.Pointer<size\_t>(p\_.get())\ =\ size;}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ \ \ \ \ \ \ //\ Store\ the\ characters\ in\ the\ allocation.}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ \ \ \ \ \ \ memcpy(layout.Pointer<char>(p\_.get()),\ s,\ size\ +\ 1);}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//\ \ \ \ \ size\_t\ size()\ const\ \{}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ \ \ \ \ \ \ //\ Equivalent\ to\ reinterpret\_cast<size\_t\&>(*p).}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ \ \ \ \ \ \ return\ *L::Partial().Pointer<size\_t>(p\_.get());}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00146\ \textcolor{comment}{//}}
+\DoxyCodeLine{00147\ \textcolor{comment}{//\ \ \ \ \ const\ char*\ c\_str()\ const\ \{}}
+\DoxyCodeLine{00148\ \textcolor{comment}{//\ \ \ \ \ \ \ //\ Equivalent\ to\ reinterpret\_cast<char*>(p.get()\ +\ sizeof(size\_t)).}}
+\DoxyCodeLine{00149\ \textcolor{comment}{//\ \ \ \ \ \ \ return\ L::Partial().Pointer<char>(p\_.get());}}
+\DoxyCodeLine{00150\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00151\ \textcolor{comment}{//}}
+\DoxyCodeLine{00152\ \textcolor{comment}{//\ \ \ \ private:}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ \ \ \ \ //\ Our\ heap\ allocation\ contains\ a\ single\ size\_t\ followed\ by\ an\ array\ of}}
+\DoxyCodeLine{00154\ \textcolor{comment}{//\ \ \ \ \ //\ chars.}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ \ \ \ \ using\ L\ =\ Layout<size\_t,\ char>::WithStaticSizes<1>;}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ \ \ \ \ std::unique\_ptr<unsigned\ char[]>\ p\_;}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//\ \ \ \};}}
+\DoxyCodeLine{00158\ \textcolor{comment}{//}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ \ \ int\ main()\ \{}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ \ \ \ \ CompactString\ s\ =\ "{}hello"{};}}
+\DoxyCodeLine{00161\ \textcolor{comment}{//\ \ \ \ \ assert(s.size()\ ==\ 5);}}
+\DoxyCodeLine{00162\ \textcolor{comment}{//\ \ \ \ \ assert(strcmp(s.c\_str(),\ "{}hello"{})\ ==\ 0);}}
+\DoxyCodeLine{00163\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00164\ \textcolor{comment}{//}}
+\DoxyCodeLine{00165\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ DOCUMENTATION}}
+\DoxyCodeLine{00166\ \textcolor{comment}{//}}
+\DoxyCodeLine{00167\ \textcolor{comment}{//\ The\ interface\ exported\ by\ this\ file\ consists\ of:}}
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ -\/\ class\ \`{}Layout<>`\ and\ its\ public\ members.}}
+\DoxyCodeLine{00169\ \textcolor{comment}{//\ -\/\ The\ public\ members\ of\ classes\ \`{}internal\_layout::LayoutWithStaticSizes<>`}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ \ \ and\ \`{}internal\_layout::LayoutImpl<>`.\ Those\ classes\ aren't\ intended\ to\ be}}
+\DoxyCodeLine{00171\ \textcolor{comment}{//\ \ \ used\ directly,\ and\ their\ name\ and\ template\ parameter\ list\ are\ internal}}
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ \ \ implementation\ details,\ but\ the\ classes\ themselves\ provide\ most\ of\ the}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//\ \ \ functionality\ in\ this\ file.\ See\ comments\ on\ their\ members\ for\ detailed}}
+\DoxyCodeLine{00174\ \textcolor{comment}{//\ \ \ documentation.}}
+\DoxyCodeLine{00175\ \textcolor{comment}{//}}
+\DoxyCodeLine{00176\ \textcolor{comment}{//\ \`{}Layout<T1,...\ Tn>::Partial(count1,...,\ countm)`\ (where\ \`{}m`\ <=\ \`{}n`)\ returns\ a}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//\ \`{}LayoutImpl<>`\ object.\ \`{}Layout<T1,...,\ Tn>\ layout(count1,...,\ countn)`}}
+\DoxyCodeLine{00178\ \textcolor{comment}{//\ creates\ a\ \`{}Layout`\ object,\ which\ exposes\ the\ same\ functionality\ by\ inheriting}}
+\DoxyCodeLine{00179\ \textcolor{comment}{//\ from\ \`{}LayoutImpl<>`.}}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CONTAINER\_INTERNAL\_LAYOUT\_H\_}}
+\DoxyCodeLine{00182\ \textcolor{preprocessor}{\#define\ ABSL\_CONTAINER\_INTERNAL\_LAYOUT\_H\_}}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \textcolor{preprocessor}{\#include\ <assert.h>}}
+\DoxyCodeLine{00185\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00186\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \textcolor{preprocessor}{\#include\ <array>}}
+\DoxyCodeLine{00189\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00190\ \textcolor{preprocessor}{\#include\ <tuple>}}
+\DoxyCodeLine{00191\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00192\ \textcolor{preprocessor}{\#include\ <typeinfo>}}
+\DoxyCodeLine{00193\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00196\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00197\ \textcolor{preprocessor}{\#include\ "{}absl/debugging/internal/demangle.h"{}}}
+\DoxyCodeLine{00198\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00199\ \textcolor{preprocessor}{\#include\ "{}absl/strings/str\_cat.h"{}}}
+\DoxyCodeLine{00200\ \textcolor{preprocessor}{\#include\ "{}absl/types/span.h"{}}}
+\DoxyCodeLine{00201\ \textcolor{preprocessor}{\#include\ "{}absl/utility/utility.h"{}}}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \textcolor{preprocessor}{\#ifdef\ ABSL\_HAVE\_ADDRESS\_SANITIZER}}
+\DoxyCodeLine{00204\ \textcolor{preprocessor}{\#include\ <sanitizer/asan\_interface.h>}}
+\DoxyCodeLine{00205\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00208\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00209\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \textcolor{comment}{//\ A\ type\ wrapper\ that\ instructs\ \`{}Layout`\ to\ use\ the\ specific\ alignment\ for\ the}}
+\DoxyCodeLine{00212\ \textcolor{comment}{//\ array.\ \`{}Layout<...,\ Aligned<T,\ N>,\ ...>`\ has\ exactly\ the\ same\ API}}
+\DoxyCodeLine{00213\ \textcolor{comment}{//\ and\ behavior\ as\ \`{}Layout<...,\ T,\ ...>`\ except\ that\ the\ first\ element\ of\ the}}
+\DoxyCodeLine{00214\ \textcolor{comment}{//\ array\ of\ \`{}T`\ is\ aligned\ to\ \`{}N`\ (the\ rest\ of\ the\ elements\ follow\ without}}
+\DoxyCodeLine{00215\ \textcolor{comment}{//\ padding).}}
+\DoxyCodeLine{00216\ \textcolor{comment}{//}}
+\DoxyCodeLine{00217\ \textcolor{comment}{//\ Requires:\ \`{}N\ >=\ alignof(T)`\ and\ \`{}N`\ is\ a\ power\ of\ 2.}}
+\DoxyCodeLine{00218\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00219\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1Aligned}{Aligned}};}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00221\ \textcolor{keyword}{namespace\ }internal\_layout\ \{}
+\DoxyCodeLine{00222\ }
+\DoxyCodeLine{00223\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00224\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1NotAligned}{NotAligned}}\ \{\};}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00227\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1NotAligned}{NotAligned}}<const\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1Aligned}{Aligned}}<T,\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}>>\ \{}
+\DoxyCodeLine{00228\ \ \ \textcolor{keyword}{static\_assert}(\textcolor{keyword}{sizeof}(T)\ ==\ 0,\ \textcolor{stringliteral}{"{}Aligned<T,\ N>\ cannot\ be\ const-\/qualified"{}});}
+\DoxyCodeLine{00229\ \};}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}>}
+\DoxyCodeLine{00232\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_a0d9ac8e7fb04c97e9eb81a174b3b5e73}{IntToSize}}\ =\ size\_t;}
+\DoxyCodeLine{00233\ }
+\DoxyCodeLine{00234\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00235\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1Type}{Type}}\ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1NotAligned}{NotAligned}}<T>\ \{}
+\DoxyCodeLine{00236\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1Type_aaf534c13cb4542a843192b25e2222f2d}{type}}\ =\ T;}
+\DoxyCodeLine{00237\ \};}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00240\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1Type}{Type}}<\mbox{\hyperlink{structabsl_1_1container__internal_1_1Aligned}{Aligned}}<T,\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}>>\ \{}
+\DoxyCodeLine{00241\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1Type_3_01Aligned_3_01T_00_01N_01_4_01_4_a8d2139b0fd9053cdd25dad966f560462}{type}}\ =\ T;}
+\DoxyCodeLine{00242\ \};}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00245\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1SizeOf}{SizeOf}}\ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1NotAligned}{NotAligned}}<T>,\ std::integral\_constant<size\_t,\ sizeof(T)>\ \{\};}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00248\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1SizeOf}{SizeOf}}<\mbox{\hyperlink{structabsl_1_1container__internal_1_1Aligned}{Aligned}}<T,\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}>>\ :\ std::integral\_constant<size\_t,\ sizeof(T)>\ \{\};}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00250\ \textcolor{comment}{//\ Note:\ workaround\ for\ https://gcc.gnu.org/PR88115}}
+\DoxyCodeLine{00251\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00252\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf}{AlignOf}}\ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1NotAligned}{NotAligned}}<T>\ \{}
+\DoxyCodeLine{00253\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf_a38264847f40b2d61063ee1d8f4db3ef1}{value}}\ =\ \textcolor{keyword}{alignof}(T);}
+\DoxyCodeLine{00254\ \};}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00257\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf}{AlignOf}}<\mbox{\hyperlink{structabsl_1_1container__internal_1_1Aligned}{Aligned}}<T,\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}>>\ \{}
+\DoxyCodeLine{00258\ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ \%\ \textcolor{keyword}{alignof}(T)\ ==\ 0,}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Custom\ alignment\ can't\ be\ lower\ than\ the\ type's\ alignment"{}});}
+\DoxyCodeLine{00260\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf_a38264847f40b2d61063ee1d8f4db3ef1}{value}}\ =\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}};}
+\DoxyCodeLine{00261\ \};}
+\DoxyCodeLine{00262\ }
+\DoxyCodeLine{00263\ \textcolor{comment}{//\ Does\ \`{}Ts...`\ contain\ \`{}T`?}}
+\DoxyCodeLine{00264\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }T,\ \textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00265\ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1disjunction}{Contains}}\ =\ \mbox{\hyperlink{structabsl_1_1disjunction}{absl::disjunction<std::is\_same<T,\ Ts>}}...>;}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ From,\ \textcolor{keyword}{class}\ To>}
+\DoxyCodeLine{00268\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_ac977d5c32b87dba9688fd88c0e93ed26}{CopyConst}}\ =}
+\DoxyCodeLine{00269\ \ \ \ \ \textcolor{keyword}{typename}\ std::conditional<std::is\_const<From>::value,\ \textcolor{keyword}{const}\ To,\ To>::type;}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \textcolor{comment}{//\ Note:\ We're\ not\ qualifying\ this\ with\ absl::\ because\ it\ doesn't\ compile\ under}}
+\DoxyCodeLine{00272\ \textcolor{comment}{//\ MSVC.}}
+\DoxyCodeLine{00273\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00274\ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span}{SliceType}}\ =\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}};}
+\DoxyCodeLine{00275\ }
+\DoxyCodeLine{00276\ \textcolor{comment}{//\ This\ namespace\ contains\ no\ types.\ It\ prevents\ functions\ defined\ in\ it\ from}}
+\DoxyCodeLine{00277\ \textcolor{comment}{//\ being\ found\ by\ ADL.}}
+\DoxyCodeLine{00278\ \textcolor{keyword}{namespace\ }adl\_barrier\ \{}
+\DoxyCodeLine{00279\ }
+\DoxyCodeLine{00280\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Needle,\ \textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00281\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a9812860efec6ac9fbc5373a83e5db544}{Find}}(Needle,\ Needle,\ Ts...)\ \{}
+\DoxyCodeLine{00282\ \ \ \textcolor{keyword}{static\_assert}(!\mbox{\hyperlink{structabsl_1_1disjunction}{Contains}}<Needle,\ Ts...>(),\ \textcolor{stringliteral}{"{}Duplicate\ element\ type"{}});}
+\DoxyCodeLine{00283\ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00284\ \}}
+\DoxyCodeLine{00285\ }
+\DoxyCodeLine{00286\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Needle,\ \textcolor{keyword}{class\ }T,\ \textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00287\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a9812860efec6ac9fbc5373a83e5db544}{Find}}(Needle,\ T,\ Ts...)\ \{}
+\DoxyCodeLine{00288\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a9812860efec6ac9fbc5373a83e5db544}{adl\_barrier::Find}}(Needle(),\ Ts()...)\ +\ 1;}
+\DoxyCodeLine{00289\ \}}
+\DoxyCodeLine{00290\ }
+\DoxyCodeLine{00291\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_aa0c758599edbfd6a00a095d27278b6a8}{IsPow2}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}})\ \{\ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ \&\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ -\/\ 1));\ \}}
+\DoxyCodeLine{00292\ }
+\DoxyCodeLine{00293\ \textcolor{comment}{//\ Returns\ \`{}q\ *\ m`\ for\ the\ smallest\ \`{}q`\ such\ that\ \`{}q\ *\ m\ >=\ n`.}}
+\DoxyCodeLine{00294\ \textcolor{comment}{//\ Requires:\ \`{}m`\ is\ a\ power\ of\ two.\ It's\ enforced\ by\ IsLegalElementType\ below.}}
+\DoxyCodeLine{00295\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_abd502d4b6e5b4dd83dc776f9d69b0eb6}{Align}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}},\ \textcolor{keywordtype}{size\_t}\ m)\ \{\ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ +\ m\ -\/\ 1)\ \&\ \string~(m\ -\/\ 1);\ \}}
+\DoxyCodeLine{00296\ }
+\DoxyCodeLine{00297\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_af3c667aae08dbc5d4820c66feb199c7e}{Min}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ ?\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ :\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}};\ \}}
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00299\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a463bab5868ab193590c8c9b85807ad63}{Max}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}};\ \}}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00302\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a463bab5868ab193590c8c9b85807ad63}{Max}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ Ts...\ rest)\ \{}
+\DoxyCodeLine{00303\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a463bab5868ab193590c8c9b85807ad63}{adl\_barrier::Max}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ ?\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ :\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ rest...);}
+\DoxyCodeLine{00304\ \}}
+\DoxyCodeLine{00305\ }
+\DoxyCodeLine{00306\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00307\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a098b1b8a26947430b9164d5dedcdeb58}{TypeName}}()\ \{}
+\DoxyCodeLine{00308\ \ \ std::string\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}};}
+\DoxyCodeLine{00309\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_HAS\_RTTI}}
+\DoxyCodeLine{00310\ \ \ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{absl::StrAppend}}(\&\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{stringliteral}{"{}<"{}},}
+\DoxyCodeLine{00311\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1debugging__internal_aefd11ae1a5125157fe554131253a26b0}{absl::debugging\_internal::DemangleString}}(\textcolor{keyword}{typeid}(T).\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_ac8b44a387cf3da062c4a32316b43962c}{name}}()),}
+\DoxyCodeLine{00312\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}>"{}});}
+\DoxyCodeLine{00313\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00314\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}};}
+\DoxyCodeLine{00315\ \}}
+\DoxyCodeLine{00316\ }
+\DoxyCodeLine{00317\ \}\ \ \textcolor{comment}{//\ namespace\ adl\_barrier}}
+\DoxyCodeLine{00318\ }
+\DoxyCodeLine{00319\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ C>}
+\DoxyCodeLine{00320\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_a1ab1f10ab928808e7eaac9962c64dbff}{EnableIf}}\ =\ \textcolor{keyword}{typename}\ std::enable\_if<C,\ int>::type;}
+\DoxyCodeLine{00321\ }
+\DoxyCodeLine{00322\ \textcolor{comment}{//\ Can\ \`{}T`\ be\ a\ template\ argument\ of\ \`{}Layout`?}}
+\DoxyCodeLine{00323\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00324\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_a824f35d5f8d99339aeff5a43fad5e3a2}{IsLegalElementType}}\ =\ std::integral\_constant<}
+\DoxyCodeLine{00325\ \ \ \ \ \mbox{\hyperlink{namespaceexport__hf_a3b79f4dc99a74534a694b2cd70b161bd}{bool}},\ !std::is\_reference<T>::value\ \&\&\ !std::is\_volatile<T>::value\ \&\&}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_reference<typename\ Type<T>::type>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ \&\&}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_volatile<typename\ Type<T>::type>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ \&\&}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_aa0c758599edbfd6a00a095d27278b6a8}{adl\_barrier::IsPow2}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf_a38264847f40b2d61063ee1d8f4db3ef1}{AlignOf<T>::value}})>;}
+\DoxyCodeLine{00329\ }
+\DoxyCodeLine{00330\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Elements,\ \textcolor{keyword}{class\ }StaticSizeSeq,\ \textcolor{keyword}{class\ }RuntimeSizeSeq,}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{class\ }SizeSeq,\ \textcolor{keyword}{class\ }OffsetSeq>}
+\DoxyCodeLine{00332\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{LayoutImpl}};}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00334\ \textcolor{comment}{//\ Public\ base\ class\ of\ \`{}Layout`\ and\ the\ result\ type\ of\ \`{}Layout::Partial()`.}}
+\DoxyCodeLine{00335\ \textcolor{comment}{//}}
+\DoxyCodeLine{00336\ \textcolor{comment}{//\ \`{}Elements...`\ contains\ all\ template\ arguments\ of\ \`{}Layout`\ that\ created\ this}}
+\DoxyCodeLine{00337\ \textcolor{comment}{//\ instance.}}
+\DoxyCodeLine{00338\ \textcolor{comment}{//}}
+\DoxyCodeLine{00339\ \textcolor{comment}{//\ \`{}StaticSizeSeq...`\ is\ an\ index\_sequence\ containing\ the\ sizes\ specified\ at}}
+\DoxyCodeLine{00340\ \textcolor{comment}{//\ compile-\/time.}}
+\DoxyCodeLine{00341\ \textcolor{comment}{//}}
+\DoxyCodeLine{00342\ \textcolor{comment}{//\ \`{}RuntimeSizeSeq...`\ is\ \`{}[0,\ NumRuntimeSizes)`,\ where\ \`{}NumRuntimeSizes`\ is\ the}}
+\DoxyCodeLine{00343\ \textcolor{comment}{//\ number\ of\ arguments\ passed\ to\ \`{}Layout::Partial()`\ or\ \`{}Layout::Layout()`.}}
+\DoxyCodeLine{00344\ \textcolor{comment}{//}}
+\DoxyCodeLine{00345\ \textcolor{comment}{//\ \`{}SizeSeq...`\ is\ \`{}[0,\ NumSizes)`\ where\ \`{}NumSizes`\ is\ \`{}NumRuntimeSizes`\ plus}}
+\DoxyCodeLine{00346\ \textcolor{comment}{//\ the\ number\ of\ sizes\ in\ \`{}StaticSizeSeq`.}}
+\DoxyCodeLine{00347\ \textcolor{comment}{//}}
+\DoxyCodeLine{00348\ \textcolor{comment}{//\ \`{}OffsetSeq...`\ is\ \`{}[0,\ NumOffsets)`\ where\ \`{}NumOffsets`\ is}}
+\DoxyCodeLine{00349\ \textcolor{comment}{//\ \`{}Min(sizeof...(Elements),\ NumSizes\ +\ 1)`\ (the\ number\ of\ arrays\ for\ which\ we}}
+\DoxyCodeLine{00350\ \textcolor{comment}{//\ can\ compute\ offsets).}}
+\DoxyCodeLine{00351\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Elements,\ \textcolor{keywordtype}{size\_t}...\ StaticSizeSeq,\ \textcolor{keywordtype}{size\_t}...\ RuntimeSizeSeq,}
+\DoxyCodeLine{00352\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}...\ SizeSeq,\ \textcolor{keywordtype}{size\_t}...\ OffsetSeq>}
+\DoxyCodeLine{00353\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{LayoutImpl}}<}
+\DoxyCodeLine{00354\ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::tuple<Elements...>,\ absl::index\_sequence<StaticSizeSeq...>,}
+\DoxyCodeLine{00355\ \ \ \ \ absl::index\_sequence<RuntimeSizeSeq...>,\ absl::index\_sequence<SizeSeq...>,}
+\DoxyCodeLine{00356\ \ \ \ \ absl::index\_sequence<OffsetSeq...>>\ \{}
+\DoxyCodeLine{00357\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00358\ \ \ \textcolor{keyword}{static\_assert}(\textcolor{keyword}{sizeof}...(Elements)\ >\ 0,\ \textcolor{stringliteral}{"{}At\ least\ one\ field\ is\ required"{}});}
+\DoxyCodeLine{00359\ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{structabsl_1_1conjunction}{absl::conjunction<IsLegalElementType<Elements>}}...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00360\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Invalid\ element\ type\ (see\ IsLegalElementType)"{}});}
+\DoxyCodeLine{00361\ \ \ \textcolor{keyword}{static\_assert}(\textcolor{keyword}{sizeof}...(StaticSizeSeq)\ <=\ \textcolor{keyword}{sizeof}...(Elements),}
+\DoxyCodeLine{00362\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Too\ many\ static\ sizes\ specified"{}});}
+\DoxyCodeLine{00363\ }
+\DoxyCodeLine{00364\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00365\ \ \ \ \ NumTypes\ =\ \textcolor{keyword}{sizeof}...(Elements),}
+\DoxyCodeLine{00366\ \ \ \ \ NumStaticSizes\ =\ \textcolor{keyword}{sizeof}...(StaticSizeSeq),}
+\DoxyCodeLine{00367\ \ \ \ \ NumRuntimeSizes\ =\ \textcolor{keyword}{sizeof}...(RuntimeSizeSeq),}
+\DoxyCodeLine{00368\ \ \ \ \ NumSizes\ =\ \textcolor{keyword}{sizeof}...(SizeSeq),}
+\DoxyCodeLine{00369\ \ \ \ \ NumOffsets\ =\ \textcolor{keyword}{sizeof}...(OffsetSeq),}
+\DoxyCodeLine{00370\ \ \ \};}
+\DoxyCodeLine{00371\ }
+\DoxyCodeLine{00372\ \ \ \textcolor{comment}{//\ These\ are\ guaranteed\ by\ \`{}Layout`.}}
+\DoxyCodeLine{00373\ \ \ \textcolor{keyword}{static\_assert}(NumStaticSizes\ +\ NumRuntimeSizes\ ==\ NumSizes,\ \textcolor{stringliteral}{"{}Internal\ error"{}});}
+\DoxyCodeLine{00374\ \ \ \textcolor{keyword}{static\_assert}(NumSizes\ <=\ NumTypes,\ \textcolor{stringliteral}{"{}Internal\ error"{}});}
+\DoxyCodeLine{00375\ \ \ \textcolor{keyword}{static\_assert}(NumOffsets\ ==\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_af3c667aae08dbc5d4820c66feb199c7e}{adl\_barrier::Min}}(NumTypes,\ NumSizes\ +\ 1),}
+\DoxyCodeLine{00376\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Internal\ error"{}});}
+\DoxyCodeLine{00377\ \ \ \textcolor{keyword}{static\_assert}(NumTypes\ >\ 0,\ \textcolor{stringliteral}{"{}Internal\ error"{}});}
+\DoxyCodeLine{00378\ }
+\DoxyCodeLine{00379\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ std::array<size\_t,\ \textcolor{keyword}{sizeof}...(StaticSizeSeq)>\ kStaticSizes\ =\ \{}
+\DoxyCodeLine{00380\ \ \ \ \ \ \ StaticSizeSeq...\};}
+\DoxyCodeLine{00381\ }
+\DoxyCodeLine{00382\ \ \ \textcolor{comment}{//\ Returns\ the\ index\ of\ \`{}T`\ in\ \`{}Elements...`.\ Results\ in\ a\ compilation\ error}}
+\DoxyCodeLine{00383\ \ \ \textcolor{comment}{//\ if\ \`{}Elements...`\ doesn't\ contain\ exactly\ one\ instance\ of\ \`{}T`.}}
+\DoxyCodeLine{00384\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00385\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ ElementIndex()\ \{}
+\DoxyCodeLine{00386\ \ \ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{structabsl_1_1disjunction}{Contains<Type<T>}},\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1Type}{Type<typename\ Type<Elements>::type}}>...>(),}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Type\ not\ found"{}});}
+\DoxyCodeLine{00388\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a9812860efec6ac9fbc5373a83e5db544}{adl\_barrier::Find}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1Type}{Type<T>}}(),}
+\DoxyCodeLine{00389\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1Type}{Type}}<\textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1Type_aaf534c13cb4542a843192b25e2222f2d}{Type<Elements>::type}}>()...);}
+\DoxyCodeLine{00390\ \ \ \}}
+\DoxyCodeLine{00391\ }
+\DoxyCodeLine{00392\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00393\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf}{ElementAlignment}}\ =}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf}{AlignOf}}<\textcolor{keyword}{typename}\ std::tuple\_element<\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}},\ std::tuple<Elements...>>::type>;}
+\DoxyCodeLine{00395\ }
+\DoxyCodeLine{00396\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00397\ \ \ \textcolor{comment}{//\ Element\ types\ of\ all\ arrays\ packed\ in\ a\ tuple.}}
+\DoxyCodeLine{00398\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_ac507a44279553980b79cf10294175bcf}{ElementTypes}}\ =\ std::tuple<typename\ Type<Elements>::type...>;}
+\DoxyCodeLine{00399\ }
+\DoxyCodeLine{00400\ \ \ \textcolor{comment}{//\ Element\ type\ of\ the\ Nth\ array.}}
+\DoxyCodeLine{00401\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00402\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a4d7ab7601bce2f2f08d23fa3ec25e97b}{ElementType}}\ =\ \textcolor{keyword}{typename}\ std::tuple\_element<N,\ ElementTypes>::type;}
+\DoxyCodeLine{00403\ }
+\DoxyCodeLine{00404\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a2568a3381ac11a6f93258f789362d1bd}{LayoutImpl}}(\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_a0d9ac8e7fb04c97e9eb81a174b3b5e73}{IntToSize<RuntimeSizeSeq>}}...\ sizes)}
+\DoxyCodeLine{00405\ \ \ \ \ \ \ :\ size\_\{sizes...\}\ \{\}}
+\DoxyCodeLine{00406\ }
+\DoxyCodeLine{00407\ \ \ \textcolor{comment}{//\ Alignment\ of\ the\ layout,\ equal\ to\ the\ strictest\ alignment\ of\ all\ elements.}}
+\DoxyCodeLine{00408\ \ \ \textcolor{comment}{//\ All\ pointers\ passed\ to\ the\ methods\ of\ layout\ must\ be\ aligned\ to\ this\ value.}}
+\DoxyCodeLine{00409\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a443102ab173d92ab75de011b00423542}{Alignment}}()\ \{}
+\DoxyCodeLine{00410\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a463bab5868ab193590c8c9b85807ad63}{adl\_barrier::Max}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf}{AlignOf<Elements>::value}}...);}
+\DoxyCodeLine{00411\ \ \ \}}
+\DoxyCodeLine{00412\ }
+\DoxyCodeLine{00413\ \ \ \textcolor{comment}{//\ Offset\ in\ bytes\ of\ the\ Nth\ array.}}
+\DoxyCodeLine{00414\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00415\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00416\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00417\ \ \ \textcolor{comment}{//\ \ \ assert(x.Offset<0>()\ ==\ 0);\ \ \ //\ The\ ints\ starts\ from\ 0.}}
+\DoxyCodeLine{00418\ \ \ \textcolor{comment}{//\ \ \ assert(x.Offset<1>()\ ==\ 16);\ \ //\ The\ doubles\ starts\ from\ 16.}}
+\DoxyCodeLine{00419\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00420\ \ \ \textcolor{comment}{//\ Requires:\ \`{}N\ <=\ NumSizes\ \&\&\ N\ <\ sizeof...(Ts)`.}}
+\DoxyCodeLine{00421\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N,\ EnableIf<N\ ==\ 0>\ =\ 0>}
+\DoxyCodeLine{00422\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a99f95a602cff7ce72edbb54f1636b49b}{Offset}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00423\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00424\ \ \ \}}
+\DoxyCodeLine{00425\ }
+\DoxyCodeLine{00426\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N,\ EnableIf<N\ !=\ 0>\ =\ 0>}
+\DoxyCodeLine{00427\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a99f95a602cff7ce72edbb54f1636b49b}{Offset}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00428\ \ \ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ <\ NumOffsets,\ \textcolor{stringliteral}{"{}Index\ out\ of\ bounds"{}});}
+\DoxyCodeLine{00429\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_abd502d4b6e5b4dd83dc776f9d69b0eb6}{adl\_barrier::Align}}(}
+\DoxyCodeLine{00430\ \ \ \ \ \ \ \ \ Offset<N\ -\/\ 1>()\ +\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1SizeOf}{SizeOf}}<\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a4d7ab7601bce2f2f08d23fa3ec25e97b}{ElementType<N\ -\/\ 1>}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ *\ Size<N\ -\/\ 1>(),}
+\DoxyCodeLine{00431\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf}{ElementAlignment<N>::value}});}
+\DoxyCodeLine{00432\ \ \ \}}
+\DoxyCodeLine{00433\ }
+\DoxyCodeLine{00434\ \ \ \textcolor{comment}{//\ Offset\ in\ bytes\ of\ the\ array\ with\ the\ specified\ element\ type.\ There\ must}}
+\DoxyCodeLine{00435\ \ \ \textcolor{comment}{//\ be\ exactly\ one\ such\ array\ and\ its\ zero-\/based\ index\ must\ be\ at\ most}}
+\DoxyCodeLine{00436\ \ \ \textcolor{comment}{//\ \`{}NumSizes`.}}
+\DoxyCodeLine{00437\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00438\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00439\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00440\ \ \ \textcolor{comment}{//\ \ \ assert(x.Offset<int>()\ ==\ 0);\ \ \ \ \ \ //\ The\ ints\ starts\ from\ 0.}}
+\DoxyCodeLine{00441\ \ \ \textcolor{comment}{//\ \ \ assert(x.Offset<double>()\ ==\ 16);\ \ //\ The\ doubles\ starts\ from\ 16.}}
+\DoxyCodeLine{00442\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00443\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a4eddfc987d4bd80cb49e5281efa39483}{Offset}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00444\ \ \ \ \ \textcolor{keywordflow}{return}\ Offset<ElementIndex<T>()>();}
+\DoxyCodeLine{00445\ \ \ \}}
+\DoxyCodeLine{00446\ }
+\DoxyCodeLine{00447\ \ \ \textcolor{comment}{//\ Offsets\ in\ bytes\ of\ all\ arrays\ for\ which\ the\ offsets\ are\ known.}}
+\DoxyCodeLine{00448\ \ \ \textcolor{keyword}{constexpr}\ std::array<size\_t,\ NumOffsets>\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a995250aa8e5ab72644a04dc91d49d471}{Offsets}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00449\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\{Offset<OffsetSeq>()...\}\};}
+\DoxyCodeLine{00450\ \ \ \}}
+\DoxyCodeLine{00451\ }
+\DoxyCodeLine{00452\ \ \ \textcolor{comment}{//\ The\ number\ of\ elements\ in\ the\ Nth\ array\ (zero-\/based).}}
+\DoxyCodeLine{00453\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00454\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00455\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00456\ \ \ \textcolor{comment}{//\ \ \ assert(x.Size<0>()\ ==\ 3);}}
+\DoxyCodeLine{00457\ \ \ \textcolor{comment}{//\ \ \ assert(x.Size<1>()\ ==\ 4);}}
+\DoxyCodeLine{00458\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00459\ \ \ \textcolor{comment}{//\ Requires:\ \`{}N\ <\ NumSizes`.}}
+\DoxyCodeLine{00460\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N,\ EnableIf<(N\ <\ NumStaticSizes)>\ =\ 0>}
+\DoxyCodeLine{00461\ \ \ constexpr\ \textcolor{keywordtype}{size\_t}\ Size()\ const\ \{}
+\DoxyCodeLine{00462\ \ \ \ \ return\ kStaticSizes[N];}
+\DoxyCodeLine{00463\ \ \ \}}
+\DoxyCodeLine{00464\ }
+\DoxyCodeLine{00465\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N,\ EnableIf<(N\ >=\ NumStaticSizes)>\ =\ 0>}
+\DoxyCodeLine{00466\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a0c43d38ac80f3ce4abcb313dce350eca}{Size}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00467\ \ \ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ <\ NumSizes,\ \textcolor{stringliteral}{"{}Index\ out\ of\ bounds"{}});}
+\DoxyCodeLine{00468\ \ \ \ \ \textcolor{keywordflow}{return}\ size\_[\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ -\/\ NumStaticSizes];}
+\DoxyCodeLine{00469\ \ \ \}}
+\DoxyCodeLine{00470\ }
+\DoxyCodeLine{00471\ \ \ \textcolor{comment}{//\ The\ number\ of\ elements\ in\ the\ array\ with\ the\ specified\ element\ type.}}
+\DoxyCodeLine{00472\ \ \ \textcolor{comment}{//\ There\ must\ be\ exactly\ one\ such\ array\ and\ its\ zero-\/based\ index\ must\ be}}
+\DoxyCodeLine{00473\ \ \ \textcolor{comment}{//\ at\ most\ \`{}NumSizes`.}}
+\DoxyCodeLine{00474\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00475\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00476\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00477\ \ \ \textcolor{comment}{//\ \ \ assert(x.Size<int>()\ ==\ 3);}}
+\DoxyCodeLine{00478\ \ \ \textcolor{comment}{//\ \ \ assert(x.Size<double>()\ ==\ 4);}}
+\DoxyCodeLine{00479\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00480\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_ab6ddf02142571f7a307ed1798ee8b453}{Size}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00481\ \ \ \ \ \textcolor{keywordflow}{return}\ Size<ElementIndex<T>()>();}
+\DoxyCodeLine{00482\ \ \ \}}
+\DoxyCodeLine{00483\ }
+\DoxyCodeLine{00484\ \ \ \textcolor{comment}{//\ The\ number\ of\ elements\ of\ all\ arrays\ for\ which\ they\ are\ known.}}
+\DoxyCodeLine{00485\ \ \ \textcolor{keyword}{constexpr}\ std::array<size\_t,\ NumSizes>\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_ab4df5491833f1f6163f1341f64cba6a7}{Sizes}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00486\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\{Size<SizeSeq>()...\}\};}
+\DoxyCodeLine{00487\ \ \ \}}
+\DoxyCodeLine{00488\ }
+\DoxyCodeLine{00489\ \ \ \textcolor{comment}{//\ Pointer\ to\ the\ beginning\ of\ the\ Nth\ array.}}
+\DoxyCodeLine{00490\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00491\ \ \ \textcolor{comment}{//\ \`{}Char`\ must\ be\ \`{}[const]\ [signed|unsigned]\ char`.}}
+\DoxyCodeLine{00492\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00493\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00494\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00495\ \ \ \textcolor{comment}{//\ \ \ unsigned\ char*\ p\ =\ new\ unsigned\ char[x.AllocSize()];}}
+\DoxyCodeLine{00496\ \ \ \textcolor{comment}{//\ \ \ int*\ ints\ =\ x.Pointer<0>(p);}}
+\DoxyCodeLine{00497\ \ \ \textcolor{comment}{//\ \ \ double*\ doubles\ =\ x.Pointer<1>(p);}}
+\DoxyCodeLine{00498\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00499\ \ \ \textcolor{comment}{//\ Requires:\ \`{}N\ <=\ NumSizes\ \&\&\ N\ <\ sizeof...(Ts)`.}}
+\DoxyCodeLine{00500\ \ \ \textcolor{comment}{//\ Requires:\ \`{}p`\ is\ aligned\ to\ \`{}Alignment()`.}}
+\DoxyCodeLine{00501\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{class}\ Char>}
+\DoxyCodeLine{00502\ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_ac977d5c32b87dba9688fd88c0e93ed26}{CopyConst<Char,\ ElementType<N>}}>*\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_aeb37142eefe30ecbb51ebc55b6ce06f2}{Pointer}}(Char*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00503\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ \textcolor{keyword}{typename}\ std::remove\_const<Char>::type;}
+\DoxyCodeLine{00504\ \ \ \ \ \textcolor{keyword}{static\_assert}(}
+\DoxyCodeLine{00505\ \ \ \ \ \ \ \ \ std::is\_same<C,\ char>()\ ||\ std::is\_same<C,\ unsigned\ char>()\ ||}
+\DoxyCodeLine{00506\ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<C,\ signed\ char>(),}
+\DoxyCodeLine{00507\ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}The\ argument\ must\ be\ a\ pointer\ to\ [const]\ [signed|unsigned]\ char"{}});}
+\DoxyCodeLine{00508\ \ \ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ alignment\ =\ Alignment();}
+\DoxyCodeLine{00509\ \ \ \ \ (void)alignment;}
+\DoxyCodeLine{00510\ \ \ \ \ assert(\textcolor{keyword}{reinterpret\_cast<}uintptr\_t\textcolor{keyword}{>}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \%\ alignment\ ==\ 0);}
+\DoxyCodeLine{00511\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_ac977d5c32b87dba9688fd88c0e93ed26}{CopyConst<Char,\ ElementType<N>}}\textcolor{keyword}{>}*>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}\ +\ Offset<N>());}
+\DoxyCodeLine{00512\ \ \ \}}
+\DoxyCodeLine{00513\ }
+\DoxyCodeLine{00514\ \ \ \textcolor{comment}{//\ Pointer\ to\ the\ beginning\ of\ the\ array\ with\ the\ specified\ element\ type.}}
+\DoxyCodeLine{00515\ \ \ \textcolor{comment}{//\ There\ must\ be\ exactly\ one\ such\ array\ and\ its\ zero-\/based\ index\ must\ be\ at}}
+\DoxyCodeLine{00516\ \ \ \textcolor{comment}{//\ most\ \`{}NumSizes`.}}
+\DoxyCodeLine{00517\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00518\ \ \ \textcolor{comment}{//\ \`{}Char`\ must\ be\ \`{}[const]\ [signed|unsigned]\ char`.}}
+\DoxyCodeLine{00519\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00520\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00521\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00522\ \ \ \textcolor{comment}{//\ \ \ unsigned\ char*\ p\ =\ new\ unsigned\ char[x.AllocSize()];}}
+\DoxyCodeLine{00523\ \ \ \textcolor{comment}{//\ \ \ int*\ ints\ =\ x.Pointer<int>(p);}}
+\DoxyCodeLine{00524\ \ \ \textcolor{comment}{//\ \ \ double*\ doubles\ =\ x.Pointer<double>(p);}}
+\DoxyCodeLine{00525\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00526\ \ \ \textcolor{comment}{//\ Requires:\ \`{}p`\ is\ aligned\ to\ \`{}Alignment()`.}}
+\DoxyCodeLine{00527\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ Char>}
+\DoxyCodeLine{00528\ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_ac977d5c32b87dba9688fd88c0e93ed26}{CopyConst<Char,\ T>}}*\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a40a0315dd5562a170437b8d41e3e3b87}{Pointer}}(Char*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00529\ \ \ \ \ \textcolor{keywordflow}{return}\ Pointer<ElementIndex<T>()>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}});}
+\DoxyCodeLine{00530\ \ \ \}}
+\DoxyCodeLine{00531\ }
+\DoxyCodeLine{00532\ \ \ \textcolor{comment}{//\ Pointers\ to\ all\ arrays\ for\ which\ pointers\ are\ known.}}
+\DoxyCodeLine{00533\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00534\ \ \ \textcolor{comment}{//\ \`{}Char`\ must\ be\ \`{}[const]\ [signed|unsigned]\ char`.}}
+\DoxyCodeLine{00535\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00536\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00537\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00538\ \ \ \textcolor{comment}{//\ \ \ unsigned\ char*\ p\ =\ new\ unsigned\ char[x.AllocSize()];}}
+\DoxyCodeLine{00539\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00540\ \ \ \textcolor{comment}{//\ \ \ int*\ ints;}}
+\DoxyCodeLine{00541\ \ \ \textcolor{comment}{//\ \ \ double*\ doubles;}}
+\DoxyCodeLine{00542\ \ \ \textcolor{comment}{//\ \ \ std::tie(ints,\ doubles)\ =\ x.Pointers(p);}}
+\DoxyCodeLine{00543\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00544\ \ \ \textcolor{comment}{//\ Requires:\ \`{}p`\ is\ aligned\ to\ \`{}Alignment()`.}}
+\DoxyCodeLine{00545\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Char>}
+\DoxyCodeLine{00546\ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a38184c03777def2e0d489ba3ede47e4f}{Pointers}}(Char*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00547\ \ \ \ \ \textcolor{keywordflow}{return}\ std::tuple<CopyConst<Char,\ ElementType<OffsetSeq>>*...>(}
+\DoxyCodeLine{00548\ \ \ \ \ \ \ \ \ Pointer<OffsetSeq>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})...);}
+\DoxyCodeLine{00549\ \ \ \}}
+\DoxyCodeLine{00550\ }
+\DoxyCodeLine{00551\ \ \ \textcolor{comment}{//\ The\ Nth\ array.}}
+\DoxyCodeLine{00552\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00553\ \ \ \textcolor{comment}{//\ \`{}Char`\ must\ be\ \`{}[const]\ [signed|unsigned]\ char`.}}
+\DoxyCodeLine{00554\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00555\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00556\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00557\ \ \ \textcolor{comment}{//\ \ \ unsigned\ char*\ p\ =\ new\ unsigned\ char[x.AllocSize()];}}
+\DoxyCodeLine{00558\ \ \ \textcolor{comment}{//\ \ \ Span<int>\ ints\ =\ x.Slice<0>(p);}}
+\DoxyCodeLine{00559\ \ \ \textcolor{comment}{//\ \ \ Span<double>\ doubles\ =\ x.Slice<1>(p);}}
+\DoxyCodeLine{00560\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00561\ \ \ \textcolor{comment}{//\ Requires:\ \`{}N\ <\ NumSizes`.}}
+\DoxyCodeLine{00562\ \ \ \textcolor{comment}{//\ Requires:\ \`{}p`\ is\ aligned\ to\ \`{}Alignment()`.}}
+\DoxyCodeLine{00563\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N,\ \textcolor{keyword}{class}\ Char>}
+\DoxyCodeLine{00564\ \ \ \mbox{\hyperlink{classabsl_1_1Span}{SliceType<CopyConst<Char,\ ElementType<N>}}>>\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a8993a060d3ca6296ccdb4d0801c15915}{Slice}}(Char*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00565\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1Span}{SliceType<CopyConst<Char,\ ElementType<N>}}>>(Pointer<N>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}),\ Size<N>());}
+\DoxyCodeLine{00566\ \ \ \}}
+\DoxyCodeLine{00567\ }
+\DoxyCodeLine{00568\ \ \ \textcolor{comment}{//\ The\ array\ with\ the\ specified\ element\ type.\ There\ must\ be\ exactly\ one}}
+\DoxyCodeLine{00569\ \ \ \textcolor{comment}{//\ such\ array\ and\ its\ zero-\/based\ index\ must\ be\ less\ than\ \`{}NumSizes`.}}
+\DoxyCodeLine{00570\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00571\ \ \ \textcolor{comment}{//\ \`{}Char`\ must\ be\ \`{}[const]\ [signed|unsigned]\ char`.}}
+\DoxyCodeLine{00572\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00573\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00574\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00575\ \ \ \textcolor{comment}{//\ \ \ unsigned\ char*\ p\ =\ new\ unsigned\ char[x.AllocSize()];}}
+\DoxyCodeLine{00576\ \ \ \textcolor{comment}{//\ \ \ Span<int>\ ints\ =\ x.Slice<int>(p);}}
+\DoxyCodeLine{00577\ \ \ \textcolor{comment}{//\ \ \ Span<double>\ doubles\ =\ x.Slice<double>(p);}}
+\DoxyCodeLine{00578\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00579\ \ \ \textcolor{comment}{//\ Requires:\ \`{}p`\ is\ aligned\ to\ \`{}Alignment()`.}}
+\DoxyCodeLine{00580\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ Char>}
+\DoxyCodeLine{00581\ \ \ \mbox{\hyperlink{classabsl_1_1Span}{SliceType<CopyConst<Char,\ T>}}>\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a103bcc110ed680164588badb9b2eb4e5}{Slice}}(Char*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00582\ \ \ \ \ \textcolor{keywordflow}{return}\ Slice<ElementIndex<T>()>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}});}
+\DoxyCodeLine{00583\ \ \ \}}
+\DoxyCodeLine{00584\ }
+\DoxyCodeLine{00585\ \ \ \textcolor{comment}{//\ All\ arrays\ with\ known\ sizes.}}
+\DoxyCodeLine{00586\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00587\ \ \ \textcolor{comment}{//\ \`{}Char`\ must\ be\ \`{}[const]\ [signed|unsigned]\ char`.}}
+\DoxyCodeLine{00588\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00589\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00590\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00591\ \ \ \textcolor{comment}{//\ \ \ unsigned\ char*\ p\ =\ new\ unsigned\ char[x.AllocSize()];}}
+\DoxyCodeLine{00592\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00593\ \ \ \textcolor{comment}{//\ \ \ Span<int>\ ints;}}
+\DoxyCodeLine{00594\ \ \ \textcolor{comment}{//\ \ \ Span<double>\ doubles;}}
+\DoxyCodeLine{00595\ \ \ \textcolor{comment}{//\ \ \ std::tie(ints,\ doubles)\ =\ x.Slices(p);}}
+\DoxyCodeLine{00596\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00597\ \ \ \textcolor{comment}{//\ Requires:\ \`{}p`\ is\ aligned\ to\ \`{}Alignment()`.}}
+\DoxyCodeLine{00598\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00599\ \ \ \textcolor{comment}{//\ Note:\ We\ mark\ the\ parameter\ as\ unused\ because\ GCC\ detects\ it\ is\ not\ used}}
+\DoxyCodeLine{00600\ \ \ \textcolor{comment}{//\ when\ \`{}SizeSeq`\ is\ empty\ [-\/Werror=unused-\/but-\/set-\/parameter].}}
+\DoxyCodeLine{00601\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Char>}
+\DoxyCodeLine{00602\ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a6d57858e50014f6ea3e4bae999eef549}{Slices}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a532dcbae3a0d71263d6d595c4a6b7e81}{ABSL\_ATTRIBUTE\_UNUSED}}\ Char*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00603\ \ \ \ \ \textcolor{keywordflow}{return}\ std::tuple<SliceType<CopyConst<Char,\ ElementType<SizeSeq>>>...>(}
+\DoxyCodeLine{00604\ \ \ \ \ \ \ \ \ Slice<SizeSeq>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})...);}
+\DoxyCodeLine{00605\ \ \ \}}
+\DoxyCodeLine{00606\ }
+\DoxyCodeLine{00607\ \ \ \textcolor{comment}{//\ The\ size\ of\ the\ allocation\ that\ fits\ all\ arrays.}}
+\DoxyCodeLine{00608\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00609\ \ \ \textcolor{comment}{//\ \ \ //\ int[3],\ 4\ bytes\ of\ padding,\ double[4].}}
+\DoxyCodeLine{00610\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 4);}}
+\DoxyCodeLine{00611\ \ \ \textcolor{comment}{//\ \ \ unsigned\ char*\ p\ =\ new\ unsigned\ char[x.AllocSize()];\ \ //\ 48\ bytes}}
+\DoxyCodeLine{00612\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00613\ \ \ \textcolor{comment}{//\ Requires:\ \`{}NumSizes\ ==\ sizeof...(Ts)`.}}
+\DoxyCodeLine{00614\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_abbcbf8decc5f106d4d82004f3d625dd0}{AllocSize}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00615\ \ \ \ \ \textcolor{keyword}{static\_assert}(NumTypes\ ==\ NumSizes,\ \textcolor{stringliteral}{"{}You\ must\ specify\ sizes\ of\ all\ fields"{}});}
+\DoxyCodeLine{00616\ \ \ \ \ \textcolor{keywordflow}{return}\ Offset<NumTypes\ -\/\ 1>()\ +}
+\DoxyCodeLine{00617\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1SizeOf}{SizeOf}}<\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a4d7ab7601bce2f2f08d23fa3ec25e97b}{ElementType<NumTypes\ -\/\ 1>}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ *\ Size<NumTypes\ -\/\ 1>();}
+\DoxyCodeLine{00618\ \ \ \}}
+\DoxyCodeLine{00619\ }
+\DoxyCodeLine{00620\ \ \ \textcolor{comment}{//\ If\ built\ with\ -\/-\/config=asan,\ poisons\ padding\ bytes\ (if\ any)\ in\ the}}
+\DoxyCodeLine{00621\ \ \ \textcolor{comment}{//\ allocation.\ The\ pointer\ must\ point\ to\ a\ memory\ block\ at\ least}}
+\DoxyCodeLine{00622\ \ \ \textcolor{comment}{//\ \`{}AllocSize()`\ bytes\ in\ length.}}
+\DoxyCodeLine{00623\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00624\ \ \ \textcolor{comment}{//\ \`{}Char`\ must\ be\ \`{}[const]\ [signed|unsigned]\ char`.}}
+\DoxyCodeLine{00625\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00626\ \ \ \textcolor{comment}{//\ Requires:\ \`{}p`\ is\ aligned\ to\ \`{}Alignment()`.}}
+\DoxyCodeLine{00627\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Char,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ =\ NumOffsets\ -\/\ 1,\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_a1ab1f10ab928808e7eaac9962c64dbff}{EnableIf<N\ ==\ 0>}}\ =\ 0>}
+\DoxyCodeLine{00628\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_adaa73fb05282bc12aca0fb2875705a65}{PoisonPadding}}(\textcolor{keyword}{const}\ Char*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00629\ \ \ \ \ Pointer<0>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}});\ \ \textcolor{comment}{//\ verify\ the\ requirements\ on\ \`{}Char`\ and\ \`{}p`}}
+\DoxyCodeLine{00630\ \ \ \}}
+\DoxyCodeLine{00631\ }
+\DoxyCodeLine{00632\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Char,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ =\ NumOffsets\ -\/\ 1,\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_a1ab1f10ab928808e7eaac9962c64dbff}{EnableIf<N\ !=\ 0>}}\ =\ 0>}
+\DoxyCodeLine{00633\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_adaa73fb05282bc12aca0fb2875705a65}{PoisonPadding}}(\textcolor{keyword}{const}\ Char*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00634\ \ \ \ \ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ <\ NumOffsets,\ \textcolor{stringliteral}{"{}Index\ out\ of\ bounds"{}});}
+\DoxyCodeLine{00635\ \ \ \ \ (void)\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}};}
+\DoxyCodeLine{00636\ \textcolor{preprocessor}{\#ifdef\ ABSL\_HAVE\_ADDRESS\_SANITIZER}}
+\DoxyCodeLine{00637\ \ \ \ \ PoisonPadding<Char,\ \mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ -\/\ 1>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}});}
+\DoxyCodeLine{00638\ \ \ \ \ \textcolor{comment}{//\ The\ \`{}if`\ is\ an\ optimization.\ It\ doesn't\ affect\ the\ observable\ behaviour.}}
+\DoxyCodeLine{00639\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf}{ElementAlignment<N\ -\/\ 1>::value}}\ \%\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1AlignOf}{ElementAlignment<N>::value}})\ \{}
+\DoxyCodeLine{00640\ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ start\ =}
+\DoxyCodeLine{00641\ \ \ \ \ \ \ \ \ \ \ Offset<\mbox{\hyperlink{eigen_2unsupported_2Eigen_2CXX11_2src_2Tensor_2TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}\ -\/\ 1>()\ +\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1SizeOf}{SizeOf}}<\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_a4d7ab7601bce2f2f08d23fa3ec25e97b}{ElementType<N\ -\/\ 1>}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ *\ Size<N\ -\/\ 1>();}
+\DoxyCodeLine{00642\ \ \ \ \ \ \ ASAN\_POISON\_MEMORY\_REGION(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}\ +\ start,\ Offset<N>()\ -\/\ start);}
+\DoxyCodeLine{00643\ \ \ \ \ \}}
+\DoxyCodeLine{00644\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00645\ \ \ \}}
+\DoxyCodeLine{00646\ }
+\DoxyCodeLine{00647\ \ \ \textcolor{comment}{//\ Human-\/readable\ description\ of\ the\ memory\ layout.\ Useful\ for\ debugging.}}
+\DoxyCodeLine{00648\ \ \ \textcolor{comment}{//\ Slow.}}
+\DoxyCodeLine{00649\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00650\ \ \ \textcolor{comment}{//\ \ \ //\ char[5],\ 3\ bytes\ of\ padding,\ int[3],\ 4\ bytes\ of\ padding,\ followed}}
+\DoxyCodeLine{00651\ \ \ \textcolor{comment}{//\ \ \ //\ by\ an\ unknown\ number\ of\ doubles.}}
+\DoxyCodeLine{00652\ \ \ \textcolor{comment}{//\ \ \ auto\ x\ =\ Layout<char,\ int,\ double>::Partial(5,\ 3);}}
+\DoxyCodeLine{00653\ \ \ \textcolor{comment}{//\ \ \ assert(x.DebugString()\ ==}}
+\DoxyCodeLine{00654\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ "{}@0<char>(1)[5];\ @8<int>(4)[3];\ @24<double>(8)"{});}}
+\DoxyCodeLine{00655\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00656\ \ \ \textcolor{comment}{//\ Each\ field\ is\ in\ the\ following\ format:\ @offset<type>(sizeof)[size]\ (<type>}}
+\DoxyCodeLine{00657\ \ \ \textcolor{comment}{//\ may\ be\ missing\ depending\ on\ the\ target\ platform).\ For\ example,}}
+\DoxyCodeLine{00658\ \ \ \textcolor{comment}{//\ @8<int>(4)[3]\ means\ that\ at\ offset\ 8\ we\ have\ an\ array\ of\ ints,\ where\ each}}
+\DoxyCodeLine{00659\ \ \ \textcolor{comment}{//\ int\ is\ 4\ bytes,\ and\ we\ have\ 3\ of\ those\ ints.\ The\ size\ of\ the\ last\ field\ may}}
+\DoxyCodeLine{00660\ \ \ \textcolor{comment}{//\ be\ missing\ (as\ in\ the\ example\ above).\ Only\ fields\ with\ known\ offsets\ are}}
+\DoxyCodeLine{00661\ \ \ \textcolor{comment}{//\ described.\ Type\ names\ may\ differ\ across\ platforms:\ one\ compiler\ might}}
+\DoxyCodeLine{00662\ \ \ \textcolor{comment}{//\ produce\ "{}unsigned*"{}\ where\ another\ produces\ "{}unsigned\ int\ *"{}.}}
+\DoxyCodeLine{00663\ \ \ std::string\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl_3_01std_1_1tuple_3_01Elements478e8d5feac3cb2588d1858ac96a48c0_acf905a0af4763d150d65775a3ff2beba}{DebugString}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00664\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ offsets\ =\ Offsets();}
+\DoxyCodeLine{00665\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ sizes[]\ =\ \{\mbox{\hyperlink{structabsl_1_1container__internal_1_1internal__layout_1_1SizeOf}{SizeOf<ElementType<OffsetSeq>}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}...\};}
+\DoxyCodeLine{00666\ \ \ \ \ \textcolor{keyword}{const}\ std::string\ types[]\ =\ \{}
+\DoxyCodeLine{00667\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_a098b1b8a26947430b9164d5dedcdeb58}{adl\_barrier::TypeName<ElementType<OffsetSeq>}}>()...\};}
+\DoxyCodeLine{00668\ \ \ \ \ std::string\ res\ =\ \mbox{\hyperlink{namespaceabsl_a0a9abdb6ee6367339931d4cab29d50df}{absl::StrCat}}(\textcolor{stringliteral}{"{}@0"{}},\ types[0],\ \textcolor{stringliteral}{"{}("{}},\ sizes[0],\ \textcolor{stringliteral}{"{})"{}});}
+\DoxyCodeLine{00669\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ 0;\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ !=\ NumOffsets\ -\/\ 1;\ ++\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}})\ \{}
+\DoxyCodeLine{00670\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{absl::StrAppend}}(\&res,\ \textcolor{stringliteral}{"{}["{}},\ DebugSize(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}),\ \textcolor{stringliteral}{"{}];\ @"{}},\ offsets[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ +\ 1],}
+\DoxyCodeLine{00671\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ types[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ +\ 1],\ \textcolor{stringliteral}{"{}("{}},\ sizes[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ +\ 1],\ \textcolor{stringliteral}{"{})"{}});}
+\DoxyCodeLine{00672\ \ \ \ \ \}}
+\DoxyCodeLine{00673\ \ \ \ \ \textcolor{comment}{//\ NumSizes\ is\ a\ constant\ that\ may\ be\ zero.\ Some\ compilers\ cannot\ see\ that}}
+\DoxyCodeLine{00674\ \ \ \ \ \textcolor{comment}{//\ inside\ the\ if\ statement\ "{}size\_[NumSizes\ -\/\ 1]"{}\ must\ be\ valid.}}
+\DoxyCodeLine{00675\ \ \ \ \ \textcolor{keywordtype}{int}\ last\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(NumSizes)\ -\/\ 1;}
+\DoxyCodeLine{00676\ \ \ \ \ \textcolor{keywordflow}{if}\ (NumTypes\ ==\ NumSizes\ \&\&\ last\ >=\ 0)\ \{}
+\DoxyCodeLine{00677\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{absl::StrAppend}}(\&res,\ \textcolor{stringliteral}{"{}["{}},\ DebugSize(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(last)),\ \textcolor{stringliteral}{"{}]"{}});}
+\DoxyCodeLine{00678\ \ \ \ \ \}}
+\DoxyCodeLine{00679\ \ \ \ \ \textcolor{keywordflow}{return}\ res;}
+\DoxyCodeLine{00680\ \ \ \}}
+\DoxyCodeLine{00681\ }
+\DoxyCodeLine{00682\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00683\ \ \ \textcolor{keywordtype}{size\_t}\ DebugSize(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00684\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ <\ NumStaticSizes)\ \{}
+\DoxyCodeLine{00685\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ kStaticSizes[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}];}
+\DoxyCodeLine{00686\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00687\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ size\_[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ -\/\ NumStaticSizes];}
+\DoxyCodeLine{00688\ \ \ \ \ \}}
+\DoxyCodeLine{00689\ \ \ \}}
+\DoxyCodeLine{00690\ }
+\DoxyCodeLine{00691\ \ \ \textcolor{comment}{//\ Arguments\ of\ \`{}Layout::Partial()`\ or\ \`{}Layout::Layout()`.}}
+\DoxyCodeLine{00692\ \ \ \textcolor{keywordtype}{size\_t}\ size\_[NumRuntimeSizes\ >\ 0\ ?\ NumRuntimeSizes\ :\ 1];}
+\DoxyCodeLine{00693\ \};}
+\DoxyCodeLine{00694\ }
+\DoxyCodeLine{00695\ \textcolor{comment}{//\ Defining\ a\ constexpr\ static\ class\ member\ variable\ is\ redundant\ and\ deprecated}}
+\DoxyCodeLine{00696\ \textcolor{comment}{//\ in\ C++17,\ but\ required\ in\ C++14.}}
+\DoxyCodeLine{00697\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Elements,\ \textcolor{keywordtype}{size\_t}...\ StaticSizeSeq,\ \textcolor{keywordtype}{size\_t}...\ RuntimeSizeSeq,}
+\DoxyCodeLine{00698\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}...\ SizeSeq,\ \textcolor{keywordtype}{size\_t}...\ OffsetSeq>}
+\DoxyCodeLine{00699\ \textcolor{keyword}{constexpr}\ std::array<size\_t,\ \textcolor{keyword}{sizeof}...(StaticSizeSeq)>\ LayoutImpl<}
+\DoxyCodeLine{00700\ \ \ \ \ std::tuple<Elements...>,\ absl::index\_sequence<StaticSizeSeq...>,}
+\DoxyCodeLine{00701\ \ \ \ \ absl::index\_sequence<RuntimeSizeSeq...>,\ absl::index\_sequence<SizeSeq...>,}
+\DoxyCodeLine{00702\ \ \ \ \ absl::index\_sequence<OffsetSeq...>>::kStaticSizes;}
+\DoxyCodeLine{00703\ }
+\DoxyCodeLine{00704\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }StaticSizeSeq,\ \textcolor{keywordtype}{size\_t}\ NumRuntimeSizes,\ \textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00705\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_a763c78d8053c04887fda54f84fe97fc8}{LayoutType}}\ =\ LayoutImpl<}
+\DoxyCodeLine{00706\ \ \ \ \ std::tuple<Ts...>,\ StaticSizeSeq,}
+\DoxyCodeLine{00707\ \ \ \ \ absl::make\_index\_sequence<NumRuntimeSizes>,}
+\DoxyCodeLine{00708\ \ \ \ \ absl::make\_index\_sequence<NumRuntimeSizes\ +\ StaticSizeSeq::size()>,}
+\DoxyCodeLine{00709\ \ \ \ \ absl::make\_index\_sequence<\mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_af3c667aae08dbc5d4820c66feb199c7e}{adl\_barrier::Min}}(}
+\DoxyCodeLine{00710\ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}...(Ts),\ NumRuntimeSizes\ +\ StaticSizeSeq::size()\ +\ 1)>>;}
+\DoxyCodeLine{00711\ }
+\DoxyCodeLine{00712\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }StaticSizeSeq,\ \textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00713\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutWithStaticSizes}{LayoutWithStaticSizes}}}
+\DoxyCodeLine{00714\ \ \ \ \ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{LayoutType}}<StaticSizeSeq,}
+\DoxyCodeLine{00715\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ sizeof...(Ts)\ -\/\ adl\_barrier::Min(sizeof...(Ts),}
+\DoxyCodeLine{00716\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ StaticSizeSeq::size()),}
+\DoxyCodeLine{00717\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Ts...>\ \{}
+\DoxyCodeLine{00718\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00719\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{Super}}\ =}
+\DoxyCodeLine{00720\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{LayoutType}}<StaticSizeSeq,}
+\DoxyCodeLine{00721\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}...(Ts)\ -\/}
+\DoxyCodeLine{00722\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_af3c667aae08dbc5d4820c66feb199c7e}{adl\_barrier::Min}}(\textcolor{keyword}{sizeof}...(Ts),\ StaticSizeSeq::size()),}
+\DoxyCodeLine{00723\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Ts...>;}
+\DoxyCodeLine{00724\ }
+\DoxyCodeLine{00725\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00726\ \ \ \textcolor{comment}{//\ The\ result\ type\ of\ \`{}Partial()`\ with\ \`{}NumSizes`\ arguments.}}
+\DoxyCodeLine{00727\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ NumSizes>}
+\DoxyCodeLine{00728\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{PartialType}}\ =}
+\DoxyCodeLine{00729\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{internal\_layout::LayoutType}}<StaticSizeSeq,\ NumSizes,\ Ts...>;}
+\DoxyCodeLine{00730\ }
+\DoxyCodeLine{00731\ \ \ \textcolor{comment}{//\ \`{}Layout`\ knows\ the\ element\ types\ of\ the\ arrays\ we\ want\ to\ lay\ out\ in}}
+\DoxyCodeLine{00732\ \ \ \textcolor{comment}{//\ memory\ but\ not\ the\ number\ of\ elements\ in\ each\ array.}}
+\DoxyCodeLine{00733\ \ \ \textcolor{comment}{//\ \`{}Partial(size1,\ ...,\ sizeN)`\ allows\ us\ to\ specify\ the\ latter.\ The}}
+\DoxyCodeLine{00734\ \ \ \textcolor{comment}{//\ resulting\ immutable\ object\ can\ be\ used\ to\ obtain\ pointers\ to\ the}}
+\DoxyCodeLine{00735\ \ \ \textcolor{comment}{//\ individual\ arrays.}}
+\DoxyCodeLine{00736\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00737\ \ \ \textcolor{comment}{//\ It's\ allowed\ to\ pass\ fewer\ array\ sizes\ than\ the\ number\ of\ arrays.\ E.g.,}}
+\DoxyCodeLine{00738\ \ \ \textcolor{comment}{//\ if\ all\ you\ need\ is\ to\ the\ offset\ of\ the\ second\ array,\ you\ only\ need\ to}}
+\DoxyCodeLine{00739\ \ \ \textcolor{comment}{//\ pass\ one\ argument\ -\/-\/\ the\ number\ of\ elements\ in\ the\ first\ array.}}
+\DoxyCodeLine{00740\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00741\ \ \ \textcolor{comment}{//\ \ \ //\ int[3]\ followed\ by\ 4\ bytes\ of\ padding\ and\ an\ unknown\ number\ of}}
+\DoxyCodeLine{00742\ \ \ \textcolor{comment}{//\ \ \ //\ doubles.}}
+\DoxyCodeLine{00743\ \ \ \textcolor{comment}{//\ \ \ auto\ x\ =\ Layout<int,\ double>::Partial(3);}}
+\DoxyCodeLine{00744\ \ \ \textcolor{comment}{//\ \ \ //\ doubles\ start\ at\ byte\ 16.}}
+\DoxyCodeLine{00745\ \ \ \textcolor{comment}{//\ \ \ assert(x.Offset<1>()\ ==\ 16);}}
+\DoxyCodeLine{00746\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00747\ \ \ \textcolor{comment}{//\ If\ you\ know\ the\ number\ of\ elements\ in\ all\ arrays,\ you\ can\ still\ call}}
+\DoxyCodeLine{00748\ \ \ \textcolor{comment}{//\ \`{}Partial()`\ but\ it's\ more\ convenient\ to\ use\ the\ constructor\ of\ \`{}Layout`.}}
+\DoxyCodeLine{00749\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00750\ \ \ \textcolor{comment}{//\ \ \ Layout<int,\ double>\ x(3,\ 5);}}
+\DoxyCodeLine{00751\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00752\ \ \ \textcolor{comment}{//\ Note:\ The\ sizes\ of\ the\ arrays\ must\ be\ specified\ in\ number\ of\ elements,}}
+\DoxyCodeLine{00753\ \ \ \textcolor{comment}{//\ not\ in\ bytes.}}
+\DoxyCodeLine{00754\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00755\ \ \ \textcolor{comment}{//\ Requires:\ \`{}sizeof...(Sizes)\ +\ NumStaticSizes\ <=\ sizeof...(Ts)`.}}
+\DoxyCodeLine{00756\ \ \ \textcolor{comment}{//\ Requires:\ all\ arguments\ are\ convertible\ to\ \`{}size\_t`.}}
+\DoxyCodeLine{00757\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Sizes>}
+\DoxyCodeLine{00758\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{PartialType}}<\textcolor{keyword}{sizeof}...(Sizes)>\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutWithStaticSizes_aa0fe235985821cde6b62c8cc7c1bdea6}{Partial}}(Sizes\&\&...\ sizes)\ \{}
+\DoxyCodeLine{00759\ \ \ \ \ \textcolor{keyword}{static\_assert}(\textcolor{keyword}{sizeof}...(Sizes)\ +\ StaticSizeSeq::size()\ <=\ \textcolor{keyword}{sizeof}...(Ts),}
+\DoxyCodeLine{00760\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{00761\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{PartialType}}<\textcolor{keyword}{sizeof}...(Sizes)>(}
+\DoxyCodeLine{00762\ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(std::forward<Sizes>(sizes))...);}
+\DoxyCodeLine{00763\ \ \ \}}
+\DoxyCodeLine{00764\ }
+\DoxyCodeLine{00765\ \ \ \textcolor{comment}{//\ Inherit\ LayoutType's\ constructor.}}
+\DoxyCodeLine{00766\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00767\ \ \ \textcolor{comment}{//\ Creates\ a\ layout\ with\ the\ sizes\ of\ all\ arrays\ specified.\ If\ you\ know}}
+\DoxyCodeLine{00768\ \ \ \textcolor{comment}{//\ only\ the\ sizes\ of\ the\ first\ N\ arrays\ (where\ N\ can\ be\ zero),\ you\ can\ use}}
+\DoxyCodeLine{00769\ \ \ \textcolor{comment}{//\ \`{}Partial()`\ defined\ above.\ The\ constructor\ is\ essentially\ equivalent\ to}}
+\DoxyCodeLine{00770\ \ \ \textcolor{comment}{//\ calling\ \`{}Partial()`\ and\ passing\ in\ all\ array\ sizes;\ the\ constructor\ is}}
+\DoxyCodeLine{00771\ \ \ \textcolor{comment}{//\ provided\ as\ a\ convenient\ abbreviation.}}
+\DoxyCodeLine{00772\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00773\ \ \ \textcolor{comment}{//\ Note:\ The\ sizes\ of\ the\ arrays\ must\ be\ specified\ in\ number\ of\ elements,}}
+\DoxyCodeLine{00774\ \ \ \textcolor{comment}{//\ not\ in\ bytes.}}
+\DoxyCodeLine{00775\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00776\ \ \ \textcolor{comment}{//\ Implementation\ note:\ we\ do\ this\ via\ a\ \`{}using`\ declaration\ instead\ of}}
+\DoxyCodeLine{00777\ \ \ \textcolor{comment}{//\ defining\ our\ own\ explicit\ constructor\ because\ the\ signature\ of\ LayoutType's}}
+\DoxyCodeLine{00778\ \ \ \textcolor{comment}{//\ constructor\ depends\ on\ RuntimeSizeSeq,\ which\ we\ don't\ have\ access\ to\ here.}}
+\DoxyCodeLine{00779\ \ \ \textcolor{comment}{//\ If\ we\ defined\ our\ own\ constructor\ here,\ it\ would\ have\ to\ use\ a\ parameter}}
+\DoxyCodeLine{00780\ \ \ \textcolor{comment}{//\ pack\ and\ then\ cast\ the\ arguments\ to\ size\_t\ when\ calling\ the\ superclass}}
+\DoxyCodeLine{00781\ \ \ \textcolor{comment}{//\ constructor,\ similar\ to\ what\ Partial()\ does.\ But\ that\ would\ suffer\ from\ the}}
+\DoxyCodeLine{00782\ \ \ \textcolor{comment}{//\ same\ problem\ that\ Partial()\ has,\ which\ is\ that\ the\ parameter\ types\ are}}
+\DoxyCodeLine{00783\ \ \ \textcolor{comment}{//\ inferred\ from\ the\ arguments,\ which\ may\ be\ signed\ types,\ which\ must\ then\ be}}
+\DoxyCodeLine{00784\ \ \ \textcolor{comment}{//\ cast\ to\ size\_t.\ This\ can\ lead\ to\ negative\ values\ being\ silently\ (i.e.\ with}}
+\DoxyCodeLine{00785\ \ \ \textcolor{comment}{//\ no\ compiler\ warnings)\ cast\ to\ an\ unsigned\ type.\ Having\ a\ constructor\ with}}
+\DoxyCodeLine{00786\ \ \ \textcolor{comment}{//\ size\_t\ parameters\ helps\ the\ compiler\ generate\ better\ warnings\ about}}
+\DoxyCodeLine{00787\ \ \ \textcolor{comment}{//\ potential\ bad\ casts,\ while\ avoiding\ false\ warnings\ when\ positive\ literal}}
+\DoxyCodeLine{00788\ \ \ \textcolor{comment}{//\ arguments\ are\ used.\ If\ an\ argument\ is\ a\ positive\ literal\ integer\ (e.g.}}
+\DoxyCodeLine{00789\ \ \ \textcolor{comment}{//\ \`{}1`),\ the\ compiler\ will\ understand\ that\ it\ can\ be\ safely\ converted\ to}}
+\DoxyCodeLine{00790\ \ \ \textcolor{comment}{//\ size\_t,\ and\ hence\ not\ generate\ a\ warning.\ But\ if\ a\ negative\ literal\ (e.g.}}
+\DoxyCodeLine{00791\ \ \ \textcolor{comment}{//\ \`{}-\/1`)\ or\ a\ variable\ with\ signed\ type\ is\ used,\ then\ it\ can\ generate\ a}}
+\DoxyCodeLine{00792\ \ \ \textcolor{comment}{//\ warning\ about\ a\ potentially\ unsafe\ implicit\ cast.\ It\ would\ be\ great\ if\ we}}
+\DoxyCodeLine{00793\ \ \ \textcolor{comment}{//\ could\ do\ this\ for\ Partial()\ too,\ but\ unfortunately\ as\ of\ C++23\ there\ seems}}
+\DoxyCodeLine{00794\ \ \ \textcolor{comment}{//\ to\ be\ no\ way\ to\ define\ a\ function\ with\ a\ variable\ number\ of\ parameters\ of\ a}}
+\DoxyCodeLine{00795\ \ \ \textcolor{comment}{//\ certain\ type,\ a.k.a.\ homogeneous\ function\ parameter\ packs.\ So\ we're\ forced}}
+\DoxyCodeLine{00796\ \ \ \textcolor{comment}{//\ to\ choose\ between\ explicitly\ casting\ the\ arguments\ to\ size\_t,\ which}}
+\DoxyCodeLine{00797\ \ \ \textcolor{comment}{//\ suppresses\ all\ warnings,\ even\ potentially\ valid\ ones,\ or\ implicitly\ casting}}
+\DoxyCodeLine{00798\ \ \ \textcolor{comment}{//\ them\ to\ size\_t,\ which\ generates\ bogus\ warnings\ whenever\ literal\ arguments}}
+\DoxyCodeLine{00799\ \ \ \textcolor{comment}{//\ are\ used,\ even\ if\ they're\ positive.}}
+\DoxyCodeLine{00800\ \ \ \textcolor{keyword}{using\ }Super::Super;}
+\DoxyCodeLine{00801\ \};}
+\DoxyCodeLine{00802\ }
+\DoxyCodeLine{00803\ \}\ \ \textcolor{comment}{//\ namespace\ internal\_layout}}
+\DoxyCodeLine{00804\ }
+\DoxyCodeLine{00805\ \textcolor{comment}{//\ Descriptor\ of\ arrays\ of\ various\ types\ and\ sizes\ laid\ out\ in\ memory\ one\ after}}
+\DoxyCodeLine{00806\ \textcolor{comment}{//\ another.\ See\ the\ top\ of\ the\ file\ for\ documentation.}}
+\DoxyCodeLine{00807\ \textcolor{comment}{//}}
+\DoxyCodeLine{00808\ \textcolor{comment}{//\ Check\ out\ the\ public\ API\ of\ internal\_layout::LayoutWithStaticSizes\ and}}
+\DoxyCodeLine{00809\ \textcolor{comment}{//\ internal\_layout::LayoutImpl\ above.\ Those\ types\ are\ internal\ to\ the\ library}}
+\DoxyCodeLine{00810\ \textcolor{comment}{//\ but\ their\ methods\ are\ public,\ and\ they\ are\ inherited\ by\ \`{}Layout`.}}
+\DoxyCodeLine{00811\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00812\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1Layout}{Layout}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutWithStaticSizes}{internal\_layout::LayoutWithStaticSizes}}<}
+\DoxyCodeLine{00813\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::make\_index\_sequence<0>,\ Ts...>\ \{}
+\DoxyCodeLine{00814\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00815\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutWithStaticSizes}{Super}}\ =}
+\DoxyCodeLine{00816\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutWithStaticSizes}{internal\_layout::LayoutWithStaticSizes<absl::make\_index\_sequence<0>}},}
+\DoxyCodeLine{00817\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Ts...>;}
+\DoxyCodeLine{00818\ }
+\DoxyCodeLine{00819\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00820\ \ \ \textcolor{comment}{//\ If\ you\ know\ the\ sizes\ of\ some\ or\ all\ of\ the\ arrays\ at\ compile\ time,\ you\ can}}
+\DoxyCodeLine{00821\ \ \ \textcolor{comment}{//\ use\ \`{}WithStaticSizes`\ or\ \`{}WithStaticSizeSequence`\ to\ create\ a\ \`{}Layout`\ type}}
+\DoxyCodeLine{00822\ \ \ \textcolor{comment}{//\ with\ those\ sizes\ baked\ in.\ This\ can\ help\ the\ compiler\ generate\ optimal\ code}}
+\DoxyCodeLine{00823\ \ \ \textcolor{comment}{//\ for\ calculating\ array\ offsets\ and\ AllocSize().}}
+\DoxyCodeLine{00824\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00825\ \ \ \textcolor{comment}{//\ Like\ \`{}Partial()`,\ the\ N\ sizes\ you\ specify\ are\ for\ the\ first\ N\ arrays,\ and}}
+\DoxyCodeLine{00826\ \ \ \textcolor{comment}{//\ they\ specify\ the\ number\ of\ elements\ in\ each\ array,\ not\ the\ number\ of\ bytes.}}
+\DoxyCodeLine{00827\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ StaticSizeSeq>}
+\DoxyCodeLine{00828\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutWithStaticSizes}{WithStaticSizeSequence}}\ =}
+\DoxyCodeLine{00829\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutWithStaticSizes}{internal\_layout::LayoutWithStaticSizes}}<StaticSizeSeq,\ Ts...>;}
+\DoxyCodeLine{00830\ }
+\DoxyCodeLine{00831\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}...\ StaticSizes>}
+\DoxyCodeLine{00832\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutWithStaticSizes}{WithStaticSizes}}\ =}
+\DoxyCodeLine{00833\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutWithStaticSizes}{WithStaticSizeSequence}}<std::index\_sequence<StaticSizes...>>;}
+\DoxyCodeLine{00834\ }
+\DoxyCodeLine{00835\ \ \ \textcolor{comment}{//\ Inherit\ LayoutWithStaticSizes's\ constructor,\ which\ requires\ you\ to\ specify}}
+\DoxyCodeLine{00836\ \ \ \textcolor{comment}{//\ all\ the\ array\ sizes.}}
+\DoxyCodeLine{00837\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1internal__layout_1_1LayoutImpl}{Super::Super}};}
+\DoxyCodeLine{00838\ \};}
+\DoxyCodeLine{00839\ }
+\DoxyCodeLine{00840\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00841\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00842\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00843\ }
+\DoxyCodeLine{00844\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CONTAINER\_INTERNAL\_LAYOUT\_H\_}}
+
+\end{DoxyCode}

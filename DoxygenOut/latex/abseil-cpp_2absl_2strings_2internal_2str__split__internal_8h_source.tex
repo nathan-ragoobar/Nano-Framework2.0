@@ -1,0 +1,491 @@
+\doxysection{str\+\_\+split\+\_\+internal.\+h}
+\hypertarget{abseil-cpp_2absl_2strings_2internal_2str__split__internal_8h_source}{}\label{abseil-cpp_2absl_2strings_2internal_2str__split__internal_8h_source}\index{abseil-\/cpp/absl/strings/internal/str\_split\_internal.h@{abseil-\/cpp/absl/strings/internal/str\_split\_internal.h}}
+\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__split__internal_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ This\ file\ declares\ INTERNAL\ parts\ of\ the\ Split\ API\ that\ are\ inline/templated}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ or\ otherwise\ need\ to\ be\ available\ at\ compile\ time.\ The\ main\ abstractions}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ defined\ in\ here\ are}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ \ \ -\/\ ConvertibleToStringView}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ \ \ -\/\ SplitIterator<>}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ \ \ -\/\ Splitter<>}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ DO\ NOT\ INCLUDE\ THIS\ FILE\ DIRECTLY.\ Use\ this\ file\ by\ including}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ absl/strings/str\_split.h.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ IWYU\ pragma:\ private,\ include\ "{}absl/strings/str\_split.h"{}}}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_INTERNAL\_STR\_SPLIT\_INTERNAL\_H\_}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_INTERNAL\_STR\_SPLIT\_INTERNAL\_H\_}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <array>}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <initializer\_list>}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <iterator>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <tuple>}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ "{}absl/base/port.h"{}}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ "{}absl/strings/string\_view.h"{}}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#ifdef\ \_GLIBCXX\_DEBUG}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/stl\_type\_traits.h"{}}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ \_GLIBCXX\_DEBUG}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00051\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00052\ \textcolor{keyword}{namespace\ }strings\_internal\ \{}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ This\ class\ is\ implicitly\ constructible\ from\ everything\ that\ absl::string\_view}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ is\ implicitly\ constructible\ from,\ except\ for\ rvalue\ strings.\ \ This\ means\ it}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ can\ be\ used\ as\ a\ function\ parameter\ in\ places\ where\ passing\ a\ temporary}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ string\ might\ cause\ memory\ lifetime\ issues.}}
+\DoxyCodeLine{00058\ \textcolor{keyword}{class\ }ConvertibleToStringView\ \{}
+\DoxyCodeLine{00059\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00060\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1ConvertibleToStringView_ad5e30bdefdab222c9c4da4504d4ee201}{ConvertibleToStringView}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ :\ value\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \{\}}
+\DoxyCodeLine{00062\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1ConvertibleToStringView_a9b29b80c01615ad93f3fa39224ab116e}{ConvertibleToStringView}}(\textcolor{keywordtype}{char}*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ :\ value\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \{\}\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00063\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1ConvertibleToStringView_a37231afe24ac0bb0ef886a16d7de0820}{ConvertibleToStringView}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \ \ \ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ :\ value\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \{\}}
+\DoxyCodeLine{00065\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1ConvertibleToStringView_a24b7ade9a431a9e8cbea28e665b99706}{ConvertibleToStringView}}(\textcolor{keyword}{const}\ std::string\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00066\ \ \ \ \ \ \ :\ value\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ \{\}}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//\ Disable\ conversion\ from\ rvalue\ strings.}}
+\DoxyCodeLine{00069\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1ConvertibleToStringView_ac710e5e2d1e1d8f11bac9eebf0505fbe}{ConvertibleToStringView}}(std::string\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00070\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1ConvertibleToStringView_a4b4c53c066d165cb3f95093cf56bfb63}{ConvertibleToStringView}}(\textcolor{keyword}{const}\ std::string\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}})\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1ConvertibleToStringView_a03e09e2bbfdf6d51faecf1e8a7d2bef9}{value}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ value\_;\ \}}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00074\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00075\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ value\_;}
+\DoxyCodeLine{00076\ \};}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ An\ iterator\ that\ enumerates\ the\ parts\ of\ a\ string\ from\ a\ Splitter.\ The\ text}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ to\ be\ split,\ the\ Delimiter,\ and\ the\ Predicate\ are\ all\ taken\ from\ the\ given}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ Splitter\ object.\ Iterators\ may\ only\ be\ compared\ if\ they\ refer\ to\ the\ same}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ Splitter\ instance.}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ This\ class\ is\ NOT\ part\ of\ the\ public\ splitting\ API.}}
+\DoxyCodeLine{00084\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Splitter>}
+\DoxyCodeLine{00085\ \textcolor{keyword}{class\ }SplitIterator\ \{}
+\DoxyCodeLine{00086\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00087\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a03f3ca57a1a6690d1481cb42fc97c5ce}{iterator\_category}}\ =\ std::input\_iterator\_tag;}
+\DoxyCodeLine{00088\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view}{value\_type}}\ =\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}};}
+\DoxyCodeLine{00089\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_abc9c3b784ceb02f6d4f6e5cff6481cf9}{difference\_type}}\ =\ ptrdiff\_t;}
+\DoxyCodeLine{00090\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view}{pointer}}\ =\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1string__view}{value\_type}}*;}
+\DoxyCodeLine{00091\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view}{reference}}\ =\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1string__view}{value\_type}}\&;}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \ \ \textcolor{keyword}{enum}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907f}{State}}\ \{\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907fa5c9ae620093b24cfa213b70d876a44be}{kInitState}},\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907fae578f39ac86be907b0d329ae67c1874a}{kLastState}},\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907facd4a85d41a9769fec8ee0437807479bc}{kEndState}}\ \};}
+\DoxyCodeLine{00094\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_aabd60a5b674cea275272811b8c66b7e1}{SplitIterator}}(\mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907f}{State}}\ state,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter}{Splitter}}*\ splitter)}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ :\ pos\_(0),}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ state\_(state),}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \ \ splitter\_(splitter),}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ delimiter\_(splitter-\/>delimiter()),}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ predicate\_(splitter-\/>predicate())\ \{}
+\DoxyCodeLine{00100\ \ \ \ \ \textcolor{comment}{//\ Hack\ to\ maintain\ backward\ compatibility.\ This\ one\ block\ makes\ it\ so\ an}}
+\DoxyCodeLine{00101\ \ \ \ \ \textcolor{comment}{//\ empty\ absl::string\_view\ whose\ .data()\ happens\ to\ be\ nullptr\ behaves}}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{comment}{//\ *differently*\ from\ an\ otherwise\ empty\ absl::string\_view\ whose\ .data()\ is}}
+\DoxyCodeLine{00103\ \ \ \ \ \textcolor{comment}{//\ not\ nullptr.\ This\ is\ an\ undesirable\ difference\ in\ general,\ but\ this}}
+\DoxyCodeLine{00104\ \ \ \ \ \textcolor{comment}{//\ behavior\ is\ maintained\ to\ avoid\ breaking\ existing\ code\ that\ happens\ to}}
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{comment}{//\ depend\ on\ this\ old\ behavior/bug.\ Perhaps\ it\ will\ be\ fixed\ one\ day.\ The}}
+\DoxyCodeLine{00106\ \ \ \ \ \textcolor{comment}{//\ difference\ in\ behavior\ is\ as\ follows:}}
+\DoxyCodeLine{00107\ \ \ \ \ \textcolor{comment}{//\ \ \ Split(absl::string\_view("{}"{}),\ '-\/');\ \ //\ \{"{}"{}\}}}
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{comment}{//\ \ \ Split(absl::string\_view(),\ '-\/');\ \ \ \ //\ \{\}}}
+\DoxyCodeLine{00109\ \ \ \ \ \textcolor{keywordflow}{if}\ (splitter\_-\/>\mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a7b4bdbc3276c67b5aa5ac32e76307df2}{text}}().\mbox{\hyperlink{classabsl_1_1string__view_acdd63d87adecc9cb89e3bb2c4efedf47}{data}}()\ ==\ \textcolor{keyword}{nullptr})\ \{}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ state\_\ =\ kEndState;}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ pos\_\ =\ splitter\_-\/>text().size();}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ return;}
+\DoxyCodeLine{00113\ \ \ \ \ \}}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \ \ \ \ if\ (state\_\ ==\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907facd4a85d41a9769fec8ee0437807479bc}{kEndState}})\ \{}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ pos\_\ =\ splitter\_-\/>\mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a7b4bdbc3276c67b5aa5ac32e76307df2}{text}}().\mbox{\hyperlink{classabsl_1_1string__view_a3950f228eccec8f88e34b9a90ad94428}{size}}();}
+\DoxyCodeLine{00117\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ ++(*this);}
+\DoxyCodeLine{00119\ \ \ \ \ \}}
+\DoxyCodeLine{00120\ \ \ \}}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a362dfba1d26a30d79e080447d6a5f923}{at\_end}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ state\_\ ==\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907facd4a85d41a9769fec8ee0437807479bc}{kEndState}};\ \}}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{reference}}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_aea1b6643690f9757ab17099493306b59}{operator*}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ curr\_;\ \}}
+\DoxyCodeLine{00125\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{pointer}}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a99e5c69bc6ae93314e336010745734c6}{operator-\/>}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \&curr\_;\ \}}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{SplitIterator}}\&\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a0b8523095d2ed18cb46b36d45f343d2a}{operator++}}()\ \{}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keywordflow}{do}\ \{}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (state\_\ ==\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907fae578f39ac86be907b0d329ae67c1874a}{kLastState}})\ \{}
+\DoxyCodeLine{00130\ \ \ \ \ \ \ \ \ state\_\ =\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907facd4a85d41a9769fec8ee0437807479bc}{kEndState}};}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ text\ =\ splitter\_-\/>\mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a7b4bdbc3276c67b5aa5ac32e76307df2}{text}}();}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}}\ =\ delimiter\_.Find(text,\ pos\_);}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}}.data()\ ==\ text.\mbox{\hyperlink{classabsl_1_1string__view_acdd63d87adecc9cb89e3bb2c4efedf47}{data}}()\ +\ text.\mbox{\hyperlink{classabsl_1_1string__view_a3950f228eccec8f88e34b9a90ad94428}{size}}())\ state\_\ =\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907fae578f39ac86be907b0d329ae67c1874a}{kLastState}};}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ curr\_\ =\ text.\mbox{\hyperlink{classabsl_1_1string__view_a61929025b41349e63db522ea90f7bc7c}{substr}}(pos\_,}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}}.data()\ -\/\ (text.\mbox{\hyperlink{classabsl_1_1string__view_acdd63d87adecc9cb89e3bb2c4efedf47}{data}}()\ +\ pos\_)));}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ pos\_\ +=\ curr\_.\mbox{\hyperlink{classabsl_1_1string__view_a3950f228eccec8f88e34b9a90ad94428}{size}}()\ +\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}}.size();}
+\DoxyCodeLine{00139\ \ \ \ \ \}\ \textcolor{keywordflow}{while}\ (!predicate\_(curr\_));}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00141\ \ \ \}}
+\DoxyCodeLine{00142\ }
+\DoxyCodeLine{00143\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{SplitIterator}}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a80381fbdf30b7734ca6e07ee07440ce1}{operator++}}(\textcolor{keywordtype}{int})\ \{}
+\DoxyCodeLine{00144\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{SplitIterator}}\ old(*\textcolor{keyword}{this});}
+\DoxyCodeLine{00145\ \ \ \ \ ++(*this);}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keywordflow}{return}\ old;}
+\DoxyCodeLine{00147\ \ \ \}}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a5c13ee2096f4fe4c8eeb1fdece5c4fbb}{operator==}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{SplitIterator}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{SplitIterator}}\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00150\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.state\_\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.state\_\ \&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}.pos\_\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.pos\_;}
+\DoxyCodeLine{00151\ \ \ \}}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_add34a6053ee99a349b7eb6e69f70fd9a}{operator!=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{SplitIterator}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{SplitIterator}}\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00154\ \ \ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00155\ \ \ \}}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00158\ \ \ \textcolor{keywordtype}{size\_t}\ pos\_;}
+\DoxyCodeLine{00159\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907f}{State}}\ state\_;}
+\DoxyCodeLine{00160\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ curr\_;}
+\DoxyCodeLine{00161\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter}{Splitter}}*\ splitter\_;}
+\DoxyCodeLine{00162\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a08546c775af981027056c803ff67f222}{Splitter::DelimiterType}}\ delimiter\_;}
+\DoxyCodeLine{00163\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_aae97f1bf0e9aedfdf40c95afa55ce9e4}{Splitter::PredicateType}}\ predicate\_;}
+\DoxyCodeLine{00164\ \};}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ HasMappedType<T>::value\ is\ true\ iff\ there\ exists\ a\ type\ T::mapped\_type.}}
+\DoxyCodeLine{00167\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00168\ \textcolor{keyword}{struct\ }HasMappedType\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00169\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00170\ \textcolor{keyword}{struct\ }HasMappedType<T,\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}<typename\ T::mapped\_type>>}
+\DoxyCodeLine{00171\ \ \ \ \ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00173\ \textcolor{comment}{//\ HasValueType<T>::value\ is\ true\ iff\ there\ exists\ a\ type\ T::value\_type.}}
+\DoxyCodeLine{00174\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00175\ \textcolor{keyword}{struct\ }HasValueType\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00176\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00177\ \textcolor{keyword}{struct\ }HasValueType<T,\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}<typename\ T::value\_type>>\ :\ std::true\_type\ \{}
+\DoxyCodeLine{00178\ \};}
+\DoxyCodeLine{00179\ }
+\DoxyCodeLine{00180\ \textcolor{comment}{//\ HasConstIterator<T>::value\ is\ true\ iff\ there\ exists\ a\ type\ T::const\_iterator.}}
+\DoxyCodeLine{00181\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00182\ \textcolor{keyword}{struct\ }HasConstIterator\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00183\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00184\ \textcolor{keyword}{struct\ }HasConstIterator<T,\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}<typename\ T::const\_iterator>>}
+\DoxyCodeLine{00185\ \ \ \ \ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \textcolor{comment}{//\ HasEmplace<T>::value\ is\ true\ iff\ there\ exists\ a\ method\ T::emplace().}}
+\DoxyCodeLine{00188\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00189\ \textcolor{keyword}{struct\ }HasEmplace\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00190\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00191\ \textcolor{keyword}{struct\ }HasEmplace<T,\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}<decltype(std::declval<T>().emplace())>>}
+\DoxyCodeLine{00192\ \ \ \ \ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \textcolor{comment}{//\ IsInitializerList<T>::value\ is\ true\ iff\ T\ is\ an\ std::initializer\_list.\ More}}
+\DoxyCodeLine{00195\ \textcolor{comment}{//\ details\ below\ in\ Splitter<>\ where\ this\ is\ used.}}
+\DoxyCodeLine{00196\ std::false\_type\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_acf17065b64e1b33b732e8573d8a5a0db}{IsInitializerListDispatch}}(...);\ \ \textcolor{comment}{//\ default:\ No}}
+\DoxyCodeLine{00197\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00198\ std::true\_type\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_acf17065b64e1b33b732e8573d8a5a0db}{IsInitializerListDispatch}}(std::initializer\_list<T>*);}
+\DoxyCodeLine{00199\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00200\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1IsInitializerList}{IsInitializerList}}}
+\DoxyCodeLine{00201\ \ \ \ \ :\ decltype(IsInitializerListDispatch(static\_cast<T*>(nullptr)))\ \{\};}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \textcolor{comment}{//\ A\ SplitterIsConvertibleTo<C>::type\ alias\ exists\ iff\ the\ specified\ condition}}
+\DoxyCodeLine{00204\ \textcolor{comment}{//\ is\ true\ for\ type\ 'C'.}}
+\DoxyCodeLine{00205\ \textcolor{comment}{//}}
+\DoxyCodeLine{00206\ \textcolor{comment}{//\ Restricts\ conversion\ to\ container-\/like\ types\ (by\ testing\ for\ the\ presence\ of}}
+\DoxyCodeLine{00207\ \textcolor{comment}{//\ a\ const\_iterator\ member\ type)\ and\ also\ to\ disable\ conversion\ to\ an}}
+\DoxyCodeLine{00208\ \textcolor{comment}{//\ std::initializer\_list\ (which\ also\ has\ a\ const\_iterator).\ Otherwise,\ code}}
+\DoxyCodeLine{00209\ \textcolor{comment}{//\ compiled\ in\ C++11\ will\ get\ an\ error\ due\ to\ ambiguous\ conversion\ paths\ (in}}
+\DoxyCodeLine{00210\ \textcolor{comment}{//\ C++11\ std::vector<T>::operator=\ is\ overloaded\ to\ take\ either\ a\ std::vector<T>}}
+\DoxyCodeLine{00211\ \textcolor{comment}{//\ or\ an\ std::initializer\_list<T>).}}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ C,\ \textcolor{keywordtype}{bool}\ has\_value\_type,\ \textcolor{keywordtype}{bool}\ has\_mapped\_type>}
+\DoxyCodeLine{00214\ \textcolor{keyword}{struct\ }SplitterIsConvertibleToImpl\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ C>}
+\DoxyCodeLine{00217\ \textcolor{keyword}{struct\ }SplitterIsConvertibleToImpl<\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ true,\ false>}
+\DoxyCodeLine{00218\ \ \ \ \ :\ std::is\_constructible<typename\ C::value\_type,\ absl::string\_view>\ \{\};}
+\DoxyCodeLine{00219\ }
+\DoxyCodeLine{00220\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ C>}
+\DoxyCodeLine{00221\ \textcolor{keyword}{struct\ }SplitterIsConvertibleToImpl<\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ true,\ true>}
+\DoxyCodeLine{00222\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1conjunction}{absl::conjunction}}<}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ \ \ \ \ std::is\_constructible<typename\ C::key\_type,\ absl::string\_view>,}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \ \ \ \ std::is\_constructible<typename\ C::mapped\_type,\ absl::string\_view>>\ \{\};}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ C>}
+\DoxyCodeLine{00227\ \textcolor{keyword}{struct\ }SplitterIsConvertibleTo}
+\DoxyCodeLine{00228\ \ \ \ \ :\ SplitterIsConvertibleToImpl<}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \ \ \ \ C,}
+\DoxyCodeLine{00230\ \#ifdef\ \_GLIBCXX\_DEBUG}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \ \ \ \ !IsStrictlyBaseOfAndConvertibleToSTLContainer<C>::value\ \&\&}
+\DoxyCodeLine{00232\ \#endif\ \ \textcolor{comment}{//\ \_GLIBCXX\_DEBUG}}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !IsInitializerList<}
+\DoxyCodeLine{00234\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ typename\ std::remove\_reference<C>::type>::value\ \&\&}
+\DoxyCodeLine{00235\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ HasValueType<C>::value\ \&\&\ HasConstIterator<C>::value,}
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \ \ \ \ HasMappedType<C>::value>\ \{}
+\DoxyCodeLine{00237\ \};}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ StringType,\ \textcolor{keyword}{typename}\ Container,\ \textcolor{keyword}{typename}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00240\ \textcolor{keyword}{struct\ }ShouldUseLifetimeBound\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00241\ }
+\DoxyCodeLine{00242\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ StringType,\ \textcolor{keyword}{typename}\ Container>}
+\DoxyCodeLine{00243\ \textcolor{keyword}{struct\ }ShouldUseLifetimeBound<}
+\DoxyCodeLine{00244\ \ \ \ \ StringType,\ Container,}
+\DoxyCodeLine{00245\ \ \ \ \ \mbox{\hyperlink{namespacestd}{std}}::\mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{enable\_if\_t}}<}
+\DoxyCodeLine{00246\ \ \ \ \ \ \ \ \ std::is\_same<StringType,\ std::string>::value\ \&\&}
+\DoxyCodeLine{00247\ \ \ \ \ \ \ \ \ std::is\_same<typename\ Container::value\_type,\ absl::string\_view>::value>>}
+\DoxyCodeLine{00248\ \ \ \ \ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00250\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ StringType,\ \textcolor{keyword}{typename}\ First,\ \textcolor{keyword}{typename}\ Second>}
+\DoxyCodeLine{00251\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1strings__internal_a9cdbfe367d4df28d7a0414abba2672d6}{ShouldUseLifetimeBoundForPair}}\ =\ std::integral\_constant<}
+\DoxyCodeLine{00252\ \ \ \ \ bool,\ std::is\_same<StringType,\ std::string>::value\ \&\&}
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (std::is\_same<First,\ absl::string\_view>::value\ ||}
+\DoxyCodeLine{00254\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<Second,\ absl::string\_view>::value)>;}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ \textcolor{comment}{//\ This\ class\ implements\ the\ range\ that\ is\ returned\ by\ absl::StrSplit().\ This}}
+\DoxyCodeLine{00258\ \textcolor{comment}{//\ class\ has\ templated\ conversion\ operators\ that\ allow\ it\ to\ be\ implicitly}}
+\DoxyCodeLine{00259\ \textcolor{comment}{//\ converted\ to\ a\ variety\ of\ types\ that\ the\ caller\ may\ have\ specified\ on\ the}}
+\DoxyCodeLine{00260\ \textcolor{comment}{//\ left-\/hand\ side\ of\ an\ assignment.}}
+\DoxyCodeLine{00261\ \textcolor{comment}{//}}
+\DoxyCodeLine{00262\ \textcolor{comment}{//\ The\ main\ interface\ for\ interacting\ with\ this\ class\ is\ through\ its\ implicit}}
+\DoxyCodeLine{00263\ \textcolor{comment}{//\ conversion\ operators.\ However,\ this\ class\ may\ also\ be\ used\ like\ a\ container}}
+\DoxyCodeLine{00264\ \textcolor{comment}{//\ in\ that\ it\ has\ .begin()\ and\ .end()\ member\ functions.\ It\ may\ also\ be\ used}}
+\DoxyCodeLine{00265\ \textcolor{comment}{//\ within\ a\ range-\/for\ loop.}}
+\DoxyCodeLine{00266\ \textcolor{comment}{//}}
+\DoxyCodeLine{00267\ \textcolor{comment}{//\ Output\ containers\ can\ be\ collections\ of\ any\ type\ that\ is\ constructible\ from}}
+\DoxyCodeLine{00268\ \textcolor{comment}{//\ an\ absl::string\_view.}}
+\DoxyCodeLine{00269\ \textcolor{comment}{//}}
+\DoxyCodeLine{00270\ \textcolor{comment}{//\ An\ Predicate\ functor\ may\ be\ supplied.\ This\ predicate\ will\ be\ used\ to\ filter}}
+\DoxyCodeLine{00271\ \textcolor{comment}{//\ the\ split\ strings:\ only\ strings\ for\ which\ the\ predicate\ returns\ true\ will\ be}}
+\DoxyCodeLine{00272\ \textcolor{comment}{//\ kept.\ A\ Predicate\ object\ is\ any\ unary\ functor\ that\ takes\ an\ absl::string\_view}}
+\DoxyCodeLine{00273\ \textcolor{comment}{//\ and\ returns\ bool.}}
+\DoxyCodeLine{00274\ \textcolor{comment}{//}}
+\DoxyCodeLine{00275\ \textcolor{comment}{//\ The\ StringType\ parameter\ can\ be\ either\ string\_view\ or\ string,\ depending\ on}}
+\DoxyCodeLine{00276\ \textcolor{comment}{//\ whether\ the\ Splitter\ refers\ to\ a\ string\ stored\ elsewhere,\ or\ if\ the\ string}}
+\DoxyCodeLine{00277\ \textcolor{comment}{//\ resides\ inside\ the\ Splitter\ itself.}}
+\DoxyCodeLine{00278\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Delimiter,\ \textcolor{keyword}{typename}\ Predicate,\ \textcolor{keyword}{typename}\ StringType>}
+\DoxyCodeLine{00279\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter}{Splitter}}\ \{}
+\DoxyCodeLine{00280\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00281\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a08546c775af981027056c803ff67f222}{DelimiterType}}\ =\ Delimiter;}
+\DoxyCodeLine{00282\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_aae97f1bf0e9aedfdf40c95afa55ce9e4}{PredicateType}}\ =\ Predicate;}
+\DoxyCodeLine{00283\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{const\_iterator}}\ =\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{strings\_internal::SplitIterator<Splitter>}};}
+\DoxyCodeLine{00284\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a0abfc34e14a47c04c7b936bf757bd517}{value\_type}}\ =\ \textcolor{keyword}{typename}\ std::iterator\_traits<const\_iterator>::value\_type;}
+\DoxyCodeLine{00285\ }
+\DoxyCodeLine{00286\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a364f45fff62a1343e3f2afa7409ed9c1}{Splitter}}(StringType\ input\_text,\ Delimiter\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}},\ Predicate\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})}
+\DoxyCodeLine{00287\ \ \ \ \ \ \ :\ text\_(\mbox{\hyperlink{namespacestd}{std}}::move(input\_text)),}
+\DoxyCodeLine{00288\ \ \ \ \ \ \ \ \ delimiter\_(\mbox{\hyperlink{namespacestd}{std}}::move(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}})),}
+\DoxyCodeLine{00289\ \ \ \ \ \ \ \ \ predicate\_(\mbox{\hyperlink{namespacestd}{std}}::move(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}))\ \{\}}
+\DoxyCodeLine{00290\ }
+\DoxyCodeLine{00291\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a7b4bdbc3276c67b5aa5ac32e76307df2}{text}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ text\_;\ \}}
+\DoxyCodeLine{00292\ \ \ \textcolor{keyword}{const}\ Delimiter\&\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_aaffa8f784d3f5529cb964aca22aff69c}{delimiter}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ delimiter\_;\ \}}
+\DoxyCodeLine{00293\ \ \ \textcolor{keyword}{const}\ Predicate\&\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a3613d95095af3d0afae4d5eec92bfefb}{predicate}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ predicate\_;\ \}}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \ \ \textcolor{comment}{//\ Range\ functions\ that\ iterate\ the\ split\ substrings\ as\ absl::string\_view}}
+\DoxyCodeLine{00296\ \ \ \textcolor{comment}{//\ objects.\ These\ methods\ enable\ a\ Splitter\ to\ be\ used\ in\ a\ range-\/based\ for}}
+\DoxyCodeLine{00297\ \ \ \textcolor{comment}{//\ loop.}}
+\DoxyCodeLine{00298\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{const\_iterator}}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a4dedd4a82cbc9c740f7ab9a00e86c77e}{begin}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907fa5c9ae620093b24cfa213b70d876a44be}{const\_iterator::kInitState}},\ \textcolor{keyword}{this}\};\ \}}
+\DoxyCodeLine{00299\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator}{const\_iterator}}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_abcbbe80c2a7a44005de60de623c77ece}{end}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{classabsl_1_1strings__internal_1_1SplitIterator_a8f5d5536be3a3c8e0cceafd1dd88907facd4a85d41a9769fec8ee0437807479bc}{const\_iterator::kEndState}},\ \textcolor{keyword}{this}\};\ \}}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \ \ \textcolor{comment}{//\ An\ implicit\ conversion\ operator\ that\ is\ restricted\ to\ only\ those\ containers}}
+\DoxyCodeLine{00302\ \ \ \textcolor{comment}{//\ that\ the\ splitter\ is\ convertible\ to.}}
+\DoxyCodeLine{00303\ \ \ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00304\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ Container,}
+\DoxyCodeLine{00305\ \ \ \ \ \ \ std::enable\_if\_t<ShouldUseLifetimeBound<StringType,\ Container>::value\ \&\&}
+\DoxyCodeLine{00306\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SplitterIsConvertibleTo}{SplitterIsConvertibleTo<Container>::value}},}
+\DoxyCodeLine{00307\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::nullptr\_t>\ =\ \textcolor{keyword}{nullptr}>}
+\DoxyCodeLine{00308\ \ \ \textcolor{comment}{//\ NOLINTNEXTLINE(google-\/explicit-\/constructor)}}
+\DoxyCodeLine{00309\ \ \ \textcolor{keyword}{operator}\ Container()\ const\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}}\ \{}
+\DoxyCodeLine{00310\ \ \ \ \ \textcolor{keywordflow}{return}\ ConvertToContainer<Container,\ \textcolor{keyword}{typename}\ Container::value\_type,}
+\DoxyCodeLine{00311\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1HasMappedType}{HasMappedType<Container>::value}}>()(*\textcolor{keyword}{this});}
+\DoxyCodeLine{00312\ \ \ \}}
+\DoxyCodeLine{00313\ }
+\DoxyCodeLine{00314\ \ \ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00315\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ Container,}
+\DoxyCodeLine{00316\ \ \ \ \ \ \ std::enable\_if\_t<!ShouldUseLifetimeBound<StringType,\ Container>::value\ \&\&}
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SplitterIsConvertibleTo}{SplitterIsConvertibleTo<Container>::value}},}
+\DoxyCodeLine{00318\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::nullptr\_t>\ =\ \textcolor{keyword}{nullptr}>}
+\DoxyCodeLine{00319\ \ \ \textcolor{comment}{//\ NOLINTNEXTLINE(google-\/explicit-\/constructor)}}
+\DoxyCodeLine{00320\ \ \ \textcolor{keyword}{operator}\ Container()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00321\ \ \ \ \ \textcolor{keywordflow}{return}\ ConvertToContainer<Container,\ \textcolor{keyword}{typename}\ Container::value\_type,}
+\DoxyCodeLine{00322\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1HasMappedType}{HasMappedType<Container>::value}}>()(*\textcolor{keyword}{this});}
+\DoxyCodeLine{00323\ \ \ \}}
+\DoxyCodeLine{00324\ }
+\DoxyCodeLine{00325\ \ \ \textcolor{comment}{//\ Returns\ a\ pair\ with\ its\ .first\ and\ .second\ members\ set\ to\ the\ first\ two}}
+\DoxyCodeLine{00326\ \ \ \textcolor{comment}{//\ strings\ returned\ by\ the\ begin()\ iterator.\ Either/both\ of\ .first\ and\ .second}}
+\DoxyCodeLine{00327\ \ \ \textcolor{comment}{//\ will\ be\ constructed\ with\ empty\ strings\ if\ the\ iterator\ doesn't\ have\ a}}
+\DoxyCodeLine{00328\ \ \ \textcolor{comment}{//\ corresponding\ value.}}
+\DoxyCodeLine{00329\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ First,\ \textcolor{keyword}{typename}\ Second,}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \ \ \ \ \ \ std::enable\_if\_t<}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_a9cdbfe367d4df28d7a0414abba2672d6}{ShouldUseLifetimeBoundForPair<StringType,\ First,\ Second>::value}},}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::nullptr\_t>\ =\ \textcolor{keyword}{nullptr}>}
+\DoxyCodeLine{00333\ \ \ \textcolor{comment}{//\ NOLINTNEXTLINE(google-\/explicit-\/constructor)}}
+\DoxyCodeLine{00334\ \ \ \textcolor{keyword}{operator}\ std::pair<First,\ Second>()\ const\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}}\ \{}
+\DoxyCodeLine{00335\ \ \ \ \ \textcolor{keywordflow}{return}\ ConvertToPair<First,\ Second>();}
+\DoxyCodeLine{00336\ \ \ \}}
+\DoxyCodeLine{00337\ }
+\DoxyCodeLine{00338\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ First,\ \textcolor{keyword}{typename}\ Second,}
+\DoxyCodeLine{00339\ \ \ \ \ \ \ \ \ \ \ \ \ std::enable\_if\_t<!\mbox{\hyperlink{namespaceabsl_1_1strings__internal_a9cdbfe367d4df28d7a0414abba2672d6}{ShouldUseLifetimeBoundForPair}}<StringType,\ First,}
+\DoxyCodeLine{00340\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Second>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00341\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::nullptr\_t>\ =\ \textcolor{keyword}{nullptr}>}
+\DoxyCodeLine{00342\ \ \ \textcolor{comment}{//\ NOLINTNEXTLINE(google-\/explicit-\/constructor)}}
+\DoxyCodeLine{00343\ \ \ \textcolor{keyword}{operator}\ std::pair<First,\ Second>()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00344\ \ \ \ \ \textcolor{keywordflow}{return}\ ConvertToPair<First,\ Second>();}
+\DoxyCodeLine{00345\ \ \ \}}
+\DoxyCodeLine{00346\ }
+\DoxyCodeLine{00347\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00348\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ First,\ \textcolor{keyword}{typename}\ Second>}
+\DoxyCodeLine{00349\ \ \ std::pair<First,\ Second>\ ConvertToPair()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00350\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ first,\ second;}
+\DoxyCodeLine{00351\ \ \ \ \ \textcolor{keyword}{auto}\ it\ =\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a4dedd4a82cbc9c740f7ab9a00e86c77e}{begin}}();}
+\DoxyCodeLine{00352\ \ \ \ \ \textcolor{keywordflow}{if}\ (it\ !=\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_abcbbe80c2a7a44005de60de623c77ece}{end}}())\ \{}
+\DoxyCodeLine{00353\ \ \ \ \ \ \ first\ =\ *it;}
+\DoxyCodeLine{00354\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (++it\ !=\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_abcbbe80c2a7a44005de60de623c77ece}{end}}())\ \{}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \ \ second\ =\ *it;}
+\DoxyCodeLine{00356\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00357\ \ \ \ \ \}}
+\DoxyCodeLine{00358\ \ \ \ \ \textcolor{keywordflow}{return}\ \{First(first),\ Second(second)\};}
+\DoxyCodeLine{00359\ \ \ \}}
+\DoxyCodeLine{00360\ }
+\DoxyCodeLine{00361\ \ \ \textcolor{comment}{//\ ConvertToContainer\ is\ a\ functor\ converting\ a\ Splitter\ to\ the\ requested}}
+\DoxyCodeLine{00362\ \ \ \textcolor{comment}{//\ Container\ of\ ValueType.\ It\ is\ specialized\ below\ to\ optimize\ splitting\ to}}
+\DoxyCodeLine{00363\ \ \ \textcolor{comment}{//\ certain\ combinations\ of\ Container\ and\ ValueType.}}
+\DoxyCodeLine{00364\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00365\ \ \ \textcolor{comment}{//\ This\ base\ template\ handles\ the\ generic\ case\ of\ storing\ the\ split\ results\ in}}
+\DoxyCodeLine{00366\ \ \ \textcolor{comment}{//\ the\ requested\ non-\/map-\/like\ container\ and\ converting\ the\ split\ substrings\ to}}
+\DoxyCodeLine{00367\ \ \ \textcolor{comment}{//\ the\ requested\ type.}}
+\DoxyCodeLine{00368\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Container,\ \textcolor{keyword}{typename}\ ValueType,\ \textcolor{keywordtype}{bool}\ is\_map\ =\ false>}
+\DoxyCodeLine{00369\ \ \ \textcolor{keyword}{struct\ }ConvertToContainer\ \{}
+\DoxyCodeLine{00370\ \ \ \ \ Container\ operator()(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a364f45fff62a1343e3f2afa7409ed9c1}{Splitter}}\&\ splitter)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ Container\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}};}
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \textcolor{keyword}{auto}\ it\ =\ std::inserter(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}}.end());}
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keyword}{const}\ \textcolor{keyword}{auto}\&\ sp\ :\ splitter)\ \{}
+\DoxyCodeLine{00374\ \ \ \ \ \ \ \ \ *it++\ =\ \mbox{\hyperlink{namespaceabsl_1_1inlined__vector__internal_a909844d8e5948ebf582de906f63f8d77}{ValueType}}(sp);}
+\DoxyCodeLine{00375\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00376\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}};}
+\DoxyCodeLine{00377\ \ \ \ \ \}}
+\DoxyCodeLine{00378\ \ \ \};}
+\DoxyCodeLine{00379\ }
+\DoxyCodeLine{00380\ \ \ \textcolor{comment}{//\ Partial\ specialization\ for\ a\ std::vector<absl::string\_view>.}}
+\DoxyCodeLine{00381\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00382\ \ \ \textcolor{comment}{//\ Optimized\ for\ the\ common\ case\ of\ splitting\ to\ a}}
+\DoxyCodeLine{00383\ \ \ \textcolor{comment}{//\ std::vector<absl::string\_view>.\ In\ this\ case\ we\ first\ split\ the\ results\ to}}
+\DoxyCodeLine{00384\ \ \ \textcolor{comment}{//\ a\ small\ array\ of\ absl::string\_view\ on\ the\ stack,\ to\ reduce\ reallocations.}}
+\DoxyCodeLine{00385\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00386\ \ \ \textcolor{keyword}{struct\ }ConvertToContainer<\mbox{\hyperlink{namespacestd}{std}}::vector<absl::string\_view,\ A>,}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}},\ false>\ \{}
+\DoxyCodeLine{00388\ \ \ \ \ std::vector<absl::string\_view,\ A>\ operator()(}
+\DoxyCodeLine{00389\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a364f45fff62a1343e3f2afa7409ed9c1}{Splitter}}\&\ splitter)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \textcolor{keyword}{struct\ }raw\_view\ \{}
+\DoxyCodeLine{00391\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}};}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}};}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \ \ \textcolor{keyword}{operator}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}()\textcolor{keyword}{\ const\ }\{\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \{\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}},\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\};}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00396\ \ \ \ \ \ \ \};}
+\DoxyCodeLine{00397\ \ \ \ \ \ \ std::vector<absl::string\_view,\ A>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{00398\ \ \ \ \ \ \ std::array<raw\_view,\ 16>\ ar;}
+\DoxyCodeLine{00399\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keyword}{auto}\ it\ =\ splitter.begin();\ !it.at\_end();)\ \{}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ index\ =\ 0;}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\ \{}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \ \ ar[index].data\ =\ it-\/>data();}
+\DoxyCodeLine{00403\ \ \ \ \ \ \ \ \ \ \ ar[index].size\ =\ it-\/>size();}
+\DoxyCodeLine{00404\ \ \ \ \ \ \ \ \ \ \ ++it;}
+\DoxyCodeLine{00405\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{while}\ (++index\ !=\ ar.size()\ \&\&\ !it.at\_end());}
+\DoxyCodeLine{00406\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ We\ static\_cast\ index\ to\ a\ signed\ type\ to\ work\ around\ overzealous}}
+\DoxyCodeLine{00407\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ compiler\ warnings\ about\ signedness.}}
+\DoxyCodeLine{00408\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.insert(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.end(),\ ar.begin(),}
+\DoxyCodeLine{00409\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ar.begin()\ +\ \textcolor{keyword}{static\_cast<}ptrdiff\_t\textcolor{keyword}{>}(index));}
+\DoxyCodeLine{00410\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00411\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{00412\ \ \ \ \ \}}
+\DoxyCodeLine{00413\ \ \ \};}
+\DoxyCodeLine{00414\ }
+\DoxyCodeLine{00415\ \ \ \textcolor{comment}{//\ Partial\ specialization\ for\ a\ std::vector<std::string>.}}
+\DoxyCodeLine{00416\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00417\ \ \ \textcolor{comment}{//\ Optimized\ for\ the\ common\ case\ of\ splitting\ to\ a\ std::vector<std::string>.}}
+\DoxyCodeLine{00418\ \ \ \textcolor{comment}{//\ In\ this\ case\ we\ first\ split\ the\ results\ to\ a\ std::vector<absl::string\_view>}}
+\DoxyCodeLine{00419\ \ \ \textcolor{comment}{//\ so\ the\ returned\ std::vector<std::string>\ can\ have\ space\ reserved\ to\ avoid}}
+\DoxyCodeLine{00420\ \ \ \textcolor{comment}{//\ std::string\ moves.}}
+\DoxyCodeLine{00421\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00422\ \ \ \textcolor{keyword}{struct\ }ConvertToContainer<\mbox{\hyperlink{namespacestd}{std}}::vector<std::string,\ A>,\ std::string,\ false>\ \{}
+\DoxyCodeLine{00423\ \ \ \ \ std::vector<std::string,\ A>\ operator()(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a364f45fff62a1343e3f2afa7409ed9c1}{Splitter}}\&\ splitter)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00424\ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::vector<absl::string\_view>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}\ =\ splitter;}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ std::vector<std::string,\ A>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.begin(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.end());}
+\DoxyCodeLine{00426\ \ \ \ \ \}}
+\DoxyCodeLine{00427\ \ \ \};}
+\DoxyCodeLine{00428\ }
+\DoxyCodeLine{00429\ \ \ \textcolor{comment}{//\ Partial\ specialization\ for\ containers\ of\ pairs\ (e.g.,\ maps).}}
+\DoxyCodeLine{00430\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00431\ \ \ \textcolor{comment}{//\ The\ algorithm\ is\ to\ insert\ a\ new\ pair\ into\ the\ map\ for\ each\ even-\/numbered}}
+\DoxyCodeLine{00432\ \ \ \textcolor{comment}{//\ item,\ with\ the\ even-\/numbered\ item\ as\ the\ key\ with\ a\ default-\/constructed}}
+\DoxyCodeLine{00433\ \ \ \textcolor{comment}{//\ value.\ Each\ odd-\/numbered\ item\ will\ then\ be\ assigned\ to\ the\ last\ pair's}}
+\DoxyCodeLine{00434\ \ \ \textcolor{comment}{//\ value.}}
+\DoxyCodeLine{00435\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Container,\ \textcolor{keyword}{typename}\ First,\ \textcolor{keyword}{typename}\ Second>}
+\DoxyCodeLine{00436\ \ \ \textcolor{keyword}{struct\ }ConvertToContainer<Container,\ \mbox{\hyperlink{namespacestd}{std}}::\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__benchmark_8cc_ab43c7a62bb76edb17a7deacc3400de7c}{pair}}<const\ First,\ Second>,\ true>\ \{}
+\DoxyCodeLine{00437\ \ \ \ \ \textcolor{keyword}{using\ }iterator\ =\ \textcolor{keyword}{typename}\ Container::iterator;}
+\DoxyCodeLine{00438\ }
+\DoxyCodeLine{00439\ \ \ \ \ Container\ operator()(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1Splitter_a364f45fff62a1343e3f2afa7409ed9c1}{Splitter}}\&\ splitter)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00440\ \ \ \ \ \ \ Container\ m;}
+\DoxyCodeLine{00441\ \ \ \ \ \ \ iterator\ it;}
+\DoxyCodeLine{00442\ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ insert\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00443\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ sv\ :\ splitter)\ \{}
+\DoxyCodeLine{00444\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (insert)\ \{}
+\DoxyCodeLine{00445\ \ \ \ \ \ \ \ \ \ \ it\ =\ InsertOrEmplace(\&m,\ sv);}
+\DoxyCodeLine{00446\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00447\ \ \ \ \ \ \ \ \ \ \ it-\/>second\ =\ Second(sv);}
+\DoxyCodeLine{00448\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00449\ \ \ \ \ \ \ \ \ insert\ =\ !insert;}
+\DoxyCodeLine{00450\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00451\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ m;}
+\DoxyCodeLine{00452\ \ \ \ \ \}}
+\DoxyCodeLine{00453\ }
+\DoxyCodeLine{00454\ \ \ \ \ \textcolor{comment}{//\ Inserts\ the\ key\ and\ an\ empty\ value\ into\ the\ map,\ returning\ an\ iterator\ to}}
+\DoxyCodeLine{00455\ \ \ \ \ \textcolor{comment}{//\ the\ inserted\ item.\ We\ use\ emplace()\ if\ available,\ otherwise\ insert().}}
+\DoxyCodeLine{00456\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ M>}
+\DoxyCodeLine{00457\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t<HasEmplace<M>::value}},\ iterator>\ InsertOrEmplace(}
+\DoxyCodeLine{00458\ \ \ \ \ \ \ \ \ M*\ m,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a35af0be900467fedbb610bd6ea65ed78}{key}})\ \{}
+\DoxyCodeLine{00459\ \ \ \ \ \ \ \textcolor{comment}{//\ Use\ piecewise\_construct\ to\ support\ old\ versions\ of\ gcc\ in\ which\ pair}}
+\DoxyCodeLine{00460\ \ \ \ \ \ \ \textcolor{comment}{//\ constructor\ can't\ otherwise\ construct\ string\ from\ string\_view.}}
+\DoxyCodeLine{00461\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ ToIter(m-\/>emplace(std::piecewise\_construct,\ std::make\_tuple(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a35af0be900467fedbb610bd6ea65ed78}{key}}),}
+\DoxyCodeLine{00462\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::tuple<>()));}
+\DoxyCodeLine{00463\ \ \ \ \ \}}
+\DoxyCodeLine{00464\ \ \ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ M>}
+\DoxyCodeLine{00465\ \ \ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{absl::enable\_if\_t<!HasEmplace<M>::value}},\ iterator>\ InsertOrEmplace(}
+\DoxyCodeLine{00466\ \ \ \ \ \ \ \ \ M*\ m,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a35af0be900467fedbb610bd6ea65ed78}{key}})\ \{}
+\DoxyCodeLine{00467\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ ToIter(m-\/>insert(std::make\_pair(First(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a35af0be900467fedbb610bd6ea65ed78}{key}}),\ Second(\textcolor{stringliteral}{"{}"{}}))));}
+\DoxyCodeLine{00468\ \ \ \ \ \}}
+\DoxyCodeLine{00469\ }
+\DoxyCodeLine{00470\ \ \ \ \ \textcolor{keyword}{static}\ iterator\ ToIter(std::pair<iterator,\ bool>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__benchmark_8cc_ab43c7a62bb76edb17a7deacc3400de7c}{pair}})\ \{}
+\DoxyCodeLine{00471\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__benchmark_8cc_ab43c7a62bb76edb17a7deacc3400de7c}{pair}}.first;}
+\DoxyCodeLine{00472\ \ \ \ \ \}}
+\DoxyCodeLine{00473\ \ \ \ \ \textcolor{keyword}{static}\ iterator\ ToIter(iterator\ iter)\ \{\ \textcolor{keywordflow}{return}\ iter;\ \}}
+\DoxyCodeLine{00474\ \ \ \};}
+\DoxyCodeLine{00475\ }
+\DoxyCodeLine{00476\ \ \ StringType\ text\_;}
+\DoxyCodeLine{00477\ \ \ Delimiter\ delimiter\_;}
+\DoxyCodeLine{00478\ \ \ Predicate\ predicate\_;}
+\DoxyCodeLine{00479\ \};}
+\DoxyCodeLine{00480\ }
+\DoxyCodeLine{00481\ \}\ \ \textcolor{comment}{//\ namespace\ strings\_internal}}
+\DoxyCodeLine{00482\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00483\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00484\ }
+\DoxyCodeLine{00485\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_INTERNAL\_STR\_SPLIT\_INTERNAL\_H\_}}
+
+\end{DoxyCode}
