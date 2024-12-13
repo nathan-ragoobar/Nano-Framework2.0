@@ -36,6 +36,9 @@ int sample_mult(float* probabilities, int n, float coin) {
 }
 
 int main(int argc, char** argv) {
+
+    struct timespec start, end;
+
     gpt2::GPT2 model;
     model.BuildFromCheckpoint("./gpt2_124Mtest.bin"); //Loads model
 
@@ -48,6 +51,7 @@ int main(int argc, char** argv) {
     Tokenizer tokenizer;
     tokenizer_init(&tokenizer, "gpt2_tokenizer.bin");
 
+    //build the Nano Tokenizer. This has encoding and decoding functions
     nano::Tokenizer tokenizer_nano;
     tokenizer_nano.init();
 
@@ -68,6 +72,9 @@ int main(int argc, char** argv) {
     std::string input;
     std::cout << "Enter a prompt: ";
     std::getline(std::cin, input);
+
+    //Start the timer for inference
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
     //Tokenize the input
     std::vector<uint32_t> input_tokens = tokenizer_nano.encode_string(input);
@@ -113,8 +120,8 @@ int main(int argc, char** argv) {
         gen_tokens[t] = next_token;
         // print the generated token, either using the Tokenizer or a fallback
         if (tokenizer.init_ok) {
-          const char* token_str = tokenizer_decode(&tokenizer, next_token);
-          safe_printf(token_str);
+          //const char* token_str = tokenizer_decode(&tokenizer, next_token);
+          //safe_printf(token_str);
           std::string nano_token_str = tokenizer_nano.decode(next_token);
             //print Nano token
             std::cout << nano_token_str << "\n";
@@ -126,10 +133,17 @@ int main(int argc, char** argv) {
         }
         fflush(stdout);
       }
-        std::string nano_token_str = tokenizer_nano.decode_string(gen_tokens,genT);
+        //std::string nano_token_str = tokenizer_nano.decode_string(gen_tokens,genT);
         //print Nano token
-        std::cout << "Nano Tokenizer: "<< nano_token_str;
+        //std::cout << "Nano Tokenizer: "<< nano_token_str;
       printf("\n---\n");
+
+      clock_gettime(CLOCK_MONOTONIC, &end);
+
+      double time_elapsed_s =
+        (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    printf("Inference took: %f ms)\n",
+           time_elapsed_s * 1000);
       
 
 }

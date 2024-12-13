@@ -37,7 +37,7 @@ bool USE_FAST_SOFTMAX = true;
 
 int main(int argc, char** argv) {
   gpt2::GPT2 model;
-  model.BuildFromCheckpoint("./gpt2_124Mtest.bin"); //Loads model
+  model.BuildFromCheckpoint("./gpt2_124M.bin"); //Loads model
 
   // build the DataLoaders from tokens files. for now use tiny_shakespeare if
   // available, else tiny_stories
@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
   }
 
   //Save model
-  model.SaveModel("gpt2_124Mtest1.bin");
+  model.SaveModel("gpt2_124M100Steps.bin");
 
   // free
   dataloader_free(&train_loader);
