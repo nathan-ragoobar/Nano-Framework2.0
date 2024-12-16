@@ -3,9 +3,10 @@
 
 #include "absl/container/inlined_vector.h"
 #include "tensor_types.hpp"
-#include "eigen/Eigen/Core"
+#include "./../eigen/Eigen/Core"
+#include "fixed_point.hpp"
 
-using floatX = float;
+using floatX = FixedPointQ5_10;
 
 // Raw pointer -> Flat
 template <typename T>

@@ -42,6 +42,19 @@ public:
         return static_cast<float>(value) / (1 << fractional_bits);
     }
 
+     // Assignment operator
+    FixedPointQ5_10& operator=(const FixedPointQ5_10& other) {
+        if (this != &other) {
+            value = other.value;
+        }
+        return *this;
+    }
+
+    // Equality operator
+    bool operator==(const FixedPointQ5_10& other) const {
+        return value == other.value;
+    }
+
     // Addition
     FixedPointQ5_10 operator+(const FixedPointQ5_10& other) const {
         FixedPointQ5_10 result;
