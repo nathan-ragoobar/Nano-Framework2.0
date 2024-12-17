@@ -1,28 +1,44 @@
-cmake_minimum_required(VERSION 3.16)
-project(TrainingVisualizer VERSION 1.0.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.14)
+project(MetricWriter VERSION 1.0)
 
-# Qt configuration
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_AUTOUIC ON)
+# Specify C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Find Qt packages
-find_package(Qt6 COMPONENTS Core Widgets Charts REQUIRED)
+# Create header-only library target
+add_library(metric_writer INTERFACE)
+target_include_directories(metric_writer INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Create executable
-add_executable(training_visualizer
-    main.cpp
-    TrainingVisualizer.cpp
-    TrainingVisualizer.hpp
+# Include FetchContent for downloading GTest
+include(FetchContent)
+
+# Download and configure Google Test
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG release-1.12.1
 )
 
-# Link Qt libraries
-target_link_libraries(training_visualizer
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+# Enable testing
+enable_testing()
+
+# Add test executable
+add_executable(test_writer test_writer.cpp)
+
+# Link test executable with Google Test and our library
+target_link_libraries(test_writer
     PRIVATE
-        Qt6::Core
-        Qt6::Widgets
-        Qt6::Charts
+        metric_writer
+        GTest::gtest_main
+        GTest::gtest
+        pthread
 )
 
-# Set C++ standard
-target_compile_features(training_visualizer PRIVATE cxx_std_17)
+# Register tests
+include(GoogleTest)
+gtest_discover_tests(test_writer)
