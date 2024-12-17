@@ -158,6 +158,51 @@ TEST_F(FixedPointTest, EqualityOperator) {
     EXPECT_TRUE(fp1 == fp1);
 }
 
+// Less Than Operator Test
+TEST_F(FixedPointTest, LessThanOperator) {
+    FixedPointQ5_10 fp1(3.5f);
+    FixedPointQ5_10 fp2(4.5f);
+
+    EXPECT_TRUE(fp1 < fp2);
+    EXPECT_FALSE(fp2 < fp1);
+    EXPECT_FALSE(fp1 < fp1);
+}
+
+// Greater Than Operator Test
+TEST_F(FixedPointTest, GreaterThanOperator) {
+    FixedPointQ5_10 fp1(3.5f);
+    FixedPointQ5_10 fp2(4.5f);
+
+    EXPECT_TRUE(fp2 > fp1);
+    EXPECT_FALSE(fp1 > fp2);
+    EXPECT_FALSE(fp1 > fp1);
+}
+
+// Addition Assignment Operator Test
+TEST_F(FixedPointTest, AdditionAssignmentOperator) {
+    FixedPointQ5_10 fp1(3.5f);
+    FixedPointQ5_10 fp2(2.25f);
+    fp1 += fp2;
+    EXPECT_NEAR(fp1.toFloat(), 5.75f, EPSILON);
+
+    // Test self-addition
+    fp1 += fp1;
+    EXPECT_NEAR(fp1.toFloat(), 11.5f, EPSILON);
+}
+
+// Subtraction Assignment Operator Test
+TEST_F(FixedPointTest, SubtractionAssignmentOperator) {
+    FixedPointQ5_10 fp1(3.5f);
+    FixedPointQ5_10 fp2(2.25f);
+    fp1 -= fp2;
+    EXPECT_NEAR(fp1.toFloat(), 1.25f, EPSILON);
+
+    // Test self-subtraction
+    fp1 -= fp1;
+    EXPECT_NEAR(fp1.toFloat(), 0.0f, EPSILON);
+}
+
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

@@ -37,6 +37,18 @@ public:
         }
         value = static_cast<int16_t>(round(float_value * (1 << fractional_bits)));
     }
+
+    FixedPointQ5_10(double double_value) {
+        double max_value = static_cast<double>(max_integer_part + 1) - 1.0 / (1 << fractional_bits);
+        double min_value = static_cast<double>(min_integer_part);
+        if (double_value > max_value) {
+            double_value = max_value;
+        } else if (double_value < min_value) {
+            double_value = min_value;
+        }
+        value = static_cast<int16_t>(round(double_value * (1 << fractional_bits)));
+    }
+
     // Conversion to float
     float toFloat() const {
         return static_cast<float>(value) / (1 << fractional_bits);
@@ -88,6 +100,29 @@ public:
         os << fp.toFloat();
         return os;
     }
+
+    // Less than operator
+    bool operator<(const FixedPointQ5_10& other) const {
+        return value < other.value;
+    }
+
+    // Greater than operator
+    bool operator>(const FixedPointQ5_10& other) const {
+        return value > other.value;
+    }
+
+    // Addition assignment operator
+    FixedPointQ5_10& operator+=(const FixedPointQ5_10& other) {
+        value += other.value;
+        return *this;
+    }
+
+    // Subtraction assignment operator
+    FixedPointQ5_10& operator-=(const FixedPointQ5_10& other) {
+        value -= other.value;
+        return *this;
+    }
+
 };
 
 #endif // FIXED_POINT_HPP
