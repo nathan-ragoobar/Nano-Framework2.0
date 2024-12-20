@@ -1,7 +1,0 @@
-#include "LayerNorm.hpp"
-#include "Parameter.hpp"
-#include "Loss.hpp"
-#include "SoftMax.hpp"
-#include "Embedding.hpp"
-#include "Linear.hpp"
-#include "MatMul.hpp"
