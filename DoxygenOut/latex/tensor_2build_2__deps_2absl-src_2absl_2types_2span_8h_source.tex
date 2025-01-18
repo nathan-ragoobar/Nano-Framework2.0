@@ -1,0 +1,798 @@
+\doxysection{span.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2types_2span_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2types_2span_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/types/span.h@{tensor/build/\_deps/absl-\/src/absl/types/span.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2types_2span_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ span.h}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ This\ header\ file\ defines\ a\ \`{}Span<T>`\ type\ for\ holding\ a\ reference\ to\ existing}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ array\ data.\ The\ \`{}Span`\ object,\ much\ like\ the\ \`{}absl::string\_view`\ object,}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ does\ not\ own\ such\ data\ itself,\ and\ the\ data\ being\ referenced\ by\ the\ span\ must}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ outlive\ the\ span\ itself.\ Unlike\ \`{}view`\ type\ references,\ a\ span\ can\ hold\ a}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ reference\ to\ mutable\ data\ (and\ can\ mutate\ it\ for\ underlying\ types\ of}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ non-\/const\ T.)\ A\ span\ provides\ a\ lightweight\ way\ to\ pass\ a\ reference\ to\ such}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ data.}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ Additionally,\ this\ header\ file\ defines\ \`{}MakeSpan()`\ and\ \`{}MakeConstSpan()`}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ factory\ functions,\ for\ clearly\ creating\ spans\ of\ type\ \`{}Span<T>`\ or\ read-\/only}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ \`{}Span<const\ T>`\ when\ such\ types\ may\ be\ difficult\ to\ identify\ due\ to\ issues}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ with\ implicit\ conversion.}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ The\ C++20\ draft\ standard\ includes\ a\ \`{}std::span`\ type.\ As\ of\ June\ 2020,\ the}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ differences\ between\ \`{}absl::Span`\ and\ \`{}std::span`\ are:}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ \ \ \ *\ \`{}absl::Span`\ has\ \`{}operator==`\ (which\ is\ likely\ a\ design\ bug,}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ \ \ \ \ \ \ per\ https://abseil.io/blog/20180531-\/regular-\/types)}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ \ \ \ *\ \`{}absl::Span`\ has\ the\ factory\ functions\ \`{}MakeSpan()`\ and}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ \ \ \ \ \ \`{}MakeConstSpan()`}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ \ \ \ *\ bounds-\/checked\ access\ to\ \`{}absl::Span`\ is\ accomplished\ with\ \`{}at()`}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ \ \ \ *\ \`{}absl::Span`\ has\ compiler-\/provided\ move\ and\ copy\ constructors\ and}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ \ \ \ \ \ assignment.\ This\ is\ due\ to\ them\ being\ specified\ as\ \`{}constexpr`,\ but\ that}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ \ \ \ \ \ implies\ const\ in\ C++11.}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ \ *\ A\ read-\/only\ \`{}absl::Span<const\ T>`\ can\ be\ implicitly\ constructed\ from\ an}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \ \ \ \ \ initializer\ list.}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ \ \ \ *\ \`{}absl::Span`\ has\ no\ \`{}bytes()`,\ \`{}size\_bytes()`,\ \`{}as\_bytes()`,\ or}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \ \ \ \ \ \`{}as\_writable\_bytes()`\ methods}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ \ \ \ *\ \`{}absl::Span`\ has\ no\ static\ extent\ template\ parameter,\ nor\ constructors}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \ \ \ \ \ which\ exist\ only\ because\ of\ the\ static\ extent\ parameter.}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ \ \ \ *\ \`{}absl::Span`\ has\ an\ explicit\ mutable-\/reference\ constructor}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ For\ more\ information,\ see\ the\ class\ comments\ below.}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#ifndef\ ABSL\_TYPES\_SPAN\_H\_}}
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#define\ ABSL\_TYPES\_SPAN\_H\_}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00056\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#include\ <initializer\_list>}}
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#include\ <iterator>}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/throw\_delegate.h"{}}}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00067\ \textcolor{preprocessor}{\#include\ "{}absl/base/nullability.h"{}}}
+\DoxyCodeLine{00068\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00069\ \textcolor{preprocessor}{\#include\ "{}absl/base/port.h"{}}\ \ \ \ \textcolor{comment}{//\ TODO(strel):\ remove\ this\ include}}
+\DoxyCodeLine{00070\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00071\ \textcolor{preprocessor}{\#include\ "{}absl/types/internal/span.h"{}}}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00074\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00077\ \textcolor{keyword}{class\ }Span;}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00080\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ If\ std::ranges\ is\ available,\ mark\ Span\ as\ satisfying\ the\ \`{}view`\ and}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ \`{}borrowed\_range`\ concepts,\ just\ like\ std::span.}}
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\#if\ !defined(\_\_has\_include)}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\#define\ \_\_has\_include(header)\ 0}}
+\DoxyCodeLine{00086\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\#if\ \_\_has\_include(<version>)}}
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\#include\ <version>}\ \ \textcolor{comment}{//\ NOLINT(misc-\/include-\/cleaner)}}
+\DoxyCodeLine{00089\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\#if\ defined(\_\_cpp\_lib\_ranges)\ \&\&\ \_\_cpp\_lib\_ranges\ >=\ 201911L}}
+\DoxyCodeLine{00091\ \textcolor{preprocessor}{\#include\ <ranges>}\ \ \textcolor{comment}{//\ NOLINT(build/c++20)}}
+\DoxyCodeLine{00092\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00093\ \ \textcolor{comment}{//\ NOLINTNEXTLINE(build/c++20)}}
+\DoxyCodeLine{00094\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ std::ranges::enable\_view<absl::Span<T>>\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00095\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00096\ \ \textcolor{comment}{//\ NOLINTNEXTLINE(build/c++20)}}
+\DoxyCodeLine{00097\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ std::ranges::enable\_borrowed\_range<absl::Span<T>>\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00101\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ Span}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ A\ \`{}Span`\ is\ an\ "{}array\ reference"{}\ type\ for\ holding\ a\ reference\ of\ contiguous}}
+\DoxyCodeLine{00108\ \textcolor{comment}{//\ array\ data;\ the\ \`{}Span`\ object\ does\ not\ and\ cannot\ own\ such\ data\ itself.\ A}}
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ span\ provides\ an\ easy\ way\ to\ provide\ overloads\ for\ anything\ operating\ on}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//\ contiguous\ sequences\ without\ needing\ to\ manage\ pointers\ and\ array\ lengths}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ manually.}}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ A\ span\ is\ conceptually\ a\ pointer\ (ptr)\ and\ a\ length\ (size)\ into\ an\ already}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ existing\ array\ of\ contiguous\ memory;\ the\ array\ it\ represents\ references\ the}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ elements\ "{}ptr[0]\ ..\ ptr[size-\/1]"{}.\ Passing\ a\ properly-\/constructed\ \`{}Span`}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ instead\ of\ raw\ pointers\ avoids\ many\ issues\ related\ to\ index\ out\ of\ bounds}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ errors.}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ Spans\ may\ also\ be\ constructed\ from\ containers\ holding\ contiguous\ sequences.}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ Such\ containers\ must\ supply\ \`{}data()`\ and\ \`{}size()\ const`\ methods\ (e.g}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ \`{}std::vector<T>`,\ \`{}absl::InlinedVector<T,\ N>`).\ All\ implicit\ conversions\ to}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ \`{}absl::Span`\ from\ such\ containers\ will\ create\ spans\ of\ type\ \`{}const\ T`;}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ spans\ which\ can\ mutate\ their\ values\ (of\ type\ \`{}T`)\ must\ use\ explicit}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ constructors.}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ A\ \`{}Span<T>`\ is\ somewhat\ analogous\ to\ an\ \`{}absl::string\_view`,\ but\ for\ an\ array}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ of\ elements\ of\ type\ \`{}T`,\ and\ unlike\ an\ \`{}absl::string\_view`,\ a\ span\ can\ hold\ a}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ reference\ to\ mutable\ data.\ A\ user\ of\ \`{}Span`\ must\ ensure\ that\ the\ data\ being}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//\ pointed\ to\ outlives\ the\ \`{}Span`\ itself.}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ You\ can\ construct\ a\ \`{}Span<T>`\ in\ several\ ways:}}
+\DoxyCodeLine{00132\ \textcolor{comment}{//}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ \ \ *\ Explicitly\ from\ a\ reference\ to\ a\ container\ type}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ \ \ *\ Explicitly\ from\ a\ pointer\ and\ size}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ \ \ *\ Implicitly\ from\ a\ container\ type\ (but\ only\ for\ spans\ of\ type\ \`{}const\ T`)}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ \ \ *\ Using\ the\ \`{}MakeSpan()`\ or\ \`{}MakeConstSpan()`\ factory\ functions.}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ Examples:}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//\ \ \ //\ Construct\ a\ Span\ explicitly\ from\ a\ container:}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ \ \ std::vector<int>\ v\ =\ \{1,\ 2,\ 3,\ 4,\ 5\};}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//\ \ \ auto\ span\ =\ absl::Span<const\ int>(v);}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ \ \ //\ Construct\ a\ Span\ explicitly\ from\ a\ C-\/style\ array:}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//\ \ \ int\ a[5]\ =\ \ \{1,\ 2,\ 3,\ 4,\ 5\};}}
+\DoxyCodeLine{00146\ \textcolor{comment}{//\ \ \ auto\ span\ =\ absl::Span<const\ int>(a);}}
+\DoxyCodeLine{00147\ \textcolor{comment}{//}}
+\DoxyCodeLine{00148\ \textcolor{comment}{//\ \ \ //\ Construct\ a\ Span\ implicitly\ from\ a\ container}}
+\DoxyCodeLine{00149\ \textcolor{comment}{//\ \ \ void\ MyRoutine(absl::Span<const\ int>\ a)\ \{}}
+\DoxyCodeLine{00150\ \textcolor{comment}{//\ \ \ \ \ ...}}
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00152\ \textcolor{comment}{//\ \ \ std::vector\ v\ =\ \{1,2,3,4,5\};}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ \ \ MyRoutine(v)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ //\ convert\ to\ Span<const\ T>}}
+\DoxyCodeLine{00154\ \textcolor{comment}{//}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ Note\ that\ \`{}Span`\ objects,\ in\ addition\ to\ requiring\ that\ the\ memory\ they}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ point\ to\ remains\ alive,\ must\ also\ ensure\ that\ such\ memory\ does\ not\ get}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//\ reallocated.\ Therefore,\ to\ avoid\ undefined\ behavior,\ containers\ with}}
+\DoxyCodeLine{00158\ \textcolor{comment}{//\ associated\ spans\ should\ not\ invoke\ operations\ that\ may\ reallocate\ memory}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ (such\ as\ resizing)\ or\ invalidate\ iterators\ into\ the\ container.}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//}}
+\DoxyCodeLine{00161\ \textcolor{comment}{//\ One\ common\ use\ for\ a\ \`{}Span`\ is\ when\ passing\ arguments\ to\ a\ routine\ that\ can}}
+\DoxyCodeLine{00162\ \textcolor{comment}{//\ accept\ a\ variety\ of\ array\ types\ (e.g.\ a\ \`{}std::vector`,\ \`{}absl::InlinedVector`,}}
+\DoxyCodeLine{00163\ \textcolor{comment}{//\ a\ C-\/style\ array,\ etc.).\ Instead\ of\ creating\ overloads\ for\ each\ case,\ you}}
+\DoxyCodeLine{00164\ \textcolor{comment}{//\ can\ simply\ specify\ a\ \`{}Span`\ as\ the\ argument\ to\ such\ a\ routine.}}
+\DoxyCodeLine{00165\ \textcolor{comment}{//}}
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00167\ \textcolor{comment}{//}}
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ \ \ void\ MyRoutine(absl::Span<const\ int>\ a)\ \{}}
+\DoxyCodeLine{00169\ \textcolor{comment}{//\ \ \ \ \ ...}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00171\ \textcolor{comment}{//}}
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ \ \ std::vector\ v\ =\ \{1,2,3,4,5\};}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//\ \ \ MyRoutine(v);}}
+\DoxyCodeLine{00174\ \textcolor{comment}{//}}
+\DoxyCodeLine{00175\ \textcolor{comment}{//\ \ \ absl::InlinedVector<int,\ 4>\ my\_inline\_vector;}}
+\DoxyCodeLine{00176\ \textcolor{comment}{//\ \ \ MyRoutine(my\_inline\_vector);}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//}}
+\DoxyCodeLine{00178\ \textcolor{comment}{//\ \ \ //\ Explicit\ constructor\ from\ pointer,size}}
+\DoxyCodeLine{00179\ \textcolor{comment}{//\ \ \ int*\ my\_array\ =\ new\ int[10];}}
+\DoxyCodeLine{00180\ \textcolor{comment}{//\ \ \ MyRoutine(absl::Span<const\ int>(my\_array,\ 10));}}
+\DoxyCodeLine{00181\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00182\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a06c5a3a8fae3fd73ffecd65b03c17059}{ABSL\_ATTRIBUTE\_VIEW}}\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}\ \{}
+\DoxyCodeLine{00183\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00184\ \ \ \textcolor{comment}{//\ Used\ to\ determine\ whether\ a\ Span\ can\ be\ constructed\ from\ a\ container\ of}}
+\DoxyCodeLine{00185\ \ \ \textcolor{comment}{//\ type\ C.}}
+\DoxyCodeLine{00186\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ C>}
+\DoxyCodeLine{00187\ \ \ \textcolor{keyword}{using\ }EnableIfConvertibleFrom\ =}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<span\_internal::HasData<T,\ C>::value\ \&\&}
+\DoxyCodeLine{00189\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aff48eab1d9ee742163a9e2f750ca9f7b}{span\_internal::HasSize<C>::value}}>::type;}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \ \ \textcolor{comment}{//\ Used\ to\ SFINAE-\/enable\ a\ function\ when\ the\ slice\ elements\ are\ const.}}
+\DoxyCodeLine{00192\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ U>}
+\DoxyCodeLine{00193\ \ \ \textcolor{keyword}{using\ }EnableIfValueIsConst\ =}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<std::is\_const<T>::value,\ U>::type;}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \ \ \textcolor{comment}{//\ Used\ to\ SFINAE-\/enable\ a\ function\ when\ the\ slice\ elements\ are\ mutable.}}
+\DoxyCodeLine{00197\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ U>}
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{using\ }EnableIfValueIsMutable\ =}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<!std::is\_const<T>::value,\ U>::type;}
+\DoxyCodeLine{00200\ }
+\DoxyCodeLine{00201\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00202\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_aab7aeb136f7c50b910e76dd2f3044631}{element\_type}}\ =\ T;}
+\DoxyCodeLine{00203\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_ae39baa8ba8497e61d2fd3846cc977fee}{value\_type}}\ =\ \mbox{\hyperlink{namespaceabsl_a6953812acdf411715dc9a2102e75ff3d}{absl::remove\_cv\_t<T>}};}
+\DoxyCodeLine{00204\ \ \ \textcolor{comment}{//\ TODO(b/316099902)\ -\/\ pointer\ should\ be\ Nullable<T*>,\ but\ this\ makes\ it\ hard}}
+\DoxyCodeLine{00205\ \ \ \textcolor{comment}{//\ to\ recognize\ foreach\ loops\ as\ safe.}}
+\DoxyCodeLine{00206\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_af4481c3c64711bb82106a4e8395a0c49}{pointer}}\ =\ T*;}
+\DoxyCodeLine{00207\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_a423e40178ff1f44f5b33315b8711aa8c}{const\_pointer}}\ =\ \textcolor{keyword}{const}\ T*;}
+\DoxyCodeLine{00208\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_a02ee8a296df146aa4310cc88265ba922}{reference}}\ =\ T\&;}
+\DoxyCodeLine{00209\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_a4129c9721e351089e4e5886230613d29}{const\_reference}}\ =\ \textcolor{keyword}{const}\ T\&;}
+\DoxyCodeLine{00210\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_aec57513efa0c7f266055b3920c796a70}{iterator}}\ =\ \mbox{\hyperlink{classabsl_1_1Span_af4481c3c64711bb82106a4e8395a0c49}{pointer}};}
+\DoxyCodeLine{00211\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_a5f3d0fbff9a0f56fdcac32fcfd5d9627}{const\_iterator}}\ =\ \mbox{\hyperlink{classabsl_1_1Span_a423e40178ff1f44f5b33315b8711aa8c}{const\_pointer}};}
+\DoxyCodeLine{00212\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_a0b34382152cb6d4abe8512a894f7b793}{reverse\_iterator}}\ =\ std::reverse\_iterator<iterator>;}
+\DoxyCodeLine{00213\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_a7ebf6bd635665fb97a8514f18d2046be}{const\_reverse\_iterator}}\ =\ std::reverse\_iterator<const\_iterator>;}
+\DoxyCodeLine{00214\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ =\ size\_t;}
+\DoxyCodeLine{00215\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_a29ddd6b10f98ac22057ab563ddf37558}{difference\_type}}\ =\ ptrdiff\_t;}
+\DoxyCodeLine{00216\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1Span_ac3dbc59b0a7915e535164a3b3f1dc860}{absl\_internal\_is\_view}}\ =\ std::true\_type;}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \textcolor{comment}{//\ NOLINTNEXTLINE}}
+\DoxyCodeLine{00219\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ npos\ =\ \string~(\mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}(0));}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00221\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a18eafe9fd18d6a38f7487cac752f4845}{Span}}()\ noexcept\ :\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(\textcolor{keywordtype}{nullptr},\ 0)\ \{\}}
+\DoxyCodeLine{00222\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a21d7086e14a795ee851e56557ccc2668}{Span}}(\mbox{\hyperlink{classabsl_1_1Span_af4481c3c64711bb82106a4e8395a0c49}{pointer}}\ array\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}},}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ length)\ noexcept}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ :\ ptr\_(array),\ len\_(length)\ \{\}}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \ \ \textcolor{comment}{//\ Implicit\ conversion\ constructors}}
+\DoxyCodeLine{00227\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00228\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_adff88b90eadb34c6e348c4db22ef1e8b}{Span}}(T(\ \ \textcolor{comment}{//\ NOLINT(google-\/explicit-\/constructor)}}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})[\mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}])\ noexcept}
+\DoxyCodeLine{00230\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}},\ \mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}})\ \{\}}
+\DoxyCodeLine{00231\ }
+\DoxyCodeLine{00232\ \ \ \textcolor{comment}{//\ Explicit\ reference\ constructor\ for\ a\ mutable\ \`{}Span<T>`\ type.\ Can\ be}}
+\DoxyCodeLine{00233\ \ \ \textcolor{comment}{//\ replaced\ with\ MakeSpan()\ to\ infer\ the\ type\ parameter.}}
+\DoxyCodeLine{00234\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ V,\ \textcolor{keyword}{typename}\ =\ EnableIfConvertibleFrom<V>,}
+\DoxyCodeLine{00235\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ EnableIfValueIsMutable<V>,}
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ span\_\textcolor{keywordtype}{int}ernal::EnableIfNotIsView<V>>}
+\DoxyCodeLine{00237\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1Span_a6013b53a126d078ef7edc9752cfdac9f}{Span}}(}
+\DoxyCodeLine{00238\ \ \ \ \ \ \ V\&\ v}
+\DoxyCodeLine{00239\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})\ \textcolor{keyword}{noexcept}\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00240\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(span\_internal::GetData(v),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.size())\ \{\}}
+\DoxyCodeLine{00241\ }
+\DoxyCodeLine{00242\ \ \ \textcolor{comment}{//\ Implicit\ reference\ constructor\ for\ a\ read-\/only\ \`{}Span<const\ T>`\ type}}
+\DoxyCodeLine{00243\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ V,\ \textcolor{keyword}{typename}\ =\ EnableIfConvertibleFrom<V>,}
+\DoxyCodeLine{00244\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ EnableIfValueIsConst<V>,}
+\DoxyCodeLine{00245\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ span\_\textcolor{keywordtype}{int}ernal::EnableIfNotIsView<V>>}
+\DoxyCodeLine{00246\ \ \ \textcolor{comment}{//\ NOLINTNEXTLINE(google-\/explicit-\/constructor)}}
+\DoxyCodeLine{00247\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a60311a6e8b12ccbef0e7f6bedfcd88d8}{Span}}(\textcolor{keyword}{const}\ V\&\ v\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})\ noexcept}
+\DoxyCodeLine{00248\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(span\_internal::GetData(v),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.size())\ \{\}}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00250\ \ \ \textcolor{comment}{//\ Overloads\ of\ the\ above\ two\ functions\ that\ are\ only\ enabled\ for\ view\ types.}}
+\DoxyCodeLine{00251\ \ \ \textcolor{comment}{//\ This\ is\ so\ we\ can\ drop\ the\ ABSL\_ATTRIBUTE\_LIFETIME\_BOUND\ annotation.\ These}}
+\DoxyCodeLine{00252\ \ \ \textcolor{comment}{//\ overloads\ must\ be\ made\ unique\ by\ using\ a\ different\ template\ parameter\ list}}
+\DoxyCodeLine{00253\ \ \ \textcolor{comment}{//\ (hence\ the\ =\ 0\ for\ the\ IsView\ enabler).}}
+\DoxyCodeLine{00254\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ V,\ \textcolor{keyword}{typename}\ =\ EnableIfConvertibleFrom<V>,}
+\DoxyCodeLine{00255\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ EnableIfValueIsMutable<V>,}
+\DoxyCodeLine{00256\ \ \ \ \ \ \ \ \ \ \ \ \ span\_\textcolor{keywordtype}{int}ernal::EnableIfIsView<V>\ =\ 0>}
+\DoxyCodeLine{00257\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1Span_abef4d491c11c2e5db26cdf5eb767a45c}{Span}}(V\&\ v)\ \textcolor{keyword}{noexcept}\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(span\_internal::GetData(v),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.size())\ \{\}}
+\DoxyCodeLine{00259\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ V,\ \textcolor{keyword}{typename}\ =\ EnableIfConvertibleFrom<V>,}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ EnableIfValueIsConst<V>,}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ \ \ \ \ span\_\textcolor{keywordtype}{int}ernal::EnableIfIsView<V>\ =\ 0>}
+\DoxyCodeLine{00262\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_aa1f7087876be711bf9d008de984c9a91}{Span}}(\textcolor{keyword}{const}\ V\&\ v)\ \textcolor{keyword}{noexcept}\ \ \textcolor{comment}{//\ NOLINT(google-\/explicit-\/constructor)}}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(span\_internal::GetData(v),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.size())\ \{\}}
+\DoxyCodeLine{00264\ }
+\DoxyCodeLine{00265\ \ \ \textcolor{comment}{//\ Implicit\ constructor\ from\ an\ initializer\ list,\ making\ it\ possible\ to\ pass\ a}}
+\DoxyCodeLine{00266\ \ \ \textcolor{comment}{//\ brace-\/enclosed\ initializer\ list\ to\ a\ function\ expecting\ a\ \`{}Span`.\ Such}}
+\DoxyCodeLine{00267\ \ \ \textcolor{comment}{//\ spans\ constructed\ from\ an\ initializer\ list\ must\ be\ of\ type\ \`{}Span<const\ T>`.}}
+\DoxyCodeLine{00268\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00269\ \ \ \textcolor{comment}{//\ \ \ void\ Process(absl::Span<const\ int>\ x);}}
+\DoxyCodeLine{00270\ \ \ \textcolor{comment}{//\ \ \ Process(\{1,\ 2,\ 3\});}}
+\DoxyCodeLine{00271\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00272\ \ \ \textcolor{comment}{//\ Note\ that\ as\ always\ the\ array\ referenced\ by\ the\ span\ must\ outlive\ the\ span.}}
+\DoxyCodeLine{00273\ \ \ \textcolor{comment}{//\ Since\ an\ initializer\ list\ constructor\ acts\ as\ if\ it\ is\ fed\ a\ temporary}}
+\DoxyCodeLine{00274\ \ \ \textcolor{comment}{//\ array\ (cf.\ C++\ standard\ [dcl.init.list]/5),\ it's\ safe\ to\ use\ this}}
+\DoxyCodeLine{00275\ \ \ \textcolor{comment}{//\ constructor\ only\ when\ the\ \`{}std::initializer\_list`\ itself\ outlives\ the\ span.}}
+\DoxyCodeLine{00276\ \ \ \textcolor{comment}{//\ In\ order\ to\ meet\ this\ requirement\ it's\ sufficient\ to\ ensure\ that\ neither}}
+\DoxyCodeLine{00277\ \ \ \textcolor{comment}{//\ the\ span\ nor\ a\ copy\ of\ it\ is\ used\ outside\ of\ the\ expression\ in\ which\ it's}}
+\DoxyCodeLine{00278\ \ \ \textcolor{comment}{//\ created:}}
+\DoxyCodeLine{00279\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00280\ \ \ \textcolor{comment}{//\ \ \ //\ Assume\ that\ this\ function\ uses\ the\ array\ directly,\ not\ retaining\ any}}
+\DoxyCodeLine{00281\ \ \ \textcolor{comment}{//\ \ \ //\ copy\ of\ the\ span\ or\ pointer\ to\ any\ of\ its\ elements.}}
+\DoxyCodeLine{00282\ \ \ \textcolor{comment}{//\ \ \ void\ Process(absl::Span<const\ int>\ ints);}}
+\DoxyCodeLine{00283\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00284\ \ \ \textcolor{comment}{//\ \ \ //\ Okay:\ the\ std::initializer\_list<int>\ will\ reference\ a\ temporary\ array}}
+\DoxyCodeLine{00285\ \ \ \textcolor{comment}{//\ \ \ //\ that\ isn't\ destroyed\ until\ after\ the\ call\ to\ Process\ returns.}}
+\DoxyCodeLine{00286\ \ \ \textcolor{comment}{//\ \ \ Process(\{\ 17,\ 19\ \});}}
+\DoxyCodeLine{00287\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00288\ \ \ \textcolor{comment}{//\ \ \ //\ Not\ okay:\ the\ storage\ used\ by\ the\ std::initializer\_list<int>\ is\ not}}
+\DoxyCodeLine{00289\ \ \ \textcolor{comment}{//\ \ \ //\ allowed\ to\ be\ referenced\ after\ the\ first\ line.}}
+\DoxyCodeLine{00290\ \ \ \textcolor{comment}{//\ \ \ absl::Span<const\ int>\ ints\ =\ \{\ 17,\ 19\ \};}}
+\DoxyCodeLine{00291\ \ \ \textcolor{comment}{//\ \ \ Process(ints);}}
+\DoxyCodeLine{00292\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00293\ \ \ \textcolor{comment}{//\ \ \ //\ Not\ okay\ for\ the\ same\ reason\ as\ above:\ even\ when\ the\ elements\ of\ the}}
+\DoxyCodeLine{00294\ \ \ \textcolor{comment}{//\ \ \ //\ initializer\ list\ expression\ are\ not\ temporaries\ the\ underlying\ array}}
+\DoxyCodeLine{00295\ \ \ \textcolor{comment}{//\ \ \ //\ is,\ so\ the\ initializer\ list\ must\ still\ outlive\ the\ span.}}
+\DoxyCodeLine{00296\ \ \ \textcolor{comment}{//\ \ \ const\ int\ foo\ =\ 17;}}
+\DoxyCodeLine{00297\ \ \ \textcolor{comment}{//\ \ \ absl::Span<const\ int>\ ints\ =\ \{\ foo\ \};}}
+\DoxyCodeLine{00298\ \ \ \textcolor{comment}{//\ \ \ Process(ints);}}
+\DoxyCodeLine{00299\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00300\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ LazyT\ =\ T,}
+\DoxyCodeLine{00301\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ EnableIfValueIsConst<LazyT>>}
+\DoxyCodeLine{00302\ \ \ \mbox{\hyperlink{classabsl_1_1Span_abcce16dd9624532484b285f263f96c44}{Span}}(std::initializer\_list<value\_type>\ v}
+\DoxyCodeLine{00303\ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})\ \textcolor{keyword}{noexcept}\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00304\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.begin(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.size())\ \{\}}
+\DoxyCodeLine{00305\ }
+\DoxyCodeLine{00306\ \ \ \textcolor{comment}{//\ Accessors}}
+\DoxyCodeLine{00307\ }
+\DoxyCodeLine{00308\ \ \ \textcolor{comment}{//\ Span::data()}}
+\DoxyCodeLine{00309\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00310\ \ \ \textcolor{comment}{//\ Returns\ a\ pointer\ to\ the\ span's\ underlying\ array\ of\ data\ (which\ is\ held}}
+\DoxyCodeLine{00311\ \ \ \textcolor{comment}{//\ outside\ the\ span).}}
+\DoxyCodeLine{00312\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_af4481c3c64711bb82106a4e8395a0c49}{pointer}}\ \mbox{\hyperlink{classabsl_1_1Span_ab73e4be6262f844714eb7c48225b605b}{data}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ ptr\_;\ \}}
+\DoxyCodeLine{00313\ }
+\DoxyCodeLine{00314\ \ \ \textcolor{comment}{//\ Span::size()}}
+\DoxyCodeLine{00315\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00316\ \ \ \textcolor{comment}{//\ Returns\ the\ size\ of\ this\ span.}}
+\DoxyCodeLine{00317\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1Span_a92186c247036e10dd12603c09f8b8797}{size}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ len\_;\ \}}
+\DoxyCodeLine{00318\ }
+\DoxyCodeLine{00319\ \ \ \textcolor{comment}{//\ Span::length()}}
+\DoxyCodeLine{00320\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00321\ \ \ \textcolor{comment}{//\ Returns\ the\ length\ (size)\ of\ this\ span.}}
+\DoxyCodeLine{00322\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1Span_a46b6c7700fc50dab870dea2e6437bea7}{length}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}();\ \}}
+\DoxyCodeLine{00323\ }
+\DoxyCodeLine{00324\ \ \ \textcolor{comment}{//\ Span::empty()}}
+\DoxyCodeLine{00325\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00326\ \ \ \textcolor{comment}{//\ Returns\ a\ boolean\ indicating\ whether\ or\ not\ this\ span\ is\ considered\ empty.}}
+\DoxyCodeLine{00327\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1Span_ae654bb698a931c9e490c2822ec77422a}{empty}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ ==\ 0;\ \}}
+\DoxyCodeLine{00328\ }
+\DoxyCodeLine{00329\ \ \ \textcolor{comment}{//\ Span::operator[]}}
+\DoxyCodeLine{00330\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00331\ \ \ \textcolor{comment}{//\ Returns\ a\ reference\ to\ the\ i'th\ element\ of\ this\ span.}}
+\DoxyCodeLine{00332\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a02ee8a296df146aa4310cc88265ba922}{reference}}\ \mbox{\hyperlink{classabsl_1_1Span_a5a4612c22e4ad350361026dafa179a0b}{operator[]}}(\mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00333\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()),\ ptr\_[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00334\ \ \ \}}
+\DoxyCodeLine{00335\ }
+\DoxyCodeLine{00336\ \ \ \textcolor{comment}{//\ Span::at()}}
+\DoxyCodeLine{00337\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00338\ \ \ \textcolor{comment}{//\ Returns\ a\ reference\ to\ the\ i'th\ element\ of\ this\ span.}}
+\DoxyCodeLine{00339\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a02ee8a296df146aa4310cc88265ba922}{reference}}\ \mbox{\hyperlink{classabsl_1_1Span_a2ecfd0b5da53e67fbba256a06fbf97b7}{at}}(\mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00340\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}())\ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00341\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ *(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}()\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00342\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (base\_internal::ThrowStdOutOfRange(}
+\DoxyCodeLine{00343\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Span::at\ failed\ bounds\ check"{}}),}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}()\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{00345\ \ \ \}}
+\DoxyCodeLine{00346\ }
+\DoxyCodeLine{00347\ \ \ \textcolor{comment}{//\ Span::front()}}
+\DoxyCodeLine{00348\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00349\ \ \ \textcolor{comment}{//\ Returns\ a\ reference\ to\ the\ first\ element\ of\ this\ span.\ The\ span\ must\ not}}
+\DoxyCodeLine{00350\ \ \ \textcolor{comment}{//\ be\ empty.}}
+\DoxyCodeLine{00351\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a02ee8a296df146aa4310cc88265ba922}{reference}}\ \mbox{\hyperlink{classabsl_1_1Span_ad45befaf991e9e87a6e01c843e363df4}{front}}()\ const\ noexcept\ \{}
+\DoxyCodeLine{00352\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ >\ 0),\ *\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}();}
+\DoxyCodeLine{00353\ \ \ \}}
+\DoxyCodeLine{00354\ }
+\DoxyCodeLine{00355\ \ \ \textcolor{comment}{//\ Span::back()}}
+\DoxyCodeLine{00356\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00357\ \ \ \textcolor{comment}{//\ Returns\ a\ reference\ to\ the\ last\ element\ of\ this\ span.\ The\ span\ must\ not}}
+\DoxyCodeLine{00358\ \ \ \textcolor{comment}{//\ be\ empty.}}
+\DoxyCodeLine{00359\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a02ee8a296df146aa4310cc88265ba922}{reference}}\ \mbox{\hyperlink{classabsl_1_1Span_a3b00899693e64bd5ce500244c0947da2}{back}}()\ const\ noexcept\ \{}
+\DoxyCodeLine{00360\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ >\ 0),\ *(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}()\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ -\/\ 1);}
+\DoxyCodeLine{00361\ \ \ \}}
+\DoxyCodeLine{00362\ }
+\DoxyCodeLine{00363\ \ \ \textcolor{comment}{//\ Span::begin()}}
+\DoxyCodeLine{00364\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00365\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ pointing\ to\ the\ first\ element\ of\ this\ span,\ or\ \`{}end()`}}
+\DoxyCodeLine{00366\ \ \ \textcolor{comment}{//\ if\ the\ span\ is\ empty.}}
+\DoxyCodeLine{00367\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_aec57513efa0c7f266055b3920c796a70}{iterator}}\ \mbox{\hyperlink{classabsl_1_1Span_a85f49bccee87e5f5e44bae1ddd90ce59}{begin}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}();\ \}}
+\DoxyCodeLine{00368\ }
+\DoxyCodeLine{00369\ \ \ \textcolor{comment}{//\ Span::cbegin()}}
+\DoxyCodeLine{00370\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00371\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ pointing\ to\ the\ first\ element\ of\ this\ span,\ or}}
+\DoxyCodeLine{00372\ \ \ \textcolor{comment}{//\ \`{}end()`\ if\ the\ span\ is\ empty.}}
+\DoxyCodeLine{00373\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a5f3d0fbff9a0f56fdcac32fcfd5d9627}{const\_iterator}}\ \mbox{\hyperlink{classabsl_1_1Span_adb54e6585fdb133ba2dc6ae7074a2e4b}{cbegin}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_aa9f974458dc400bd897fe724a13dcd47}{begin}}();\ \}}
+\DoxyCodeLine{00374\ }
+\DoxyCodeLine{00375\ \ \ \textcolor{comment}{//\ Span::end()}}
+\DoxyCodeLine{00376\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00377\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ pointing\ just\ beyond\ the\ last\ element\ at\ the}}
+\DoxyCodeLine{00378\ \ \ \textcolor{comment}{//\ end\ of\ this\ span.\ This\ iterator\ acts\ as\ a\ placeholder;\ attempting\ to}}
+\DoxyCodeLine{00379\ \ \ \textcolor{comment}{//\ access\ it\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00380\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_aec57513efa0c7f266055b3920c796a70}{iterator}}\ \mbox{\hyperlink{classabsl_1_1Span_a4515995383ac86b2bb08e18f183e5dd7}{end}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}()\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}();\ \}}
+\DoxyCodeLine{00381\ }
+\DoxyCodeLine{00382\ \ \ \textcolor{comment}{//\ Span::cend()}}
+\DoxyCodeLine{00383\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00384\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ pointing\ just\ beyond\ the\ last\ element\ at\ the}}
+\DoxyCodeLine{00385\ \ \ \textcolor{comment}{//\ end\ of\ this\ span.\ This\ iterator\ acts\ as\ a\ placeholder;\ attempting\ to}}
+\DoxyCodeLine{00386\ \ \ \textcolor{comment}{//\ access\ it\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00387\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a5f3d0fbff9a0f56fdcac32fcfd5d9627}{const\_iterator}}\ \mbox{\hyperlink{classabsl_1_1Span_ae9524282e61edba39b678e2aadcfe1b1}{cend}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}}();\ \}}
+\DoxyCodeLine{00388\ }
+\DoxyCodeLine{00389\ \ \ \textcolor{comment}{//\ Span::rbegin()}}
+\DoxyCodeLine{00390\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00391\ \ \ \textcolor{comment}{//\ Returns\ a\ reverse\ iterator\ pointing\ to\ the\ last\ element\ at\ the\ end\ of\ this}}
+\DoxyCodeLine{00392\ \ \ \textcolor{comment}{//\ span,\ or\ \`{}rend()`\ if\ the\ span\ is\ empty.}}
+\DoxyCodeLine{00393\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a0b34382152cb6d4abe8512a894f7b793}{reverse\_iterator}}\ \mbox{\hyperlink{classabsl_1_1Span_a0bb2cf83f3ea877329e119e688ed3e74}{rbegin}}()\ const\ noexcept\ \{}
+\DoxyCodeLine{00394\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1Span_a0b34382152cb6d4abe8512a894f7b793}{reverse\_iterator}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}}());}
+\DoxyCodeLine{00395\ \ \ \}}
+\DoxyCodeLine{00396\ }
+\DoxyCodeLine{00397\ \ \ \textcolor{comment}{//\ Span::crbegin()}}
+\DoxyCodeLine{00398\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00399\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ reverse\ iterator\ pointing\ to\ the\ last\ element\ at\ the\ end\ of}}
+\DoxyCodeLine{00400\ \ \ \textcolor{comment}{//\ this\ span,\ or\ \`{}crend()`\ if\ the\ span\ is\ empty.}}
+\DoxyCodeLine{00401\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a7ebf6bd635665fb97a8514f18d2046be}{const\_reverse\_iterator}}\ \mbox{\hyperlink{classabsl_1_1Span_a4706b7be939f26796ac124c64c62580d}{crbegin}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ rbegin();\ \}}
+\DoxyCodeLine{00402\ }
+\DoxyCodeLine{00403\ \ \ \textcolor{comment}{//\ Span::rend()}}
+\DoxyCodeLine{00404\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00405\ \ \ \textcolor{comment}{//\ Returns\ a\ reverse\ iterator\ pointing\ just\ before\ the\ first\ element}}
+\DoxyCodeLine{00406\ \ \ \textcolor{comment}{//\ at\ the\ beginning\ of\ this\ span.\ This\ pointer\ acts\ as\ a\ placeholder;}}
+\DoxyCodeLine{00407\ \ \ \textcolor{comment}{//\ attempting\ to\ access\ its\ element\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00408\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a0b34382152cb6d4abe8512a894f7b793}{reverse\_iterator}}\ \mbox{\hyperlink{classabsl_1_1Span_aec2ab88239b4d4c79f0fc6ecce484676}{rend}}()\ const\ noexcept\ \{}
+\DoxyCodeLine{00409\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1Span_a0b34382152cb6d4abe8512a894f7b793}{reverse\_iterator}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_aa9f974458dc400bd897fe724a13dcd47}{begin}}());}
+\DoxyCodeLine{00410\ \ \ \}}
+\DoxyCodeLine{00411\ }
+\DoxyCodeLine{00412\ \ \ \textcolor{comment}{//\ Span::crend()}}
+\DoxyCodeLine{00413\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00414\ \ \ \textcolor{comment}{//\ Returns\ a\ reverse\ const\ iterator\ pointing\ just\ before\ the\ first\ element}}
+\DoxyCodeLine{00415\ \ \ \textcolor{comment}{//\ at\ the\ beginning\ of\ this\ span.\ This\ pointer\ acts\ as\ a\ placeholder;}}
+\DoxyCodeLine{00416\ \ \ \textcolor{comment}{//\ attempting\ to\ access\ its\ element\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00417\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span_a7ebf6bd635665fb97a8514f18d2046be}{const\_reverse\_iterator}}\ \mbox{\hyperlink{classabsl_1_1Span_a35a9ec0cde9d189e607ba42c87ddae4b}{crend}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ rend();\ \}}
+\DoxyCodeLine{00418\ }
+\DoxyCodeLine{00419\ \ \ \textcolor{comment}{//\ Span\ mutations}}
+\DoxyCodeLine{00420\ }
+\DoxyCodeLine{00421\ \ \ \textcolor{comment}{//\ Span::remove\_prefix()}}
+\DoxyCodeLine{00422\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00423\ \ \ \textcolor{comment}{//\ Removes\ the\ first\ \`{}n`\ elements\ from\ the\ span.}}
+\DoxyCodeLine{00424\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1Span_aa7b2c4c0528433783f907ee2b5410cb1}{remove\_prefix}}(\mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00425\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ >=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00426\ \ \ \ \ ptr\_\ +=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00427\ \ \ \ \ len\_\ -\/=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00428\ \ \ \}}
+\DoxyCodeLine{00429\ }
+\DoxyCodeLine{00430\ \ \ \textcolor{comment}{//\ Span::remove\_suffix()}}
+\DoxyCodeLine{00431\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00432\ \ \ \textcolor{comment}{//\ Removes\ the\ last\ \`{}n`\ elements\ from\ the\ span.}}
+\DoxyCodeLine{00433\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1Span_aac013563cde1964ab0e5ee3d850bac50}{remove\_suffix}}(\mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00434\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ >=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00435\ \ \ \ \ len\_\ -\/=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00436\ \ \ \}}
+\DoxyCodeLine{00437\ }
+\DoxyCodeLine{00438\ \ \ \textcolor{comment}{//\ Span::subspan()}}
+\DoxyCodeLine{00439\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00440\ \ \ \textcolor{comment}{//\ Returns\ a\ \`{}Span`\ starting\ at\ element\ \`{}pos`\ and\ of\ length\ \`{}len`.\ Both\ \`{}pos`}}
+\DoxyCodeLine{00441\ \ \ \textcolor{comment}{//\ and\ \`{}len`\ are\ of\ type\ \`{}size\_type`\ and\ thus\ non-\/negative.\ Parameter\ \`{}pos`}}
+\DoxyCodeLine{00442\ \ \ \textcolor{comment}{//\ must\ be\ <=\ size().\ Any\ \`{}len`\ value\ that\ points\ past\ the\ end\ of\ the\ span}}
+\DoxyCodeLine{00443\ \ \ \textcolor{comment}{//\ will\ be\ trimmed\ to\ at\ most\ size()\ -\/\ \`{}pos`.\ A\ default\ \`{}len`\ value\ of\ \`{}npos`}}
+\DoxyCodeLine{00444\ \ \ \textcolor{comment}{//\ ensures\ the\ returned\ subspan\ continues\ until\ the\ end\ of\ the\ span.}}
+\DoxyCodeLine{00445\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00446\ \ \ \textcolor{comment}{//\ Examples:}}
+\DoxyCodeLine{00447\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00448\ \ \ \textcolor{comment}{//\ \ \ std::vector<int>\ vec\ =\ \{10,\ 11,\ 12,\ 13\};}}
+\DoxyCodeLine{00449\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).subspan(1,\ 2);\ \ //\ \{11,\ 12\}}}
+\DoxyCodeLine{00450\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).subspan(2,\ 8);\ \ //\ \{12,\ 13\}}}
+\DoxyCodeLine{00451\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).subspan(1);\ \ \ \ \ //\ \{11,\ 12,\ 13\}}}
+\DoxyCodeLine{00452\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).subspan(4);\ \ \ \ \ //\ \{\}}}
+\DoxyCodeLine{00453\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).subspan(5);\ \ \ \ \ //\ throws\ std::out\_of\_range}}
+\DoxyCodeLine{00454\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}\ \mbox{\hyperlink{classabsl_1_1Span_aaa4e0f173491b2453243c5ff6befc83b}{subspan}}(\mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ pos\ =\ 0,\ \mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ =\ npos)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00455\ \ \ \ \ \textcolor{keywordflow}{return}\ (pos\ <=\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}())}
+\DoxyCodeLine{00456\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}()\ +\ pos,\ (std::min)(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ -\/\ pos,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}))}
+\DoxyCodeLine{00457\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (base\_internal::ThrowStdOutOfRange(\textcolor{stringliteral}{"{}pos\ >\ size()"{}}),\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}());}
+\DoxyCodeLine{00458\ \ \ \}}
+\DoxyCodeLine{00459\ }
+\DoxyCodeLine{00460\ \ \ \textcolor{comment}{//\ Span::first()}}
+\DoxyCodeLine{00461\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00462\ \ \ \textcolor{comment}{//\ Returns\ a\ \`{}Span`\ containing\ first\ \`{}len`\ elements.\ Parameter\ \`{}len`\ is\ of}}
+\DoxyCodeLine{00463\ \ \ \textcolor{comment}{//\ type\ \`{}size\_type`\ and\ thus\ non-\/negative.\ \`{}len`\ value\ must\ be\ <=\ size().}}
+\DoxyCodeLine{00464\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00465\ \ \ \textcolor{comment}{//\ Examples:}}
+\DoxyCodeLine{00466\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00467\ \ \ \textcolor{comment}{//\ \ \ std::vector<int>\ vec\ =\ \{10,\ 11,\ 12,\ 13\};}}
+\DoxyCodeLine{00468\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).first(1);\ \ //\ \{10\}}}
+\DoxyCodeLine{00469\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).first(3);\ \ //\ \{10,\ 11,\ 12\}}}
+\DoxyCodeLine{00470\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).first(5);\ \ //\ throws\ std::out\_of\_range}}
+\DoxyCodeLine{00471\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}\ \mbox{\hyperlink{classabsl_1_1Span_a47768f4c333e6a07d78be5ac23fd77cc}{first}}(\mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00472\ \ \ \ \ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ <=\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}())}
+\DoxyCodeLine{00473\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}})}
+\DoxyCodeLine{00474\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (base\_internal::ThrowStdOutOfRange(\textcolor{stringliteral}{"{}len\ >\ size()"{}}),\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}());}
+\DoxyCodeLine{00475\ \ \ \}}
+\DoxyCodeLine{00476\ }
+\DoxyCodeLine{00477\ \ \ \textcolor{comment}{//\ Span::last()}}
+\DoxyCodeLine{00478\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00479\ \ \ \textcolor{comment}{//\ Returns\ a\ \`{}Span`\ containing\ last\ \`{}len`\ elements.\ Parameter\ \`{}len`\ is\ of}}
+\DoxyCodeLine{00480\ \ \ \textcolor{comment}{//\ type\ \`{}size\_type`\ and\ thus\ non-\/negative.\ \`{}len`\ value\ must\ be\ <=\ size().}}
+\DoxyCodeLine{00481\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00482\ \ \ \textcolor{comment}{//\ Examples:}}
+\DoxyCodeLine{00483\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00484\ \ \ \textcolor{comment}{//\ \ \ std::vector<int>\ vec\ =\ \{10,\ 11,\ 12,\ 13\};}}
+\DoxyCodeLine{00485\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).last(1);\ \ //\ \{13\}}}
+\DoxyCodeLine{00486\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).last(3);\ \ //\ \{11,\ 12,\ 13\}}}
+\DoxyCodeLine{00487\ \ \ \textcolor{comment}{//\ \ \ absl::MakeSpan(vec).last(5);\ \ //\ throws\ std::out\_of\_range}}
+\DoxyCodeLine{00488\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}\ \mbox{\hyperlink{classabsl_1_1Span_a2609b5b18c35b8e32a2868b97ccab383}{last}}(\mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00489\ \ \ \ \ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ <=\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}())}
+\DoxyCodeLine{00490\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ -\/\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}})}
+\DoxyCodeLine{00491\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (base\_internal::ThrowStdOutOfRange(\textcolor{stringliteral}{"{}len\ >\ size()"{}}),\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}());}
+\DoxyCodeLine{00492\ \ \ \}}
+\DoxyCodeLine{00493\ }
+\DoxyCodeLine{00494\ \ \ \textcolor{comment}{//\ Support\ for\ absl::Hash.}}
+\DoxyCodeLine{00495\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ H>}
+\DoxyCodeLine{00496\ \ \ \textcolor{keyword}{friend}\ H\ \mbox{\hyperlink{classabsl_1_1Span_adc6387ab0fe354a9151637a7016e4460}{AbslHashValue}}(H\ h,\ \mbox{\hyperlink{classabsl_1_1Span}{Span}}\ v)\ \{}
+\DoxyCodeLine{00497\ \ \ \ \ \textcolor{keywordflow}{return}\ H::combine(H::combine\_contiguous(std::move(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2510c39011c5be704182423e3a695e91}{h}}),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.data(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.size()),}
+\DoxyCodeLine{00498\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.size());}
+\DoxyCodeLine{00499\ \ \ \}}
+\DoxyCodeLine{00500\ }
+\DoxyCodeLine{00501\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00502\ \ \ pointer\ ptr\_;}
+\DoxyCodeLine{00503\ \ \ size\_type\ len\_;}
+\DoxyCodeLine{00504\ \};}
+\DoxyCodeLine{00505\ }
+\DoxyCodeLine{00506\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00507\ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classabsl_1_1Span_a3df4b63b5020c162256a431f7601c644}{Span<T>::size\_type}}\ \mbox{\hyperlink{classabsl_1_1Span_a75eebd924decf588937cf3f8f6a921a6}{Span<T>::npos}};}
+\DoxyCodeLine{00508\ }
+\DoxyCodeLine{00509\ \textcolor{comment}{//\ Span\ relationals}}
+\DoxyCodeLine{00510\ }
+\DoxyCodeLine{00511\ \textcolor{comment}{//\ Equality\ is\ compared\ element-\/by-\/element,\ while\ ordering\ is\ lexicographical.}}
+\DoxyCodeLine{00512\ \textcolor{comment}{//\ We\ provide\ three\ overloads\ for\ each\ operator\ to\ cover\ any\ combination\ on\ the}}
+\DoxyCodeLine{00513\ \textcolor{comment}{//\ left\ or\ right\ hand\ side\ of\ mutable\ Span<T>,\ read-\/only\ Span<const\ T>,\ and}}
+\DoxyCodeLine{00514\ \textcolor{comment}{//\ convertible-\/to-\/read-\/only\ Span<T>.}}
+\DoxyCodeLine{00515\ \textcolor{comment}{//\ TODO(zhangxy):\ Due\ to\ MSVC\ overload\ resolution\ bug\ with\ partial\ ordering}}
+\DoxyCodeLine{00516\ \textcolor{comment}{//\ template\ functions,\ 5\ overloads\ per\ operator\ is\ needed\ as\ a\ workaround.\ We}}
+\DoxyCodeLine{00517\ \textcolor{comment}{//\ should\ update\ them\ to\ 3\ overloads\ per\ operator\ using\ non-\/deduced\ context\ like}}
+\DoxyCodeLine{00518\ \textcolor{comment}{//\ string\_view,\ i.e.}}
+\DoxyCodeLine{00519\ \textcolor{comment}{//\ -\/\ (Span<T>,\ Span<T>)}}
+\DoxyCodeLine{00520\ \textcolor{comment}{//\ -\/\ (Span<T>,\ non\_deduced<Span<const\ T>>)}}
+\DoxyCodeLine{00521\ \textcolor{comment}{//\ -\/\ (non\_deduced<Span<const\ T>>,\ Span<T>)}}
+\DoxyCodeLine{00522\ }
+\DoxyCodeLine{00523\ \textcolor{comment}{//\ operator==}}
+\DoxyCodeLine{00524\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00525\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a6e23a3339a264413328c9a0ce0896eac}{operator==}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00526\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_a5b010fa0ccfb93a49ab7f773da175471}{span\_internal::EqualImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00527\ \}}
+\DoxyCodeLine{00528\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00529\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a6e23a3339a264413328c9a0ce0896eac}{operator==}}(Span<const\ T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00530\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Span<T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00531\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_a5b010fa0ccfb93a49ab7f773da175471}{span\_internal::EqualImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00532\ \}}
+\DoxyCodeLine{00533\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00534\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a6e23a3339a264413328c9a0ce0896eac}{operator==}}(Span<T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00535\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Span<const\ T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00536\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_a5b010fa0ccfb93a49ab7f773da175471}{span\_internal::EqualImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00537\ \}}
+\DoxyCodeLine{00538\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00539\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00540\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00541\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a6e23a3339a264413328c9a0ce0896eac}{operator==}}(\textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00542\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_a5b010fa0ccfb93a49ab7f773da175471}{span\_internal::EqualImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00543\ \}}
+\DoxyCodeLine{00544\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00545\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00546\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00547\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a6e23a3339a264413328c9a0ce0896eac}{operator==}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00548\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_a5b010fa0ccfb93a49ab7f773da175471}{span\_internal::EqualImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00549\ \}}
+\DoxyCodeLine{00550\ }
+\DoxyCodeLine{00551\ \textcolor{comment}{//\ operator!=}}
+\DoxyCodeLine{00552\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00553\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a78dbd46464e8900c304d14534f0567bc}{operator!=}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00554\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00555\ \}}
+\DoxyCodeLine{00556\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00557\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a78dbd46464e8900c304d14534f0567bc}{operator!=}}(Span<const\ T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00558\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Span<T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00559\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00560\ \}}
+\DoxyCodeLine{00561\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00562\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a78dbd46464e8900c304d14534f0567bc}{operator!=}}(Span<T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00563\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Span<const\ T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00564\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00565\ \}}
+\DoxyCodeLine{00566\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00567\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00568\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00569\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a78dbd46464e8900c304d14534f0567bc}{operator!=}}(\textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00570\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00571\ \}}
+\DoxyCodeLine{00572\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00573\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00574\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00575\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a78dbd46464e8900c304d14534f0567bc}{operator!=}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00576\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00577\ \}}
+\DoxyCodeLine{00578\ }
+\DoxyCodeLine{00579\ \textcolor{comment}{//\ operator<}}
+\DoxyCodeLine{00580\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00581\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aa48960e448fa3aefb047530196e017b7}{operator<}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00582\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aa90a3834658bf5d41be9f7dbd7a3aa25}{span\_internal::LessThanImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00583\ \}}
+\DoxyCodeLine{00584\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00585\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aa48960e448fa3aefb047530196e017b7}{operator<}}(Span<const\ T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ Span<T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00586\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aa90a3834658bf5d41be9f7dbd7a3aa25}{span\_internal::LessThanImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00587\ \}}
+\DoxyCodeLine{00588\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00589\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aa48960e448fa3aefb047530196e017b7}{operator<}}(Span<T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ Span<const\ T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00590\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aa90a3834658bf5d41be9f7dbd7a3aa25}{span\_internal::LessThanImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00591\ \}}
+\DoxyCodeLine{00592\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00593\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00594\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00595\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aa48960e448fa3aefb047530196e017b7}{operator<}}(\textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00596\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aa90a3834658bf5d41be9f7dbd7a3aa25}{span\_internal::LessThanImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00597\ \}}
+\DoxyCodeLine{00598\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00599\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00600\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00601\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aa48960e448fa3aefb047530196e017b7}{operator<}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00602\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aa90a3834658bf5d41be9f7dbd7a3aa25}{span\_internal::LessThanImpl<Span,\ const\ T>}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00603\ \}}
+\DoxyCodeLine{00604\ }
+\DoxyCodeLine{00605\ \textcolor{comment}{//\ operator>}}
+\DoxyCodeLine{00606\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00607\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a190b6b1dd99fa3df43c9775c7140c4dc}{operator>}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00608\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}};}
+\DoxyCodeLine{00609\ \}}
+\DoxyCodeLine{00610\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00611\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a190b6b1dd99fa3df43c9775c7140c4dc}{operator>}}(Span<const\ T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ Span<T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00612\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}};}
+\DoxyCodeLine{00613\ \}}
+\DoxyCodeLine{00614\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00615\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a190b6b1dd99fa3df43c9775c7140c4dc}{operator>}}(Span<T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ Span<const\ T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00616\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}};}
+\DoxyCodeLine{00617\ \}}
+\DoxyCodeLine{00618\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00619\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00620\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00621\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a190b6b1dd99fa3df43c9775c7140c4dc}{operator>}}(\textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00622\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}};}
+\DoxyCodeLine{00623\ \}}
+\DoxyCodeLine{00624\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00625\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00626\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00627\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a190b6b1dd99fa3df43c9775c7140c4dc}{operator>}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00628\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}};}
+\DoxyCodeLine{00629\ \}}
+\DoxyCodeLine{00630\ }
+\DoxyCodeLine{00631\ \textcolor{comment}{//\ operator<=}}
+\DoxyCodeLine{00632\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00633\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aabcadd94f539da66532f7199bfc95fa9}{operator<=}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00634\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}});}
+\DoxyCodeLine{00635\ \}}
+\DoxyCodeLine{00636\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00637\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aabcadd94f539da66532f7199bfc95fa9}{operator<=}}(Span<const\ T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00638\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Span<T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00639\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}});}
+\DoxyCodeLine{00640\ \}}
+\DoxyCodeLine{00641\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00642\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aabcadd94f539da66532f7199bfc95fa9}{operator<=}}(Span<T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00643\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Span<const\ T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00644\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}});}
+\DoxyCodeLine{00645\ \}}
+\DoxyCodeLine{00646\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00647\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00648\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00649\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aabcadd94f539da66532f7199bfc95fa9}{operator<=}}(\textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00650\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}});}
+\DoxyCodeLine{00651\ \}}
+\DoxyCodeLine{00652\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00653\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00654\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00655\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aabcadd94f539da66532f7199bfc95fa9}{operator<=}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00656\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}});}
+\DoxyCodeLine{00657\ \}}
+\DoxyCodeLine{00658\ }
+\DoxyCodeLine{00659\ \textcolor{comment}{//\ operator>=}}
+\DoxyCodeLine{00660\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00661\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a49d80292dfe7f27ea80f4de0875f6907}{operator>=}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00662\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00663\ \}}
+\DoxyCodeLine{00664\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00665\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a49d80292dfe7f27ea80f4de0875f6907}{operator>=}}(Span<const\ T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00666\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Span<T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00667\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00668\ \}}
+\DoxyCodeLine{00669\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00670\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a49d80292dfe7f27ea80f4de0875f6907}{operator>=}}(Span<T>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},}
+\DoxyCodeLine{00671\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Span<const\ T>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00672\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00673\ \}}
+\DoxyCodeLine{00674\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00675\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00676\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00677\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a49d80292dfe7f27ea80f4de0875f6907}{operator>=}}(\textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00678\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00679\ \}}
+\DoxyCodeLine{00680\ \textcolor{keyword}{template}\ <}
+\DoxyCodeLine{00681\ \ \ \ \ \textcolor{keyword}{typename}\ T,\ \textcolor{keyword}{typename}\ U,}
+\DoxyCodeLine{00682\ \ \ \ \ \textcolor{keyword}{typename}\ =\ \mbox{\hyperlink{namespaceabsl_1_1span__internal_aae70f3fbe11a22edfa7c3e9dd67d1fd7}{span\_internal::EnableIfConvertibleTo<U,\ absl::Span<const\ T>}}>>}
+\DoxyCodeLine{00683\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a7f8776f52e3aea0969fa90b2b927fbde}{ABSL\_INTERNAL\_CONSTEXPR\_SINCE\_CXX20}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a49d80292dfe7f27ea80f4de0875f6907}{operator>=}}(\mbox{\hyperlink{classabsl_1_1Span}{Span<T>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}},\ \textcolor{keyword}{const}\ U\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})\ \{}
+\DoxyCodeLine{00684\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca0cc175b9c0f1b6a831c399e269772661}{a}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}});}
+\DoxyCodeLine{00685\ \}}
+\DoxyCodeLine{00686\ }
+\DoxyCodeLine{00687\ \textcolor{comment}{//\ MakeSpan()}}
+\DoxyCodeLine{00688\ \textcolor{comment}{//}}
+\DoxyCodeLine{00689\ \textcolor{comment}{//\ Constructs\ a\ mutable\ \`{}Span<T>`,\ deducing\ \`{}T`\ automatically\ from\ either\ a}}
+\DoxyCodeLine{00690\ \textcolor{comment}{//\ container\ or\ pointer+size.}}
+\DoxyCodeLine{00691\ \textcolor{comment}{//}}
+\DoxyCodeLine{00692\ \textcolor{comment}{//\ Because\ a\ read-\/only\ \`{}Span<const\ T>`\ is\ implicitly\ constructed\ from\ container}}
+\DoxyCodeLine{00693\ \textcolor{comment}{//\ types\ regardless\ of\ whether\ the\ container\ itself\ is\ a\ const\ container,}}
+\DoxyCodeLine{00694\ \textcolor{comment}{//\ constructing\ mutable\ spans\ of\ type\ \`{}Span<T>`\ from\ containers\ requires}}
+\DoxyCodeLine{00695\ \textcolor{comment}{//\ explicit\ constructors.\ The\ container-\/accepting\ version\ of\ \`{}MakeSpan()`}}
+\DoxyCodeLine{00696\ \textcolor{comment}{//\ deduces\ the\ type\ of\ \`{}T`\ by\ the\ constness\ of\ the\ pointer\ received\ from\ the}}
+\DoxyCodeLine{00697\ \textcolor{comment}{//\ container's\ \`{}data()`\ member.\ Similarly,\ the\ pointer-\/accepting\ version\ returns}}
+\DoxyCodeLine{00698\ \textcolor{comment}{//\ a\ \`{}Span<const\ T>`\ if\ \`{}T`\ is\ \`{}const`,\ and\ a\ \`{}Span<T>`\ otherwise.}}
+\DoxyCodeLine{00699\ \textcolor{comment}{//}}
+\DoxyCodeLine{00700\ \textcolor{comment}{//\ Examples:}}
+\DoxyCodeLine{00701\ \textcolor{comment}{//}}
+\DoxyCodeLine{00702\ \textcolor{comment}{//\ \ \ void\ MyRoutine(absl::Span<MyComplicatedType>\ a)\ \{}}
+\DoxyCodeLine{00703\ \textcolor{comment}{//\ \ \ \ \ ...}}
+\DoxyCodeLine{00704\ \textcolor{comment}{//\ \ \ \};}}
+\DoxyCodeLine{00705\ \textcolor{comment}{//\ \ \ //\ my\_vector\ is\ a\ container\ of\ non-\/const\ types}}
+\DoxyCodeLine{00706\ \textcolor{comment}{//\ \ \ std::vector<MyComplicatedType>\ my\_vector;}}
+\DoxyCodeLine{00707\ \textcolor{comment}{//}}
+\DoxyCodeLine{00708\ \textcolor{comment}{//\ \ \ //\ Constructing\ a\ Span\ implicitly\ attempts\ to\ create\ a\ Span\ of\ type}}
+\DoxyCodeLine{00709\ \textcolor{comment}{//\ \ \ //\ \`{}Span<const\ T>`}}
+\DoxyCodeLine{00710\ \textcolor{comment}{//\ \ \ MyRoutine(my\_vector);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ //\ error,\ type\ mismatch}}
+\DoxyCodeLine{00711\ \textcolor{comment}{//}}
+\DoxyCodeLine{00712\ \textcolor{comment}{//\ \ \ //\ Explicitly\ constructing\ the\ Span\ is\ verbose}}
+\DoxyCodeLine{00713\ \textcolor{comment}{//\ \ \ MyRoutine(absl::Span<MyComplicatedType>(my\_vector));}}
+\DoxyCodeLine{00714\ \textcolor{comment}{//}}
+\DoxyCodeLine{00715\ \textcolor{comment}{//\ \ \ //\ Use\ MakeSpan()\ to\ make\ an\ absl::Span<T>}}
+\DoxyCodeLine{00716\ \textcolor{comment}{//\ \ \ MyRoutine(absl::MakeSpan(my\_vector));}}
+\DoxyCodeLine{00717\ \textcolor{comment}{//}}
+\DoxyCodeLine{00718\ \textcolor{comment}{//\ \ \ //\ Construct\ a\ span\ from\ an\ array\ ptr+size}}
+\DoxyCodeLine{00719\ \textcolor{comment}{//\ \ \ absl::Span<T>\ my\_span()\ \{}}
+\DoxyCodeLine{00720\ \textcolor{comment}{//\ \ \ \ \ return\ absl::MakeSpan(\&array[0],\ num\_elements\_);}}
+\DoxyCodeLine{00721\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00722\ \textcolor{comment}{//}}
+\DoxyCodeLine{00723\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\&...\ ExplicitArgumentBarrier,\ \textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00724\ \textcolor{keyword}{constexpr}\ Span<T>\ \mbox{\hyperlink{namespaceabsl_a847c920a695241def319364f9dbc3de2}{MakeSpan}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<T*>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00725\ \ \ \textcolor{keywordflow}{return}\ Span<T>(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}},\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00726\ \}}
+\DoxyCodeLine{00727\ }
+\DoxyCodeLine{00728\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\&...\ ExplicitArgumentBarrier,\ \textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00729\ Span<T>\ \mbox{\hyperlink{namespaceabsl_a847c920a695241def319364f9dbc3de2}{MakeSpan}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<T*>}}\ begin,\ \mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<T*>}}\ end)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00730\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(begin\ <=\ end),}
+\DoxyCodeLine{00731\ \ \ \ \ \ \ \ \ \ Span<T>(begin,\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(end\ -\/\ begin));}
+\DoxyCodeLine{00732\ \}}
+\DoxyCodeLine{00733\ }
+\DoxyCodeLine{00734\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\&...\ ExplicitArgumentBarrier,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}>}
+\DoxyCodeLine{00735\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceabsl_a847c920a695241def319364f9dbc3de2}{MakeSpan}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}})\ \textcolor{keyword}{noexcept}\ \ \textcolor{comment}{//\ NOLINT(runtime/references)}}
+\DoxyCodeLine{00736\ \ \ \ \ -\/>\ \textcolor{keyword}{decltype}(\mbox{\hyperlink{namespaceabsl_a847c920a695241def319364f9dbc3de2}{absl::MakeSpan}}(\mbox{\hyperlink{namespaceabsl_1_1span__internal_a8df17ae62409bf582fa7e6f9e60aa7fd}{span\_internal::GetData}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}}),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}}.size()))\ \{}
+\DoxyCodeLine{00737\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a847c920a695241def319364f9dbc3de2}{MakeSpan}}(\mbox{\hyperlink{namespaceabsl_1_1span__internal_a8df17ae62409bf582fa7e6f9e60aa7fd}{span\_internal::GetData}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}}),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}}.size());}
+\DoxyCodeLine{00738\ \}}
+\DoxyCodeLine{00739\ }
+\DoxyCodeLine{00740\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\&...\ ExplicitArgumentBarrier,\ \textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}>}
+\DoxyCodeLine{00741\ \textcolor{keyword}{constexpr}\ Span<T>\ \mbox{\hyperlink{namespaceabsl_a847c920a695241def319364f9dbc3de2}{MakeSpan}}(T\ (\&array)[\mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}])\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00742\ \ \ \textcolor{keywordflow}{return}\ Span<T>(array,\ \mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}});}
+\DoxyCodeLine{00743\ \}}
+\DoxyCodeLine{00744\ }
+\DoxyCodeLine{00745\ \textcolor{comment}{//\ MakeConstSpan()}}
+\DoxyCodeLine{00746\ \textcolor{comment}{//}}
+\DoxyCodeLine{00747\ \textcolor{comment}{//\ Constructs\ a\ \`{}Span<const\ T>`\ as\ with\ \`{}MakeSpan`,\ deducing\ \`{}T`\ automatically,}}
+\DoxyCodeLine{00748\ \textcolor{comment}{//\ but\ always\ returning\ a\ \`{}Span<const\ T>`.}}
+\DoxyCodeLine{00749\ \textcolor{comment}{//}}
+\DoxyCodeLine{00750\ \textcolor{comment}{//\ Examples:}}
+\DoxyCodeLine{00751\ \textcolor{comment}{//}}
+\DoxyCodeLine{00752\ \textcolor{comment}{//\ \ \ void\ ProcessInts(absl::Span<const\ int>\ some\_ints);}}
+\DoxyCodeLine{00753\ \textcolor{comment}{//}}
+\DoxyCodeLine{00754\ \textcolor{comment}{//\ \ \ //\ Call\ with\ a\ pointer\ and\ size.}}
+\DoxyCodeLine{00755\ \textcolor{comment}{//\ \ \ int\ array[3]\ =\ \{\ 0,\ 0,\ 0\ \};}}
+\DoxyCodeLine{00756\ \textcolor{comment}{//\ \ \ ProcessInts(absl::MakeConstSpan(\&array[0],\ 3));}}
+\DoxyCodeLine{00757\ \textcolor{comment}{//}}
+\DoxyCodeLine{00758\ \textcolor{comment}{//\ \ \ //\ Call\ with\ a\ [begin,\ end)\ pair.}}
+\DoxyCodeLine{00759\ \textcolor{comment}{//\ \ \ ProcessInts(absl::MakeConstSpan(\&array[0],\ \&array[3]));}}
+\DoxyCodeLine{00760\ \textcolor{comment}{//}}
+\DoxyCodeLine{00761\ \textcolor{comment}{//\ \ \ //\ Call\ directly\ with\ an\ array.}}
+\DoxyCodeLine{00762\ \textcolor{comment}{//\ \ \ ProcessInts(absl::MakeConstSpan(array));}}
+\DoxyCodeLine{00763\ \textcolor{comment}{//}}
+\DoxyCodeLine{00764\ \textcolor{comment}{//\ \ \ //\ Call\ with\ a\ contiguous\ container.}}
+\DoxyCodeLine{00765\ \textcolor{comment}{//\ \ \ std::vector<int>\ some\_ints\ =\ ...;}}
+\DoxyCodeLine{00766\ \textcolor{comment}{//\ \ \ ProcessInts(absl::MakeConstSpan(some\_ints));}}
+\DoxyCodeLine{00767\ \textcolor{comment}{//\ \ \ ProcessInts(absl::MakeConstSpan(std::vector<int>\{\ 0,\ 0,\ 0\ \}));}}
+\DoxyCodeLine{00768\ \textcolor{comment}{//}}
+\DoxyCodeLine{00769\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\&...\ ExplicitArgumentBarrier,\ \textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00770\ \textcolor{keyword}{constexpr}\ Span<const\ T>\ \mbox{\hyperlink{namespaceabsl_a473b6f08c2545fcee0bb557b51114f0d}{MakeConstSpan}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<T*>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}},}
+\DoxyCodeLine{00771\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00772\ \ \ \textcolor{keywordflow}{return}\ Span<const\ T>(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}},\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00773\ \}}
+\DoxyCodeLine{00774\ }
+\DoxyCodeLine{00775\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\&...\ ExplicitArgumentBarrier,\ \textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00776\ Span<const\ T>\ \mbox{\hyperlink{namespaceabsl_a473b6f08c2545fcee0bb557b51114f0d}{MakeConstSpan}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<T*>}}\ begin,}
+\DoxyCodeLine{00777\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<T*>}}\ end)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00778\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(begin\ <=\ end),\ Span<const\ T>(begin,\ end\ -\/\ begin);}
+\DoxyCodeLine{00779\ \}}
+\DoxyCodeLine{00780\ }
+\DoxyCodeLine{00781\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\&...\ ExplicitArgumentBarrier,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}>}
+\DoxyCodeLine{00782\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceabsl_a473b6f08c2545fcee0bb557b51114f0d}{MakeConstSpan}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}})\ \textcolor{keyword}{noexcept}\ -\/>\ \textcolor{keyword}{decltype}(\mbox{\hyperlink{namespaceabsl_a847c920a695241def319364f9dbc3de2}{MakeSpan}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}}))\ \{}
+\DoxyCodeLine{00783\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a847c920a695241def319364f9dbc3de2}{MakeSpan}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}});}
+\DoxyCodeLine{00784\ \}}
+\DoxyCodeLine{00785\ }
+\DoxyCodeLine{00786\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\&...\ ExplicitArgumentBarrier,\ \textcolor{keyword}{typename}\ T,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}>}
+\DoxyCodeLine{00787\ \textcolor{keyword}{constexpr}\ Span<const\ T>\ \mbox{\hyperlink{namespaceabsl_a473b6f08c2545fcee0bb557b51114f0d}{MakeConstSpan}}(\textcolor{keyword}{const}\ T\ (\&array)[\mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}])\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00788\ \ \ \textcolor{keywordflow}{return}\ Span<const\ T>(array,\ \mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}});}
+\DoxyCodeLine{00789\ \}}
+\DoxyCodeLine{00790\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00791\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00792\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_TYPES\_SPAN\_H\_}}
+
+\end{DoxyCode}

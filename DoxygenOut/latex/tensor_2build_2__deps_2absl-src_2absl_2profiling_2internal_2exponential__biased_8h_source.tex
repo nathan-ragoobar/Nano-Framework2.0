@@ -1,0 +1,136 @@
+\doxysection{exponential\+\_\+biased.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2profiling_2internal_2exponential__biased_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2profiling_2internal_2exponential__biased_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/profiling/internal/exponential\_biased.h@{tensor/build/\_deps/absl-\/src/absl/profiling/internal/exponential\_biased.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2profiling_2internal_2exponential__biased_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2019\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_PROFILING\_INTERNAL\_EXPONENTIAL\_BIASED\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_PROFILING\_INTERNAL\_EXPONENTIAL\_BIASED\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00024\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00025\ \textcolor{keyword}{namespace\ }profiling\_internal\ \{}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ ExponentialBiased\ provides\ a\ small\ and\ fast\ random\ number\ generator\ for\ a}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ rounded\ exponential\ distribution.\ This\ generator\ manages\ very\ little\ state,}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ and\ imposes\ no\ synchronization\ overhead.\ This\ makes\ it\ useful\ in\ specialized}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ scenarios\ requiring\ minimum\ overhead,\ such\ as\ stride\ based\ periodic\ sampling.}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ ExponentialBiased\ provides\ two\ closely\ related\ functions,\ GetSkipCount()\ and}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ GetStride(),\ both\ returning\ a\ rounded\ integer\ defining\ a\ number\ of\ events}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ required\ before\ some\ event\ with\ a\ given\ mean\ probability\ occurs.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ The\ distribution\ is\ useful\ to\ generate\ a\ random\ wait\ time\ or\ some\ periodic}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ event\ with\ a\ given\ mean\ probability.\ For\ example,\ if\ an\ action\ is\ supposed\ to}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ happen\ on\ average\ once\ every\ 'N'\ events,\ then\ we\ can\ get\ a\ random\ 'stride'}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ counting\ down\ how\ long\ before\ the\ event\ to\ happen.\ For\ example,\ if\ we'd\ want}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ to\ sample\ one\ in\ every\ 1000\ 'Frobber'\ calls,\ our\ code\ could\ look\ like\ this:}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ \ \ Frobber::Frobber()\ \{}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ \ \ stride\_\ =\ exponential\_biased\_.GetStride(1000);}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \ \ void\ Frobber::Frob(int\ arg)\ \{}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ \ \ \ \ if\ (-\/-\/stride\ ==\ 0)\ \{}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ \ \ \ \ \ \ SampleFrob(arg);}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ \ \ \ \ \ \ stride\_\ =\ exponential\_biased\_.GetStride(1000);}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ \ \ \ \ ...}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ The\ rounding\ of\ the\ return\ value\ creates\ a\ bias,\ especially\ for\ smaller\ means}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ where\ the\ distribution\ of\ the\ fraction\ is\ not\ evenly\ distributed.\ We\ correct}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ this\ bias\ by\ tracking\ the\ fraction\ we\ rounded\ up\ or\ down\ on\ each\ iteration,}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ effectively\ tracking\ the\ distance\ between\ the\ cumulative\ value,\ and\ the}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ rounded\ cumulative\ value.\ For\ example,\ given\ a\ mean\ of\ 2:}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ \ \ raw\ =\ 1.63076,\ cumulative\ =\ 1.63076,\ rounded\ =\ 2,\ bias\ =\ -\/0.36923}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ \ \ raw\ =\ 0.14624,\ cumulative\ =\ 1.77701,\ rounded\ =\ 2,\ bias\ =\ \ 0.14624}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ \ \ raw\ =\ 4.93194,\ cumulative\ =\ 6.70895,\ rounded\ =\ 7,\ bias\ =\ -\/0.06805}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ \ \ raw\ =\ 0.24206,\ cumulative\ =\ 6.95101,\ rounded\ =\ 7,\ bias\ =\ \ 0.24206}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ \ \ etc...}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ Adjusting\ with\ rounding\ bias\ is\ relatively\ trivial:}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ \ \ \ double\ value\ =\ bias\_\ +\ exponential\_distribution(mean)();}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ \ \ \ double\ rounded\_value\ =\ std::rint(value);}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \ \ \ bias\_\ =\ value\ -\/\ rounded\_value;}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ \ \ return\ rounded\_value;}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ This\ class\ is\ thread-\/compatible.}}
+\DoxyCodeLine{00074\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1profiling__internal_1_1ExponentialBiased}{ExponentialBiased}}\ \{}
+\DoxyCodeLine{00075\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ The\ number\ of\ bits\ set\ by\ NextRandom.}}
+\DoxyCodeLine{00077\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1ExponentialBiased_aee7cfadd93b018ae8b1840dba5d7c7ff}{kPrngNumBits}}\ =\ 48;}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \ \ \textcolor{comment}{//\ \`{}GetSkipCount()`\ returns\ the\ number\ of\ events\ to\ skip\ before\ some\ chosen}}
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ event\ happens.\ For\ example,\ randomly\ tossing\ a\ coin,\ we\ will\ on\ average}}
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ throw\ heads\ once\ before\ we\ get\ tails.\ We\ can\ simulate\ random\ coin\ tosses}}
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{//\ using\ GetSkipCount()\ as:}}
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00084\ \ \ \textcolor{comment}{//\ \ \ ExponentialBiased\ eb;}}
+\DoxyCodeLine{00085\ \ \ \textcolor{comment}{//\ \ \ for\ (...)\ \{}}
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//\ \ \ \ \ int\ number\_of\_heads\_before\_tail\ =\ eb.GetSkipCount(1);}}
+\DoxyCodeLine{00087\ \ \ \textcolor{comment}{//\ \ \ \ \ for\ (int\ flips\ =\ 0;\ flips\ <\ number\_of\_heads\_before\_tail;\ ++flips)\ \{}}
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ printf("{}head..."{});}}
+\DoxyCodeLine{00089\ \ \ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ \ \ \ \ printf("{}tail\(\backslash\)n"{});}}
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00092\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00093\ \ \ int64\_t\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1ExponentialBiased_ac9defd54977f6bd9716e65435ac7f088}{GetSkipCount}}(int64\_t\ mean);}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//\ GetStride()\ returns\ the\ number\ of\ events\ required\ for\ a\ specific\ event\ to}}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//\ happen.\ See\ the\ class\ comments\ for\ a\ usage\ example.\ \`{}GetStride()`\ is}}
+\DoxyCodeLine{00097\ \ \ \textcolor{comment}{//\ equivalent\ to\ \`{}GetSkipCount(mean\ -\/\ 1)\ +\ 1`.\ When\ to\ use\ \`{}GetStride()`\ or}}
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ \`{}GetSkipCount()`\ depends\ mostly\ on\ what\ best\ fits\ the\ use\ case.}}
+\DoxyCodeLine{00099\ \ \ int64\_t\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1ExponentialBiased_a0c6c2e08b746dfea1ab190e2d09286e8}{GetStride}}(int64\_t\ mean);}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ Computes\ a\ random\ number\ in\ the\ range\ [0,\ 1<<(kPrngNumBits+1)\ -\/\ 1]}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ This\ is\ public\ to\ enable\ testing.}}
+\DoxyCodeLine{00104\ \ \ \textcolor{keyword}{static}\ uint64\_t\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1ExponentialBiased_ac8fe28fba478a991c6b836d65a0dfcd5}{NextRandom}}(uint64\_t\ rnd);}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00106\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00107\ \ \ \textcolor{keywordtype}{void}\ Initialize();}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ uint64\_t\ rng\_\{0\};}
+\DoxyCodeLine{00110\ \ \ \textcolor{keywordtype}{double}\ bias\_\{0\};}
+\DoxyCodeLine{00111\ \ \ \textcolor{keywordtype}{bool}\ initialized\_\{\textcolor{keyword}{false}\};}
+\DoxyCodeLine{00112\ \};}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ Returns\ the\ next\ prng\ value.}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ pRNG\ is:\ aX+b\ mod\ c\ with\ a\ =\ 0x5DEECE66D,\ b\ =\ \ 0xB,\ c\ =\ 1<<48}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ This\ is\ the\ lrand64\ generator.}}
+\DoxyCodeLine{00117\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ \mbox{\hyperlink{classabsl_1_1profiling__internal_1_1ExponentialBiased_a6c13334bb329c4f779b57eb7b857ce56}{ExponentialBiased::NextRandom}}(uint64\_t\ rnd)\ \{}
+\DoxyCodeLine{00118\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ prng\_mult\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\{0x5DEECE66D\};}
+\DoxyCodeLine{00119\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ prng\_add\ =\ 0xB;}
+\DoxyCodeLine{00120\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ prng\_mod\_power\ =\ 48;}
+\DoxyCodeLine{00121\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ prng\_mod\_mask\ =}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \string~((\string~static\_cast<uint64\_t>(0))\ <<\ prng\_mod\_power);}
+\DoxyCodeLine{00123\ \ \ \textcolor{keywordflow}{return}\ (prng\_mult\ *\ rnd\ +\ prng\_add)\ \&\ prng\_mod\_mask;}
+\DoxyCodeLine{00124\ \}}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \}\ \ \textcolor{comment}{//\ namespace\ profiling\_internal}}
+\DoxyCodeLine{00127\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00128\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_PROFILING\_INTERNAL\_EXPONENTIAL\_BIASED\_H\_}}
+
+\end{DoxyCode}

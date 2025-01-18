@@ -1,0 +1,150 @@
+\doxysection{generate\+\_\+real.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2random_2internal_2generate__real_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2random_2internal_2generate__real_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/random/internal/generate\_real.h@{tensor/build/\_deps/absl-\/src/absl/random/internal/generate\_real.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2random_2internal_2generate__real_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_RANDOM\_INTERNAL\_GENERATE\_REAL\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_RANDOM\_INTERNAL\_GENERATE\_REAL\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ This\ file\ contains\ some\ implementation\ details\ which\ are\ used\ by\ one\ or\ more}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ of\ the\ absl\ random\ number\ distributions.}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <cstring>}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ "{}absl/numeric/bits.h"{}}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ "{}absl/random/internal/fastmath.h"{}}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ "{}absl/random/internal/traits.h"{}}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00032\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00033\ \textcolor{keyword}{namespace\ }random\_internal\ \{}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ Tristate\ tag\ types\ controlling\ the\ output\ of\ GenerateRealFromBits.}}
+\DoxyCodeLine{00036\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1GeneratePositiveTag}{GeneratePositiveTag}}\ \{\};}
+\DoxyCodeLine{00037\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1GenerateNegativeTag}{GenerateNegativeTag}}\ \{\};}
+\DoxyCodeLine{00038\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1random__internal_1_1GenerateSignedTag}{GenerateSignedTag}}\ \{\};}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ GenerateRealFromBits\ generates\ a\ single\ real\ value\ from\ a\ single\ 64-\/bit}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ \`{}bits`\ with\ template\ fields\ controlling\ the\ output.}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ The\ \`{}SignedTag`\ parameter\ controls\ whether\ positive,\ negative,}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ or\ either\ signed/unsigned\ may\ be\ returned.}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ \ \ When\ SignedTag\ ==\ GeneratePositiveTag,\ range\ is\ U(0,\ 1)}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \ \ When\ SignedTag\ ==\ GenerateNegativeTag,\ range\ is\ U(-\/1,\ 0)}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ \ \ When\ SignedTag\ ==\ GenerateSignedTag,\ range\ is\ U(-\/1,\ 1)}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ When\ the\ \`{}IncludeZero`\ parameter\ is\ true,\ the\ function\ may\ return\ 0\ for\ some}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ inputs,\ otherwise\ it\ never\ returns\ 0.}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ When\ a\ value\ in\ U(0,1)\ is\ required,\ use:}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ \ \ GenerateRealFromBits<double,\ PositiveValueT,\ true>;}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ When\ a\ value\ in\ U(-\/1,1)\ is\ required,\ use:}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ \ \ GenerateRealFromBits<double,\ SignedValueT,\ false>;}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ \ \ This\ generates\ more\ distinct\ values\ than\ the\ mathematical\ equivalent}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ \ \ \`{}U(0,\ 1)\ *\ 2.0\ -\/\ 1.0`.}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ Scaling\ the\ result\ by\ powers\ of\ 2\ (and\ avoiding\ a\ multiply)\ is\ also\ possible:}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ \ \ GenerateRealFromBits<double>(...,\ -\/1);\ \ =>\ U(0,\ 0.5)}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ \ \ GenerateRealFromBits<double>(...,\ 1);\ \ \ =>\ U(0,\ 2)}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//}}
+\DoxyCodeLine{00065\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ RealType,\ \ \textcolor{comment}{//\ Real\ type,\ either\ float\ or\ double.}}
+\DoxyCodeLine{00066\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ SignedTag\ =\ \mbox{\hyperlink{structabsl_1_1random__internal_1_1GeneratePositiveTag}{GeneratePositiveTag}},\ \ \textcolor{comment}{//\ Whether\ a\ positive,}}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ negative,\ or\ signed}}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ value\ is\ generated.}}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ IncludeZero\ =\ \textcolor{keyword}{true}>}
+\DoxyCodeLine{00070\ \textcolor{keyword}{inline}\ RealType\ \mbox{\hyperlink{namespaceabsl_1_1random__internal_a704a9d01eac231cfa29d24e63daaec37}{GenerateRealFromBits}}(uint64\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}},\ \textcolor{keywordtype}{int}\ exp\_bias\ =\ 0)\ \{}
+\DoxyCodeLine{00071\ \ \ \textcolor{keyword}{using\ }real\_type\ =\ RealType;}
+\DoxyCodeLine{00072\ \ \ \textcolor{keyword}{using\ }uint\_type\ =\ \mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{absl::conditional\_t<std::is\_same<real\_type,\ float>::value}},}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ uint32\_t,\ uint64\_t>;}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \ \ \textcolor{keyword}{static\_assert}(}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ (std::is\_same<double,\ real\_type>::value\ ||}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ std::is\_same<float,\ real\_type>::value),}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \textcolor{stringliteral}{"{}GenerateRealFromBits\ must\ be\ parameterized\ by\ either\ float\ or\ double."{}});}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \textcolor{keyword}{static\_assert}(\textcolor{keyword}{sizeof}(uint\_type)\ ==\ \textcolor{keyword}{sizeof}(real\_type),}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Mismatched\ unsigned\ and\ real\ types."{}});}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \ \ \textcolor{keyword}{static\_assert}((std::numeric\_limits<real\_type>::is\_iec559\ \&\&}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::numeric\_limits<real\_type>::radix\ ==\ 2),}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}RealType\ representation\ is\ not\ IEEE\ 754\ binary."{}});}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \ \ \textcolor{keyword}{static\_assert}((std::is\_same<SignedTag,\ GeneratePositiveTag>::value\ ||}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<SignedTag,\ GenerateNegativeTag>::value\ ||}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<SignedTag,\ GenerateSignedTag>::value),}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ kExp\ =\ std::numeric\_limits<real\_type>::digits\ -\/\ 1;}
+\DoxyCodeLine{00093\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ uint\_type\ kMask\ =\ (\textcolor{keyword}{static\_cast<}uint\_type\textcolor{keyword}{>}(1)\ <<\ kExp)\ -\/\ 1u;}
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ kUintBits\ =\ \textcolor{keyword}{sizeof}(uint\_type)\ *\ 8;}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \ \ \textcolor{keywordtype}{int}\ exp\ =\ exp\_bias\ +\ \textcolor{keywordtype}{int}\{std::numeric\_limits<real\_type>::max\_exponent\ -\/\ 2\};}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ Determine\ the\ sign\ bit.}}
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ Depending\ on\ the\ SignedTag,\ this\ may\ use\ the\ left-\/most\ bit}}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ or\ it\ may\ be\ a\ constant\ value.}}
+\DoxyCodeLine{00101\ \ \ uint\_type\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a281eccb624a3ff6dacbe305828e43a82}{sign}}\ =\ std::is\_same<SignedTag,\ GenerateNegativeTag>::value}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ (\textcolor{keyword}{static\_cast<}uint\_type\textcolor{keyword}{>}(1)\ <<\ (kUintBits\ -\/\ 1))}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 0;}
+\DoxyCodeLine{00104\ \ \ \textcolor{keywordflow}{if}\ (std::is\_same<SignedTag,\ GenerateSignedTag>::value)\ \{}
+\DoxyCodeLine{00105\ \ \ \ \ \textcolor{keywordflow}{if}\ (std::is\_same<uint\_type,\ uint64\_t>::value)\ \{}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a281eccb624a3ff6dacbe305828e43a82}{sign}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}\ \&\ uint64\_t\{0x8000000000000000\};}
+\DoxyCodeLine{00107\ \ \ \ \ \}}
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{keywordflow}{if}\ (std::is\_same<uint\_type,\ uint32\_t>::value)\ \{}
+\DoxyCodeLine{00109\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ tmp\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}\ \&\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\{0x8000000000000000\};}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a281eccb624a3ff6dacbe305828e43a82}{sign}}\ =\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\textcolor{keyword}{>}(tmp\ >>\ 32);}
+\DoxyCodeLine{00111\ \ \ \ \ \}}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{comment}{//\ adjust\ the\ bits\ and\ the\ exponent\ to\ account\ for\ removing}}
+\DoxyCodeLine{00113\ \ \ \ \ \textcolor{comment}{//\ the\ leading\ bit.}}
+\DoxyCodeLine{00114\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}\ \&\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\{0x7FFFFFFFFFFFFFFF\};}
+\DoxyCodeLine{00115\ \ \ \ \ exp++;}
+\DoxyCodeLine{00116\ \ \ \}}
+\DoxyCodeLine{00117\ \ \ \textcolor{keywordflow}{if}\ (IncludeZero)\ \{}
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}\ ==\ 0\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b774effe4a349c6dd82ad4f4f21d34c}{u}})\ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00119\ \ \ \}}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//\ Number\ of\ leading\ zeros\ is\ mapped\ to\ the\ exponent:\ 2\string^-\/clz}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//\ bits\ is\ 0..01xxxxxx.\ After\ shifting,\ we're\ left\ with\ 1xxx...0..0}}
+\DoxyCodeLine{00123\ \ \ \textcolor{keywordtype}{int}\ clz\ =\ \mbox{\hyperlink{namespaceabsl_a2b0658b0d106d400f2da90571f78261c}{countl\_zero}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}});}
+\DoxyCodeLine{00124\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}\ <<=\ (IncludeZero\ ?\ clz\ :\ (clz\ \&\ 63));\ \ \textcolor{comment}{//\ remove\ 0-\/bits.}}
+\DoxyCodeLine{00125\ \ \ exp\ -\/=\ clz;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ set\ the\ exponent.}}
+\DoxyCodeLine{00126\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}}\ >>=\ (63\ -\/\ kExp);}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ Construct\ the\ 32-\/bit\ or\ 64-\/bit\ IEEE\ 754\ floating-\/point\ value\ from}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//\ the\ individual\ fields:\ sign,\ exp,\ mantissa(bits).}}
+\DoxyCodeLine{00130\ \ \ uint\_type\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a281eccb624a3ff6dacbe305828e43a82}{sign}}\ |\ (\textcolor{keyword}{static\_cast<}uint\_type\textcolor{keyword}{>}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a2500b5d4f377a445cb98d3f1facfa1cf}{exp}})\ <<\ kExp)\ |}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (\textcolor{keyword}{static\_cast<}uint\_type\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2arg_8cc_a46a6da6b1936191571fd30b2a749f38c}{bits}})\ \&\ kMask);}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \ \ \textcolor{comment}{//\ bit\_cast\ to\ the\ output-\/type}}
+\DoxyCodeLine{00134\ \ \ real\_type\ result;}
+\DoxyCodeLine{00135\ \ \ memcpy(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&result),\ \textcolor{keyword}{static\_cast<}\textcolor{keyword}{const\ }\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}),}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{sizeof}(result));}
+\DoxyCodeLine{00137\ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00138\ \}}
+\DoxyCodeLine{00139\ }
+\DoxyCodeLine{00140\ \}\ \ \textcolor{comment}{//\ namespace\ random\_internal}}
+\DoxyCodeLine{00141\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00142\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_RANDOM\_INTERNAL\_GENERATE\_REAL\_H\_}}
+
+\end{DoxyCode}

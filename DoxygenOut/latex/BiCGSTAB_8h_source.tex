@@ -1,0 +1,165 @@
+\doxysection{Bi\+CGSTAB.\+h}
+\hypertarget{BiCGSTAB_8h_source}{}\label{BiCGSTAB_8h_source}\index{eigen/Eigen/src/IterativeLinearSolvers/BiCGSTAB.h@{eigen/Eigen/src/IterativeLinearSolvers/BiCGSTAB.h}}
+\mbox{\hyperlink{BiCGSTAB_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2011-\/2014\ Gael\ Guennebaud\ <gael.guennebaud@inria.fr>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ Copyright\ (C)\ 2012\ Désiré\ Nuentsa-\/Wakam\ <desire.nuentsa\_wakam@inria.fr>}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_BICGSTAB\_H}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#define\ EIGEN\_BICGSTAB\_H}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{\ }
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}\ \{}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00028\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keyword}{typename}\ Rhs,\ \textcolor{keyword}{typename}\ Dest,\ \textcolor{keyword}{typename}\ Preconditioner>}
+\DoxyCodeLine{00029\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3e9559d1e9c7b034925dd44b6f164f71}{bicgstab}}(\textcolor{keyword}{const}\ MatrixType\&\ mat,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}\&\ rhs,\ Dest\&\ x,}
+\DoxyCodeLine{00030\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ Preconditioner\&\ precond,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\&\ iters,}
+\DoxyCodeLine{00031\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ Dest::RealScalar\&\ tol\_error)}
+\DoxyCodeLine{00032\ \{}
+\DoxyCodeLine{00033\ \ \ \textcolor{keyword}{using\ }std::sqrt;}
+\DoxyCodeLine{00034\ \ \ \textcolor{keyword}{using\ }std::abs;}
+\DoxyCodeLine{00035\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Dest::RealScalar\ RealScalar;}
+\DoxyCodeLine{00036\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ Dest::Scalar\ Scalar;}
+\DoxyCodeLine{00037\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1Matrix}{Matrix<Scalar,Dynamic,1>}}\ VectorType;}
+\DoxyCodeLine{00038\ \ \ RealScalar\ tol\ =\ tol\_error;}
+\DoxyCodeLine{00039\ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ maxIters\ =\ iters;}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ mat.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_a74176163ce10338f1ea1f3bda5afd78c}{cols}}();}
+\DoxyCodeLine{00042\ \ \ VectorType\ r\ \ =\ rhs\ -\/\ mat\ *\ x;}
+\DoxyCodeLine{00043\ \ \ VectorType\ r0\ =\ r;}
+\DoxyCodeLine{00044\ \ \ }
+\DoxyCodeLine{00045\ \ \ RealScalar\ r0\_sqnorm\ =\ r0.squaredNorm();}
+\DoxyCodeLine{00046\ \ \ RealScalar\ rhs\_sqnorm\ =\ rhs.squaredNorm();}
+\DoxyCodeLine{00047\ \ \ \textcolor{keywordflow}{if}(rhs\_sqnorm\ ==\ 0)}
+\DoxyCodeLine{00048\ \ \ \{}
+\DoxyCodeLine{00049\ \ \ \ \ x.setZero();}
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00051\ \ \ \}}
+\DoxyCodeLine{00052\ \ \ Scalar\ rho\ \ \ \ =\ 1;}
+\DoxyCodeLine{00053\ \ \ Scalar\ alpha\ \ =\ 1;}
+\DoxyCodeLine{00054\ \ \ Scalar\ w\ \ \ \ \ \ =\ 1;}
+\DoxyCodeLine{00055\ \ \ }
+\DoxyCodeLine{00056\ \ \ VectorType\ v\ =\ VectorType::Zero(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}),\ p\ =\ VectorType::Zero(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00057\ \ \ VectorType\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}),\ \ z(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00058\ \ \ VectorType\ kt(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}),\ ks(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \ \ VectorType\ s(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}),\ t(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ RealScalar\ tol2\ =\ tol*tol*rhs\_sqnorm;}
+\DoxyCodeLine{00063\ \ \ RealScalar\ eps2\ =\ \mbox{\hyperlink{structEigen_1_1GenericNumTraits_a3a573c69713fbb143fb49af7db463cee}{NumTraits<Scalar>::epsilon}}()*\mbox{\hyperlink{structEigen_1_1GenericNumTraits_a3a573c69713fbb143fb49af7db463cee}{NumTraits<Scalar>::epsilon}}();}
+\DoxyCodeLine{00064\ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;}
+\DoxyCodeLine{00065\ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ restarts\ =\ 0;}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \ \textcolor{keywordflow}{while}\ (\ r.squaredNorm()\ >\ tol2\ \&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}<maxIters\ )}
+\DoxyCodeLine{00068\ \ \ \{}
+\DoxyCodeLine{00069\ \ \ \ \ Scalar\ rho\_old\ =\ rho;}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \ \ \ \ rho\ =\ r0.dot(r);}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(rho)\ <\ eps2*r0\_sqnorm)}
+\DoxyCodeLine{00073\ \ \ \ \ \{}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \textcolor{comment}{//\ The\ new\ residual\ vector\ became\ too\ orthogonal\ to\ the\ arbitrarily\ chosen\ direction\ r0}}
+\DoxyCodeLine{00075\ \ \ \ \ \ \ \textcolor{comment}{//\ Let's\ restart\ with\ a\ new\ r0:}}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ r\ \ =\ rhs\ -\/\ mat\ *\ x;}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ r0\ =\ r;}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ rho\ =\ r0\_sqnorm\ =\ r.squaredNorm();}
+\DoxyCodeLine{00079\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(restarts++\ ==\ 0)}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;}
+\DoxyCodeLine{00081\ \ \ \ \ \}}
+\DoxyCodeLine{00082\ \ \ \ \ Scalar\ beta\ =\ (rho/rho\_old)\ *\ (alpha\ /\ w);}
+\DoxyCodeLine{00083\ \ \ \ \ p\ =\ r\ +\ beta\ *\ (p\ -\/\ w\ *\ v);}
+\DoxyCodeLine{00084\ \ \ \ \ }
+\DoxyCodeLine{00085\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}}\ =\ precond.solve(p);}
+\DoxyCodeLine{00086\ \ \ \ \ }
+\DoxyCodeLine{00087\ \ \ \ \ v.noalias()\ =\ mat\ *\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}};}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \ \ \ \ alpha\ =\ rho\ /\ r0.dot(v);}
+\DoxyCodeLine{00090\ \ \ \ \ s\ =\ r\ -\/\ alpha\ *\ v;}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \ \ \ z\ =\ precond.solve(s);}
+\DoxyCodeLine{00093\ \ \ \ \ t.noalias()\ =\ mat\ *\ z;}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \ \ \ \ RealScalar\ tmp\ =\ t.squaredNorm();}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keywordflow}{if}(tmp>RealScalar(0))}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ w\ =\ t.dot(s)\ /\ tmp;}
+\DoxyCodeLine{00098\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ w\ =\ Scalar(0);}
+\DoxyCodeLine{00100\ \ \ \ \ x\ +=\ alpha\ *\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}}\ +\ w\ *\ z;}
+\DoxyCodeLine{00101\ \ \ \ \ r\ =\ s\ -\/\ w\ *\ t;}
+\DoxyCodeLine{00102\ \ \ \ \ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}};}
+\DoxyCodeLine{00103\ \ \ \}}
+\DoxyCodeLine{00104\ \ \ tol\_error\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a656b9217a2fcb6de59dc8d1eb3079cc7}{sqrt}}(r.squaredNorm()/rhs\_sqnorm);}
+\DoxyCodeLine{00105\ \ \ iters\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}};}
+\DoxyCodeLine{00106\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};\ }
+\DoxyCodeLine{00107\ \}}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \}}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \textcolor{keyword}{template}<\ \textcolor{keyword}{typename}\ \_MatrixType,}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \_Preconditioner\ =\ DiagonalPreconditioner<typename\ \_MatrixType::Scalar>\ >}
+\DoxyCodeLine{00113\ \textcolor{keyword}{class\ }BiCGSTAB;}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}\ \{}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \textcolor{keyword}{template}<\ \textcolor{keyword}{typename}\ \_MatrixType,\ \textcolor{keyword}{typename}\ \_Preconditioner>}
+\DoxyCodeLine{00118\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits}}<\mbox{\hyperlink{classEigen_1_1BiCGSTAB}{BiCGSTAB}}<\_MatrixType,\_Preconditioner>\ >}
+\DoxyCodeLine{00119\ \{}
+\DoxyCodeLine{00120\ \ \ \textcolor{keyword}{typedef}\ \_MatrixType\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01BiCGSTAB_3_01__MatrixType_00_01__Preconditioner_01_4_01_4_a1a8f61b14586dedf5243826b95eb6b14}{MatrixType}};}
+\DoxyCodeLine{00121\ \ \ \textcolor{keyword}{typedef}\ \_Preconditioner\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01BiCGSTAB_3_01__MatrixType_00_01__Preconditioner_01_4_01_4_a668ed2c8f87742811bbfedd2d5483975}{Preconditioner}};}
+\DoxyCodeLine{00122\ \};}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \}}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00157\ \textcolor{keyword}{template}<\ \textcolor{keyword}{typename}\ \_MatrixType,\ \textcolor{keyword}{typename}\ \_Preconditioner>}
+\DoxyCodeLine{00158\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1BiCGSTAB}{BiCGSTAB}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classEigen_1_1IterativeSolverBase}{IterativeSolverBase}}<BiCGSTAB<\_MatrixType,\_Preconditioner>\ >}
+\DoxyCodeLine{00159\ \{}
+\DoxyCodeLine{00160\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1IterativeSolverBase}{IterativeSolverBase<BiCGSTAB>}}\ \mbox{\hyperlink{classEigen_1_1IterativeSolverBase}{Base}};}
+\DoxyCodeLine{00161\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1IterativeSolverBase_af24f53813d56a98491957dabc1d2f7eb}{Base::matrix}};}
+\DoxyCodeLine{00162\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1IterativeSolverBase_a9140af00eb517cb5677dd6e1a60fab80}{Base::m\_error}};}
+\DoxyCodeLine{00163\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1IterativeSolverBase_aa1e43c88482d7d73394ec3229f6e8a4a}{Base::m\_iterations}};}
+\DoxyCodeLine{00164\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1IterativeSolverBase_a283a3c6136f76e77ac29184352c3e940}{Base::m\_info}};}
+\DoxyCodeLine{00165\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1IterativeSolverBase_ac52101f69d048d5c4b036eadf1f13673}{Base::m\_isInitialized}};}
+\DoxyCodeLine{00166\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00167\ \ \ \textcolor{keyword}{typedef}\ \_MatrixType\ \mbox{\hyperlink{classEigen_1_1BiCGSTAB_a40e3404a2a2263ef5e1f12992c3f1220}{MatrixType}};}
+\DoxyCodeLine{00168\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::Scalar\ \mbox{\hyperlink{classEigen_1_1BiCGSTAB_a050b07a7f7b0bb381f546943a478d123}{Scalar}};}
+\DoxyCodeLine{00169\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::RealScalar\ \mbox{\hyperlink{classEigen_1_1BiCGSTAB_ada84acd8a922e771aefb5dc6e8cab4e8}{RealScalar}};}
+\DoxyCodeLine{00170\ \ \ \textcolor{keyword}{typedef}\ \_Preconditioner\ \mbox{\hyperlink{classEigen_1_1BiCGSTAB_aa1540568763ad6c336bfbc323d5bec1e}{Preconditioner}};}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00172\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00175\ \ \ \mbox{\hyperlink{classEigen_1_1BiCGSTAB_ae1a0df6ef6e947256c3cb83ce7df7eda}{BiCGSTAB}}()\ :\ \mbox{\hyperlink{classEigen_1_1IterativeSolverBase}{Base}}()\ \{\}}
+\DoxyCodeLine{00176\ }
+\DoxyCodeLine{00187\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixDerived>}
+\DoxyCodeLine{00188\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classEigen_1_1BiCGSTAB_a5842afd9566e254bc727de1fd7f46362}{BiCGSTAB}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1EigenBase}{EigenBase<MatrixDerived>}}\&\ A)\ :\ \mbox{\hyperlink{classEigen_1_1IterativeSolverBase}{Base}}(A.\mbox{\hyperlink{classEigen_1_1IterativeSolverBase_ac8c149c121511c2f7e00a4b83d8b6791}{derived}}())\ \{\}}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00190\ \ \ \mbox{\hyperlink{classEigen_1_1BiCGSTAB_ab478a5cee2227902a89b50a353f055b2}{\string~BiCGSTAB}}()\ \{\}}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00193\ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Rhs,\textcolor{keyword}{typename}\ Dest>}
+\DoxyCodeLine{00194\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1BiCGSTAB_ad46ef9e0f49aa9b71560249db89d6096}{\_solve\_vector\_with\_guess\_impl}}(\textcolor{keyword}{const}\ Rhs\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ Dest\&\ x)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00195\ \textcolor{keyword}{\ \ }\{\ \ \ \ }
+\DoxyCodeLine{00196\ \ \ \ \ m\_iterations\ =\ \mbox{\hyperlink{classEigen_1_1IterativeSolverBase_a168a74c8dceb6233b220031fdd756ba0}{Base::maxIterations}}();}
+\DoxyCodeLine{00197\ \ \ \ \ m\_error\ =\ \mbox{\hyperlink{classEigen_1_1IterativeSolverBase_acf34fdb3eb17a876810b9d6c5031e175}{Base::m\_tolerance}};}
+\DoxyCodeLine{00198\ \ \ \ \ }
+\DoxyCodeLine{00199\ \ \ \ \ \textcolor{keywordtype}{bool}\ ret\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3e9559d1e9c7b034925dd44b6f164f71}{internal::bicgstab}}(matrix(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}},\ x,\ \mbox{\hyperlink{classEigen_1_1IterativeSolverBase_a965e3600bc2a59bc24af0bdf8e7f4dd4}{Base::m\_preconditioner}},\ m\_iterations,\ m\_error);}
+\DoxyCodeLine{00200\ }
+\DoxyCodeLine{00201\ \ \ \ \ m\_info\ =\ (!ret)\ ?\ \mbox{\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea1c6e20706575a629b27a105f07f1883b}{NumericalIssue}}}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ \ \ \ \ \ :\ m\_error\ <=\ \mbox{\hyperlink{classEigen_1_1IterativeSolverBase_acf34fdb3eb17a876810b9d6c5031e175}{Base::m\_tolerance}}\ ?\ \mbox{\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea671a2aeb0f527802806a441d58a80fcf}{Success}}}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea6a68dfb88a8336108a30588bdf356c57}{NoConvergence}};}
+\DoxyCodeLine{00204\ \ \ \}}
+\DoxyCodeLine{00205\ }
+\DoxyCodeLine{00206\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \};}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \}\ \textcolor{comment}{//\ end\ namespace\ Eigen}}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ EIGEN\_BICGSTAB\_H}}
+
+\end{DoxyCode}

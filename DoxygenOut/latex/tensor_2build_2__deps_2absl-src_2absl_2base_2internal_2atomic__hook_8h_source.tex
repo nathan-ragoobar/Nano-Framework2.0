@@ -1,0 +1,206 @@
+\doxysection{atomic\+\_\+hook.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2atomic__hook_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2atomic__hook_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/base/internal/atomic\_hook.h@{tensor/build/\_deps/absl-\/src/absl/base/internal/atomic\_hook.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2atomic__hook_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_ATOMIC\_HOOK\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_ATOMIC\_HOOK\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#if\ defined(\_MSC\_VER)\ \&\&\ !defined(\_\_clang\_\_)}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#define\ ABSL\_HAVE\_WORKING\_CONSTEXPR\_STATIC\_INIT\ 0}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#define\ ABSL\_HAVE\_WORKING\_CONSTEXPR\_STATIC\_INIT\ 1}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#if\ defined(\_MSC\_VER)}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#define\ ABSL\_HAVE\_WORKING\_ATOMIC\_POINTER\ 0}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#define\ ABSL\_HAVE\_WORKING\_ATOMIC\_POINTER\ 1}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00039\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00040\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00043\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook}{AtomicHook}};}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ To\ workaround\ AtomicHook\ not\ being\ constant-\/initializable\ on\ some\ platforms,}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ prefer\ to\ annotate\ instances\ with\ \`{}ABSL\_INTERNAL\_ATOMIC\_HOOK\_ATTRIBUTES`}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ instead\ of\ \`{}ABSL\_CONST\_INIT`.}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_WORKING\_CONSTEXPR\_STATIC\_INIT}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_ATOMIC\_HOOK\_ATTRIBUTES\ ABSL\_CONST\_INIT}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_ATOMIC\_HOOK\_ATTRIBUTES}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ \`{}AtomicHook`\ is\ a\ helper\ class,\ templatized\ on\ a\ raw\ function\ pointer\ type,}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ for\ implementing\ Abseil\ customization\ hooks.\ \ It\ is\ a\ callable\ object\ that}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ dispatches\ to\ the\ registered\ hook.\ \ Objects\ of\ type\ \`{}AtomicHook`\ must\ have}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ static\ or\ thread\ storage\ duration.}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ A\ default\ constructed\ object\ performs\ a\ no-\/op\ (and\ returns\ a\ default}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ constructed\ object)\ if\ no\ hook\ has\ been\ registered.}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ Hooks\ can\ be\ pre-\/registered\ via\ constant\ initialization,\ for\ example:}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ ABSL\_INTERNAL\_ATOMIC\_HOOK\_ATTRIBUTES\ static\ AtomicHook<void(*)()>}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ \ \ \ \ my\_hook(DefaultAction);}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ and\ then\ changed\ at\ runtime\ via\ a\ call\ to\ \`{}Store()`.}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ Reads\ and\ writes\ guarantee\ memory\_order\_acquire/memory\_order\_release}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ semantics.}}
+\DoxyCodeLine{00071\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ReturnType,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00072\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook}{AtomicHook}}<ReturnType\ (*)(Args...)>\ \{}
+\DoxyCodeLine{00073\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_ab22d2809c116b2ea80f8f2d5dafc5787}{FnPtr}}\ =\ ReturnType\ (*)(Args...);}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ Constructs\ an\ object\ that\ by\ default\ performs\ a\ no-\/op\ (and}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ returns\ a\ default\ constructed\ object)\ when\ no\ hook\ as\ been\ registered.}}
+\DoxyCodeLine{00078\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_a37d69a1b7a7442b01213aedf4cddd433}{AtomicHook}}()\ :\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook}{AtomicHook}}(DummyFunction)\ \{\}}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ Constructs\ an\ object\ that\ by\ default\ dispatches\ to/returns\ the}}
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ pre-\/registered\ default\_fn\ when\ no\ hook\ has\ been\ registered\ at\ runtime.}}
+\DoxyCodeLine{00082\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_WORKING\_ATOMIC\_POINTER\ \&\&\ ABSL\_HAVE\_WORKING\_CONSTEXPR\_STATIC\_INIT}}
+\DoxyCodeLine{00083\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_ac51ec600c7ec208a8a8613e34d80dabb}{AtomicHook}}(\mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_ab22d2809c116b2ea80f8f2d5dafc5787}{FnPtr}}\ default\_fn)}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ :\ hook\_(default\_fn),\ default\_fn\_(default\_fn)\ \{\}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\#elif\ ABSL\_HAVE\_WORKING\_CONSTEXPR\_STATIC\_INIT}}
+\DoxyCodeLine{00086\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook}{AtomicHook}}(FnPtr\ default\_fn)}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ :\ hook\_(kUninitialized),\ default\_fn\_(default\_fn)\ \{\}}
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00089\ \ \ \textcolor{comment}{//\ As\ of\ January\ 2020,\ on\ all\ known\ versions\ of\ MSVC\ this\ constructor\ runs\ in}}
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ the\ global\ constructor\ sequence.\ \ If\ \`{}Store()`\ is\ called\ by\ a\ dynamic}}
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ initializer,\ we\ want\ to\ preserve\ the\ value,\ even\ if\ this\ constructor\ runs}}
+\DoxyCodeLine{00092\ \ \ \textcolor{comment}{//\ after\ the\ call\ to\ \`{}Store()`.\ \ If\ not,\ \`{}hook\_`\ will\ be}}
+\DoxyCodeLine{00093\ \ \ \textcolor{comment}{//\ zero-\/initialized\ by\ the\ linker\ and\ we\ have\ no\ need\ to\ set\ it.}}
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//\ https://developercommunity.visualstudio.com/content/problem/336946/class-\/with-\/constexpr-\/constructor-\/not-\/using-\/static.html}}
+\DoxyCodeLine{00095\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{constexpr}\ AtomicHook(FnPtr\ default\_fn)}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ :\ \textcolor{comment}{/*\ hook\_(deliberately\ omitted),\ */}\ default\_fn\_(default\_fn)\ \{}
+\DoxyCodeLine{00097\ \ \ \ \ \textcolor{keyword}{static\_assert}(kUninitialized\ ==\ 0,\ \textcolor{stringliteral}{"{}here\ we\ rely\ on\ zero-\/initialization"{}});}
+\DoxyCodeLine{00098\ \ \ \}}
+\DoxyCodeLine{00099\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ Stores\ the\ provided\ function\ pointer\ as\ the\ value\ for\ this\ hook.}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ This\ is\ intended\ to\ be\ called\ once.\ \ Multiple\ calls\ are\ legal\ only\ if\ the}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ same\ function\ pointer\ is\ provided\ for\ each\ call.\ \ The\ store\ is\ implemented}}
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ as\ a\ memory\_order\_release\ operation,\ and\ read\ accesses\ are\ implemented\ as}}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ memory\_order\_acquire.}}
+\DoxyCodeLine{00107\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_abd3d59739faaeb560a7944f048e9f978}{Store}}(\mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_ab22d2809c116b2ea80f8f2d5dafc5787}{FnPtr}}\ fn)\ \{}
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{keywordtype}{bool}\ success\ =\ DoStore(fn);}
+\DoxyCodeLine{00109\ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}\textcolor{keyword}{>}(success);}
+\DoxyCodeLine{00110\ \ \ \ \ assert(success);}
+\DoxyCodeLine{00111\ \ \ \}}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ Invokes\ the\ registered\ callback.\ \ If\ no\ callback\ has\ yet\ been\ registered,\ a}}
+\DoxyCodeLine{00114\ \ \ \textcolor{comment}{//\ default-\/constructed\ object\ of\ the\ appropriate\ type\ is\ returned\ instead.}}
+\DoxyCodeLine{00115\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ CallArgs>}
+\DoxyCodeLine{00116\ \ \ ReturnType\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_adc7038b0e2a9a27acb99e5e360e05421}{operator()}}(CallArgs\&\&...\ args)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{keywordflow}{return}\ DoLoad()(std::forward<CallArgs>(args)...);}
+\DoxyCodeLine{00118\ \ \ \}}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \ \ \textcolor{comment}{//\ Returns\ the\ registered\ callback,\ or\ nullptr\ if\ none\ has\ been\ registered.}}
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//\ Useful\ if\ client\ code\ needs\ to\ conditionalize\ behavior\ based\ on\ whether\ a}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//\ callback\ was\ registered.}}
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00124\ \ \ \textcolor{comment}{//\ Note\ that\ atomic\_hook.Load()()\ and\ atomic\_hook()\ have\ different\ semantics:}}
+\DoxyCodeLine{00125\ \ \ \textcolor{comment}{//\ operator()()\ will\ perform\ a\ no-\/op\ if\ no\ callback\ was\ registered,\ while}}
+\DoxyCodeLine{00126\ \ \ \textcolor{comment}{//\ Load()()\ will\ dereference\ a\ null\ function\ pointer.\ \ Prefer\ operator()()\ to}}
+\DoxyCodeLine{00127\ \ \ \textcolor{comment}{//\ Load()()\ unless\ you\ must\ conditionalize\ behavior\ on\ whether\ a\ hook\ was}}
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ registered.}}
+\DoxyCodeLine{00129\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_ab22d2809c116b2ea80f8f2d5dafc5787}{FnPtr}}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_a64f7adafe2f962fcc9c684b5be389950}{Load}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00130\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1AtomicHook_3_01ReturnType_07_5_08_07Args_8_8_8_08_4_ab22d2809c116b2ea80f8f2d5dafc5787}{FnPtr}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}}\ =\ DoLoad();}
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}}\ ==\ DummyFunction)\ ?\ nullptr\ :\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}};}
+\DoxyCodeLine{00132\ \ \ \}}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00135\ \ \ \textcolor{keyword}{static}\ ReturnType\ DummyFunction(Args...)\ \{}
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{keywordflow}{return}\ ReturnType();}
+\DoxyCodeLine{00137\ \ \ \}}
+\DoxyCodeLine{00138\ }
+\DoxyCodeLine{00139\ \ \ \textcolor{comment}{//\ Current\ versions\ of\ MSVC\ (as\ of\ September\ 2017)\ have\ a\ broken}}
+\DoxyCodeLine{00140\ \ \ \textcolor{comment}{//\ implementation\ of\ std::atomic<T*>:\ \ Its\ constructor\ attempts\ to\ do\ the}}
+\DoxyCodeLine{00141\ \ \ \textcolor{comment}{//\ equivalent\ of\ a\ reinterpret\_cast\ in\ a\ constexpr\ context,\ which\ is\ not}}
+\DoxyCodeLine{00142\ \ \ \textcolor{comment}{//\ allowed.}}
+\DoxyCodeLine{00143\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//\ This\ causes\ an\ issue\ when\ building\ with\ LLVM\ under\ Windows.\ \ To\ avoid\ this,}}
+\DoxyCodeLine{00145\ \ \ \textcolor{comment}{//\ we\ use\ a\ less-\/efficient,\ intptr\_t-\/based\ implementation\ on\ Windows.}}
+\DoxyCodeLine{00146\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_WORKING\_ATOMIC\_POINTER}}
+\DoxyCodeLine{00147\ \ \ \textcolor{comment}{//\ Return\ the\ stored\ value,\ or\ DummyFunction\ if\ no\ value\ has\ been\ stored.}}
+\DoxyCodeLine{00148\ \ \ FnPtr\ DoLoad()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ hook\_.load(std::memory\_order\_acquire);\ \}}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \ \ \textcolor{comment}{//\ Store\ the\ given\ value.\ \ Returns\ false\ if\ a\ different\ value\ was\ already}}
+\DoxyCodeLine{00151\ \ \ \textcolor{comment}{//\ stored\ to\ this\ object.}}
+\DoxyCodeLine{00152\ \ \ \textcolor{keywordtype}{bool}\ DoStore(FnPtr\ fn)\ \{}
+\DoxyCodeLine{00153\ \ \ \ \ assert(fn);}
+\DoxyCodeLine{00154\ \ \ \ \ FnPtr\ expected\ =\ default\_fn\_;}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ store\_succeeded\ =\ hook\_.compare\_exchange\_strong(}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ expected,\ fn,\ std::memory\_order\_acq\_rel,\ std::memory\_order\_acquire);}
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ same\_value\_already\_stored\ =\ (expected\ ==\ fn);}
+\DoxyCodeLine{00158\ \ \ \ \ \textcolor{keywordflow}{return}\ store\_succeeded\ ||\ same\_value\_already\_stored;}
+\DoxyCodeLine{00159\ \ \ \}}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00161\ \ \ std::atomic<FnPtr>\ hook\_;}
+\DoxyCodeLine{00162\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ !ABSL\_HAVE\_WORKING\_ATOMIC\_POINTER}}
+\DoxyCodeLine{00163\ \ \ \textcolor{comment}{//\ Use\ a\ sentinel\ value\ unlikely\ to\ be\ the\ address\ of\ an\ actual\ function.}}
+\DoxyCodeLine{00164\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ intptr\_t\ kUninitialized\ =\ 0;}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \ \ \textcolor{keyword}{static\_assert}(\textcolor{keyword}{sizeof}(intptr\_t)\ >=\ \textcolor{keyword}{sizeof}(FnPtr),}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}intptr\_t\ can't\ contain\ a\ function\ pointer"{}});}
+\DoxyCodeLine{00168\ }
+\DoxyCodeLine{00169\ \ \ FnPtr\ DoLoad()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00170\ \ \ \ \ \textcolor{keyword}{const}\ intptr\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}\ =\ hook\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00171\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}\ ==\ kUninitialized)\ \{}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ default\_fn\_;}
+\DoxyCodeLine{00173\ \ \ \ \ \}}
+\DoxyCodeLine{00174\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}FnPtr\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});}
+\DoxyCodeLine{00175\ \ \ \}}
+\DoxyCodeLine{00176\ }
+\DoxyCodeLine{00177\ \ \ \textcolor{keywordtype}{bool}\ DoStore(FnPtr\ fn)\ \{}
+\DoxyCodeLine{00178\ \ \ \ \ assert(fn);}
+\DoxyCodeLine{00179\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{auto}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}\ =\ \textcolor{keyword}{reinterpret\_cast<}intptr\_t\textcolor{keyword}{>}(fn);}
+\DoxyCodeLine{00180\ \ \ \ \ intptr\_t\ expected\ =\ kUninitialized;}
+\DoxyCodeLine{00181\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ store\_succeeded\ =\ hook\_.compare\_exchange\_strong(}
+\DoxyCodeLine{00182\ \ \ \ \ \ \ \ \ expected,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}},\ std::memory\_order\_acq\_rel,\ std::memory\_order\_acquire);}
+\DoxyCodeLine{00183\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ same\_value\_already\_stored\ =\ (expected\ ==\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}});}
+\DoxyCodeLine{00184\ \ \ \ \ \textcolor{keywordflow}{return}\ store\_succeeded\ ||\ same\_value\_already\_stored;}
+\DoxyCodeLine{00185\ \ \ \}}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \ \ std::atomic<intptr\_t>\ hook\_;}
+\DoxyCodeLine{00188\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00189\ }
+\DoxyCodeLine{00190\ \ \ \textcolor{keyword}{const}\ FnPtr\ default\_fn\_;}
+\DoxyCodeLine{00191\ \};}
+\DoxyCodeLine{00192\ }
+\DoxyCodeLine{00193\ \textcolor{preprocessor}{\#undef\ ABSL\_HAVE\_WORKING\_ATOMIC\_POINTER}}
+\DoxyCodeLine{00194\ \textcolor{preprocessor}{\#undef\ ABSL\_HAVE\_WORKING\_CONSTEXPR\_STATIC\_INIT}}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00197\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00198\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_ATOMIC\_HOOK\_H\_}}
+
+\end{DoxyCode}

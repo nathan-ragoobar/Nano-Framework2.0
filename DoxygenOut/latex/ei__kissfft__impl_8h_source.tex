@@ -1,0 +1,455 @@
+\doxysection{ei\+\_\+kissfft\+\_\+impl.\+h}
+\hypertarget{ei__kissfft__impl_8h_source}{}\label{ei__kissfft__impl_8h_source}\index{eigen/unsupported/Eigen/src/FFT/ei\_kissfft\_impl.h@{eigen/unsupported/Eigen/src/FFT/ei\_kissfft\_impl.h}}
+\mbox{\hyperlink{ei__kissfft__impl_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2009\ Mark\ Borgerding\ mark\ a\ borgerding\ net}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{\ }
+\DoxyCodeLine{00011\ }
+\DoxyCodeLine{00012\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}\ \{}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \ \ \textcolor{comment}{//\ This\ FFT\ implementation\ was\ derived\ from\ kissfft\ http:sourceforge.net/projects/kissfft}}
+\DoxyCodeLine{00015\ \ \ \textcolor{comment}{//\ Copyright\ 2003-\/2009\ Mark\ Borgerding}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \_Scalar>}
+\DoxyCodeLine{00018\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft}{kiss\_cpx\_fft}}}
+\DoxyCodeLine{00019\ \{}
+\DoxyCodeLine{00020\ \ \ \textcolor{keyword}{typedef}\ \_Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}};}
+\DoxyCodeLine{00021\ \ \ \textcolor{keyword}{typedef}\ std::complex<Scalar>\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}};}
+\DoxyCodeLine{00022\ \ \ std::vector<Complex>\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}};}
+\DoxyCodeLine{00023\ \ \ std::vector<int>\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acb58101896208289c8c848326171ebf8}{m\_stageRadix}};}
+\DoxyCodeLine{00024\ \ \ std::vector<int>\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a8d96505dd42ef0bf059b216c7327dde4}{m\_stageRemainder}};}
+\DoxyCodeLine{00025\ \ \ std::vector<Complex>\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a1d71e46adfdbec7e3612930ff9be001f}{m\_scratchBuf}};}
+\DoxyCodeLine{00026\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_aa3b231f9307f37011a9cb168cdc0ffa0}{m\_inverse}};}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \ \ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a85cd6612b484e94c4b0ae3aaff4a3ca8}{make\_twiddles}}(\textcolor{keywordtype}{int}\ nfft,\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_ab3df1b08b9c073db2a7e61a9b06bb295}{inverse}})}
+\DoxyCodeLine{00029\ \ \ \{}
+\DoxyCodeLine{00030\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceEigen_1_1numext_a8f24fada070606dfb9d3e640dddbd2d1}{numext::sin}};}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceEigen_1_1numext_a2fb2ee16afbd8bd35db971dff56b7a2b}{numext::cos}};}
+\DoxyCodeLine{00032\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_aa3b231f9307f37011a9cb168cdc0ffa0}{m\_inverse}}\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_ab3df1b08b9c073db2a7e61a9b06bb295}{inverse}};}
+\DoxyCodeLine{00033\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}.resize(nfft);}
+\DoxyCodeLine{00034\ \ \ \ \ \textcolor{keywordtype}{double}\ phinc\ =\ \ 0.25\ *\ double(\mbox{\hyperlink{Eigen_2src_2Core_2MathFunctions_8h_aebdd4427aa2148313c07b0eedad449ad}{EIGEN\_PI}})\ /\ nfft;}
+\DoxyCodeLine{00035\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}\ flip\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_ab3df1b08b9c073db2a7e61a9b06bb295}{inverse}}\ ?\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(1)\ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(-\/1);}
+\DoxyCodeLine{00036\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[0]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(1),\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(0));}
+\DoxyCodeLine{00037\ \ \ \ \ \textcolor{keywordflow}{if}\ ((nfft\&1)==0)}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[nfft/2]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(-\/1),\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(0));}
+\DoxyCodeLine{00039\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}=1;}
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{keywordflow}{for}\ (;\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}*8<nfft;++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00041\ \ \ \ \ \{}
+\DoxyCodeLine{00042\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}\ c\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a92b03396990b0e9eea0731aa406e31a4}{cos}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}*8*phinc));}
+\DoxyCodeLine{00043\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}\ s\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a9cfb0ea58bd813510a9e2db18a5e49f0}{sin}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}*8*phinc));}
+\DoxyCodeLine{00044\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(c,\ s*flip);}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[nfft-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(c,\ -\/s*flip);}
+\DoxyCodeLine{00046\ \ \ \ \ \}}
+\DoxyCodeLine{00047\ \ \ \ \ \textcolor{keywordflow}{for}\ (;\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}*4<nfft;++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00048\ \ \ \ \ \{}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}\ c\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a92b03396990b0e9eea0731aa406e31a4}{cos}}((2*nfft-\/8*\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})*phinc));}
+\DoxyCodeLine{00050\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}\ s\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a9cfb0ea58bd813510a9e2db18a5e49f0}{sin}}((2*nfft-\/8*\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})*phinc));}
+\DoxyCodeLine{00051\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(s,\ c*flip);}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[nfft-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(s,\ -\/c*flip);}
+\DoxyCodeLine{00053\ \ \ \ \ \}}
+\DoxyCodeLine{00054\ \ \ \ \ \textcolor{keywordflow}{for}\ (;\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}*8<3*nfft;++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00055\ \ \ \ \ \{}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}\ c\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a92b03396990b0e9eea0731aa406e31a4}{cos}}((8*\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}-\/2*nfft)*phinc));}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}\ s\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a9cfb0ea58bd813510a9e2db18a5e49f0}{sin}}((8*\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}-\/2*nfft)*phinc));}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(-\/s,\ c*flip);}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[nfft-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(-\/s,\ -\/c*flip);}
+\DoxyCodeLine{00060\ \ \ \ \ \}}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keywordflow}{for}\ (;\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}*2<nfft;++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00062\ \ \ \ \ \{}
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}\ c\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a92b03396990b0e9eea0731aa406e31a4}{cos}}((4*nfft-\/8*\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})*phinc));}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}\ s\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a9cfb0ea58bd813510a9e2db18a5e49f0}{sin}}((4*nfft-\/8*\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})*phinc));}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(-\/c,\ s*flip);}
+\DoxyCodeLine{00066\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[nfft-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(-\/c,\ -\/s*flip);}
+\DoxyCodeLine{00067\ \ \ \ \ \}}
+\DoxyCodeLine{00068\ \ \ \}}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61700af00cc2068ccc57003333a23ad1}{factorize}}(\textcolor{keywordtype}{int}\ nfft)}
+\DoxyCodeLine{00071\ \ \ \{}
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{comment}{//start\ factoring\ out\ 4's,\ then\ 2's,\ then\ 3,5,7,9,...}}
+\DoxyCodeLine{00073\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}=\ nfft;}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keywordtype}{int}\ p=4;}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keywordflow}{do}\ \{}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ \%\ p)\ \{}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (p)\ \{}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 4:\ p\ =\ 2;\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00079\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 2:\ p\ =\ 3;\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{default}:\ p\ +=\ 2;\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (p*p>\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ \ \ p=\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};\textcolor{comment}{//\ impossible\ to\ have\ a\ factor\ >\ sqrt(n)}}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ /=\ p;}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acb58101896208289c8c848326171ebf8}{m\_stageRadix}}.push\_back(p);}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a8d96505dd42ef0bf059b216c7327dde4}{m\_stageRemainder}}.push\_back(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\ p\ >\ 5\ )}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a1d71e46adfdbec7e3612930ff9be001f}{m\_scratchBuf}}.resize(p);\ \textcolor{comment}{//\ scratchbuf\ will\ be\ needed\ in\ bfly\_generic}}
+\DoxyCodeLine{00090\ \ \ \ \ \}\textcolor{keywordflow}{while}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}>1);}
+\DoxyCodeLine{00091\ \ \ \}}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \_Src>}
+\DoxyCodeLine{00094\ \ \ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a7ea71feb0d8704656596f2909dba9271}{work}}(\ \textcolor{keywordtype}{int}\ stage,\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ xout,\ \textcolor{keyword}{const}\ \_Src\ *\ xin,\ \textcolor{keywordtype}{size\_t}\ fstride,\textcolor{keywordtype}{size\_t}\ in\_stride)}
+\DoxyCodeLine{00096\ \ \ \ \ \{}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ p\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acb58101896208289c8c848326171ebf8}{m\_stageRadix}}[stage];}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ m\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a8d96505dd42ef0bf059b216c7327dde4}{m\_stageRemainder}}[stage];}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ Fout\_beg\ =\ xout;}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ Fout\_end\ =\ xout\ +\ p*m;}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (m>1)\ \{}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\{}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ recursive\ call:}}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ DFT\ of\ size\ m*p\ performed\ by\ doing}}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ p\ instances\ of\ smaller\ DFTs\ of\ size\ m,\ }}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ each\ one\ takes\ a\ decimated\ version\ of\ the\ input}}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a7ea71feb0d8704656596f2909dba9271}{work}}(stage+1,\ xout\ ,\ xin,\ fstride*p,in\_stride);}
+\DoxyCodeLine{00109\ \ \ \ \ \ \ \ \ \ \ xin\ +=\ fstride*in\_stride;}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ \}\textcolor{keywordflow}{while}(\ (xout\ +=\ m)\ !=\ Fout\_end\ );}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \}\textcolor{keywordflow}{else}\{}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{do}\{}
+\DoxyCodeLine{00113\ \ \ \ \ \ \ \ \ \ \ *xout\ =\ *xin;}
+\DoxyCodeLine{00114\ \ \ \ \ \ \ \ \ \ \ xin\ +=\ fstride*in\_stride;}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \ \ \}\textcolor{keywordflow}{while}(++xout\ !=\ Fout\_end\ );}
+\DoxyCodeLine{00116\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00117\ \ \ \ \ \ \ xout=Fout\_beg;}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \textcolor{comment}{//\ recombine\ the\ p\ smaller\ DFTs\ }}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (p)\ \{}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 2:\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a79580867cbe4b457c42b21745789b362}{bfly2}}(xout,fstride,m);\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 3:\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a91e8db66ee520362382a514b8784c307}{bfly3}}(xout,fstride,m);\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 4:\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_aa5c67750f3ced8773739a0ba964e2485}{bfly4}}(xout,fstride,m);\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 5:\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a62690918301f7eb99af959474f7ea9d6}{bfly5}}(xout,fstride,m);\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{default}:\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_ade4207c7737f57f4b38f7aa9d2f007cf}{bfly\_generic}}(xout,fstride,m,p);\ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00127\ \ \ \ \ \}}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00129\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00130\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a79580867cbe4b457c42b21745789b362}{bfly2}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ Fout,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ fstride,\ \textcolor{keywordtype}{int}\ m)}
+\DoxyCodeLine{00131\ \ \ \ \ \{}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ k=0;k<m;++k)\ \{}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ t\ =\ Fout[m+k]\ *\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[k*fstride];}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \ \ Fout[m+k]\ =\ Fout[k]\ -\/\ t;}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ \ \ Fout[k]\ +=\ t;}
+\DoxyCodeLine{00136\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00137\ \ \ \ \ \}}
+\DoxyCodeLine{00138\ }
+\DoxyCodeLine{00139\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00140\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_aa5c67750f3ced8773739a0ba964e2485}{bfly4}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ Fout,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ fstride,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ m)}
+\DoxyCodeLine{00141\ \ \ \ \ \{}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ scratch[6];}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ negative\_if\_inverse\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_aa3b231f9307f37011a9cb168cdc0ffa0}{m\_inverse}}\ *\ -\/2\ +1;}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ k=0;k<m;++k)\ \{}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ scratch[0]\ =\ Fout[k+m]\ *\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[k*fstride];}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ scratch[1]\ =\ Fout[k+2*m]\ *\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[k*fstride*2];}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \ \ scratch[2]\ =\ Fout[k+3*m]\ *\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[k*fstride*3];}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ \ \ scratch[5]\ =\ Fout[k]\ -\/\ scratch[1];}
+\DoxyCodeLine{00149\ }
+\DoxyCodeLine{00150\ \ \ \ \ \ \ \ \ Fout[k]\ +=\ scratch[1];}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ scratch[3]\ =\ scratch[0]\ +\ scratch[2];}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ scratch[4]\ =\ scratch[0]\ -\/\ scratch[2];}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \ \ scratch[4]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(\ scratch[4].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a8cc3d2f4413a156b2ec6a3097efd3aa4}{imag}}()*negative\_if\_inverse\ ,\ -\/scratch[4].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()*\ negative\_if\_inverse\ );}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \ \ \ \ \ \ \ \ Fout[k+2*m]\ \ =\ Fout[k]\ -\/\ scratch[3];}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ Fout[k]\ +=\ scratch[3];}
+\DoxyCodeLine{00157\ \ \ \ \ \ \ \ \ Fout[k+m]\ =\ scratch[5]\ +\ scratch[4];}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ Fout[k+3*m]\ =\ scratch[5]\ -\/\ scratch[4];}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00160\ \ \ \ \ \}}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a91e8db66ee520362382a514b8784c307}{bfly3}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ Fout,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ fstride,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ m)}
+\DoxyCodeLine{00164\ \ \ \ \ \{}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ k=m;}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ m2\ =\ 2*m;}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *tw1,*tw2;}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ scratch[5];}
+\DoxyCodeLine{00169\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ epi3;}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ epi3\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[fstride*m];}
+\DoxyCodeLine{00171\ }
+\DoxyCodeLine{00172\ \ \ \ \ \ \ tw1=tw2=\&\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[0];}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \textcolor{keywordflow}{do}\{}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ \ \ scratch[1]=Fout[m]\ *\ *tw1;}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \ \ scratch[2]=Fout[m2]\ *\ *tw2;}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \ \ scratch[3]=scratch[1]+scratch[2];}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ scratch[0]=scratch[1]-\/scratch[2];}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ tw1\ +=\ fstride;}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \ \ tw2\ +=\ fstride*2;}
+\DoxyCodeLine{00182\ \ \ \ \ \ \ \ \ Fout[m]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(\ Fout-\/>real()\ -\/\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(.5)*scratch[3].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()\ ,\ Fout-\/>imag()\ -\/\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a2aea3ca9aba95af3ecc97b14468f7c7a}{Scalar}}(.5)*scratch[3].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a8cc3d2f4413a156b2ec6a3097efd3aa4}{imag}}()\ );}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \ \ scratch[0]\ *=\ epi3.imag();}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \ \ *Fout\ +=\ scratch[3];}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ Fout[m2]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(\ \ Fout[m].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()\ +\ scratch[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a8cc3d2f4413a156b2ec6a3097efd3aa4}{imag}}()\ ,\ Fout[m].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a8cc3d2f4413a156b2ec6a3097efd3aa4}{imag}}()\ -\/\ scratch[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()\ );}
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \ \ Fout[m]\ +=\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(\ -\/scratch[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a8cc3d2f4413a156b2ec6a3097efd3aa4}{imag}}(),scratch[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()\ );}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \ \ ++Fout;}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \}\textcolor{keywordflow}{while}(-\/-\/k);}
+\DoxyCodeLine{00189\ \ \ \ \ \}}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00192\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a62690918301f7eb99af959474f7ea9d6}{bfly5}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ Fout,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ fstride,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ m)}
+\DoxyCodeLine{00193\ \ \ \ \ \{}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *Fout0,*Fout1,*Fout2,*Fout3,*Fout4;}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ u;}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ scratch[13];}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ twiddles\ =\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[0];}
+\DoxyCodeLine{00198\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *tw;}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ ya,yb;}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ ya\ =\ twiddles[fstride*m];}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ yb\ =\ twiddles[fstride*2*m];}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \ \ \ \ \ \ Fout0=Fout;}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ Fout1=Fout0+m;}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ Fout2=Fout0+2*m;}
+\DoxyCodeLine{00206\ \ \ \ \ \ \ Fout3=Fout0+3*m;}
+\DoxyCodeLine{00207\ \ \ \ \ \ \ Fout4=Fout0+4*m;}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00209\ \ \ \ \ \ \ tw=twiddles;}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\ u=0;\ u<m;\ ++u\ )\ \{}
+\DoxyCodeLine{00211\ \ \ \ \ \ \ \ \ scratch[0]\ =\ *Fout0;}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \ \ \ \ \ \ \ \ scratch[1]\ \ =\ *Fout1\ *\ tw[u*fstride];}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ \ \ scratch[2]\ \ =\ *Fout2\ *\ tw[2*u*fstride];}
+\DoxyCodeLine{00215\ \ \ \ \ \ \ \ \ scratch[3]\ \ =\ *Fout3\ *\ tw[3*u*fstride];}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ \ \ scratch[4]\ \ =\ *Fout4\ *\ tw[4*u*fstride];}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ scratch[7]\ =\ scratch[1]\ +\ scratch[4];}
+\DoxyCodeLine{00219\ \ \ \ \ \ \ \ \ scratch[10]\ =\ scratch[1]\ -\/\ scratch[4];}
+\DoxyCodeLine{00220\ \ \ \ \ \ \ \ \ scratch[8]\ =\ scratch[2]\ +\ scratch[3];}
+\DoxyCodeLine{00221\ \ \ \ \ \ \ \ \ scratch[9]\ =\ scratch[2]\ -\/\ scratch[3];}
+\DoxyCodeLine{00222\ }
+\DoxyCodeLine{00223\ \ \ \ \ \ \ \ \ *Fout0\ +=\ \ scratch[7];}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \ \ *Fout0\ +=\ \ scratch[8];}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \ \ \ \ \ \ \ \ scratch[5]\ =\ scratch[0]\ +\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \ \ \ \ \ \ (scratch[7].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()*ya.real()\ )\ +\ (scratch[8].real()\ *yb.real()\ ),}
+\DoxyCodeLine{00228\ \ \ \ \ \ \ \ \ \ \ \ \ (scratch[7].imag()*ya.real())\ +\ (scratch[8].imag()*yb.real())}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \ \ scratch[6]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \ \ \ \ \ \ (scratch[10].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a8cc3d2f4413a156b2ec6a3097efd3aa4}{imag}}()*ya.imag())\ +\ (scratch[9].imag()*yb.imag()),}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ \ \ \ \ -\/(scratch[10].real()*ya.imag())\ -\/\ (scratch[9].real()*yb.imag())}
+\DoxyCodeLine{00234\ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \ \ *Fout1\ =\ scratch[5]\ -\/\ scratch[6];}
+\DoxyCodeLine{00237\ \ \ \ \ \ \ \ \ *Fout4\ =\ scratch[5]\ +\ scratch[6];}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \ \ \ \ \ \ \ \ scratch[11]\ =\ scratch[0]\ +}
+\DoxyCodeLine{00240\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(}
+\DoxyCodeLine{00241\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (scratch[7].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()*yb.real())\ +\ (scratch[8].real()*ya.real()),}
+\DoxyCodeLine{00242\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (scratch[7].imag()*yb.real())\ +\ (scratch[8].imag()*ya.real())}
+\DoxyCodeLine{00243\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{00244\ }
+\DoxyCodeLine{00245\ \ \ \ \ \ \ \ \ scratch[12]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}(}
+\DoxyCodeLine{00246\ \ \ \ \ \ \ \ \ \ \ \ \ -\/(scratch[10].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a8cc3d2f4413a156b2ec6a3097efd3aa4}{imag}}()*yb.imag())\ +\ (scratch[9].imag()*ya.imag()),}
+\DoxyCodeLine{00247\ \ \ \ \ \ \ \ \ \ \ \ \ (scratch[10].real()*yb.imag())\ -\/\ (scratch[9].real()*ya.imag())}
+\DoxyCodeLine{00248\ \ \ \ \ \ \ \ \ \ \ \ \ );}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00250\ \ \ \ \ \ \ \ \ *Fout2=scratch[11]+scratch[12];}
+\DoxyCodeLine{00251\ \ \ \ \ \ \ \ \ *Fout3=scratch[11]-\/scratch[12];}
+\DoxyCodeLine{00252\ }
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \ \ ++Fout0;++Fout1;++Fout2;++Fout3;++Fout4;}
+\DoxyCodeLine{00254\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00255\ \ \ \ \ \}}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ \ \ \textcolor{comment}{/*\ perform\ the\ butterfly\ for\ one\ stage\ of\ a\ mixed\ radix\ FFT\ */}}
+\DoxyCodeLine{00258\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00259\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_ade4207c7737f57f4b38f7aa9d2f007cf}{bfly\_generic}}(}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ Fout,}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ fstride,}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ m,}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ p}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \ \ )}
+\DoxyCodeLine{00265\ \ \ \ \ \{}
+\DoxyCodeLine{00266\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ u,k,q1,q;}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ twiddles\ =\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}[0];}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ t;}
+\DoxyCodeLine{00269\ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ Norig\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}.size());}
+\DoxyCodeLine{00270\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_acd84d5ff01cf19079d30d9dd7674121f}{Complex}}\ *\ scratchbuf\ =\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a1d71e46adfdbec7e3612930ff9be001f}{m\_scratchBuf}}[0];}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00272\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\ u=0;\ u<m;\ ++u\ )\ \{}
+\DoxyCodeLine{00273\ \ \ \ \ \ \ \ \ k=u;}
+\DoxyCodeLine{00274\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\ q1=0\ ;\ q1<p\ ;\ ++q1\ )\ \{}
+\DoxyCodeLine{00275\ \ \ \ \ \ \ \ \ \ \ scratchbuf[q1]\ =\ Fout[\ k\ \ ];}
+\DoxyCodeLine{00276\ \ \ \ \ \ \ \ \ \ \ k\ +=\ m;}
+\DoxyCodeLine{00277\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00278\ }
+\DoxyCodeLine{00279\ \ \ \ \ \ \ \ \ k=u;}
+\DoxyCodeLine{00280\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\ q1=0\ ;\ q1<p\ ;\ ++q1\ )\ \{}
+\DoxyCodeLine{00281\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ twidx=0;}
+\DoxyCodeLine{00282\ \ \ \ \ \ \ \ \ \ \ Fout[\ k\ ]\ =\ scratchbuf[0];}
+\DoxyCodeLine{00283\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (q=1;q<p;++q\ )\ \{}
+\DoxyCodeLine{00284\ \ \ \ \ \ \ \ \ \ \ \ \ twidx\ +=\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(fstride)\ *\ k;}
+\DoxyCodeLine{00285\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (twidx>=Norig)\ twidx-\/=Norig;}
+\DoxyCodeLine{00286\ \ \ \ \ \ \ \ \ \ \ \ \ t=scratchbuf[q]\ *\ twiddles[twidx];}
+\DoxyCodeLine{00287\ \ \ \ \ \ \ \ \ \ \ \ \ Fout[\ k\ ]\ +=\ t;}
+\DoxyCodeLine{00288\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00289\ \ \ \ \ \ \ \ \ \ \ k\ +=\ m;}
+\DoxyCodeLine{00290\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00291\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00292\ \ \ \ \ \}}
+\DoxyCodeLine{00293\ \};}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \_Scalar>}
+\DoxyCodeLine{00296\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl}{kissfft\_impl}}}
+\DoxyCodeLine{00297\ \{}
+\DoxyCodeLine{00298\ \ \ \textcolor{keyword}{typedef}\ \_Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad34aa1df007e86671afa0d8ea5dfeede}{Scalar}};}
+\DoxyCodeLine{00299\ \ \ \textcolor{keyword}{typedef}\ std::complex<Scalar>\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}};}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a24ae326cc4d2e7b1f5f1e1e15f0df0a9}{clear}}()\ }
+\DoxyCodeLine{00302\ \ \ \{}
+\DoxyCodeLine{00303\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a0d73230bed57a7b3c1cfe7ff4708c1be}{m\_plans}}.clear();}
+\DoxyCodeLine{00304\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a8bcdc6a09b8839fdc53a3da64987d6e2}{m\_realTwiddles}}.clear();}
+\DoxyCodeLine{00305\ \ \ \}}
+\DoxyCodeLine{00306\ }
+\DoxyCodeLine{00307\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00308\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ab72085de6e46b34ee777f6f6887afa10}{fwd}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *\ dst,\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *src,\textcolor{keywordtype}{int}\ nfft)}
+\DoxyCodeLine{00309\ \ \ \ \ \{}
+\DoxyCodeLine{00310\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a525478a34e4a11fc980f5cce323dc819}{get\_plan}}(nfft,\textcolor{keyword}{false}).\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a7ea71feb0d8704656596f2909dba9271}{work}}(0,\ dst,\ src,\ 1,1);}
+\DoxyCodeLine{00311\ \ \ \ \ \}}
+\DoxyCodeLine{00312\ }
+\DoxyCodeLine{00313\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00314\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a6f06e5103fce0687c3f9dada88de7fd7}{fwd2}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *\ dst,\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *src,\textcolor{keywordtype}{int}\ n0,\textcolor{keywordtype}{int}\ n1)}
+\DoxyCodeLine{00315\ \ \ \ \ \{}
+\DoxyCodeLine{00316\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{Macros_8h_a7cf6d5b460def34dc4e6acf42889b6a9}{EIGEN\_UNUSED\_VARIABLE}}(dst);}
+\DoxyCodeLine{00317\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{Macros_8h_a7cf6d5b460def34dc4e6acf42889b6a9}{EIGEN\_UNUSED\_VARIABLE}}(src);}
+\DoxyCodeLine{00318\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{Macros_8h_a7cf6d5b460def34dc4e6acf42889b6a9}{EIGEN\_UNUSED\_VARIABLE}}(n0);}
+\DoxyCodeLine{00319\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{Macros_8h_a7cf6d5b460def34dc4e6acf42889b6a9}{EIGEN\_UNUSED\_VARIABLE}}(n1);}
+\DoxyCodeLine{00320\ \ \ \ \ \}}
+\DoxyCodeLine{00321\ }
+\DoxyCodeLine{00322\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00323\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad8c65a5e75b9059534bf60ded4ace582}{inv2}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *\ dst,\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *src,\textcolor{keywordtype}{int}\ n0,\textcolor{keywordtype}{int}\ n1)}
+\DoxyCodeLine{00324\ \ \ \ \ \{}
+\DoxyCodeLine{00325\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{Macros_8h_a7cf6d5b460def34dc4e6acf42889b6a9}{EIGEN\_UNUSED\_VARIABLE}}(dst);}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{Macros_8h_a7cf6d5b460def34dc4e6acf42889b6a9}{EIGEN\_UNUSED\_VARIABLE}}(src);}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{Macros_8h_a7cf6d5b460def34dc4e6acf42889b6a9}{EIGEN\_UNUSED\_VARIABLE}}(n0);}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{Macros_8h_a7cf6d5b460def34dc4e6acf42889b6a9}{EIGEN\_UNUSED\_VARIABLE}}(n1);}
+\DoxyCodeLine{00329\ \ \ \ \ \}}
+\DoxyCodeLine{00330\ }
+\DoxyCodeLine{00331\ \ \ \textcolor{comment}{//\ real-\/to-\/complex\ forward\ FFT}}
+\DoxyCodeLine{00332\ \ \ \textcolor{comment}{//\ perform\ two\ FFTs\ of\ src\ even\ and\ src\ odd}}
+\DoxyCodeLine{00333\ \ \ \textcolor{comment}{//\ then\ twiddle\ to\ recombine\ them\ into\ the\ half-\/spectrum\ format}}
+\DoxyCodeLine{00334\ \ \ \textcolor{comment}{//\ then\ fill\ in\ the\ conjugate\ symmetric\ half}}
+\DoxyCodeLine{00335\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00336\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a2e7fc2f0910f00b559b8560e52ce6a4a}{fwd}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *\ dst,\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad34aa1df007e86671afa0d8ea5dfeede}{Scalar}}\ *\ src,\textcolor{keywordtype}{int}\ nfft)\ }
+\DoxyCodeLine{00337\ \ \ \ \ \{}
+\DoxyCodeLine{00338\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\ nfft\&3\ \ )\ \{}
+\DoxyCodeLine{00339\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ use\ generic\ mode\ for\ odd}}
+\DoxyCodeLine{00340\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}.resize(nfft);}
+\DoxyCodeLine{00341\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a525478a34e4a11fc980f5cce323dc819}{get\_plan}}(nfft,\textcolor{keyword}{false}).\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a7ea71feb0d8704656596f2909dba9271}{work}}(0,\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}[0],\ src,\ 1,1);}
+\DoxyCodeLine{00342\ \ \ \ \ \ \ \ \ std::copy(\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}.begin(),\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}.begin()+(nfft>>1)+1,dst\ );}
+\DoxyCodeLine{00343\ \ \ \ \ \ \ \}\textcolor{keywordflow}{else}\{}
+\DoxyCodeLine{00344\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ncfft\ =\ nfft>>1;}
+\DoxyCodeLine{00345\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ncfft2\ =\ nfft>>2;}
+\DoxyCodeLine{00346\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *\ rtw\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a6effb34f4310ad0d58bb95f503517af1}{real\_twiddles}}(ncfft2);}
+\DoxyCodeLine{00347\ }
+\DoxyCodeLine{00348\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ use\ optimized\ mode\ for\ even\ real}}
+\DoxyCodeLine{00349\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ab72085de6e46b34ee777f6f6887afa10}{fwd}}(\ dst,\ \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}*\textcolor{keyword}{>}\ (src),\ ncfft);}
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ dc(dst[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()\ +\ \ dst[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a8cc3d2f4413a156b2ec6a3097efd3aa4}{imag}}());}
+\DoxyCodeLine{00351\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ nyquist(dst[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()\ -\/\ \ dst[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a8cc3d2f4413a156b2ec6a3097efd3aa4}{imag}}());}
+\DoxyCodeLine{00352\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ k;}
+\DoxyCodeLine{00353\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\ k=1;k\ <=\ ncfft2\ ;\ ++k\ )\ \{}
+\DoxyCodeLine{00354\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ fpk\ =\ dst[k];}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ fpnk\ =\ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(dst[ncfft-\/k]);}
+\DoxyCodeLine{00356\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ f1k\ =\ fpk\ +\ fpnk;}
+\DoxyCodeLine{00357\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ f2k\ =\ fpk\ -\/\ fpnk;}
+\DoxyCodeLine{00358\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ tw=\ f2k\ *\ rtw[k-\/1];}
+\DoxyCodeLine{00359\ \ \ \ \ \ \ \ \ \ \ dst[k]\ =\ \ (f1k\ +\ tw)\ *\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad34aa1df007e86671afa0d8ea5dfeede}{Scalar}}(.5);}
+\DoxyCodeLine{00360\ \ \ \ \ \ \ \ \ \ \ dst[ncfft-\/k]\ =\ \ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(f1k\ -\/tw)*\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad34aa1df007e86671afa0d8ea5dfeede}{Scalar}}(.5);}
+\DoxyCodeLine{00361\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00362\ \ \ \ \ \ \ \ \ dst[0]\ =\ dc;}
+\DoxyCodeLine{00363\ \ \ \ \ \ \ \ \ dst[ncfft]\ =\ nyquist;}
+\DoxyCodeLine{00364\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00365\ \ \ \ \ \}}
+\DoxyCodeLine{00366\ }
+\DoxyCodeLine{00367\ \ \ \textcolor{comment}{//\ inverse\ complex-\/to-\/complex}}
+\DoxyCodeLine{00368\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00369\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_af6d3bb0a2807a079de677e81f940d41b}{inv}}(\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *\ dst,\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ \ *src,\textcolor{keywordtype}{int}\ nfft)}
+\DoxyCodeLine{00370\ \ \ \ \ \{}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a525478a34e4a11fc980f5cce323dc819}{get\_plan}}(nfft,\textcolor{keyword}{true}).\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a7ea71feb0d8704656596f2909dba9271}{work}}(0,\ dst,\ src,\ 1,1);}
+\DoxyCodeLine{00372\ \ \ \ \ \}}
+\DoxyCodeLine{00373\ }
+\DoxyCodeLine{00374\ \ \ \textcolor{comment}{//\ half-\/complex\ to\ scalar}}
+\DoxyCodeLine{00375\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00376\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a2de77b6da24146144f1d9b202c312108}{inv}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad34aa1df007e86671afa0d8ea5dfeede}{Scalar}}\ *\ dst,\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *\ src,\textcolor{keywordtype}{int}\ nfft)\ }
+\DoxyCodeLine{00377\ \ \ \ \ \{}
+\DoxyCodeLine{00378\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (nfft\&3)\ \{}
+\DoxyCodeLine{00379\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}.resize(nfft);}
+\DoxyCodeLine{00380\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad7c946816e4ace1e955b837a683368c1}{m\_tmpBuf2}}.resize(nfft);}
+\DoxyCodeLine{00381\ \ \ \ \ \ \ \ \ std::copy(src,src+(nfft>>1)+1,\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}.begin()\ );}
+\DoxyCodeLine{00382\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ k=1;k<(nfft>>1)+1;++k)}
+\DoxyCodeLine{00383\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}[nfft-\/k]\ =\ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}[k]);}
+\DoxyCodeLine{00384\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_af6d3bb0a2807a079de677e81f940d41b}{inv}}(\&\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad7c946816e4ace1e955b837a683368c1}{m\_tmpBuf2}}[0],\&\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}[0],nfft);}
+\DoxyCodeLine{00385\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ k=0;k<nfft;++k)}
+\DoxyCodeLine{00386\ \ \ \ \ \ \ \ \ \ \ dst[k]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad7c946816e4ace1e955b837a683368c1}{m\_tmpBuf2}}[k].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}();}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \}\textcolor{keywordflow}{else}\{}
+\DoxyCodeLine{00388\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ optimized\ version\ for\ multiple\ of\ 4}}
+\DoxyCodeLine{00389\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ncfft\ =\ nfft>>1;}
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ncfft2\ =\ nfft>>2;}
+\DoxyCodeLine{00391\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *\ rtw\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a6effb34f4310ad0d58bb95f503517af1}{real\_twiddles}}(ncfft2);}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}.resize(ncfft);}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}[0]\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}(\ src[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()\ +\ src[ncfft].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}(),\ src[0].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()\ -\/\ src[ncfft].\mbox{\hyperlink{CommonCwiseUnaryOps_8h_a560b678a662ccfce4da582595899a0b7}{real}}()\ );}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ k\ =\ 1;\ k\ <=\ ncfft\ /\ 2;\ ++k)\ \{}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ fk\ =\ src[k];}
+\DoxyCodeLine{00396\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ fnkc\ =\ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(src[ncfft-\/k]);}
+\DoxyCodeLine{00397\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ fek\ =\ fk\ +\ fnkc;}
+\DoxyCodeLine{00398\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ tmp\ =\ fk\ -\/\ fnkc;}
+\DoxyCodeLine{00399\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ fok\ =\ tmp\ *\ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(rtw[k-\/1]);}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}[k]\ =\ fek\ +\ fok;}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}[ncfft-\/k]\ =\ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(fek\ -\/\ fok);}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00403\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a525478a34e4a11fc980f5cce323dc819}{get\_plan}}(ncfft,\textcolor{keyword}{true}).\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a7ea71feb0d8704656596f2909dba9271}{work}}(0,\ \textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}*\textcolor{keyword}{>}(dst),\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}}[0],\ 1,1);}
+\DoxyCodeLine{00404\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00405\ \ \ \ \ \}}
+\DoxyCodeLine{00406\ }
+\DoxyCodeLine{00407\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00408\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft}{kiss\_cpx\_fft<Scalar>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a4282f69a92ce3a79ddc9290cc7d98247}{PlanData}};}
+\DoxyCodeLine{00409\ \ \ \textcolor{keyword}{typedef}\ std::map<int,PlanData>\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ac8a28459579185cc9c6c705f9af6283a}{PlanMap}};}
+\DoxyCodeLine{00410\ }
+\DoxyCodeLine{00411\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ac8a28459579185cc9c6c705f9af6283a}{PlanMap}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a0d73230bed57a7b3c1cfe7ff4708c1be}{m\_plans}};}
+\DoxyCodeLine{00412\ \ \ std::map<int,\ std::vector<Complex>\ >\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a8bcdc6a09b8839fdc53a3da64987d6e2}{m\_realTwiddles}};}
+\DoxyCodeLine{00413\ \ \ std::vector<Complex>\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a777f112137d71539bc0ffc2875643cc4}{m\_tmpBuf1}};}
+\DoxyCodeLine{00414\ \ \ std::vector<Complex>\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad7c946816e4ace1e955b837a683368c1}{m\_tmpBuf2}};}
+\DoxyCodeLine{00415\ }
+\DoxyCodeLine{00416\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00417\ \ \ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a6be6c5acf7e3cce474dc8c94f15eff1e}{PlanKey}}(\textcolor{keywordtype}{int}\ nfft,\ \textcolor{keywordtype}{bool}\ isinverse)\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ (nfft<<1)\ |\ int(isinverse);\ \}}
+\DoxyCodeLine{00418\ }
+\DoxyCodeLine{00419\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00420\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft}{PlanData}}\ \&\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a525478a34e4a11fc980f5cce323dc819}{get\_plan}}(\textcolor{keywordtype}{int}\ nfft,\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_ab3df1b08b9c073db2a7e61a9b06bb295}{inverse}})}
+\DoxyCodeLine{00421\ \ \ \ \ \{}
+\DoxyCodeLine{00422\ \ \ \ \ \ \ \textcolor{comment}{//\ TODO\ look\ for\ PlanKey(nfft,\ !\ inverse)\ and\ conjugate\ the\ twiddles}}
+\DoxyCodeLine{00423\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft}{PlanData}}\ \&\ pd\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a0d73230bed57a7b3c1cfe7ff4708c1be}{m\_plans}}[\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a6be6c5acf7e3cce474dc8c94f15eff1e}{PlanKey}}(nfft,\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_ab3df1b08b9c073db2a7e61a9b06bb295}{inverse}})\ ];}
+\DoxyCodeLine{00424\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\ pd.\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61a1b1bb99a8909668a0c85d94f0c0fb}{m\_twiddles}}.size()\ ==\ 0\ )\ \{}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \ \ pd.\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a85cd6612b484e94c4b0ae3aaff4a3ca8}{make\_twiddles}}(nfft,\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_ab3df1b08b9c073db2a7e61a9b06bb295}{inverse}});}
+\DoxyCodeLine{00426\ \ \ \ \ \ \ \ \ pd.\mbox{\hyperlink{structEigen_1_1internal_1_1kiss__cpx__fft_a61700af00cc2068ccc57003333a23ad1}{factorize}}(nfft);}
+\DoxyCodeLine{00427\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00428\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ pd;}
+\DoxyCodeLine{00429\ \ \ \ \ \}}
+\DoxyCodeLine{00430\ }
+\DoxyCodeLine{00431\ \ \ \textcolor{keyword}{inline}}
+\DoxyCodeLine{00432\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}\ *\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a6effb34f4310ad0d58bb95f503517af1}{real\_twiddles}}(\textcolor{keywordtype}{int}\ ncfft2)}
+\DoxyCodeLine{00433\ \ \ \ \ \{}
+\DoxyCodeLine{00434\ \ \ \ \ \ \ \textcolor{keyword}{using\ }std::acos;}
+\DoxyCodeLine{00435\ \ \ \ \ \ \ std::vector<Complex>\ \&\ twidref\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_a8bcdc6a09b8839fdc53a3da64987d6e2}{m\_realTwiddles}}[ncfft2];\textcolor{comment}{//\ creates\ new\ if\ not\ there}}
+\DoxyCodeLine{00436\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\ (\textcolor{keywordtype}{int})twidref.size()\ !=\ ncfft2\ )\ \{}
+\DoxyCodeLine{00437\ \ \ \ \ \ \ \ \ twidref.resize(ncfft2);}
+\DoxyCodeLine{00438\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ ncfft=\ ncfft2<<1;}
+\DoxyCodeLine{00439\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad34aa1df007e86671afa0d8ea5dfeede}{Scalar}}\ pi\ =\ \ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a4ae93c48c742ccd51e0ec59fa85b49bd}{acos}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad34aa1df007e86671afa0d8ea5dfeede}{Scalar}}(-\/1)\ );}
+\DoxyCodeLine{00440\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ k=1;k<=ncfft2;++k)\ }
+\DoxyCodeLine{00441\ \ \ \ \ \ \ \ \ \ \ twidref[k-\/1]\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a2500b5d4f377a445cb98d3f1facfa1cf}{exp}}(\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_acd6d17fb4117c6ae8d0058dfc287aee2}{Complex}}(0,-\/pi\ *\ (\mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad34aa1df007e86671afa0d8ea5dfeede}{Scalar}}(k)\ /\ ncfft\ +\ \mbox{\hyperlink{structEigen_1_1internal_1_1kissfft__impl_ad34aa1df007e86671afa0d8ea5dfeede}{Scalar}}(.5))\ )\ );}
+\DoxyCodeLine{00442\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00443\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \&twidref[0];}
+\DoxyCodeLine{00444\ \ \ \ \ \}}
+\DoxyCodeLine{00445\ \};}
+\DoxyCodeLine{00446\ }
+\DoxyCodeLine{00447\ \}\ \textcolor{comment}{//\ end\ namespace\ internal}}
+\DoxyCodeLine{00448\ }
+\DoxyCodeLine{00449\ \}\ \textcolor{comment}{//\ end\ namespace\ Eigen}}
+
+\end{DoxyCode}

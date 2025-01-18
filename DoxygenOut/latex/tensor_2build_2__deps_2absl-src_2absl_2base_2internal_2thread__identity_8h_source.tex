@@ -1,0 +1,279 @@
+\doxysection{thread\+\_\+identity.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2thread__identity_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2thread__identity_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/base/internal/thread\_identity.h@{tensor/build/\_deps/absl-\/src/absl/base/internal/thread\_identity.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2thread__identity_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Each\ active\ thread\ has\ an\ ThreadIdentity\ that\ may\ represent\ the\ thread\ in}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ various\ level\ interfaces.\ \ ThreadIdentity\ objects\ are\ never\ deallocated.}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ When\ a\ thread\ terminates,\ its\ ThreadIdentity\ object\ may\ be\ reused\ for\ a}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ thread\ created\ later.}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_THREAD\_IDENTITY\_H\_}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_THREAD\_IDENTITY\_H\_}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#ifndef\ \_WIN32}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ <pthread.h>}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ Defines\ \_\_GOOGLE\_GRTE\_VERSION\_\_\ (via\ glibc-\/specific\ features.h)\ when}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ supported.}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <\mbox{\hyperlink{unistd_8h}{unistd.h}}>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/per\_thread\_tls.h"{}}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00038\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{keyword}{struct\ }SynchLocksHeld;}
+\DoxyCodeLine{00041\ \textcolor{keyword}{struct\ }SynchWaitParams;}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{keyword}{class\ }SpinLock;}
+\DoxyCodeLine{00046\ \textcolor{keyword}{struct\ }ThreadIdentity;}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ Used\ by\ the\ implementation\ of\ absl::Mutex\ and\ absl::CondVar.}}
+\DoxyCodeLine{00049\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch}{PerThreadSynch}}\ \{}
+\DoxyCodeLine{00050\ \ \ \textcolor{comment}{//\ The\ internal\ representation\ of\ absl::Mutex\ and\ absl::CondVar\ rely}}
+\DoxyCodeLine{00051\ \ \ \textcolor{comment}{//\ on\ the\ alignment\ of\ PerThreadSynch.\ Both\ store\ the\ address\ of\ the}}
+\DoxyCodeLine{00052\ \ \ \textcolor{comment}{//\ PerThreadSynch\ in\ the\ high-\/order\ bits\ of\ their\ internal\ state,}}
+\DoxyCodeLine{00053\ \ \ \textcolor{comment}{//\ which\ means\ the\ low\ kLowZeroBits\ of\ the\ address\ of\ PerThreadSynch}}
+\DoxyCodeLine{00054\ \ \ \textcolor{comment}{//\ must\ be\ zero.}}
+\DoxyCodeLine{00055\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a94b73bb6c4cb9dc1099a5a57d8ddc398}{kLowZeroBits}}\ =\ 8;}
+\DoxyCodeLine{00056\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a683bdee0fdc6f48801da15a147353edd}{kAlignment}}\ =\ 1\ <<\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a94b73bb6c4cb9dc1099a5a57d8ddc398}{kLowZeroBits}};}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \ \ \textcolor{comment}{//\ Returns\ the\ associated\ ThreadIdentity.}}
+\DoxyCodeLine{00059\ \ \ \textcolor{comment}{//\ This\ can\ be\ implemented\ as\ a\ cast\ because\ we\ guarantee}}
+\DoxyCodeLine{00060\ \ \ \textcolor{comment}{//\ PerThreadSynch\ is\ the\ first\ element\ of\ ThreadIdentity.}}
+\DoxyCodeLine{00061\ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{ThreadIdentity}}*\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a4d30cf5da9850d77dc21e8d74ce450ea}{thread\_identity}}()\ \{}
+\DoxyCodeLine{00062\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{ThreadIdentity}}*\textcolor{keyword}{>}(\textcolor{keyword}{this});}
+\DoxyCodeLine{00063\ \ \ \}}
+\DoxyCodeLine{00064\ }
+\DoxyCodeLine{00065\ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch}{PerThreadSynch}}*\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a0ebab720ecd54a19adb66aefc8fb45b0}{next}};\ \ \textcolor{comment}{//\ Circular\ waiter\ queue;\ initialized\ to\ 0.}}
+\DoxyCodeLine{00066\ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch}{PerThreadSynch}}*\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a9ea96cdd370259b58d52c01dc67c33ff}{skip}};\ \ \textcolor{comment}{//\ If\ non-\/zero,\ all\ entries\ in\ Mutex\ queue}}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ up\ to\ and\ including\ "{}skip"{}\ have\ same}}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ condition\ as\ this,\ and\ will\ be\ woken\ later}}
+\DoxyCodeLine{00069\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a48fc952999a393b0bdcb574b7718942e}{may\_skip}};\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ if\ false\ while\ on\ mutex\ queue,\ a\ mutex\ unlocker}}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ is\ using\ this\ PerThreadSynch\ as\ a\ terminator.\ \ Its}}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ skip\ field\ must\ not\ be\ filled\ in\ because\ the\ loop}}
+\DoxyCodeLine{00072\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ might\ then\ skip\ over\ the\ terminator.}}
+\DoxyCodeLine{00073\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_abd7952c3a95819361cc2304c9e26ad1c}{wake}};\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ This\ thread\ is\ to\ be\ woken\ from\ a\ Mutex.}}
+\DoxyCodeLine{00074\ \ \ \textcolor{comment}{//\ If\ "{}x"{}\ is\ on\ a\ waiter\ list\ for\ a\ mutex,\ "{}x-\/>cond\_waiter"{}\ is\ true\ iff\ the}}
+\DoxyCodeLine{00075\ \ \ \textcolor{comment}{//\ waiter\ is\ waiting\ on\ the\ mutex\ as\ part\ of\ a\ CV\ Wait\ or\ Mutex\ Await.}}
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ The\ value\ of\ "{}x-\/>cond\_waiter"{}\ is\ meaningless\ if\ "{}x"{}\ is\ not\ on\ a}}
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ Mutex\ waiter\ list.}}
+\DoxyCodeLine{00079\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a840fcef9a68544aa557b05823aca90c3}{cond\_waiter}};}
+\DoxyCodeLine{00080\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a36e5b212731805552bee73959888126e}{maybe\_unlocking}};\ \ \textcolor{comment}{//\ Valid\ at\ head\ of\ Mutex\ waiter\ queue;}}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ true\ if\ UnlockSlow\ could\ be\ searching}}
+\DoxyCodeLine{00082\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ for\ a\ waiter\ to\ wake.\ \ Used\ for\ an\ optimization}}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ in\ Enqueue().\ \ true\ is\ always\ a\ valid\ value.}}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Can\ be\ reset\ to\ false\ when\ the\ unlocker\ or\ any}}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ writer\ releases\ the\ lock,\ or\ a\ reader\ fully}}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ releases\ the\ lock.\ \ It\ may\ not\ be\ set\ to\ false}}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ by\ a\ reader\ that\ decrements\ the\ count\ to}}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ non-\/zero.\ protected\ by\ mutex\ spinlock}}
+\DoxyCodeLine{00089\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_abfa2de836446deb3cc53b30c83c01021}{suppress\_fatal\_errors}};\ \ \textcolor{comment}{//\ If\ true,\ try\ to\ proceed\ even\ in\ the\ face}}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ of\ broken\ invariants.\ \ This\ is\ used\ within}}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ fatal\ signal\ handlers\ to\ improve\ the}}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ chances\ of\ debug\ logging\ information\ being}}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ output\ successfully.}}
+\DoxyCodeLine{00094\ \ \ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_aa8beef5bb2776620522cd9dcac103a95}{priority}};\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Priority\ of\ thread\ (updated\ every\ so\ often).}}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//\ State\ values:}}
+\DoxyCodeLine{00097\ \ \ \textcolor{comment}{//\ \ \ kAvailable:\ This\ PerThreadSynch\ is\ available.}}
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ \ \ kQueued:\ This\ PerThreadSynch\ is\ unavailable,\ it's\ currently\ queued\ on\ a}}
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ Mutex\ or\ CondVar\ waistlist.}}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ Transitions\ from\ kQueued\ to\ kAvailable\ require\ a\ release}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ barrier.\ This\ is\ needed\ as\ a\ waiter\ may\ use\ "{}state"{}\ to}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ independently\ observe\ that\ it's\ no\ longer\ queued.}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ Transitions\ from\ kAvailable\ to\ kQueued\ require\ no\ barrier,\ they}}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ are\ externally\ ordered\ by\ the\ Mutex.}}
+\DoxyCodeLine{00107\ \ \ \textcolor{keyword}{enum}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_ae7f90f96bc11dfa8b83b7ea902c8c14d}{State}}\ \{\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_ae7f90f96bc11dfa8b83b7ea902c8c14dad565808f9fd38d92ea89386d7058be52}{kAvailable}},\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_ae7f90f96bc11dfa8b83b7ea902c8c14dad7e1818dec614a0d62fe3ff0f1df0cf2}{kQueued}}\ \};}
+\DoxyCodeLine{00108\ \ \ std::atomic<State>\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_aff9a226187fa665f99f57ae1b06c676d}{state}};}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ The\ wait\ parameters\ of\ the\ current\ wait.\ \ waitp\ is\ null\ if\ the}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ thread\ is\ not\ waiting.\ Transitions\ from\ null\ to\ non-\/null\ must}}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//\ occur\ before\ the\ enqueue\ commit\ point\ (state\ =\ kQueued\ in}}
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ Enqueue()\ and\ CondVarEnqueue()).\ Transitions\ from\ non-\/null\ to}}
+\DoxyCodeLine{00114\ \ \ \textcolor{comment}{//\ null\ must\ occur\ after\ the\ wait\ is\ finished\ (state\ =\ kAvailable\ in}}
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//\ Mutex::Block()\ and\ CondVar::WaitCommon()).\ This\ field\ may\ be}}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ changed\ only\ by\ the\ thread\ that\ describes\ this\ PerThreadSynch.\ \ A}}
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//\ special\ case\ is\ Fer(),\ which\ calls\ Enqueue()\ on\ another\ thread,}}
+\DoxyCodeLine{00118\ \ \ \textcolor{comment}{//\ but\ with\ an\ identical\ SynchWaitParams\ pointer,\ thus\ leaving\ the}}
+\DoxyCodeLine{00119\ \ \ \textcolor{comment}{//\ pointer\ unchanged.}}
+\DoxyCodeLine{00120\ \ \ \mbox{\hyperlink{structabsl_1_1SynchWaitParams}{SynchWaitParams}}*\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_ae79b2a5ca31fff12ae2c8239b3c8b3d1}{waitp}};}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \ \ intptr\_t\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_a2c86cc9a0953bfab6ea98ebe13dcfc95}{readers}};\ \ \textcolor{comment}{//\ Number\ of\ readers\ in\ mutex.}}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \ \ \textcolor{comment}{//\ When\ priority\ will\ next\ be\ read\ (cycles).}}
+\DoxyCodeLine{00125\ \ \ int64\_t\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_aea2db56fab4273180cede0a78e25f673}{next\_priority\_read\_cycles}};}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \textcolor{comment}{//\ Locks\ held;\ used\ during\ deadlock\ detection.}}
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ Allocated\ in\ Synch\_GetAllLocks()\ and\ freed\ in\ ReclaimThreadIdentity().}}
+\DoxyCodeLine{00129\ \ \ \mbox{\hyperlink{structabsl_1_1SynchLocksHeld}{SynchLocksHeld}}*\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch_af7ec6d04434ae4122b693da28ea9f907}{all\_locks}};}
+\DoxyCodeLine{00130\ \};}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \textcolor{comment}{//\ The\ instances\ of\ this\ class\ are\ allocated\ in\ NewThreadIdentity()\ with\ an}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ alignment\ of\ PerThreadSynch::kAlignment\ and\ never\ destroyed.\ Initialization}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ should\ happen\ in\ OneTimeInitThreadIdentity().}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ Instances\ may\ be\ reused\ by\ new\ threads\ -\/\ fields\ should\ be\ reset\ in}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ ResetThreadIdentityBetweenReuse().}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ NOTE:\ The\ layout\ of\ fields\ in\ this\ structure\ is\ critical,\ please\ do\ not}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//\ \ \ \ \ \ \ add,\ remove,\ or\ modify\ the\ field\ placements\ without\ fully\ auditing\ the}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ \ \ \ \ \ \ layout.}}
+\DoxyCodeLine{00142\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{ThreadIdentity}}\ \{}
+\DoxyCodeLine{00143\ \ \ \textcolor{comment}{//\ Must\ be\ the\ first\ member.\ \ The\ Mutex\ implementation\ requires\ that}}
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//\ the\ PerThreadSynch\ object\ associated\ with\ each\ thread\ is}}
+\DoxyCodeLine{00145\ \ \ \textcolor{comment}{//\ PerThreadSynch::kAlignment\ aligned.\ \ We\ provide\ this\ alignment\ on}}
+\DoxyCodeLine{00146\ \ \ \textcolor{comment}{//\ ThreadIdentity\ itself.}}
+\DoxyCodeLine{00147\ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1PerThreadSynch}{PerThreadSynch}}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity_a7400d8dacbb325c699489c86d3d8ab0f}{per\_thread\_synch}};}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \ \ \textcolor{comment}{//\ Private:\ Reserved\ for\ absl::synchronization\_internal::Waiter.}}
+\DoxyCodeLine{00150\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity_1_1WaiterState}{WaiterState}}\ \{}
+\DoxyCodeLine{00151\ \ \ \ \ \textcolor{keyword}{alignas}(\textcolor{keywordtype}{void}*)\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity_1_1WaiterState_ad057508d3304131b4ef40bdc9b2b8ca5}{data}}[256];}
+\DoxyCodeLine{00152\ \ \ \}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity_ae8e213d2b717159ba13868d7a5c4cdb1}{waiter\_state}};}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \ \ \textcolor{comment}{//\ Used\ by\ PerThreadSem::\{Get,Set\}ThreadBlockedCounter().}}
+\DoxyCodeLine{00155\ \ \ std::atomic<int>*\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity_a7db9398b02653d073155168847bc647f}{blocked\_count\_ptr}};}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \ \textcolor{comment}{//\ The\ following\ variables\ are\ mostly\ read/written\ just\ by\ the}}
+\DoxyCodeLine{00158\ \ \ \textcolor{comment}{//\ thread\ itself.\ \ The\ only\ exception\ is\ that\ these\ are\ read\ by}}
+\DoxyCodeLine{00159\ \ \ \textcolor{comment}{//\ a\ ticker\ thread\ as\ a\ hint.}}
+\DoxyCodeLine{00160\ \ \ std::atomic<int>\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity_a2908755fe8d57380f937bc86da117baa}{ticker}};\ \ \ \ \ \ \textcolor{comment}{//\ Tick\ counter,\ incremented\ once\ per\ second.}}
+\DoxyCodeLine{00161\ \ \ std::atomic<int>\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity_a5723a7aaee814041fbb081ea3021c4fd}{wait\_start}};\ \ \textcolor{comment}{//\ Ticker\ value\ when\ thread\ started\ waiting.}}
+\DoxyCodeLine{00162\ \ \ std::atomic<bool>\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity_a9e5e355855642ada3967a1cf30c159f7}{is\_idle}};\ \ \ \ \textcolor{comment}{//\ Has\ thread\ become\ idle\ yet?}}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{ThreadIdentity}}*\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity_aa065387ab3a6c2722b50741abeca2580}{next}};}
+\DoxyCodeLine{00165\ \};}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \textcolor{comment}{//\ Returns\ the\ ThreadIdentity\ object\ representing\ the\ calling\ thread;\ guaranteed}}
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ to\ be\ unique\ for\ its\ lifetime.\ \ The\ returned\ object\ will\ remain\ valid\ for\ the}}
+\DoxyCodeLine{00169\ \textcolor{comment}{//\ program's\ lifetime;\ although\ it\ may\ be\ re-\/assigned\ to\ a\ subsequent\ thread.}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ If\ one\ does\ not\ exist,\ return\ nullptr\ instead.}}
+\DoxyCodeLine{00171\ \textcolor{comment}{//}}
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ Does\ not\ malloc(*),\ and\ is\ async-\/signal\ safe.}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//\ [*]\ Technically\ pthread\_setspecific()\ does\ malloc\ on\ first\ use;\ however\ this}}
+\DoxyCodeLine{00174\ \textcolor{comment}{//\ is\ handled\ internally\ within\ tcmalloc's\ initialization\ already.\ Note\ that}}
+\DoxyCodeLine{00175\ \textcolor{comment}{//\ darwin\ does\ *not*\ use\ tcmalloc,\ so\ this\ can\ catch\ you\ if\ using\ MallocHooks}}
+\DoxyCodeLine{00176\ \textcolor{comment}{//\ on\ Apple\ platforms.\ Whatever\ function\ is\ calling\ your\ MallocHooks\ will\ need}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//\ to\ watch\ for\ recursion\ on\ Apple\ platforms.}}
+\DoxyCodeLine{00178\ \textcolor{comment}{//}}
+\DoxyCodeLine{00179\ \textcolor{comment}{//\ New\ ThreadIdentity\ objects\ can\ be\ constructed\ and\ associated\ with\ a\ thread}}
+\DoxyCodeLine{00180\ \textcolor{comment}{//\ by\ calling\ GetOrCreateCurrentThreadIdentity()\ in\ per-\/thread-\/sem.h.}}
+\DoxyCodeLine{00181\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{ThreadIdentity}}*\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ade77222a3f54651875359ffc3789d1b8}{CurrentThreadIdentityIfPresent}}();}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1base__internal_a7ae6c1f80c20fd3b0c51437c7f4929ba}{ThreadIdentityReclaimerFunction}}\ =\ void\ (*)(\textcolor{keywordtype}{void}*);}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \textcolor{comment}{//\ Sets\ the\ current\ thread\ identity\ to\ the\ given\ value.\ \ 'reclaimer'\ is\ a}}
+\DoxyCodeLine{00186\ \textcolor{comment}{//\ pointer\ to\ the\ global\ function\ for\ cleaning\ up\ instances\ on\ thread}}
+\DoxyCodeLine{00187\ \textcolor{comment}{//\ destruction.}}
+\DoxyCodeLine{00188\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a6cd6f2a8d922f12d2b00a588183543ce}{SetCurrentThreadIdentity}}(\mbox{\hyperlink{structabsl_1_1base__internal_1_1ThreadIdentity}{ThreadIdentity}}*\ identity,}
+\DoxyCodeLine{00189\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a7ae6c1f80c20fd3b0c51437c7f4929ba}{ThreadIdentityReclaimerFunction}}\ reclaimer);}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \textcolor{comment}{//\ Removes\ the\ currently\ associated\ ThreadIdentity\ from\ the\ running\ thread.}}
+\DoxyCodeLine{00192\ \textcolor{comment}{//\ This\ must\ be\ called\ from\ inside\ the\ ThreadIdentityReclaimerFunction,\ and\ only}}
+\DoxyCodeLine{00193\ \textcolor{comment}{//\ from\ that\ function.}}
+\DoxyCodeLine{00194\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ade37da5dc2cb8a39b15b1783a86e2ad2}{ClearCurrentThreadIdentity}}();}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \textcolor{comment}{//\ May\ be\ chosen\ at\ compile\ time\ via:\ -\/DABSL\_FORCE\_THREAD\_IDENTITY\_MODE=<mode}}
+\DoxyCodeLine{00197\ \textcolor{comment}{//\ index>}}
+\DoxyCodeLine{00198\ \textcolor{preprocessor}{\#ifdef\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_POSIX\_SETSPECIFIC}}
+\DoxyCodeLine{00199\ \textcolor{preprocessor}{\#error\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_POSIX\_SETSPECIFIC\ cannot\ be\ directly\ set}}
+\DoxyCodeLine{00200\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00201\ \textcolor{preprocessor}{\#define\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_POSIX\_SETSPECIFIC\ 0}}
+\DoxyCodeLine{00202\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \textcolor{preprocessor}{\#ifdef\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_TLS}}
+\DoxyCodeLine{00205\ \textcolor{preprocessor}{\#error\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_TLS\ cannot\ be\ directly\ set}}
+\DoxyCodeLine{00206\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00207\ \textcolor{preprocessor}{\#define\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_TLS\ 1}}
+\DoxyCodeLine{00208\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00209\ }
+\DoxyCodeLine{00210\ \textcolor{preprocessor}{\#ifdef\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_CPP11}}
+\DoxyCodeLine{00211\ \textcolor{preprocessor}{\#error\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_CPP11\ cannot\ be\ directly\ set}}
+\DoxyCodeLine{00212\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00213\ \textcolor{preprocessor}{\#define\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_CPP11\ 2}}
+\DoxyCodeLine{00214\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \textcolor{preprocessor}{\#ifdef\ ABSL\_THREAD\_IDENTITY\_MODE}}
+\DoxyCodeLine{00217\ \textcolor{preprocessor}{\#error\ ABSL\_THREAD\_IDENTITY\_MODE\ cannot\ be\ directly\ set}}
+\DoxyCodeLine{00218\ \textcolor{preprocessor}{\#elif\ defined(ABSL\_FORCE\_THREAD\_IDENTITY\_MODE)}}
+\DoxyCodeLine{00219\ \textcolor{preprocessor}{\#define\ ABSL\_THREAD\_IDENTITY\_MODE\ ABSL\_FORCE\_THREAD\_IDENTITY\_MODE}}
+\DoxyCodeLine{00220\ \textcolor{preprocessor}{\#elif\ defined(\_WIN32)\ \&\&\ !defined(\_\_MINGW32\_\_)}}
+\DoxyCodeLine{00221\ \textcolor{preprocessor}{\#define\ ABSL\_THREAD\_IDENTITY\_MODE\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_CPP11}}
+\DoxyCodeLine{00222\ \textcolor{preprocessor}{\#elif\ defined(\_\_APPLE\_\_)\ \&\&\ defined(ABSL\_HAVE\_THREAD\_LOCAL)}}
+\DoxyCodeLine{00223\ \textcolor{preprocessor}{\#define\ ABSL\_THREAD\_IDENTITY\_MODE\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_CPP11}}
+\DoxyCodeLine{00224\ \textcolor{preprocessor}{\#elif\ ABSL\_PER\_THREAD\_TLS\ \&\&\ defined(\_\_GOOGLE\_GRTE\_VERSION\_\_)\ \&\&\ \(\backslash\)}}
+\DoxyCodeLine{00225\ \textcolor{preprocessor}{\ \ \ \ (\_\_GOOGLE\_GRTE\_VERSION\_\_\ >=\ 20140228L)}}
+\DoxyCodeLine{00226\ \textcolor{comment}{//\ Support\ for\ async-\/safe\ TLS\ was\ specifically\ added\ in\ GRTEv4.\ \ It's\ not}}
+\DoxyCodeLine{00227\ \textcolor{comment}{//\ present\ in\ the\ upstream\ eglibc.}}
+\DoxyCodeLine{00228\ \textcolor{comment}{//\ Note:\ \ Current\ default\ for\ production\ systems.}}
+\DoxyCodeLine{00229\ \textcolor{preprocessor}{\#define\ ABSL\_THREAD\_IDENTITY\_MODE\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_TLS}}
+\DoxyCodeLine{00230\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00231\ \textcolor{preprocessor}{\#define\ ABSL\_THREAD\_IDENTITY\_MODE\ \(\backslash\)}}
+\DoxyCodeLine{00232\ \textcolor{preprocessor}{\ \ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_POSIX\_SETSPECIFIC}}
+\DoxyCodeLine{00233\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00235\ \textcolor{preprocessor}{\#if\ ABSL\_THREAD\_IDENTITY\_MODE\ ==\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_TLS\ ||\ \(\backslash\)}}
+\DoxyCodeLine{00236\ \textcolor{preprocessor}{\ \ \ \ ABSL\_THREAD\_IDENTITY\_MODE\ ==\ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_CPP11}}
+\DoxyCodeLine{00237\ }
+\DoxyCodeLine{00238\ \textcolor{preprocessor}{\#if\ ABSL\_PER\_THREAD\_TLS}}
+\DoxyCodeLine{00239\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a0960184d4a72f445953241f1c5a30bb2}{ABSL\_CONST\_INIT}}\ \textcolor{keyword}{extern}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2per__thread__tls_8h_ac5a35e5c7065babf5e38e5a7b3df04d8}{ABSL\_PER\_THREAD\_TLS\_KEYWORD}}\ ThreadIdentity*}
+\DoxyCodeLine{00240\ \ \ \ \ thread\_identity\_ptr;}
+\DoxyCodeLine{00241\ \textcolor{preprocessor}{\#elif\ defined(ABSL\_HAVE\_THREAD\_LOCAL)}}
+\DoxyCodeLine{00242\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a0960184d4a72f445953241f1c5a30bb2}{ABSL\_CONST\_INIT}}\ \textcolor{keyword}{extern}\ \textcolor{keyword}{thread\_local}\ ThreadIdentity*\ thread\_identity\_ptr;}
+\DoxyCodeLine{00243\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00244\ \textcolor{preprocessor}{\#error\ Thread-\/local\ storage\ not\ detected\ on\ this\ platform}}
+\DoxyCodeLine{00245\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \textcolor{comment}{//\ thread\_local\ variables\ cannot\ be\ in\ headers\ exposed\ by\ DLLs\ or\ in\ certain}}
+\DoxyCodeLine{00248\ \textcolor{comment}{//\ build\ configurations\ on\ Apple\ platforms.\ However,\ it\ is\ important\ for}}
+\DoxyCodeLine{00249\ \textcolor{comment}{//\ performance\ reasons\ in\ general\ that\ \`{}CurrentThreadIdentityIfPresent`\ be}}
+\DoxyCodeLine{00250\ \textcolor{comment}{//\ inlined.\ In\ the\ other\ cases\ we\ opt\ to\ have\ the\ function\ not\ be\ inlined.\ Note}}
+\DoxyCodeLine{00251\ \textcolor{comment}{//\ that\ \`{}CurrentThreadIdentityIfPresent`\ is\ declared\ above\ so\ we\ can\ exclude}}
+\DoxyCodeLine{00252\ \textcolor{comment}{//\ this\ entire\ inline\ definition.}}
+\DoxyCodeLine{00253\ \textcolor{preprocessor}{\#if\ !defined(\_\_APPLE\_\_)\ \&\&\ !defined(ABSL\_BUILD\_DLL)\ \&\&\ \(\backslash\)}}
+\DoxyCodeLine{00254\ \textcolor{preprocessor}{\ \ \ \ !defined(ABSL\_CONSUME\_DLL)}}
+\DoxyCodeLine{00255\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_INLINE\_CURRENT\_THREAD\_IDENTITY\_IF\_PRESENT\ 1}}
+\DoxyCodeLine{00256\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00258\ \textcolor{preprocessor}{\#ifdef\ ABSL\_INTERNAL\_INLINE\_CURRENT\_THREAD\_IDENTITY\_IF\_PRESENT}}
+\DoxyCodeLine{00259\ \textcolor{keyword}{inline}\ ThreadIdentity*\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ade77222a3f54651875359ffc3789d1b8}{CurrentThreadIdentityIfPresent}}()\ \{}
+\DoxyCodeLine{00260\ \ \ \textcolor{keywordflow}{return}\ thread\_identity\_ptr;}
+\DoxyCodeLine{00261\ \}}
+\DoxyCodeLine{00262\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00263\ }
+\DoxyCodeLine{00264\ \textcolor{preprocessor}{\#elif\ ABSL\_THREAD\_IDENTITY\_MODE\ !=\ \(\backslash\)}}
+\DoxyCodeLine{00265\ \textcolor{preprocessor}{\ \ \ \ ABSL\_THREAD\_IDENTITY\_MODE\_USE\_POSIX\_SETSPECIFIC}}
+\DoxyCodeLine{00266\ \textcolor{preprocessor}{\#error\ Unknown\ ABSL\_THREAD\_IDENTITY\_MODE}}
+\DoxyCodeLine{00267\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00269\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00270\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00271\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00272\ }
+\DoxyCodeLine{00273\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_THREAD\_IDENTITY\_H\_}}
+
+\end{DoxyCode}

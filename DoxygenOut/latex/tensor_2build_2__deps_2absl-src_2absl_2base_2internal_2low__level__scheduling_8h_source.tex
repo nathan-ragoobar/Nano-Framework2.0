@@ -1,0 +1,140 @@
+\doxysection{low\+\_\+level\+\_\+scheduling.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2low__level__scheduling_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2low__level__scheduling_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/base/internal/low\_level\_scheduling.h@{tensor/build/\_deps/absl-\/src/absl/base/internal/low\_level\_scheduling.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2low__level__scheduling_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Core\ interfaces\ and\ definitions\ used\ by\ by\ low-\/level\ interfaces\ such\ as}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ SpinLock.}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_LOW\_LEVEL\_SCHEDULING\_H\_}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_LOW\_LEVEL\_SCHEDULING\_H\_}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/raw\_logging.h"{}}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/scheduling\_mode.h"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ The\ following\ two\ declarations\ exist\ so\ SchedulingGuard\ may\ friend\ them\ with}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ the\ appropriate\ language\ linkage.\ \ These\ callbacks\ allow\ libc\ internals,\ such}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ as\ function\ level\ statics,\ to\ schedule\ cooperatively\ when\ locking.}}
+\DoxyCodeLine{00028\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__scheduling_8h_a947682157a5533fada14223fa1e81c9c}{\_\_google\_disable\_rescheduling}}(\textcolor{keywordtype}{void});}
+\DoxyCodeLine{00029\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__scheduling_8h_a0027258e0349d242e95efab5b4204d56}{\_\_google\_enable\_rescheduling}}(\textcolor{keywordtype}{bool}\ disable\_result);}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00032\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00033\ \textcolor{keyword}{class\ }CondVar;}
+\DoxyCodeLine{00034\ \textcolor{keyword}{class\ }Mutex;}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{keyword}{namespace\ }synchronization\_internal\ \{}
+\DoxyCodeLine{00037\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_1_1synchronization__internal_afde8654fa4d390b82a4d9872aeed60d9}{MutexDelay}}(int32\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ \textcolor{keywordtype}{int}\ mode);}
+\DoxyCodeLine{00038\ \}\ \ \textcolor{comment}{//\ namespace\ synchronization\_internal}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{keyword}{class\ }SchedulingHelper;\ \ \textcolor{comment}{//\ To\ allow\ use\ of\ SchedulingGuard.}}
+\DoxyCodeLine{00043\ \textcolor{keyword}{class\ }SpinLock;\ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ To\ allow\ use\ of\ SchedulingGuard.}}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ SchedulingGuard}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ Provides\ guard\ semantics\ that\ may\ be\ used\ to\ disable\ cooperative\ rescheduling}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ of\ the\ calling\ thread\ within\ specific\ program\ blocks.\ \ This\ is\ used\ to}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ protect\ resources\ (e.g.\ low-\/level\ SpinLocks\ or\ Domain\ code)\ that\ cooperative}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ scheduling\ depends\ on.}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ Domain\ implementations\ capable\ of\ rescheduling\ in\ reaction\ to\ involuntary}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ kernel\ thread\ actions\ (e.g\ blocking\ due\ to\ a\ pagefault\ or\ syscall)\ must}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ guarantee\ that\ an\ annotated\ thread\ is\ not\ allowed\ to\ (cooperatively)}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ reschedule\ until\ the\ annotated\ region\ is\ complete.}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ It\ is\ an\ error\ to\ attempt\ to\ use\ a\ cooperatively\ scheduled\ resource\ (e.g.}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ Mutex)\ within\ a\ rescheduling-\/disabled\ region.}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ All\ methods\ are\ async-\/signal\ safe.}}
+\DoxyCodeLine{00060\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard}{SchedulingGuard}}\ \{}
+\DoxyCodeLine{00061\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00062\ \ \ \textcolor{comment}{//\ Returns\ true\ iff\ the\ calling\ thread\ may\ be\ cooperatively\ rescheduled.}}
+\DoxyCodeLine{00063\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard_adf2b3542e52db932876adcbc2103806d}{ReschedulingIsAllowed}}();}
+\DoxyCodeLine{00064\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard_a3c3302482168aa1b8d96e8981c19b8bf}{SchedulingGuard}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard}{SchedulingGuard}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00065\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard}{SchedulingGuard}}\&\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard_ac554032de20bb26c857ea0cce93c96a9}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard}{SchedulingGuard}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//\ Disable\ cooperative\ rescheduling\ of\ the\ calling\ thread.\ \ It\ may\ still}}
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ initiate\ scheduling\ operations\ (e.g.\ wake-\/ups),\ however,\ it\ may\ not\ itself}}
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//\ reschedule.\ \ Nestable.\ \ The\ returned\ result\ is\ opaque,\ clients\ should\ not}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ attempt\ to\ interpret\ it.}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ REQUIRES:\ Result\ must\ be\ passed\ to\ a\ pairing\ EnableScheduling().}}
+\DoxyCodeLine{00073\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ DisableRescheduling();}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \ \ \textcolor{comment}{//\ Marks\ the\ end\ of\ a\ rescheduling\ disabled\ region,\ previously\ started\ by}}
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ DisableRescheduling().}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ REQUIRES:\ Pairs\ with\ innermost\ call\ (and\ result)\ of\ DisableRescheduling().}}
+\DoxyCodeLine{00078\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ EnableRescheduling(\textcolor{keywordtype}{bool}\ disable\_result);}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ A\ scoped\ helper\ for\ \{Disable,\ Enable\}Rescheduling().}}
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ REQUIRES:\ destructor\ must\ run\ in\ same\ thread\ as\ constructor.}}
+\DoxyCodeLine{00082\ \ \ \textcolor{keyword}{struct\ }ScopedDisable\ \{}
+\DoxyCodeLine{00083\ \ \ \ \ ScopedDisable()\ \{\ disabled\ =\ SchedulingGuard::DisableRescheduling();\ \}}
+\DoxyCodeLine{00084\ \ \ \ \ \string~ScopedDisable()\ \{\ SchedulingGuard::EnableRescheduling(disabled);\ \}}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{keywordtype}{bool}\ disabled;}
+\DoxyCodeLine{00087\ \ \ \};}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \ \ \textcolor{comment}{//\ A\ scoped\ helper\ to\ enable\ rescheduling\ temporarily.}}
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ REQUIRES:\ destructor\ must\ run\ in\ same\ thread\ as\ constructor.}}
+\DoxyCodeLine{00091\ \ \ \textcolor{keyword}{class\ }ScopedEnable\ \{}
+\DoxyCodeLine{00092\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00093\ \ \ \ \ ScopedEnable();}
+\DoxyCodeLine{00094\ \ \ \ \ \string~ScopedEnable();}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00097\ \ \ \ \ \textcolor{keywordtype}{int}\ scheduling\_disabled\_depth\_;}
+\DoxyCodeLine{00098\ \ \ \};}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ Access\ to\ SchedulingGuard\ is\ explicitly\ permitted.}}
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1CondVar}{absl::CondVar}};}
+\DoxyCodeLine{00102\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1Mutex}{absl::Mutex}};}
+\DoxyCodeLine{00103\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard_a429acf5132a145cfa02ed8ed56a4d22b}{SchedulingHelper}};}
+\DoxyCodeLine{00104\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard_aeb65666bd4690a4a6181defec26429c0}{SpinLock}};}
+\DoxyCodeLine{00105\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_1_1synchronization__internal_afde8654fa4d390b82a4d9872aeed60d9}{absl::synchronization\_internal::MutexDelay}}(int32\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ \textcolor{keywordtype}{int}\ mode);}
+\DoxyCodeLine{00106\ \};}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ End\ of\ public\ interfaces.}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingGuard_a6e5d902a8d75134a33848fe8ba7bd2dc}{SchedulingGuard::ReschedulingIsAllowed}}()\ \{}
+\DoxyCodeLine{00113\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00114\ \}}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{bool}\ SchedulingGuard::DisableRescheduling()\ \{}
+\DoxyCodeLine{00117\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00118\ \}}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ SchedulingGuard::EnableRescheduling(\textcolor{keywordtype}{bool}\ \textcolor{comment}{/*\ disable\_result\ */})\ \{}
+\DoxyCodeLine{00121\ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00122\ \}}
+\DoxyCodeLine{00123\ }
+\DoxyCodeLine{00124\ \textcolor{keyword}{inline}\ SchedulingGuard::ScopedEnable::ScopedEnable()}
+\DoxyCodeLine{00125\ \ \ \ \ :\ scheduling\_disabled\_depth\_(0)\ \{\}}
+\DoxyCodeLine{00126\ \textcolor{keyword}{inline}\ SchedulingGuard::ScopedEnable::\string~ScopedEnable()\ \{}
+\DoxyCodeLine{00127\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2raw__logging_8h_a4a085b4c45775995588a397caf43dc59}{ABSL\_RAW\_CHECK}}(scheduling\_disabled\_depth\_\ ==\ 0,\ \textcolor{stringliteral}{"{}disable\ unused\ warning"{}});}
+\DoxyCodeLine{00128\ \}}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00131\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00132\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_LOW\_LEVEL\_SCHEDULING\_H\_}}
+
+\end{DoxyCode}

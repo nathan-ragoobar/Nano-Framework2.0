@@ -1,0 +1,309 @@
+\doxysection{cordz\+\_\+info.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2cordz__info_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2cordz__info_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/strings/internal/cordz\_info.h@{tensor/build/\_deps/absl-\/src/absl/strings/internal/cordz\_info.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2cordz__info_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2019\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_INTERNAL\_CORDZ\_INFO\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_INTERNAL\_CORDZ\_INFO\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/raw\_logging.h"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/spinlock.h"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}absl/base/thread\_annotations.h"{}}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cord\_internal.h"{}}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cordz\_functions.h"{}}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cordz\_handle.h"{}}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cordz\_statistics.h"{}}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cordz\_update\_tracker.h"{}}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/mutex.h"{}}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}absl/types/span.h"{}}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00035\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00036\ \textcolor{keyword}{namespace\ }cord\_internal\ \{}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ CordzInfo\ tracks\ a\ profiled\ Cord.\ Each\ of\ these\ objects\ can\ be\ in\ two\ places.}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ If\ a\ Cord\ is\ alive,\ the\ CordzInfo\ will\ be\ in\ the\ global\_cordz\_infos\ map,\ and}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ can\ also\ be\ retrieved\ via\ the\ linked\ list\ starting\ with}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ global\_cordz\_infos\_head\ and\ continued\ via\ the\ cordz\_info\_next()\ method.\ When}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ a\ Cord\ has\ reached\ the\ end\ of\ its\ lifespan,\ the\ CordzInfo\ object\ will\ be}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ migrated\ out\ of\ the\ global\_cordz\_infos\ list\ and\ the\ global\_cordz\_infos\_map,}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ and\ will\ either\ be\ deleted\ or\ appended\ to\ the\ global\_delete\_queue.\ If\ it\ is}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ placed\ on\ the\ global\_delete\_queue,\ the\ CordzInfo\ object\ will\ be\ cleaned\ in}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ the\ destructor\ of\ a\ CordzSampleToken\ object.}}
+\DoxyCodeLine{00047\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a474827525a05da25eeee625052e60f70}{ABSL\_LOCKABLE}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{CordzInfo}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle}{CordzHandle}}\ \{}
+\DoxyCodeLine{00048\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00049\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzUpdateTracker_ae9e3e3b5044c4da09e8c82b3265ab5e1}{MethodIdentifier}}\ =\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzUpdateTracker_ae9e3e3b5044c4da09e8c82b3265ab5e1}{CordzUpdateTracker::MethodIdentifier}};}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \textcolor{comment}{//\ TrackCord\ creates\ a\ CordzInfo\ instance\ which\ tracks\ important\ metrics\ of}}
+\DoxyCodeLine{00052\ \ \ \textcolor{comment}{//\ a\ sampled\ cord,\ and\ stores\ the\ created\ CordzInfo\ instance\ into\ \`{}cord'.\ All}}
+\DoxyCodeLine{00053\ \ \ \textcolor{comment}{//\ CordzInfo\ instances\ are\ placed\ in\ a\ global\ list\ which\ is\ used\ to\ discover}}
+\DoxyCodeLine{00054\ \ \ \textcolor{comment}{//\ and\ snapshot\ all\ actively\ tracked\ cords.\ Callers\ are\ responsible\ for}}
+\DoxyCodeLine{00055\ \ \ \textcolor{comment}{//\ calling\ UntrackCord()\ before\ the\ tracked\ Cord\ instance\ is\ deleted,\ or\ to}}
+\DoxyCodeLine{00056\ \ \ \textcolor{comment}{//\ stop\ tracking\ the\ sampled\ Cord.\ Callers\ are\ also\ responsible\ for\ guarding}}
+\DoxyCodeLine{00057\ \ \ \textcolor{comment}{//\ changes\ to\ the\ 'tree'\ value\ of\ a\ Cord\ (InlineData.tree)\ through\ the\ Lock()}}
+\DoxyCodeLine{00058\ \ \ \textcolor{comment}{//\ and\ Unlock()\ calls.\ Any\ change\ resulting\ in\ a\ new\ tree\ value\ for\ the\ cord}}
+\DoxyCodeLine{00059\ \ \ \textcolor{comment}{//\ requires\ a\ call\ to\ SetCordRep()\ before\ the\ old\ tree\ has\ been\ unreffed}}
+\DoxyCodeLine{00060\ \ \ \textcolor{comment}{//\ and/or\ deleted.\ \`{}method`\ identifies\ the\ Cord\ public\ API\ method\ initiating}}
+\DoxyCodeLine{00061\ \ \ \textcolor{comment}{//\ the\ cord\ to\ be\ sampled.}}
+\DoxyCodeLine{00062\ \ \ \textcolor{comment}{//\ Requires\ \`{}cord`\ to\ hold\ a\ tree,\ and\ \`{}cord.cordz\_info()`\ to\ be\ null.}}
+\DoxyCodeLine{00063\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_affaff585c670bb75fdb40e17f949932b}{TrackCord}}(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1InlineData}{InlineData}}\&\ cord,\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzUpdateTracker_ae9e3e3b5044c4da09e8c82b3265ab5e1}{MethodIdentifier}}\ method,}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ int64\_t\ sampling\_stride);}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ Identical\ to\ TrackCord(),\ except\ that\ this\ function\ fills\ the}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ \`{}parent\_stack`\ and\ \`{}parent\_method`\ properties\ of\ the\ returned\ CordzInfo}}
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//\ instance\ from\ the\ provided\ \`{}src`\ instance\ if\ \`{}src`\ is\ sampled.}}
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ This\ function\ should\ be\ used\ for\ sampling\ 'copy\ constructed'\ and\ 'copy}}
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//\ assigned'\ cords.\ This\ function\ allows\ 'cord`\ to\ be\ already\ sampled,\ in}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ which\ case\ the\ CordzInfo\ will\ be\ newly\ created\ from\ \`{}src`.}}
+\DoxyCodeLine{00072\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_af1aadc4b9b749e25ddf0dee9c1b3b41f}{TrackCord}}(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1InlineData}{InlineData}}\&\ cord,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1InlineData}{InlineData}}\&\ src,}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzUpdateTracker_ae9e3e3b5044c4da09e8c82b3265ab5e1}{MethodIdentifier}}\ method);}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \ \ \textcolor{comment}{//\ Maybe\ sample\ the\ cord\ identified\ by\ 'cord'\ for\ method\ 'method'.}}
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ Uses\ \`{}cordz\_should\_profile`\ to\ randomly\ pick\ cords\ to\ be\ sampled,\ and\ if}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ so,\ invokes\ \`{}TrackCord`\ to\ start\ sampling\ \`{}cord`.}}
+\DoxyCodeLine{00078\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a8e8c6e25441701bd97544676cd6e8a68}{MaybeTrackCord}}(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1InlineData}{InlineData}}\&\ cord,\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzUpdateTracker_ae9e3e3b5044c4da09e8c82b3265ab5e1}{MethodIdentifier}}\ method);}
+\DoxyCodeLine{00079\ }
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ Maybe\ sample\ the\ cord\ identified\ by\ 'cord'\ for\ method\ 'method'.}}
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ \`{}src`\ identifies\ a\ 'parent'\ cord\ which\ is\ assigned\ to\ \`{}cord`,\ typically\ the}}
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{//\ input\ cord\ for\ a\ copy\ constructor,\ or\ an\ assign\ method\ such\ as\ \`{}operator=`}}
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{//\ \`{}cord`\ will\ be\ sampled\ if\ (and\ only\ if)\ \`{}src`\ is\ sampled.}}
+\DoxyCodeLine{00084\ \ \ \textcolor{comment}{//\ If\ \`{}cord`\ is\ currently\ being\ sampled\ and\ \`{}src`\ is\ not\ being\ sampled,\ then}}
+\DoxyCodeLine{00085\ \ \ \textcolor{comment}{//\ this\ function\ will\ stop\ sampling\ the\ cord\ and\ reset\ the\ cord's\ cordz\_info.}}
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00087\ \ \ \textcolor{comment}{//\ Previously\ this\ function\ defined\ that\ \`{}cord`\ will\ be\ sampled\ if\ either}}
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ \`{}src`\ is\ sampled,\ or\ if\ \`{}cord`\ is\ randomly\ picked\ for\ sampling.\ However,}}
+\DoxyCodeLine{00089\ \ \ \textcolor{comment}{//\ this\ can\ cause\ issues,\ as\ there\ may\ be\ paths\ where\ some\ cord\ is\ assigned\ an}}
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ indirect\ copy\ of\ it's\ own\ value.\ As\ such\ a\ 'string\ of\ copies'\ would\ then}}
+\DoxyCodeLine{00091\ \ \ \textcolor{comment}{//\ remain\ sampled\ (`src.is\_profiled`),\ then\ assigning\ such\ a\ cord\ back\ to}}
+\DoxyCodeLine{00092\ \ \ \textcolor{comment}{//\ 'itself'\ creates\ a\ cycle\ where\ the\ cord\ will\ converge\ to\ 'always\ sampled`.}}
+\DoxyCodeLine{00093\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//\ For\ example:}}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//\ \ \ Cord\ x;}}
+\DoxyCodeLine{00097\ \ \ \textcolor{comment}{//\ \ \ for\ (...)\ \{}}
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ \ \ \ \ //\ Copy\ ctor\ -\/-\/>\ y.is\_profiled\ :=\ x.is\_profiled\ |\ random(...)}}
+\DoxyCodeLine{00099\ \ \ \textcolor{comment}{//\ \ \ \ \ Cord\ y\ =\ x;}}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ \ \ \ \ ...}}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ \ \ \ \ //\ Assign\ x\ =\ y\ -\/-\/>\ x.is\_profiled\ =\ y.is\_profiled\ |\ random(...)}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ \ \ \ \ //\ \ \ \ \ \ \ \ \ \ \ \ \ \ ==>\ x.is\_profiled\ |=\ random(...)}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ \ \ \ \ //\ \ \ \ \ \ \ \ \ \ \ \ \ \ ==>\ x\ converges\ to\ 'always\ profiled'}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//\ \ \ \ \ x\ =\ y;}}
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00106\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a5dac5c4d7b7146c7ae755e65aabf10bf}{MaybeTrackCord}}(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1InlineData}{InlineData}}\&\ cord,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1InlineData}{InlineData}}\&\ src,}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzUpdateTracker_ae9e3e3b5044c4da09e8c82b3265ab5e1}{MethodIdentifier}}\ method);}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ Stops\ tracking\ changes\ for\ a\ sampled\ cord,\ and\ deletes\ the\ provided\ info.}}
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ This\ function\ must\ be\ called\ before\ the\ sampled\ cord\ instance\ is\ deleted,}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ and\ before\ the\ root\ cordrep\ of\ the\ sampled\ cord\ is\ unreffed.}}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//\ This\ function\ may\ extend\ the\ lifetime\ of\ the\ cordrep\ in\ cases\ where\ the}}
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ CordInfo\ instance\ is\ being\ held\ by\ a\ concurrent\ collection\ thread.}}
+\DoxyCodeLine{00114\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_aa9f8e9fb653943cbd5dd2d143984147e}{Untrack}}();}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ Invokes\ UntrackCord()\ on\ \`{}info`\ if\ \`{}info`\ is\ not\ null.}}
+\DoxyCodeLine{00117\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a9c63ddf874feac0be96ca55725b670a4}{MaybeUntrackCord}}(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{CordzInfo}}*\ info);}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a8249b38af74aed99960a63f5bc9d4bd4}{CordzInfo}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00120\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a04db0e79e6ad13726fa8ebb91204e1a9}{CordzInfo}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{CordzInfo}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00121\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{CordzInfo}}\&\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_aec9eecc3958b1e0db17049a30f0f7460}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{CordzInfo}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//\ Retrieves\ the\ oldest\ existing\ CordzInfo.}}
+\DoxyCodeLine{00124\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{CordzInfo}}*\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a53405ffdcb0851d70bf99ea1a10639d4}{Head}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSnapshot}{CordzSnapshot}}\&\ snapshot)}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a21f691a067fb20eeb0a2430051753740}{ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}};}
+\DoxyCodeLine{00126\ }
+\DoxyCodeLine{00127\ \ \ \textcolor{comment}{//\ Retrieves\ the\ next\ oldest\ existing\ CordzInfo\ older\ than\ 'this'\ instance.}}
+\DoxyCodeLine{00128\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo}{CordzInfo}}*\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a0448ad7a73e8e8f32a611e2f04ddd4d5}{Next}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSnapshot}{CordzSnapshot}}\&\ snapshot)\ \textcolor{keyword}{const}}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a21f691a067fb20eeb0a2430051753740}{ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}};}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \ \ \textcolor{comment}{//\ Locks\ this\ instance\ for\ the\ update\ identified\ by\ \`{}method`.}}
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ Increases\ the\ count\ for\ \`{}method`\ in\ \`{}update\_tracker`.}}
+\DoxyCodeLine{00133\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a571abdca2c81adf062e015569eae5a75}{Lock}}(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzUpdateTracker_ae9e3e3b5044c4da09e8c82b3265ab5e1}{MethodIdentifier}}\ method)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a5ef3265435b3866ea5028bb5d01ffab2}{ABSL\_EXCLUSIVE\_LOCK\_FUNCTION}}(mutex\_);}
+\DoxyCodeLine{00134\ }
+\DoxyCodeLine{00135\ \ \ \textcolor{comment}{//\ Unlocks\ this\ instance.\ If\ the\ contained\ \`{}rep`\ has\ been\ set\ to\ null}}
+\DoxyCodeLine{00136\ \ \ \textcolor{comment}{//\ indicating\ the\ Cord\ has\ been\ cleared\ or\ is\ otherwise\ no\ longer\ sampled,}}
+\DoxyCodeLine{00137\ \ \ \textcolor{comment}{//\ then\ this\ method\ will\ delete\ this\ CordzInfo\ instance.}}
+\DoxyCodeLine{00138\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a75bbde18ca53b29360aba43c6f252ba9}{Unlock}}()\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_af11c78a6616064e59a8938d4ff1f9d53}{ABSL\_UNLOCK\_FUNCTION}}(mutex\_);}
+\DoxyCodeLine{00139\ }
+\DoxyCodeLine{00140\ \ \ \textcolor{comment}{//\ Asserts\ that\ this\ CordzInfo\ instance\ is\ locked.}}
+\DoxyCodeLine{00141\ \ \ \textcolor{keywordtype}{void}\ AssertHeld()\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_ae9d145cdfc3acd26084e91cae9e46532}{ABSL\_ASSERT\_EXCLUSIVE\_LOCK}}(mutex\_);}
+\DoxyCodeLine{00142\ }
+\DoxyCodeLine{00143\ \ \ \textcolor{comment}{//\ Updates\ the\ \`{}rep`\ property\ of\ this\ instance.\ This\ methods\ is\ invoked\ by}}
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//\ Cord\ logic\ each\ time\ the\ root\ node\ of\ a\ sampled\ Cord\ changes,\ and\ before}}
+\DoxyCodeLine{00145\ \ \ \textcolor{comment}{//\ the\ old\ root\ reference\ count\ is\ deleted.\ This\ guarantees\ that\ collection}}
+\DoxyCodeLine{00146\ \ \ \textcolor{comment}{//\ code\ can\ always\ safely\ take\ a\ reference\ on\ the\ tracked\ cord.}}
+\DoxyCodeLine{00147\ \ \ \textcolor{comment}{//\ Requires\ a\ lock\ to\ be\ held\ through\ the\ \`{}Lock()`\ method.}}
+\DoxyCodeLine{00148\ \ \ \textcolor{comment}{//\ TODO(b/117940323):\ annotate\ with\ ABSL\_EXCLUSIVE\_LOCKS\_REQUIRED\ once\ all}}
+\DoxyCodeLine{00149\ \ \ \textcolor{comment}{//\ Cord\ code\ is\ in\ a\ state\ where\ this\ can\ be\ proven\ true\ by\ the\ compiler.}}
+\DoxyCodeLine{00150\ \ \ \textcolor{keywordtype}{void}\ SetCordRep(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep}{CordRep}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}});}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \ \ \textcolor{comment}{//\ Returns\ the\ current\ \`{}rep`\ property\ of\ this\ instance\ with\ a\ reference}}
+\DoxyCodeLine{00153\ \ \ \textcolor{comment}{//\ added,\ or\ null\ if\ this\ instance\ represents\ a\ cord\ that\ has\ since\ been}}
+\DoxyCodeLine{00154\ \ \ \textcolor{comment}{//\ deleted\ or\ untracked.}}
+\DoxyCodeLine{00155\ \ \ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep}{CordRep}}*\ RefCordRep()\ const\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a774d28b29036a5a1afc23cf4da3c8ced}{ABSL\_LOCKS\_EXCLUDED}}(mutex\_);}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \ \textcolor{comment}{//\ Returns\ the\ current\ value\ of\ \`{}rep\_`\ for\ testing\ purposes\ only.}}
+\DoxyCodeLine{00158\ \ \ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep}{CordRep}}*\ GetCordRepForTesting()\ const\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a21f691a067fb20eeb0a2430051753740}{ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}}\ \{}
+\DoxyCodeLine{00159\ \ \ \ \ \textcolor{keywordflow}{return}\ rep\_;}
+\DoxyCodeLine{00160\ \ \ \}}
+\DoxyCodeLine{00161\ }
+\DoxyCodeLine{00162\ \ \ \textcolor{comment}{//\ Sets\ the\ current\ value\ of\ \`{}rep\_`\ for\ testing\ purposes\ only.}}
+\DoxyCodeLine{00163\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a2017ed224eae0aac297addf8741aaac2}{SetCordRepForTesting}}(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep}{CordRep}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a21f691a067fb20eeb0a2430051753740}{ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}}\ \{}
+\DoxyCodeLine{00164\ \ \ \ \ rep\_\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}};}
+\DoxyCodeLine{00165\ \ \ \}}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \ \ \textcolor{comment}{//\ Returns\ the\ stack\ trace\ for\ where\ the\ cord\ was\ first\ sampled.\ Cords\ are}}
+\DoxyCodeLine{00168\ \ \ \textcolor{comment}{//\ potentially\ sampled\ when\ they\ promote\ from\ an\ inlined\ cord\ to\ a\ tree\ or}}
+\DoxyCodeLine{00169\ \ \ \textcolor{comment}{//\ ring\ representation,\ which\ is\ not\ necessarily\ the\ location\ where\ the\ cord}}
+\DoxyCodeLine{00170\ \ \ \textcolor{comment}{//\ was\ first\ created.\ Some\ cords\ are\ created\ as\ inlined\ cords,\ and\ only\ as}}
+\DoxyCodeLine{00171\ \ \ \textcolor{comment}{//\ data\ is\ added\ do\ they\ become\ a\ non-\/inlined\ cord.\ However,\ typically\ the}}
+\DoxyCodeLine{00172\ \ \ \textcolor{comment}{//\ location\ represents\ reasonably\ well\ where\ the\ cord\ is\ 'created'.}}
+\DoxyCodeLine{00173\ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<void*\ const>}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_aee1bf1290abcb7e8df7392b3dd6cffa7}{GetStack}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \ \ \textcolor{comment}{//\ Returns\ the\ stack\ trace\ for\ a\ sampled\ cord's\ 'parent\ stack\ trace'.\ This}}
+\DoxyCodeLine{00176\ \ \ \textcolor{comment}{//\ value\ may\ be\ set\ if\ the\ cord\ is\ sampled\ (promoted)\ after\ being\ created}}
+\DoxyCodeLine{00177\ \ \ \textcolor{comment}{//\ from,\ or\ being\ assigned\ the\ value\ of\ an\ existing\ (sampled)\ cord.}}
+\DoxyCodeLine{00178\ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<void*\ const>}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a1ed80920eebea2d9a78e2e5b3745defc}{GetParentStack}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00179\ }
+\DoxyCodeLine{00180\ \ \ \textcolor{comment}{//\ Retrieves\ the\ CordzStatistics\ associated\ with\ this\ Cord.\ The\ statistics}}
+\DoxyCodeLine{00181\ \ \ \textcolor{comment}{//\ are\ only\ updated\ when\ a\ Cord\ goes\ through\ a\ mutation,\ such\ as\ an\ Append}}
+\DoxyCodeLine{00182\ \ \ \textcolor{comment}{//\ or\ RemovePrefix.}}
+\DoxyCodeLine{00183\ \ \ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordzStatistics}{CordzStatistics}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_afe0458f8480d29b22f7c90d2125155b4}{GetCordzStatistics}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \ \ int64\_t\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_ab466faf7f51749c909295904ae2121c8}{sampling\_stride}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ sampling\_stride\_;\ \}}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00188\ \ \ \textcolor{keyword}{using\ }SpinLock\ =\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SpinLock}{absl::base\_internal::SpinLock}};}
+\DoxyCodeLine{00189\ \ \ \textcolor{keyword}{using\ }SpinLockHolder\ =\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ad84dd4072c84a571d9c702369504a6b4}{::absl::base\_internal::SpinLockHolder}};}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \ \ \textcolor{comment}{//\ Global\ cordz\ info\ list.\ CordzInfo\ stores\ a\ pointer\ to\ the\ global\ list}}
+\DoxyCodeLine{00192\ \ \ \textcolor{comment}{//\ instance\ to\ harden\ against\ ODR\ violations.}}
+\DoxyCodeLine{00193\ \ \ \textcolor{keyword}{struct\ }List\ \{}
+\DoxyCodeLine{00194\ \ \ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{explicit}\ List(\mbox{\hyperlink{namespaceabsl_aa7e9ebe5aa2498d9d5d26823c49d0bfc}{absl::ConstInitType}})}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2cordz__handle_8cc_ade5ed16648cf9ca35a2425963b9e3a98}{mutex}}(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_aa7e9ebe5aa2498d9d5d26823c49d0bfca4af1304f63055c1f30c257f013e8fd42}{kConstInit}},}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl}{absl}}::base\_internal::SCHEDULE\_COOPERATIVE\_AND\_KERNEL)\ \{\}}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \ \ \ \ SpinLock\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2cordz__handle_8cc_ade5ed16648cf9ca35a2425963b9e3a98}{mutex}};}
+\DoxyCodeLine{00199\ \ \ \ \ std::atomic<CordzInfo*>\ \mbox{\hyperlink{BlockMethods_8h_af652402b7c3103c3e9f6c62d51e8d490}{head}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_aae0843e03db682a7cb66930c5b89b0d3}{ABSL\_GUARDED\_BY}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2cordz__handle_8cc_ade5ed16648cf9ca35a2425963b9e3a98}{mutex}})\{\textcolor{keyword}{nullptr}\};}
+\DoxyCodeLine{00200\ \ \ \};}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ kMaxStackDepth\ =\ 64;}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \ \ \textcolor{keyword}{explicit}\ CordzInfo(CordRep*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}},\ \textcolor{keyword}{const}\ CordzInfo*\ src,}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ MethodIdentifier\ method,\ int64\_t\ weight);}
+\DoxyCodeLine{00206\ \ \ \string~CordzInfo()\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \ \ \textcolor{comment}{//\ Sets\ \`{}rep\_`\ without\ holding\ a\ lock.}}
+\DoxyCodeLine{00209\ \ \ \textcolor{keywordtype}{void}\ UnsafeSetCordRep(CordRep*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a21f691a067fb20eeb0a2430051753740}{ABSL\_NO\_THREAD\_SAFETY\_ANALYSIS}};}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \ \ \textcolor{keywordtype}{void}\ Track();}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \ \ \textcolor{comment}{//\ Returns\ the\ parent\ method\ from\ \`{}src`,\ which\ is\ either\ \`{}parent\_method\_`\ or}}
+\DoxyCodeLine{00214\ \ \ \textcolor{comment}{//\ \`{}method\_`\ depending\ on\ \`{}parent\_method\_`\ being\ kUnknown.}}
+\DoxyCodeLine{00215\ \ \ \textcolor{comment}{//\ Returns\ kUnknown\ if\ \`{}src`\ is\ null.}}
+\DoxyCodeLine{00216\ \ \ \textcolor{keyword}{static}\ MethodIdentifier\ GetParentMethod(\textcolor{keyword}{const}\ CordzInfo*\ src);}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \textcolor{comment}{//\ Fills\ the\ provided\ stack\ from\ \`{}src`,\ copying\ either\ \`{}parent\_stack\_`\ or}}
+\DoxyCodeLine{00219\ \ \ \textcolor{comment}{//\ \`{}stack\_`\ depending\ on\ \`{}parent\_stack\_`\ being\ empty,\ returning\ the\ size\ of}}
+\DoxyCodeLine{00220\ \ \ \textcolor{comment}{//\ the\ parent\ stack.}}
+\DoxyCodeLine{00221\ \ \ \textcolor{comment}{//\ Returns\ 0\ if\ \`{}src`\ is\ null.}}
+\DoxyCodeLine{00222\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{size\_t}\ FillParentStack(\textcolor{keyword}{const}\ CordzInfo*\ src,\ \textcolor{keywordtype}{void}**\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2cord__rep__btree_8cc_a66e96c2dda890c63ecbff4f9719c2500}{stack}});}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \ \ \textcolor{keywordtype}{void}\ ODRCheck()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00225\ \textcolor{preprocessor}{\#ifndef\ NDEBUG}}
+\DoxyCodeLine{00226\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2raw__logging_8h_a4a085b4c45775995588a397caf43dc59}{ABSL\_RAW\_CHECK}}(list\_\ ==\ \&global\_list\_,\ \textcolor{stringliteral}{"{}ODR\ violation\ in\ Cord"{}});}
+\DoxyCodeLine{00227\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00228\ \ \ \}}
+\DoxyCodeLine{00229\ }
+\DoxyCodeLine{00230\ \ \ \textcolor{comment}{//\ Non-\/inlined\ implementation\ of\ \`{}MaybeTrackCord`,\ which\ is\ executed\ if}}
+\DoxyCodeLine{00231\ \ \ \textcolor{comment}{//\ either\ \`{}src`\ is\ sampled\ or\ \`{}cord`\ is\ sampled,\ and\ either\ untracks\ or}}
+\DoxyCodeLine{00232\ \ \ \textcolor{comment}{//\ tracks\ \`{}cord`\ as\ documented\ per\ \`{}MaybeTrackCord`.}}
+\DoxyCodeLine{00233\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ MaybeTrackCordImpl(InlineData\&\ cord,\ \textcolor{keyword}{const}\ InlineData\&\ src,}
+\DoxyCodeLine{00234\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ MethodIdentifier\ method);}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a0960184d4a72f445953241f1c5a30bb2}{ABSL\_CONST\_INIT}}\ \textcolor{keyword}{static}\ List\ global\_list\_;}
+\DoxyCodeLine{00237\ \ \ List*\ \textcolor{keyword}{const}\ list\_\ =\ \&global\_list\_;}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \ \ \textcolor{comment}{//\ ci\_prev\_\ and\ ci\_next\_\ require\ the\ global\ list\ mutex\ to\ be\ held.}}
+\DoxyCodeLine{00240\ \ \ \textcolor{comment}{//\ Unfortunately\ we\ can't\ use\ thread\ annotations\ such\ that\ the\ thread\ safety}}
+\DoxyCodeLine{00241\ \ \ \textcolor{comment}{//\ analysis\ understands\ that\ list\_\ and\ global\_list\_\ are\ one\ and\ the\ same.}}
+\DoxyCodeLine{00242\ \ \ std::atomic<CordzInfo*>\ ci\_prev\_\{\textcolor{keyword}{nullptr}\};}
+\DoxyCodeLine{00243\ \ \ std::atomic<CordzInfo*>\ ci\_next\_\{\textcolor{keyword}{nullptr}\};}
+\DoxyCodeLine{00244\ }
+\DoxyCodeLine{00245\ \ \ \textcolor{keyword}{mutable}\ \mbox{\hyperlink{classabsl_1_1Mutex}{absl::Mutex}}\ mutex\_;}
+\DoxyCodeLine{00246\ \ \ CordRep*\ rep\_\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_aae0843e03db682a7cb66930c5b89b0d3}{ABSL\_GUARDED\_BY}}(mutex\_);}
+\DoxyCodeLine{00247\ }
+\DoxyCodeLine{00248\ \ \ \textcolor{keywordtype}{void}*\ stack\_[kMaxStackDepth];}
+\DoxyCodeLine{00249\ \ \ \textcolor{keywordtype}{void}*\ parent\_stack\_[kMaxStackDepth];}
+\DoxyCodeLine{00250\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ stack\_depth\_;}
+\DoxyCodeLine{00251\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ parent\_stack\_depth\_;}
+\DoxyCodeLine{00252\ \ \ \textcolor{keyword}{const}\ MethodIdentifier\ method\_;}
+\DoxyCodeLine{00253\ \ \ \textcolor{keyword}{const}\ MethodIdentifier\ parent\_method\_;}
+\DoxyCodeLine{00254\ \ \ CordzUpdateTracker\ update\_tracker\_;}
+\DoxyCodeLine{00255\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1Time}{absl::Time}}\ create\_time\_;}
+\DoxyCodeLine{00256\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a518baced025fde474407c95f9a84d6e1}{int64\_t}}\ sampling\_stride\_;}
+\DoxyCodeLine{00257\ \};}
+\DoxyCodeLine{00258\ }
+\DoxyCodeLine{00259\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a7ec7df4fc698a3c4a0057f08d6fe6ca4}{ABSL\_ATTRIBUTE\_ALWAYS\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_ab5ed2ed2153a2a906a1efba0d4b1f24a}{CordzInfo::MaybeTrackCord}}(}
+\DoxyCodeLine{00260\ \ \ \ \ InlineData\&\ cord,\ MethodIdentifier\ method)\ \{}
+\DoxyCodeLine{00261\ \ \ \textcolor{keyword}{auto}\ stride\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a5939c1a041ca6c924e87054a3d1bdfe0}{cordz\_should\_profile}}();}
+\DoxyCodeLine{00262\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(stride\ >\ 0))\ \{}
+\DoxyCodeLine{00263\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a035c79b6b4626610120fb70762cbb6a1}{TrackCord}}(cord,\ method,\ stride);}
+\DoxyCodeLine{00264\ \ \ \}}
+\DoxyCodeLine{00265\ \}}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a7ec7df4fc698a3c4a0057f08d6fe6ca4}{ABSL\_ATTRIBUTE\_ALWAYS\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_ab5ed2ed2153a2a906a1efba0d4b1f24a}{CordzInfo::MaybeTrackCord}}(}
+\DoxyCodeLine{00268\ \ \ \ \ InlineData\&\ cord,\ \textcolor{keyword}{const}\ InlineData\&\ src,\ MethodIdentifier\ method)\ \{}
+\DoxyCodeLine{00269\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1InlineData_a03388a1a6c00afcd33421e77d3bd9726}{InlineData::is\_either\_profiled}}(cord,\ src)))\ \{}
+\DoxyCodeLine{00270\ \ \ \ \ MaybeTrackCordImpl(cord,\ src,\ method);}
+\DoxyCodeLine{00271\ \ \ \}}
+\DoxyCodeLine{00272\ \}}
+\DoxyCodeLine{00273\ }
+\DoxyCodeLine{00274\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a7ec7df4fc698a3c4a0057f08d6fe6ca4}{ABSL\_ATTRIBUTE\_ALWAYS\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a1ce0512812c079c4f9d1e6798b6374e8}{CordzInfo::MaybeUntrackCord}}(}
+\DoxyCodeLine{00275\ \ \ \ \ CordzInfo*\ info)\ \{}
+\DoxyCodeLine{00276\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(info))\ \{}
+\DoxyCodeLine{00277\ \ \ \ \ info-\/>Untrack();}
+\DoxyCodeLine{00278\ \ \ \}}
+\DoxyCodeLine{00279\ \}}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a687ef849cf7d0b2d2a7fe77882b6c52e}{CordzInfo::AssertHeld}}()\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_ae9d145cdfc3acd26084e91cae9e46532}{ABSL\_ASSERT\_EXCLUSIVE\_LOCK}}(mutex\_)\ \{}
+\DoxyCodeLine{00282\ \textcolor{preprocessor}{\#ifndef\ NDEBUG}}
+\DoxyCodeLine{00283\ \ \ mutex\_.AssertHeld();}
+\DoxyCodeLine{00284\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00285\ \}}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00287\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_ae42500acebf7f13270878212433a76b0}{CordzInfo::SetCordRep}}(CordRep*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}})\ \{}
+\DoxyCodeLine{00288\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a687ef849cf7d0b2d2a7fe77882b6c52e}{AssertHeld}}();}
+\DoxyCodeLine{00289\ \ \ rep\_\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}};}
+\DoxyCodeLine{00290\ \}}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ CordzInfo::UnsafeSetCordRep(CordRep*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}})\ \{\ rep\_\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}};\ \}}
+\DoxyCodeLine{00293\ }
+\DoxyCodeLine{00294\ \textcolor{keyword}{inline}\ CordRep*\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzInfo_a4fb0e61902e4cb65339c3ff68b1c5805}{CordzInfo::RefCordRep}}()\ const\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2thread__annotations_8h_a774d28b29036a5a1afc23cf4da3c8ced}{ABSL\_LOCKS\_EXCLUDED}}(mutex\_)\ \{}
+\DoxyCodeLine{00295\ \ \ MutexLock\ lock(\&mutex\_);}
+\DoxyCodeLine{00296\ \ \ \textcolor{keywordflow}{return}\ rep\_\ ?\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_ad73d5d8140ce641920d1b3894515ed08}{CordRep::Ref}}(rep\_)\ :\ nullptr;}
+\DoxyCodeLine{00297\ \}}
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00299\ \}\ \ \textcolor{comment}{//\ namespace\ cord\_internal}}
+\DoxyCodeLine{00300\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00301\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00302\ }
+\DoxyCodeLine{00303\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_INTERNAL\_CORDZ\_INFO\_H\_}}
+
+\end{DoxyCode}

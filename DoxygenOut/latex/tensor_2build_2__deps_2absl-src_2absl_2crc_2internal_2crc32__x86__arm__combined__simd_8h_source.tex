@@ -1,0 +1,306 @@
+\doxysection{crc32\+\_\+x86\+\_\+arm\+\_\+combined\+\_\+simd.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2crc_2internal_2crc32__x86__arm__combined__simd_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2crc_2internal_2crc32__x86__arm__combined__simd_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/crc/internal/crc32\_x86\_arm\_combined\_simd.h@{tensor/build/\_deps/absl-\/src/absl/crc/internal/crc32\_x86\_arm\_combined\_simd.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2crc_2internal_2crc32__x86__arm__combined__simd_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2022\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CRC\_INTERNAL\_CRC32\_X86\_ARM\_COMBINED\_SIMD\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_CRC\_INTERNAL\_CRC32\_X86\_ARM\_COMBINED\_SIMD\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ Many\ x86\ and\ ARM\ machines\ have\ CRC\ acceleration\ hardware.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ We\ can\ do\ a\ faster\ version\ of\ Extend()\ on\ such\ machines.}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ We\ define\ a\ translation\ layer\ for\ both\ x86\ and\ ARM\ for\ the\ ease\ of\ use\ and}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ most\ performance\ gains.}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ This\ implementation\ requires\ 64-\/bit\ CRC\ instructions\ (part\ of\ SSE\ 4.2)\ and}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ PCLMULQDQ\ instructions.\ 32-\/bit\ builds\ with\ SSE\ 4.2\ do\ exist,\ so\ the}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ \_\_x86\_64\_\_\ condition\ is\ necessary.}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#if\ defined(\_\_x86\_64\_\_)\ \&\&\ defined(\_\_SSE4\_2\_\_)\ \&\&\ defined(\_\_PCLMUL\_\_)}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <x86intrin.h>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#define\ ABSL\_CRC\_INTERNAL\_HAVE\_X86\_SIMD}}
+\DoxyCodeLine{00035\ }
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#elif\ defined(\_MSC\_VER)\ \&\&\ !defined(\_\_clang\_\_)\ \&\&\ defined(\_\_AVX\_\_)\ \&\&\ \(\backslash\)}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\ \ \ \ defined(\_M\_AMD64)}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ MSVC\ AVX\ (/arch:AVX)\ implies\ SSE\ 4.2\ and\ PCLMULQDQ.}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ <intrin.h>}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#define\ ABSL\_CRC\_INTERNAL\_HAVE\_X86\_SIMD}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#elif\ defined(\_\_aarch64\_\_)\ \&\&\ defined(\_\_LITTLE\_ENDIAN\_\_)\ \&\&\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\ \ \ \ defined(\_\_ARM\_FEATURE\_CRC32)\ \&\&\ defined(ABSL\_INTERNAL\_HAVE\_ARM\_NEON)\ \&\&\ \(\backslash\)}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\ \ \ \ defined(\_\_ARM\_FEATURE\_CRYPTO)}}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#include\ <arm\_acle.h>}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#include\ <arm\_neon.h>}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#define\ ABSL\_CRC\_INTERNAL\_HAVE\_ARM\_SIMD}}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00054\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00055\ \textcolor{keyword}{namespace\ }crc\_internal\ \{}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#if\ defined(ABSL\_CRC\_INTERNAL\_HAVE\_ARM\_SIMD)\ ||\ \(\backslash\)}}
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\ \ \ \ defined(ABSL\_CRC\_INTERNAL\_HAVE\_X86\_SIMD)}}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#if\ defined(ABSL\_CRC\_INTERNAL\_HAVE\_ARM\_SIMD)}}
+\DoxyCodeLine{00061\ \textcolor{keyword}{using\ }V128\ =\ uint64x2\_t;}
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ Note:\ Do\ not\ use\ \_\_m128i\_u,\ it\ is\ not\ portable.}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ Use\ V128\_LoadU()\ perform\ an\ unaligned\ load\ from\ \_\_m128i*.}}
+\DoxyCodeLine{00065\ \textcolor{keyword}{using\ }V128\ =\ \_\_m128i;}
+\DoxyCodeLine{00066\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ Starting\ with\ the\ initial\ value\ in\ |crc|,\ accumulates\ a\ CRC32\ value\ for}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ unsigned\ integers\ of\ different\ sizes.}}
+\DoxyCodeLine{00070\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u8(uint32\_t\ crc,\ uint8\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u16(uint32\_t\ crc,\ uint16\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00073\ }
+\DoxyCodeLine{00074\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u32(uint32\_t\ crc,\ uint32\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u64(uint32\_t\ crc,\ uint64\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ Loads\ 128\ bits\ of\ integer\ data.\ |src|\ must\ be\ 16-\/byte\ aligned.}}
+\DoxyCodeLine{00079\ V128\ V128\_Load(\textcolor{keyword}{const}\ V128*\ src);}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ Load\ 128\ bits\ of\ integer\ data.\ |src|\ does\ not\ need\ to\ be\ aligned.}}
+\DoxyCodeLine{00082\ V128\ V128\_LoadU(\textcolor{keyword}{const}\ V128*\ src);}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ Store\ 128\ bits\ of\ integer\ data.\ |src|\ must\ be\ 16-\/byte\ aligned.}}
+\DoxyCodeLine{00085\ \textcolor{keywordtype}{void}\ V128\_Store(V128*\ dst,\ V128\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}});}
+\DoxyCodeLine{00086\ }
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ Polynomially\ multiplies\ the\ high\ 64\ bits\ of\ |l|\ and\ |r|.}}
+\DoxyCodeLine{00088\ V128\ V128\_PMulHi(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r);}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ Polynomially\ multiplies\ the\ low\ 64\ bits\ of\ |l|\ and\ |r|.}}
+\DoxyCodeLine{00091\ V128\ V128\_PMulLow(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r);}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ Polynomially\ multiplies\ the\ low\ 64\ bits\ of\ |r|\ and\ high\ 64\ bits\ of\ |l|.}}
+\DoxyCodeLine{00094\ V128\ V128\_PMul01(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r);}
+\DoxyCodeLine{00095\ }
+\DoxyCodeLine{00096\ \textcolor{comment}{//\ Polynomially\ multiplies\ the\ low\ 64\ bits\ of\ |l|\ and\ high\ 64\ bits\ of\ |r|.}}
+\DoxyCodeLine{00097\ V128\ V128\_PMul10(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r);}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \textcolor{comment}{//\ Produces\ a\ XOR\ operation\ of\ |l|\ and\ |r|.}}
+\DoxyCodeLine{00100\ V128\ V128\_Xor(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r);}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ Produces\ an\ AND\ operation\ of\ |l|\ and\ |r|.}}
+\DoxyCodeLine{00103\ V128\ V128\_And(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r);}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ Sets\ the\ lower\ half\ of\ a\ 128\ bit\ register\ to\ the\ given\ 64-\/bit\ value\ and}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ zeroes\ the\ upper\ half.}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ dst[63:0]\ :=\ |r|}}
+\DoxyCodeLine{00108\ \textcolor{comment}{//\ dst[127:64]\ :=\ |0|}}
+\DoxyCodeLine{00109\ V128\ V128\_From64WithZeroFill(\textcolor{keyword}{const}\ uint64\_t\ r);}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ Shift\ |l|\ right\ by\ |imm|\ bytes\ while\ shifting\ in\ zeros.}}
+\DoxyCodeLine{00112\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ imm>}
+\DoxyCodeLine{00113\ V128\ V128\_ShiftRight(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}});}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ Extracts\ a\ 32-\/bit\ integer\ from\ |l|,\ selected\ with\ |imm|.}}
+\DoxyCodeLine{00116\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ imm>}
+\DoxyCodeLine{00117\ \textcolor{keywordtype}{int}\ V128\_Extract32(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}});}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ Extracts\ a\ 64-\/bit\ integer\ from\ |l|,\ selected\ with\ |imm|.}}
+\DoxyCodeLine{00120\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ imm>}
+\DoxyCodeLine{00121\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ V128\_Extract64(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}});}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ Extracts\ the\ low\ 64\ bits\ from\ V128.}}
+\DoxyCodeLine{00124\ \mbox{\hyperlink{namespaceEigen_1_1numext_a518baced025fde474407c95f9a84d6e1}{int64\_t}}\ V128\_Low64(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}});}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ Add\ packed\ 64-\/bit\ integers\ in\ |l|\ and\ |r|.}}
+\DoxyCodeLine{00127\ V128\ V128\_Add64(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r);}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00129\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \textcolor{preprocessor}{\#if\ defined(ABSL\_CRC\_INTERNAL\_HAVE\_X86\_SIMD)}}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u8(uint32\_t\ crc,\ uint8\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00134\ \ \ \textcolor{keywordflow}{return}\ \_mm\_crc32\_u8(crc,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00135\ \}}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00137\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u16(uint32\_t\ crc,\ uint16\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00138\ \ \ \textcolor{keywordflow}{return}\ \_mm\_crc32\_u16(crc,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00139\ \}}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u32(uint32\_t\ crc,\ uint32\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00142\ \ \ \textcolor{keywordflow}{return}\ \_mm\_crc32\_u32(crc,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00143\ \}}
+\DoxyCodeLine{00144\ }
+\DoxyCodeLine{00145\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u64(uint32\_t\ crc,\ uint64\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00146\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\textcolor{keyword}{>}(\_mm\_crc32\_u64(crc,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}));}
+\DoxyCodeLine{00147\ \}}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \textcolor{keyword}{inline}\ V128\ V128\_Load(\textcolor{keyword}{const}\ V128*\ src)\ \{\ \textcolor{keywordflow}{return}\ \_mm\_load\_si128(src);\ \}}
+\DoxyCodeLine{00150\ }
+\DoxyCodeLine{00151\ \textcolor{keyword}{inline}\ V128\ V128\_LoadU(\textcolor{keyword}{const}\ V128*\ src)\ \{\ \textcolor{keywordflow}{return}\ \_mm\_loadu\_si128(src);\ \}}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ V128\_Store(V128*\ dst,\ V128\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}})\ \{\ \_mm\_store\_si128(dst,\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}});\ \}}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \textcolor{keyword}{inline}\ V128\ V128\_PMulHi(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{}
+\DoxyCodeLine{00156\ \ \ \textcolor{keywordflow}{return}\ \_mm\_clmulepi64\_si128(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r,\ 0x11);}
+\DoxyCodeLine{00157\ \}}
+\DoxyCodeLine{00158\ }
+\DoxyCodeLine{00159\ \textcolor{keyword}{inline}\ V128\ V128\_PMulLow(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{}
+\DoxyCodeLine{00160\ \ \ \textcolor{keywordflow}{return}\ \_mm\_clmulepi64\_si128(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r,\ 0x00);}
+\DoxyCodeLine{00161\ \}}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \textcolor{keyword}{inline}\ V128\ V128\_PMul01(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{}
+\DoxyCodeLine{00164\ \ \ \textcolor{keywordflow}{return}\ \_mm\_clmulepi64\_si128(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r,\ 0x01);}
+\DoxyCodeLine{00165\ \}}
+\DoxyCodeLine{00166\ }
+\DoxyCodeLine{00167\ \textcolor{keyword}{inline}\ V128\ V128\_PMul10(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{}
+\DoxyCodeLine{00168\ \ \ \textcolor{keywordflow}{return}\ \_mm\_clmulepi64\_si128(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r,\ 0x10);}
+\DoxyCodeLine{00169\ \}}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \textcolor{keyword}{inline}\ V128\ V128\_Xor(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{\ \textcolor{keywordflow}{return}\ \_mm\_xor\_si128(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r);\ \}}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00173\ \textcolor{keyword}{inline}\ V128\ V128\_And(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{\ \textcolor{keywordflow}{return}\ \_mm\_and\_si128(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r);\ \}}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \textcolor{keyword}{inline}\ V128\ V128\_From64WithZeroFill(\textcolor{keyword}{const}\ uint64\_t\ r)\ \{}
+\DoxyCodeLine{00176\ \ \ \textcolor{keywordflow}{return}\ \_mm\_set\_epi64x(\textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceEigen_1_1numext_a518baced025fde474407c95f9a84d6e1}{int64\_t}}\textcolor{keyword}{>}(0),\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceEigen_1_1numext_a518baced025fde474407c95f9a84d6e1}{int64\_t}}\textcolor{keyword}{>}(r));}
+\DoxyCodeLine{00177\ \}}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ imm>}
+\DoxyCodeLine{00180\ \textcolor{keyword}{inline}\ V128\ V128\_ShiftRight(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00181\ \ \ \textcolor{keywordflow}{return}\ \_mm\_srli\_si128(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ imm);}
+\DoxyCodeLine{00182\ \}}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ imm>}
+\DoxyCodeLine{00185\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{int}\ V128\_Extract32(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00186\ \ \ \textcolor{keywordflow}{return}\ \_mm\_extract\_epi32(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ imm);}
+\DoxyCodeLine{00187\ \}}
+\DoxyCodeLine{00188\ }
+\DoxyCodeLine{00189\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ imm>}
+\DoxyCodeLine{00190\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ V128\_Extract64(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00191\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\textcolor{keyword}{>}(\_mm\_extract\_epi64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ imm));}
+\DoxyCodeLine{00192\ \}}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a518baced025fde474407c95f9a84d6e1}{int64\_t}}\ V128\_Low64(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{\ \textcolor{keywordflow}{return}\ \_mm\_cvtsi128\_si64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}});\ \}}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \textcolor{keyword}{inline}\ V128\ V128\_Add64(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{}
+\DoxyCodeLine{00197\ \ \ \textcolor{keywordflow}{return}\ \_mm\_add\_epi64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r);}
+\DoxyCodeLine{00198\ \}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \textcolor{preprocessor}{\#elif\ defined(ABSL\_CRC\_INTERNAL\_HAVE\_ARM\_SIMD)}}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u8(uint32\_t\ crc,\ uint8\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{\ \textcolor{keywordflow}{return}\ \_\_crc32cb(crc,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});\ \}}
+\DoxyCodeLine{00203\ }
+\DoxyCodeLine{00204\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u16(uint32\_t\ crc,\ uint16\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00205\ \ \ \textcolor{keywordflow}{return}\ \_\_crc32ch(crc,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00206\ \}}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u32(uint32\_t\ crc,\ uint32\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00209\ \ \ \textcolor{keywordflow}{return}\ \_\_crc32cw(crc,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00210\ \}}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ CRC32\_u64(uint32\_t\ crc,\ uint64\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00213\ \ \ \textcolor{keywordflow}{return}\ \_\_crc32cd(crc,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00214\ \}}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \textcolor{keyword}{inline}\ V128\ V128\_Load(\textcolor{keyword}{const}\ V128*\ src)\ \{}
+\DoxyCodeLine{00217\ \ \ \textcolor{keywordflow}{return}\ vld1q\_u64(\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }\mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}*\textcolor{keyword}{>}(src));}
+\DoxyCodeLine{00218\ \}}
+\DoxyCodeLine{00219\ }
+\DoxyCodeLine{00220\ \textcolor{keyword}{inline}\ V128\ V128\_LoadU(\textcolor{keyword}{const}\ V128*\ src)\ \{}
+\DoxyCodeLine{00221\ \ \ \textcolor{keywordflow}{return}\ vld1q\_u64(\textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }\mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}*\textcolor{keyword}{>}(src));}
+\DoxyCodeLine{00222\ \}}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{void}\ V128\_Store(V128*\ dst,\ V128\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}})\ \{}
+\DoxyCodeLine{00225\ \ \ vst1q\_u64(\textcolor{keyword}{reinterpret\_cast<}\mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}*\textcolor{keyword}{>}(dst),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}});}
+\DoxyCodeLine{00226\ \}}
+\DoxyCodeLine{00227\ }
+\DoxyCodeLine{00228\ \textcolor{comment}{//\ Using\ inline\ assembly\ as\ clang\ does\ not\ generate\ the\ pmull2\ instruction\ and}}
+\DoxyCodeLine{00229\ \textcolor{comment}{//\ performance\ drops\ by\ 15-\/20\%.}}
+\DoxyCodeLine{00230\ \textcolor{comment}{//\ TODO(b/193678732):\ Investigate\ why\ there\ is\ a\ slight\ performance\ hit\ when}}
+\DoxyCodeLine{00231\ \textcolor{comment}{//\ using\ intrinsics\ instead\ of\ inline\ assembly.}}
+\DoxyCodeLine{00232\ \textcolor{keyword}{inline}\ V128\ V128\_PMulHi(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{}
+\DoxyCodeLine{00233\ \ \ uint64x2\_t\ res;}
+\DoxyCodeLine{00234\ \ \ \_\_asm\_\_\ \_\_volatile\_\_(\textcolor{stringliteral}{"{}pmull2\ \%0.1q,\ \%1.2d,\ \%2.2d\ \(\backslash\)n\(\backslash\)t"{}}}
+\DoxyCodeLine{00235\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=w"{}}(res)}
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}w"{}}(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}),\ \textcolor{stringliteral}{"{}w"{}}(r));}
+\DoxyCodeLine{00237\ \ \ \textcolor{keywordflow}{return}\ res;}
+\DoxyCodeLine{00238\ \}}
+\DoxyCodeLine{00239\ }
+\DoxyCodeLine{00240\ \textcolor{comment}{//\ TODO(b/193678732):\ Investigate\ why\ the\ compiler\ decides\ to\ move\ the\ constant}}
+\DoxyCodeLine{00241\ \textcolor{comment}{//\ loop\ multiplicands\ from\ GPR\ to\ Neon\ registers\ every\ loop\ iteration.}}
+\DoxyCodeLine{00242\ \textcolor{keyword}{inline}\ V128\ V128\_PMulLow(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{}
+\DoxyCodeLine{00243\ \ \ uint64x2\_t\ res;}
+\DoxyCodeLine{00244\ \ \ \_\_asm\_\_\ \_\_volatile\_\_(\textcolor{stringliteral}{"{}pmull\ \%0.1q,\ \%1.1d,\ \%2.1d\ \(\backslash\)n\(\backslash\)t"{}}}
+\DoxyCodeLine{00245\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}=w"{}}(res)}
+\DoxyCodeLine{00246\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \textcolor{stringliteral}{"{}w"{}}(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}),\ \textcolor{stringliteral}{"{}w"{}}(r));}
+\DoxyCodeLine{00247\ \ \ \textcolor{keywordflow}{return}\ res;}
+\DoxyCodeLine{00248\ \}}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00250\ \textcolor{keyword}{inline}\ V128\ V128\_PMul01(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{}
+\DoxyCodeLine{00251\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}V128\textcolor{keyword}{>}(vmull\_p64(}
+\DoxyCodeLine{00252\ \ \ \ \ \ \ \textcolor{keyword}{reinterpret\_cast<}poly64\_t\textcolor{keyword}{>}(vget\_high\_p64(vreinterpretq\_p64\_u64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}))),}
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \textcolor{keyword}{reinterpret\_cast<}poly64\_t\textcolor{keyword}{>}(vget\_low\_p64(vreinterpretq\_p64\_u64(r)))));}
+\DoxyCodeLine{00254\ \}}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \textcolor{keyword}{inline}\ V128\ V128\_PMul10(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{}
+\DoxyCodeLine{00257\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}V128\textcolor{keyword}{>}(vmull\_p64(}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \textcolor{keyword}{reinterpret\_cast<}poly64\_t\textcolor{keyword}{>}(vget\_low\_p64(vreinterpretq\_p64\_u64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}))),}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \textcolor{keyword}{reinterpret\_cast<}poly64\_t\textcolor{keyword}{>}(vget\_high\_p64(vreinterpretq\_p64\_u64(r)))));}
+\DoxyCodeLine{00260\ \}}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \textcolor{keyword}{inline}\ V128\ V128\_Xor(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{\ \textcolor{keywordflow}{return}\ veorq\_u64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r);\ \}}
+\DoxyCodeLine{00263\ }
+\DoxyCodeLine{00264\ \textcolor{keyword}{inline}\ V128\ V128\_And(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{\ \textcolor{keywordflow}{return}\ vandq\_u64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r);\ \}}
+\DoxyCodeLine{00265\ }
+\DoxyCodeLine{00266\ \textcolor{keyword}{inline}\ V128\ V128\_From64WithZeroFill(\textcolor{keyword}{const}\ uint64\_t\ r)\{}
+\DoxyCodeLine{00267\ \ \ \textcolor{keyword}{constexpr}\ uint64x2\_t\ \mbox{\hyperlink{namespaceabsl_1_1str__format__internal_acb4b4cf531378dcf7d13fdc86c5e852ea941d5a341a6f6a7a3986952dda4e9445}{kZero}}\ =\ \{0,\ 0\};}
+\DoxyCodeLine{00268\ \ \ \textcolor{keywordflow}{return}\ vsetq\_lane\_u64(r,\ kZero,\ 0);}
+\DoxyCodeLine{00269\ \}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00272\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ imm>}
+\DoxyCodeLine{00273\ \textcolor{keyword}{inline}\ V128\ V128\_ShiftRight(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00274\ \ \ \textcolor{keywordflow}{return}\ vreinterpretq\_u64\_s8(}
+\DoxyCodeLine{00275\ \ \ \ \ \ \ vextq\_s8(vreinterpretq\_s8\_u64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}),\ vdupq\_n\_s8(0),\ imm));}
+\DoxyCodeLine{00276\ \}}
+\DoxyCodeLine{00277\ }
+\DoxyCodeLine{00278\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ imm>}
+\DoxyCodeLine{00279\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{int}\ V128\_Extract32(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00280\ \ \ \textcolor{keywordflow}{return}\ vgetq\_lane\_s32(vreinterpretq\_s32\_u64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}),\ imm);}
+\DoxyCodeLine{00281\ \}}
+\DoxyCodeLine{00282\ }
+\DoxyCodeLine{00283\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ imm>}
+\DoxyCodeLine{00284\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ V128\_Extract64(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00285\ \ \ \textcolor{keywordflow}{return}\ vgetq\_lane\_u64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ imm);}
+\DoxyCodeLine{00286\ \}}
+\DoxyCodeLine{00287\ }
+\DoxyCodeLine{00288\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a518baced025fde474407c95f9a84d6e1}{int64\_t}}\ V128\_Low64(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00289\ \ \ \textcolor{keywordflow}{return}\ vgetq\_lane\_s64(vreinterpretq\_s64\_u64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}),\ 0);}
+\DoxyCodeLine{00290\ \}}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \textcolor{keyword}{inline}\ V128\ V128\_Add64(\textcolor{keyword}{const}\ V128\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ \textcolor{keyword}{const}\ V128\ r)\ \{\ \textcolor{keywordflow}{return}\ vaddq\_u64(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}},\ r);\ \}}
+\DoxyCodeLine{00293\ }
+\DoxyCodeLine{00294\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00295\ }
+\DoxyCodeLine{00296\ \}\ \ \textcolor{comment}{//\ namespace\ crc\_internal}}
+\DoxyCodeLine{00297\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00298\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00299\ }
+\DoxyCodeLine{00300\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CRC\_INTERNAL\_CRC32\_X86\_ARM\_COMBINED\_SIMD\_H\_}}
+
+\end{DoxyCode}

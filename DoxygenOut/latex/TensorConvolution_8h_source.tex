@@ -1,0 +1,1130 @@
+\doxysection{Tensor\+Convolution.\+h}
+\hypertarget{TensorConvolution_8h_source}{}\label{TensorConvolution_8h_source}\index{eigen/unsupported/Eigen/CXX11/src/Tensor/TensorConvolution.h@{eigen/unsupported/Eigen/CXX11/src/Tensor/TensorConvolution.h}}
+\mbox{\hyperlink{TensorConvolution_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2014\ Benoit\ Steiner\ <benoit.steiner.goog@gmail.com>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_CXX11\_TENSOR\_TENSOR\_CONVOLUTION\_H}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#define\ EIGEN\_CXX11\_TENSOR\_TENSOR\_CONVOLUTION\_H}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00022\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}\ \{}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Index,\ \textcolor{keyword}{typename}\ InputDims,\ \textcolor{keywordtype}{int}\ NumKernelDims,\ \textcolor{keywordtype}{int}\ Layout>}
+\DoxyCodeLine{00025\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper}{IndexMapper}}\ \{}
+\DoxyCodeLine{00026\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00027\ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper_a7d78e769adb4267d2f6e0e38a1fc2553}{IndexMapper}}(\textcolor{keyword}{const}\ InputDims\&\ input\_dims,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumKernelDims>}}\&\ kernel\_dims,}
+\DoxyCodeLine{00028\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumKernelDims>}}\&\ indices)\ \{}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ dimensions\ =\ input\_dims;}
+\DoxyCodeLine{00031\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumKernelDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00032\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index\ =\ indices[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00033\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ input\_dim\ =\ input\_dims[index];}
+\DoxyCodeLine{00034\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ kernel\_dim\ =\ kernel\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00035\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ result\_dim\ =\ input\_dim\ -\/\ kernel\_dim\ +\ 1;}
+\DoxyCodeLine{00036\ \ \ \ \ \ \ dimensions[index]\ =\ result\_dim;}
+\DoxyCodeLine{00037\ \ \ \ \ \}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ inputStrides;}
+\DoxyCodeLine{00040\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ outputStrides;}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}}))\ \{}
+\DoxyCodeLine{00042\ \ \ \ \ \ \ inputStrides[0]\ =\ 1;}
+\DoxyCodeLine{00043\ \ \ \ \ \ \ outputStrides[0]\ =\ 1;}
+\DoxyCodeLine{00044\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \ \ inputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ inputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}-\/1]\ *\ input\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}-\/1];}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ \ \ outputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ outputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}-\/1]\ *\ dimensions[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}-\/1];}
+\DoxyCodeLine{00047\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00048\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ inputStrides[NumDims\ -\/\ 1]\ =\ 1;}
+\DoxyCodeLine{00050\ \ \ \ \ \ \ outputStrides[NumDims\ -\/\ 1]\ =\ 1;}
+\DoxyCodeLine{00051\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(NumDims)\ -\/\ 2;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >=\ 0;\ -\/-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \ \ inputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ inputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1]\ *\ input\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1];}
+\DoxyCodeLine{00053\ \ \ \ \ \ \ \ \ outputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ outputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1]\ *\ dimensions[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1];}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00055\ \ \ \ \ \}}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ gpuInputDimensions;}
+\DoxyCodeLine{00058\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ gpuOutputDimensions;}
+\DoxyCodeLine{00059\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ tmp\ =\ dimensions;}
+\DoxyCodeLine{00060\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ ordering;}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ offset\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})}
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 0}
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ NumDims\ -\/\ NumKernelDims;}
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumKernelDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ offset;}
+\DoxyCodeLine{00066\ \ \ \ \ \ \ ordering[index]\ =\ indices[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ tmp[indices[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]]\ =\ -\/1;}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ gpuInputDimensions[index]\ =\ input\_dims[indices[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]];}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ gpuOutputDimensions[index]\ =\ dimensions[indices[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]];}
+\DoxyCodeLine{00070\ \ \ \ \ \}}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \ \ \ \ \textcolor{keywordtype}{int}\ written\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ NumKernelDims}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 0;}
+\DoxyCodeLine{00075\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (tmp[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ >=\ 0)\ \{}
+\DoxyCodeLine{00077\ \ \ \ \ \ \ \ \ ordering[written]\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}};}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ \ \ gpuInputDimensions[written]\ =\ input\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00079\ \ \ \ \ \ \ \ \ gpuOutputDimensions[written]\ =\ dimensions[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \ \ ++written;}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00082\ \ \ \ \ \}}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ m\_inputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ inputStrides[ordering[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]];}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ m\_outputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ outputStrides[ordering[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]];}
+\DoxyCodeLine{00087\ \ \ \ \ \}}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}}))\ \{}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >\ NumKernelDims)\ \{}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ \ \ m\_gpuInputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_gpuInputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1]\ *\ gpuInputDimensions[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1];}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ \ \ m\_gpuOutputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_gpuOutputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1]\ *\ gpuOutputDimensions[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1];}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \ \ \ \ m\_gpuInputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ 1;}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ \ \ m\_gpuOutputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ 1;}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00101\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ NumDims\ -\/\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >=\ 0;\ -\/-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1)\ <\ offset)\ \{}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ \ \ m\_gpuInputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_gpuInputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1]\ *\ gpuInputDimensions[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1];}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \ \ \ \ m\_gpuOutputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_gpuOutputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1]\ *\ gpuOutputDimensions[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1];}
+\DoxyCodeLine{00108\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00109\ \ \ \ \ \ \ \ \ \ \ m\_gpuInputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ 1;}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ \ \ m\_gpuOutputStrides[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ 1;}
+\DoxyCodeLine{00111\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00113\ \ \ \ \ \}}
+\DoxyCodeLine{00114\ \ \ \}}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper_adbcf0372959bfcc5d9eee8f271a57796}{mapGpuInputPlaneToTensorInputOffset}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ p)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00117\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ inputIndex\ =\ 0;}
+\DoxyCodeLine{00118\ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}}))\ \{}
+\DoxyCodeLine{00119\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ d\ =\ NumDims\ -\/\ 1;\ d\ >\ NumKernelDims;\ -\/-\/d)\ \{}
+\DoxyCodeLine{00120\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ idx\ =\ p\ /\ m\_gpuInputStrides[d];}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \ \ inputIndex\ +=\ idx\ *\ m\_inputStrides[d];}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ p\ -\/=\ idx\ *\ m\_gpuInputStrides[d];}
+\DoxyCodeLine{00123\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ inputIndex\ +=\ p\ *\ m\_inputStrides[NumKernelDims];}
+\DoxyCodeLine{00125\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ std::ptrdiff\_t\ limit\ =\ 0;}
+\DoxyCodeLine{00127\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (NumKernelDims\ <\ NumDims)\ \{}
+\DoxyCodeLine{00128\ \ \ \ \ \ \ \ \ limit\ =\ NumDims\ -\/\ NumKernelDims\ -\/\ 1;}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00130\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ d\ =\ 0;\ d\ <\ limit;\ ++d)\ \{}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ idx\ =\ p\ /\ m\_gpuInputStrides[d];}
+\DoxyCodeLine{00132\ \ \ \ \ \ \ \ \ inputIndex\ +=\ idx\ *\ m\_inputStrides[d];}
+\DoxyCodeLine{00133\ \ \ \ \ \ \ \ \ p\ -\/=\ idx\ *\ m\_gpuInputStrides[d];}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ inputIndex\ +=\ p\ *\ m\_inputStrides[limit];}
+\DoxyCodeLine{00136\ \ \ \ \ \}}
+\DoxyCodeLine{00137\ \ \ \ \ \textcolor{keywordflow}{return}\ inputIndex;}
+\DoxyCodeLine{00138\ \ \ \}}
+\DoxyCodeLine{00139\ }
+\DoxyCodeLine{00140\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper_a288a396c60dcaa11085593b7e7737bff}{mapGpuOutputPlaneToTensorOutputOffset}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ p)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00141\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outputIndex\ =\ 0;}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}}))\ \{}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ d\ =\ NumDims\ -\/\ 1;\ d\ >\ NumKernelDims;\ -\/-\/d)\ \{}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ idx\ =\ p\ /\ m\_gpuOutputStrides[d];}
+\DoxyCodeLine{00145\ \ \ \ \ \ \ \ \ outputIndex\ +=\ idx\ *\ m\_outputStrides[d];}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \ \ p\ -\/=\ idx\ *\ m\_gpuOutputStrides[d];}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ outputIndex\ +=\ p\ *\ m\_outputStrides[NumKernelDims];}
+\DoxyCodeLine{00149\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ std::ptrdiff\_t\ limit\ =\ 0;}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (NumKernelDims\ <\ NumDims)\ \{}
+\DoxyCodeLine{00152\ \ \ \ \ \ \ \ \ limit\ =\ NumDims\ -\/\ NumKernelDims\ -\/\ 1;}
+\DoxyCodeLine{00153\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ d\ =\ 0;\ d\ <\ limit;\ ++d)\ \{}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ idx\ =\ p\ /\ m\_gpuOutputStrides[d];}
+\DoxyCodeLine{00156\ \ \ \ \ \ \ \ \ outputIndex\ +=\ idx\ *\ m\_outputStrides[d];}
+\DoxyCodeLine{00157\ \ \ \ \ \ \ \ \ p\ -\/=\ idx\ *\ m\_gpuOutputStrides[d];}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ outputIndex\ +=\ p\ *\ m\_outputStrides[limit];}
+\DoxyCodeLine{00160\ \ \ \ \ \}}
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keywordflow}{return}\ outputIndex;}
+\DoxyCodeLine{00162\ \ \ \}}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper_a5f688e79fe8140b54d1a608f90b137a8}{mapGpuInputKernelToTensorInputOffset}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00165\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ offset\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 0}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ NumDims\ -\/\ NumKernelDims;}
+\DoxyCodeLine{00168\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ *\ m\_inputStrides[offset];}
+\DoxyCodeLine{00169\ \ \ \}}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper_af61ec2f629e94db0dbdd003ab786338f}{mapGpuOutputKernelToTensorOutputOffset}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00172\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ offset\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 0}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ NumDims\ -\/\ NumKernelDims;}
+\DoxyCodeLine{00175\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ *\ m\_outputStrides[offset];}
+\DoxyCodeLine{00176\ \ \ \}}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper_af12354a8cb2f9edce67bcb61a4e3eb83}{mapGpuInputKernelToTensorInputOffset}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ j)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00179\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ offset\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 0}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ NumDims\ -\/\ NumKernelDims;}
+\DoxyCodeLine{00182\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ *\ m\_inputStrides[offset]\ +\ j\ *\ m\_inputStrides[offset\ +\ 1];}
+\DoxyCodeLine{00183\ \ \ \}}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper_ac36f89e3b9646f58408ed09ad28300a0}{mapGpuOutputKernelToTensorOutputOffset}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ j)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00186\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ offset\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 0}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ NumDims\ -\/\ NumKernelDims;}
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ *\ m\_outputStrides[offset]\ +\ j\ *\ m\_outputStrides[offset\ +\ 1];}
+\DoxyCodeLine{00190\ \ \ \}}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper_a580a4d590304601c6cd78d216ef0d932}{mapGpuInputKernelToTensorInputOffset}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ j,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ k)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00193\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ offset\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 0}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ NumDims\ -\/\ NumKernelDims;}
+\DoxyCodeLine{00196\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ *\ m\_inputStrides[offset]\ +\ j\ *\ m\_inputStrides[offset\ +\ 1]\ +}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \ \ \ \ \ k\ *\ m\_inputStrides[offset\ +\ 2];}
+\DoxyCodeLine{00198\ \ \ \}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1IndexMapper_a73f026ded39de70ea4b938c7649932cf}{mapGpuOutputKernelToTensorOutputOffset}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ j,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ k)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00201\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ offset\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(Layout)\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 0}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ NumDims\ -\/\ NumKernelDims;}
+\DoxyCodeLine{00204\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ *\ m\_outputStrides[offset]\ +\ j\ *\ m\_outputStrides[offset\ +\ 1]\ +}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \ \ \ \ \ k\ *\ m\_outputStrides[offset\ +\ 2];}
+\DoxyCodeLine{00206\ \ \ \}}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00209\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ NumDims\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1array__size}{internal::array\_size<InputDims>::value}};}
+\DoxyCodeLine{00210\ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ m\_inputStrides;}
+\DoxyCodeLine{00211\ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ m\_outputStrides;}
+\DoxyCodeLine{00212\ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ m\_gpuInputStrides;}
+\DoxyCodeLine{00213\ \ \ \mbox{\hyperlink{classEigen_1_1array}{array<Index,\ NumDims>}}\ m\_gpuOutputStrides;}
+\DoxyCodeLine{00214\ \};}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ }
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dimensions,\ \textcolor{keyword}{typename}\ InputXprType,\ \textcolor{keyword}{typename}\ KernelXprType>}
+\DoxyCodeLine{00219\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits}}<\mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{TensorConvolutionOp}}<Dimensions,\ InputXprType,\ KernelXprType>\ >}
+\DoxyCodeLine{00220\ \{}
+\DoxyCodeLine{00221\ \ \ \textcolor{comment}{//\ Type\ promotion\ to\ handle\ the\ case\ where\ the\ types\ of\ the\ lhs\ and\ the\ rhs\ are\ different.}}
+\DoxyCodeLine{00222\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1promote__storage__type}{promote\_storage\_type}}<\textcolor{keyword}{typename}\ InputXprType::Scalar,}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ KernelXprType::Scalar>::ret\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01KernelXprType_01_4_01_4_a54ef69a4a0023ad3a73687b4f90e3711}{Scalar}};}
+\DoxyCodeLine{00224\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1promote__storage__type}{promote\_storage\_type<typename\ traits<InputXprType>::StorageKind}},}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<KernelXprType>::StorageKind}}>::ret\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01KernelXprType_01_4_01_4_a6cac2368a0dd0f7706710389ce3be556}{StorageKind}};}
+\DoxyCodeLine{00226\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1promote__index__type}{promote\_index\_type<typename\ traits<InputXprType>::Index}},}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<KernelXprType>::Index}}>::type\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01KernelXprType_01_4_01_4_aaea28eb7d3427c6efb4bec8fd6b525c5}{Index}};}
+\DoxyCodeLine{00228\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ InputXprType::Nested\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01KernelXprType_01_4_01_4_ad8c0acfeb38e18ce6c327eb70bc2c44b}{LhsNested}};}
+\DoxyCodeLine{00229\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ KernelXprType::Nested\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01KernelXprType_01_4_01_4_ad4d0d1cc3c3d0a2fd4051716311e73b0}{RhsNested}};}
+\DoxyCodeLine{00230\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1remove__reference_a4dfa8056a306f804646a5e7b71bb1ada}{remove\_reference<LhsNested>::type}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01KernelXprType_01_4_01_4_adc9b93e25de71129f1e5ded8ec215612}{\_LhsNested}};}
+\DoxyCodeLine{00231\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1remove__reference_a4dfa8056a306f804646a5e7b71bb1ada}{remove\_reference<RhsNested>::type}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01KernelXprType_01_4_01_4_ad940158f2d9bb4c44f380cbedabed5bf}{\_RhsNested}};}
+\DoxyCodeLine{00232\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ NumDimensions\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<InputXprType>::NumDimensions}};}
+\DoxyCodeLine{00233\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ Layout\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<InputXprType>::Layout}};}
+\DoxyCodeLine{00234\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1conditional}{conditional<Pointer\_type\_promotion<typename\ InputXprType::Scalar,\ Scalar>::val}},}
+\DoxyCodeLine{00235\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<InputXprType>::PointerType}},\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<KernelXprType>::PointerType}}>::type\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01KernelXprType_01_4_01_4_ae2dd68afdf38f27f0b932d5d7c45d1e7}{PointerType}};}
+\DoxyCodeLine{00236\ }
+\DoxyCodeLine{00237\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00238\ \ \ \ \ Flags\ =\ 0}
+\DoxyCodeLine{00239\ \ \ \};}
+\DoxyCodeLine{00240\ \};}
+\DoxyCodeLine{00241\ }
+\DoxyCodeLine{00242\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dimensions,\ \textcolor{keyword}{typename}\ InputXprType,\ \textcolor{keyword}{typename}\ KernelXprType>}
+\DoxyCodeLine{00243\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}<\mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{TensorConvolutionOp}}<Dimensions,\ InputXprType,\ KernelXprType>,\ \mbox{\hyperlink{namespaceEigen}{Eigen}}::\mbox{\hyperlink{structEigen_1_1Dense}{Dense}}>}
+\DoxyCodeLine{00244\ \{}
+\DoxyCodeLine{00245\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{TensorConvolutionOp<Dimensions,\ InputXprType,\ KernelXprType>}}\&\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01Ke4af888947ece11333e110ff14d223751_acd55ed678ba14deba5130b13b6ee363d}{type}};}
+\DoxyCodeLine{00246\ \};}
+\DoxyCodeLine{00247\ }
+\DoxyCodeLine{00248\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Dimensions,\ \textcolor{keyword}{typename}\ InputXprType,\ \textcolor{keyword}{typename}\ KernelXprType>}
+\DoxyCodeLine{00249\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1nested}{nested}}<\mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{TensorConvolutionOp}}<Dimensions,\ InputXprType,\ KernelXprType>,\ 1,\ typename\ \mbox{\hyperlink{structEigen_1_1internal_1_1eval}{eval}}<\mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{TensorConvolutionOp}}<Dimensions,\ InputXprType,\ KernelXprType>\ >::\mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{type}}>}
+\DoxyCodeLine{00250\ \{}
+\DoxyCodeLine{00251\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{TensorConvolutionOp<Dimensions,\ InputXprType,\ KernelXprType>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1nested_3_01TensorConvolutionOp_3_01Dimensions_00_01InputXprType_00_01cddabedee53eb8f116e0f8d2eeb2b22b_a262da39ec6deac4796d0598bd4fee4c8}{type}};}
+\DoxyCodeLine{00252\ \};}
+\DoxyCodeLine{00253\ }
+\DoxyCodeLine{00254\ \}\ \ \textcolor{comment}{//\ end\ namespace\ internal}}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ }
+\DoxyCodeLine{00258\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Indices,\ \textcolor{keyword}{typename}\ InputXprType,\ \textcolor{keyword}{typename}\ KernelXprType>}
+\DoxyCodeLine{00259\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{TensorConvolutionOp}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classEigen_1_1TensorBase}{TensorBase}}<TensorConvolutionOp<Indices,\ InputXprType,\ KernelXprType>,\ ReadOnlyAccessors>}
+\DoxyCodeLine{00260\ \{}
+\DoxyCodeLine{00261\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00262\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{Eigen::internal::traits<TensorConvolutionOp>::Scalar}}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a87c74cba232abb75ce62819a9ad48dcf}{Scalar}};}
+\DoxyCodeLine{00263\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1GenericNumTraits_a6e9ee9306607a1a0b4f79be74dca97bb}{Eigen::NumTraits<Scalar>::Real}}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_ae7b2ad339ae53f41780080b8c784bbaa}{RealScalar}};}
+\DoxyCodeLine{00264\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1promote__storage__type}{internal::promote\_storage\_type}}<\textcolor{keyword}{typename}\ InputXprType::CoeffReturnType,}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ KernelXprType::CoeffReturnType>::ret\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a9df61e987f370921c3bda147f1d97aae}{CoeffReturnType}};}
+\DoxyCodeLine{00266\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{Eigen::internal::nested<TensorConvolutionOp>::type}}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a2ae8ff4c6bc948df1f9a2a0d76f21d2d}{Nested}};}
+\DoxyCodeLine{00267\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{Eigen::internal::traits<TensorConvolutionOp>::StorageKind}}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a22076f94eaa8fa4a9434d3a8e5ff6760}{StorageKind}};}
+\DoxyCodeLine{00268\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{Eigen::internal::traits<TensorConvolutionOp>::Index}}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a8a381f13d4d9572dcdddded6aa91aacf}{Index}};}
+\DoxyCodeLine{00269\ }
+\DoxyCodeLine{00270\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a04ea00eeeda9cb7465c2f30422d03a84}{TensorConvolutionOp}}(\textcolor{keyword}{const}\ InputXprType\&\ input,\ \textcolor{keyword}{const}\ KernelXprType\&\ kernel,\ \textcolor{keyword}{const}\ Indices\&\ dims)}
+\DoxyCodeLine{00271\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a494baed879baa43de22da6224a63629b}{m\_input\_xpr}}(input),\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_ab5f27024c613daf6307df2744185c228}{m\_kernel\_xpr}}(kernel),\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_ad7c5698df99b64e38abfb431714cc839}{m\_indices}}(dims)\ \{\}}
+\DoxyCodeLine{00272\ }
+\DoxyCodeLine{00273\ \ \ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00274\ \ \ \ \ \textcolor{keyword}{const}\ Indices\&\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_afb0c9994880e60c813a1723008c0b15f}{indices}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_ad7c5698df99b64e38abfb431714cc839}{m\_indices}};\ \}}
+\DoxyCodeLine{00275\ }
+\DoxyCodeLine{00277\ \ \ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00278\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1remove__all_a8c6b21d1e637059fba1949ede3cf3b7b}{internal::remove\_all<typename\ InputXprType::Nested>::type}}\&}
+\DoxyCodeLine{00279\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_acee95bb5d1dc4fd33dcf0f432d2f357e}{inputExpression}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a494baed879baa43de22da6224a63629b}{m\_input\_xpr}};\ \}}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \ \ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}}
+\DoxyCodeLine{00282\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1remove__all_a8c6b21d1e637059fba1949ede3cf3b7b}{internal::remove\_all<typename\ KernelXprType::Nested>::type}}\&}
+\DoxyCodeLine{00283\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a5a520eb7e1bd8f4bd6e190e8d2d8a4a7}{kernelExpression}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_ab5f27024c613daf6307df2744185c228}{m\_kernel\_xpr}};\ \}}
+\DoxyCodeLine{00284\ }
+\DoxyCodeLine{00285\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00286\ \ \ \ \ \textcolor{keyword}{typename}\ InputXprType::Nested\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a494baed879baa43de22da6224a63629b}{m\_input\_xpr}};}
+\DoxyCodeLine{00287\ \ \ \ \ \textcolor{keyword}{typename}\ KernelXprType::Nested\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_ab5f27024c613daf6307df2744185c228}{m\_kernel\_xpr}};}
+\DoxyCodeLine{00288\ \ \ \ \ \textcolor{keyword}{const}\ Indices\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_ad7c5698df99b64e38abfb431714cc839}{m\_indices}};}
+\DoxyCodeLine{00289\ \};}
+\DoxyCodeLine{00290\ }
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Indices,\ \textcolor{keyword}{typename}\ InputArgType,\ \textcolor{keyword}{typename}\ KernelArgType,\ \textcolor{keyword}{typename}\ Device>}
+\DoxyCodeLine{00293\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1TensorEvaluator}{TensorEvaluator}}<const\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{TensorConvolutionOp}}<Indices,\ InputArgType,\ KernelArgType>,\ Device>}
+\DoxyCodeLine{00294\ \{}
+\DoxyCodeLine{00295\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{TensorConvolutionOp<Indices,\ InputArgType,\ KernelArgType>}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_aeea319f9e500926ff3beb51a5678298c}{XprType}};}
+\DoxyCodeLine{00296\ }
+\DoxyCodeLine{00297\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ NumDims\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1array__size}{internal::array\_size<typename\ TensorEvaluator<InputArgType,\ Device>::Dimensions}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}};}
+\DoxyCodeLine{00298\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ NumKernelDims\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1array__size}{internal::array\_size<Indices>::value}};}
+\DoxyCodeLine{00299\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a8a381f13d4d9572dcdddded6aa91aacf}{XprType::Index}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}};}
+\DoxyCodeLine{00300\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1DSizes}{DSizes<Index,\ NumDims>}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a4d45d2d169ecadf047ce6759a5dae638}{Dimensions}};}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00302\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a87c74cba232abb75ce62819a9ad48dcf}{XprType::Scalar}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a13b9bb8ec67c616e770c18b0549357a8}{Scalar}};}
+\DoxyCodeLine{00303\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a9df61e987f370921c3bda147f1d97aae}{XprType::CoeffReturnType}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a690253371889d9f53f12cf7fc1d37a85}{CoeffReturnType}};}
+\DoxyCodeLine{00304\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1PacketType_aef48fcc1b8cc8df3b7c667a52a792869}{PacketType<CoeffReturnType,\ Device>::type}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a533f7e0055bc86e4791e9d125e7bf96c}{PacketReturnType}};}
+\DoxyCodeLine{00305\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}\ =\ \mbox{\hyperlink{structEigen_1_1PacketType}{PacketType<CoeffReturnType,\ Device>::size}};}
+\DoxyCodeLine{00306\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1StorageMemory}{StorageMemory<Scalar,\ Device>}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a4973ebbd3373e176f0ab041da4cc1d87}{Storage}};}
+\DoxyCodeLine{00307\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1MakePointer_ad5ad877605f41bf69c9ffdf13567c693}{Storage::Type}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_ad71d4247fbdead03c283f37178f14072}{EvaluatorPointerType}};}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00309\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00310\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaf11db1f709324172bf7b0697066c3e32}{IsAligned}}\ =\ int(\mbox{\hyperlink{structEigen_1_1TensorEvaluator}{TensorEvaluator<InputArgType,\ Device>::IsAligned}})\ \&\ int(\mbox{\hyperlink{structEigen_1_1TensorEvaluator}{TensorEvaluator<KernelArgType,\ Device>::IsAligned}}),}
+\DoxyCodeLine{00311\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfa82e9bfc6394867187050ca7e4619cdf1}{PacketAccess}}\ =\ int(\mbox{\hyperlink{structEigen_1_1TensorEvaluator}{TensorEvaluator<InputArgType,\ Device>::PacketAccess}})\ \&\ int(\mbox{\hyperlink{structEigen_1_1TensorEvaluator}{TensorEvaluator<KernelArgType,\ Device>::PacketAccess}}),}
+\DoxyCodeLine{00312\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfa11319c5d2ee534b9aff85a27b4423fe9}{BlockAccess}}\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{00313\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfa3fe1a7f25f4c1da95f4f2c08ecb10450}{PreferBlockAccess}}\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{00314\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}}\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator}{TensorEvaluator<InputArgType,\ Device>::Layout}},}
+\DoxyCodeLine{00315\ \ \ \ \ CoordAccess\ =\ \textcolor{keyword}{false},\ \ \textcolor{comment}{//\ to\ be\ implemented}}
+\DoxyCodeLine{00316\ \ \ \ \ RawAccess\ =\ \textcolor{keyword}{false}}
+\DoxyCodeLine{00317\ \ \ \};}
+\DoxyCodeLine{00318\ }
+\DoxyCodeLine{00319\ \ \ \textcolor{comment}{//===-\/\ Tensor\ block\ evaluation\ strategy\ (see\ TensorBlock.h)\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/===//}}
+\DoxyCodeLine{00320\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorBlockNotImplemented}{internal::TensorBlockNotImplemented}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a4281ff8f98c9c5a588fd4515821862d7}{TensorBlock}};}
+\DoxyCodeLine{00321\ \ \ \textcolor{comment}{//===-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/===//}}
+\DoxyCodeLine{00322\ }
+\DoxyCodeLine{00323\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a13a7225d4d9b0abc3839a137fcff9be1}{TensorEvaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp}{XprType}}\&\ op,\ \textcolor{keyword}{const}\ Device\&\ device)}
+\DoxyCodeLine{00324\ \ \ \ \ \ \ :\ m\_inputImpl(op.inputExpression(),\ device),\ m\_kernelImpl(op.kernelExpression(),\ device),\ m\_kernelArg(op.kernelExpression()),\ m\_kernel(NULL),\ m\_local\_kernel(false),\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}(device)}
+\DoxyCodeLine{00325\ \ \ \{}
+\DoxyCodeLine{00326\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_ac95cf960f4a8395b28af90edfda755f0}{EIGEN\_STATIC\_ASSERT}}((\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator}{TensorEvaluator<InputArgType,\ Device>::Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator}{TensorEvaluator<KernelArgType,\ Device>::Layout}})),\ YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);}
+\DoxyCodeLine{00327\ }
+\DoxyCodeLine{00328\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{TensorEvaluator<InputArgType,\ Device>::Dimensions}}\&\ input\_dims\ =\ m\_inputImpl.dimensions();}
+\DoxyCodeLine{00329\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{TensorEvaluator<KernelArgType,\ Device>::Dimensions}}\&\ kernel\_dims\ =\ m\_kernelImpl.dimensions();}
+\DoxyCodeLine{00330\ }
+\DoxyCodeLine{00331\ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}}))\ \{}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ m\_inputStride[0]\ =\ 1;}
+\DoxyCodeLine{00333\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00334\ \ \ \ \ \ \ \ \ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1]\ *\ input\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1];}
+\DoxyCodeLine{00335\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00336\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00337\ \ \ \ \ \ \ m\_inputStride[NumDims\ -\/\ 1]\ =\ 1;}
+\DoxyCodeLine{00338\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ NumDims\ -\/\ 2;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >=\ 0;\ -\/-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00339\ \ \ \ \ \ \ \ \ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1]\ *\ input\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1];}
+\DoxyCodeLine{00340\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00341\ \ \ \ \ \}}
+\DoxyCodeLine{00342\ }
+\DoxyCodeLine{00343\ \ \ \ \ m\_dimensions\ =\ m\_inputImpl.dimensions();}
+\DoxyCodeLine{00344\ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}}))\ \{}
+\DoxyCodeLine{00345\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumKernelDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00346\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ index\ =\ op.\mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_afb0c9994880e60c813a1723008c0b15f}{indices}}()[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00347\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ input\_dim\ =\ input\_dims[index];}
+\DoxyCodeLine{00348\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ kernel\_dim\ =\ kernel\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00349\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ result\_dim\ =\ input\_dim\ -\/\ kernel\_dim\ +\ 1;}
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \ \ m\_dimensions[index]\ =\ result\_dim;}
+\DoxyCodeLine{00351\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >\ 0)\ \{}
+\DoxyCodeLine{00352\ \ \ \ \ \ \ \ \ \ \ m\_kernelStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ m\_kernelStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1]\ *\ kernel\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1];}
+\DoxyCodeLine{00353\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00354\ \ \ \ \ \ \ \ \ \ \ m\_kernelStride[0]\ =\ 1;}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00356\ \ \ \ \ \ \ \ \ m\_indexStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ m\_inputStride[index];}
+\DoxyCodeLine{00357\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00358\ }
+\DoxyCodeLine{00359\ \ \ \ \ \ \ m\_outputStride[0]\ =\ 1;}
+\DoxyCodeLine{00360\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00361\ \ \ \ \ \ \ \ \ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1]\ *\ m\_dimensions[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ -\/\ 1];}
+\DoxyCodeLine{00362\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00363\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00364\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ NumKernelDims\ -\/\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >=\ 0;\ -\/-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00365\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ index\ =\ op.\mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_afb0c9994880e60c813a1723008c0b15f}{indices}}()[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00366\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ input\_dim\ =\ input\_dims[index];}
+\DoxyCodeLine{00367\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ kernel\_dim\ =\ kernel\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00368\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ result\_dim\ =\ input\_dim\ -\/\ kernel\_dim\ +\ 1;}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ \ \ m\_dimensions[index]\ =\ result\_dim;}
+\DoxyCodeLine{00370\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumKernelDims\ -\/\ 1)\ \{}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \ \ \ \ m\_kernelStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ m\_kernelStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1]\ *\ kernel\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1];}
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \ \ \ \ m\_kernelStride[NumKernelDims\ -\/\ 1]\ =\ 1;}
+\DoxyCodeLine{00374\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00375\ \ \ \ \ \ \ \ \ m\_indexStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ m\_inputStride[index];}
+\DoxyCodeLine{00376\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00377\ }
+\DoxyCodeLine{00378\ \ \ \ \ \ \ m\_outputStride[NumDims\ -\/\ 1]\ =\ 1;}
+\DoxyCodeLine{00379\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ NumDims\ -\/\ 2;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >=\ 0;\ -\/-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00380\ \ \ \ \ \ \ \ \ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1]\ *\ m\_dimensions[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ 1];}
+\DoxyCodeLine{00381\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00382\ \ \ \ \ \}}
+\DoxyCodeLine{00383\ \ \ \}}
+\DoxyCodeLine{00384\ }
+\DoxyCodeLine{00385\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1DSizes}{Dimensions}}\&\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a78f9d7dcc5c91c56885b61d439b9f562}{dimensions}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_dimensions;\ \}}
+\DoxyCodeLine{00386\ }
+\DoxyCodeLine{00387\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_aa42526e19f7cfe3550cca2e5a78d72e6}{evalSubExprsIfNeeded}}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a13b9bb8ec67c616e770c18b0549357a8}{Scalar}}*)\ \{}
+\DoxyCodeLine{00388\ \ \ \ \ m\_inputImpl.evalSubExprsIfNeeded(NULL);}
+\DoxyCodeLine{00389\ \ \ \ \ preloadKernel();}
+\DoxyCodeLine{00390\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00391\ \ \ \}}
+\DoxyCodeLine{00392\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a4071b49313c11762cebe646cf87f8e92}{cleanup}}()\ \{}
+\DoxyCodeLine{00393\ \ \ \ \ m\_inputImpl.cleanup();}
+\DoxyCodeLine{00394\ \ \ \ \ \textcolor{keywordflow}{if}\ (m\_local\_kernel)\ \{}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.deallocate((\textcolor{keywordtype}{void}*)m\_kernel);}
+\DoxyCodeLine{00396\ \ \ \ \ \ \ m\_local\_kernel\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00397\ \ \ \ \ \}}
+\DoxyCodeLine{00398\ \ \ \ \ m\_kernel\ =\ NULL;}
+\DoxyCodeLine{00399\ \ \ \}}
+\DoxyCodeLine{00400\ }
+\DoxyCodeLine{00401\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_ae1e4f27adc5da7c8c4efb87d1197fd71}{evalTo}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1TensorConvolutionOp_a87c74cba232abb75ce62819a9ad48dcf}{XprType::Scalar}}*\ buffer)\ \{}
+\DoxyCodeLine{00402\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a0fcd215ee81860d68da5c5c14e2d5b94}{evalSubExprsIfNeeded}}(NULL);}
+\DoxyCodeLine{00403\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}().TotalSize();\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00404\ \ \ \ \ \ \ buffer[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ +=\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a7747e4223120fe698801fa12c186561d}{coeff}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{00405\ \ \ \ \ \}}
+\DoxyCodeLine{00406\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a77d1ef701d1651a0d47c9ae2083acc49}{cleanup}}();}
+\DoxyCodeLine{00407\ \ \ \}}
+\DoxyCodeLine{00408\ }
+\DoxyCodeLine{00409\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a690253371889d9f53f12cf7fc1d37a85}{CoeffReturnType}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a0d13cd7c53b057083239a5110c2242fc}{coeff}}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ index)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00410\ \textcolor{keyword}{\ \ }\{}
+\DoxyCodeLine{00411\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a690253371889d9f53f12cf7fc1d37a85}{CoeffReturnType}}\ result\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab9f94deb25a2d2b52dd0e827ef49ce3c}{CoeffReturnType}}(0);}
+\DoxyCodeLine{00412\ \ \ \ \ convolve(firstInput(index),\ 0,\ NumKernelDims-\/1,\ result);}
+\DoxyCodeLine{00413\ \ \ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00414\ \ \ \}}
+\DoxyCodeLine{00415\ }
+\DoxyCodeLine{00416\ \ \ \textcolor{keyword}{template}<\textcolor{keywordtype}{int}\ LoadMode>}
+\DoxyCodeLine{00417\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a533f7e0055bc86e4791e9d125e7bf96c}{PacketReturnType}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a16d934409ac5d8fcd2e1a8b010ef02a7}{packet}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ index)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00418\ \textcolor{keyword}{\ \ }\{}
+\DoxyCodeLine{00419\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ indices[2]\ =\ \{index,\ index+\mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}-\/1\};}
+\DoxyCodeLine{00420\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ startInputs[2]\ =\ \{0,\ 0\};}
+\DoxyCodeLine{00421\ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}}))\ \{}
+\DoxyCodeLine{00422\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ NumDims\ -\/\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >\ 0;\ -\/-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00423\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ idx0\ =\ indices[0]\ /\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00424\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ idx1\ =\ indices[1]\ /\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \ \ startInputs[0]\ +=\ idx0\ *\ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00426\ \ \ \ \ \ \ \ \ startInputs[1]\ +=\ idx1\ *\ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00427\ \ \ \ \ \ \ \ \ indices[0]\ -\/=\ idx0\ *\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00428\ \ \ \ \ \ \ \ \ indices[1]\ -\/=\ idx1\ *\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00429\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00430\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00431\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumDims\ -\/\ 1;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00432\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ idx0\ =\ indices[0]\ /\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00433\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a28f422e73e4f29d5c68795fcec7d5c4f}{Index}}\ idx1\ =\ indices[1]\ /\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00434\ \ \ \ \ \ \ \ \ startInputs[0]\ +=\ idx0\ *\ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00435\ \ \ \ \ \ \ \ \ startInputs[1]\ +=\ idx1\ *\ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00436\ \ \ \ \ \ \ \ \ indices[0]\ -\/=\ idx0\ *\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00437\ \ \ \ \ \ \ \ \ indices[1]\ -\/=\ idx1\ *\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00438\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00439\ \ \ \ \ \}}
+\DoxyCodeLine{00440\ \ \ \ \ startInputs[0]\ +=\ indices[0];}
+\DoxyCodeLine{00441\ \ \ \ \ startInputs[1]\ +=\ indices[1];}
+\DoxyCodeLine{00442\ }
+\DoxyCodeLine{00443\ \ \ \ \ \textcolor{keywordflow}{if}\ (startInputs[1]-\/startInputs[0]\ ==\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}-\/1)\ \{}
+\DoxyCodeLine{00444\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a533f7e0055bc86e4791e9d125e7bf96c}{PacketReturnType}}\ result\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_afa6f9a9f3c905b28cc29841935e44fdb}{internal::pset1<PacketReturnType>}}(0);}
+\DoxyCodeLine{00445\ \ \ \ \ \ \ convolvePacket(startInputs[0],\ 0,\ NumKernelDims-\/1,\ result);}
+\DoxyCodeLine{00446\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00447\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00448\ \ \ \ \ \ \ \mbox{\hyperlink{ConfigureVectorization_8h_a13d55467be312f50f2ae60737f1ed9f3}{EIGEN\_ALIGN\_MAX}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a13b9bb8ec67c616e770c18b0549357a8}{Scalar}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}}[\mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}];}
+\DoxyCodeLine{00449\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}}[0]\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}(0);}
+\DoxyCodeLine{00450\ \ \ \ \ \ \ convolve(startInputs[0],\ 0,\ NumKernelDims-\/1,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}}[0]);}
+\DoxyCodeLine{00451\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}-\/1;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00452\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}(0);}
+\DoxyCodeLine{00453\ \ \ \ \ \ \ \ \ convolve(firstInput(index+\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}),\ 0,\ NumKernelDims-\/1,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}]);}
+\DoxyCodeLine{00454\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00455\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}}[\mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}-\/1]\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}(0);}
+\DoxyCodeLine{00456\ \ \ \ \ \ \ convolve(startInputs[1],\ 0,\ NumKernelDims-\/1,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}}[\mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}-\/1]);}
+\DoxyCodeLine{00457\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceEigen_1_1internal_ae25c18feab0271a245176a7a3f2dcd3d}{internal::pload<PacketReturnType>}}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{00458\ \ \ \ \ \}}
+\DoxyCodeLine{00459\ \ \ \}}
+\DoxyCodeLine{00460\ }
+\DoxyCodeLine{00461\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1TensorOpCost}{TensorOpCost}}}
+\DoxyCodeLine{00462\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a4dae06cd26365ea59456cbfab5d76c13}{costPerCoeff}}(\textcolor{keywordtype}{bool}\ vectorized)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00463\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ kernel\_size\ =\ m\_kernelImpl.dimensions().TotalSize();}
+\DoxyCodeLine{00464\ \ \ \ \ \textcolor{comment}{//\ We\ ignore\ the\ use\ of\ fused\ multiply-\/add.}}
+\DoxyCodeLine{00465\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ convolve\_compute\_cost\ =}
+\DoxyCodeLine{00466\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1TensorOpCost_a7c74e94f5c5992ddd756ba868df98441}{TensorOpCost::AddCost<Scalar>}}()\ +\ \mbox{\hyperlink{classEigen_1_1TensorOpCost_a6beccb61485f429ac575d0a22abf9014}{TensorOpCost::MulCost<Scalar>}}();}
+\DoxyCodeLine{00467\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ firstIndex\_compute\_cost\ =}
+\DoxyCodeLine{00468\ \ \ \ \ \ \ \ \ NumDims\ *}
+\DoxyCodeLine{00469\ \ \ \ \ \ \ \ \ (2\ *\ \mbox{\hyperlink{classEigen_1_1TensorOpCost_a7c74e94f5c5992ddd756ba868df98441}{TensorOpCost::AddCost<Index>}}()\ +\ 2\ *\ \mbox{\hyperlink{classEigen_1_1TensorOpCost_a6beccb61485f429ac575d0a22abf9014}{TensorOpCost::MulCost<Index>}}()\ +}
+\DoxyCodeLine{00470\ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1TensorOpCost_ab5da69fab8e443d48fafa9880aa8691c}{TensorOpCost::DivCost<Index>}}());}
+\DoxyCodeLine{00471\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1TensorOpCost}{TensorOpCost}}(0,\ 0,\ firstIndex\_compute\_cost,\ vectorized,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}})\ +}
+\DoxyCodeLine{00472\ \ \ \ \ \ \ \ \ \ \ \ kernel\_size\ *\ (m\_inputImpl.costPerCoeff(vectorized)\ +}
+\DoxyCodeLine{00473\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_kernelImpl.costPerCoeff(vectorized)\ +}
+\DoxyCodeLine{00474\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1TensorOpCost}{TensorOpCost}}(0,\ 0,\ convolve\_compute\_cost,\ vectorized,}
+\DoxyCodeLine{00475\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}));}
+\DoxyCodeLine{00476\ \ \ \}}
+\DoxyCodeLine{00477\ }
+\DoxyCodeLine{00478\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_ad71d4247fbdead03c283f37178f14072}{EvaluatorPointerType}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_3_01const_01TensorConvolutionOp_3_01Indices_00_01InputArgType_00_1cdd351e461d21ffb07753a2c244c35b_a7652d7304276574001650e067b91239f}{data}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ NULL;\ \}}
+\DoxyCodeLine{00479\ }
+\DoxyCodeLine{00480\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00481\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ firstInput(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ index)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00482\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ startInput\ =\ 0;}
+\DoxyCodeLine{00483\ \ \ \ \ \textcolor{keywordflow}{if}\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}}))\ \{}
+\DoxyCodeLine{00484\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ NumDims\ -\/\ 1;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >\ 0;\ -\/-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00485\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ idx\ =\ index\ /\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00486\ \ \ \ \ \ \ \ \ startInput\ +=\ idx\ *\ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00487\ \ \ \ \ \ \ \ \ index\ -\/=\ idx\ *\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00488\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00489\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00490\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumDims\ -\/\ 1;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00491\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ idx\ =\ index\ /\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00492\ \ \ \ \ \ \ \ \ startInput\ +=\ idx\ *\ m\_inputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00493\ \ \ \ \ \ \ \ \ index\ -\/=\ idx\ *\ m\_outputStride[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00494\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00495\ \ \ \ \ \}}
+\DoxyCodeLine{00496\ \ \ \ \ startInput\ +=\ index;}
+\DoxyCodeLine{00497\ \ \ \ \ \textcolor{keywordflow}{return}\ startInput;}
+\DoxyCodeLine{00498\ \ \ \}}
+\DoxyCodeLine{00499\ }
+\DoxyCodeLine{00500\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keywordtype}{void}\ convolve(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ firstIndex,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ firstKernel,\ \textcolor{keywordtype}{int}\ DimIndex,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab9f94deb25a2d2b52dd0e827ef49ce3c}{CoeffReturnType}}\&\ accum)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00501\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ j\ =\ 0;\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ <\ m\_kernelImpl.dimensions()[DimIndex];\ ++\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}})\ \{}
+\DoxyCodeLine{00502\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ input\ =\ firstIndex\ +\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ *\ m\_indexStride[DimIndex];}
+\DoxyCodeLine{00503\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ kernel\ =\ firstKernel\ +\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ *\ m\_kernelStride[DimIndex];}
+\DoxyCodeLine{00504\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (DimIndex\ >\ 0)\ \{}
+\DoxyCodeLine{00505\ \ \ \ \ \ \ \ \ convolve(input,\ kernel,\ DimIndex-\/1,\ accum);}
+\DoxyCodeLine{00506\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00507\ \ \ \ \ \ \ \ \ accum\ +=\ m\_inputImpl.coeff(input)\ *\ m\_kernel[kernel];}
+\DoxyCodeLine{00508\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00509\ \ \ \ \ \}}
+\DoxyCodeLine{00510\ \ \ \}}
+\DoxyCodeLine{00511\ }
+\DoxyCodeLine{00512\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Packet>}
+\DoxyCodeLine{00513\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keywordtype}{void}\ convolvePacket(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ firstIndex,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ firstKernel,\ \textcolor{keywordtype}{int}\ DimIndex,\ Packet\&\ accum)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00514\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ j\ =\ 0;\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ <\ m\_kernelImpl.dimensions()[DimIndex];\ ++\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}})\ \{}
+\DoxyCodeLine{00515\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ input\ =\ firstIndex\ +\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ *\ m\_indexStride[DimIndex];}
+\DoxyCodeLine{00516\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ kernel\ =\ firstKernel\ +\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ *\ m\_kernelStride[DimIndex];}
+\DoxyCodeLine{00517\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (DimIndex\ >\ 0)\ \{}
+\DoxyCodeLine{00518\ \ \ \ \ \ \ \ \ convolvePacket(input,\ kernel,\ DimIndex-\/1,\ accum);}
+\DoxyCodeLine{00519\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00520\ \ \ \ \ \ \ \ \ accum\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a74b4d1fb91602aebe1ae5742e8c2d566}{internal::pmadd<Packet>}}(m\_inputImpl.template\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af8ba36b08b6aaabc799d5d86a48dcb9d}{packet<Unaligned>}}(input),\ \mbox{\hyperlink{namespaceEigen_1_1internal_afa6f9a9f3c905b28cc29841935e44fdb}{internal::pset1<Packet>}}(m\_kernel[kernel]),\ accum);}
+\DoxyCodeLine{00521\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00522\ \ \ \ \ \}}
+\DoxyCodeLine{00523\ \ \ \}}
+\DoxyCodeLine{00524\ }
+\DoxyCodeLine{00525\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ preloadKernel()\ \{}
+\DoxyCodeLine{00526\ \ \ \ \ \textcolor{comment}{//\ Don't\ make\ a\ local\ copy\ of\ the\ kernel\ unless\ we\ have\ to\ (i.e.\ it's\ an}}
+\DoxyCodeLine{00527\ \ \ \ \ \textcolor{comment}{//\ expression\ that\ needs\ to\ be\ evaluated)}}
+\DoxyCodeLine{00528\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*\ in\_place\ =\ m\_kernelImpl.data();}
+\DoxyCodeLine{00529\ \ \ \ \ \textcolor{keywordflow}{if}\ (in\_place)\ \{}
+\DoxyCodeLine{00530\ \ \ \ \ \ \ m\_kernel\ =\ in\_place;}
+\DoxyCodeLine{00531\ \ \ \ \ \ \ m\_local\_kernel\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00532\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00533\ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ kernel\_sz\ =\ m\_kernelImpl.dimensions().TotalSize()\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}});}
+\DoxyCodeLine{00534\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*\ \mbox{\hyperlink{namespaceEigen_1_1TensorSycl_1_1internal_ae779b94e3f0127525eda5ff1db87719daf5ddaf0ca7929578b408c909429f68f2}{local}}\ =\ (\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*)\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.allocate\_temp(kernel\_sz);}
+\DoxyCodeLine{00535\ \ \ \ \ \ \ \textcolor{keyword}{typedef}\ TensorEvalToOp<const\ KernelArgType>\ EvalTo;}
+\DoxyCodeLine{00536\ \ \ \ \ \ \ EvalTo\ evalToTmp(local,\ m\_kernelArg);}
+\DoxyCodeLine{00537\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ Vectorize\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1IsVectorizable_a63f1426b925a75938507573c67d99748}{internal::IsVectorizable<Device,\ KernelArgType>::value}};}
+\DoxyCodeLine{00538\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorExecutor_a50325b41f927e2c29141c7ac671efdec}{internal::TensorExecutor<const\ EvalTo,\ Device,\ Vectorize>::run}}(evalToTmp,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}});}
+\DoxyCodeLine{00539\ }
+\DoxyCodeLine{00540\ \ \ \ \ \ \ m\_kernel\ =\ \mbox{\hyperlink{namespaceEigen_1_1TensorSycl_1_1internal_ae779b94e3f0127525eda5ff1db87719daf5ddaf0ca7929578b408c909429f68f2}{local}};}
+\DoxyCodeLine{00541\ \ \ \ \ \ \ m\_local\_kernel\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00542\ \ \ \ \ \}}
+\DoxyCodeLine{00543\ \ \ \}}
+\DoxyCodeLine{00544\ }
+\DoxyCodeLine{00545\ \ \ array<Index,\ NumDims>\ m\_inputStride;}
+\DoxyCodeLine{00546\ \ \ array<Index,\ NumDims>\ m\_outputStride;}
+\DoxyCodeLine{00547\ }
+\DoxyCodeLine{00548\ \ \ array<Index,\ NumKernelDims>\ m\_indexStride;}
+\DoxyCodeLine{00549\ \ \ array<Index,\ NumKernelDims>\ m\_kernelStride;}
+\DoxyCodeLine{00550\ \ \ TensorEvaluator<InputArgType,\ Device>\ m\_inputImpl;}
+\DoxyCodeLine{00551\ \ \ TensorEvaluator<KernelArgType,\ Device>\ m\_kernelImpl;}
+\DoxyCodeLine{00552\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{Dimensions}}\ m\_dimensions;}
+\DoxyCodeLine{00553\ }
+\DoxyCodeLine{00554\ \ \ KernelArgType\ m\_kernelArg;}
+\DoxyCodeLine{00555\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*\ m\_kernel;}
+\DoxyCodeLine{00556\ \ \ \textcolor{keywordtype}{bool}\ m\_local\_kernel;}
+\DoxyCodeLine{00557\ \ \ \textcolor{keyword}{const}\ Device\ \mbox{\hyperlink{TensorMacros_8h_ab1d48616b1c0fcce6dc3f01cad41b1d8}{EIGEN\_DEVICE\_REF}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}};}
+\DoxyCodeLine{00558\ \};}
+\DoxyCodeLine{00559\ }
+\DoxyCodeLine{00560\ }
+\DoxyCodeLine{00561\ }
+\DoxyCodeLine{00562\ }
+\DoxyCodeLine{00563\ \textcolor{comment}{//\ Use\ an\ optimized\ implementation\ of\ the\ evaluation\ code\ for\ GPUs\ whenever\ possible.}}
+\DoxyCodeLine{00564\ \textcolor{preprocessor}{\#if\ defined(EIGEN\_USE\_GPU)\ \&\&\ defined(EIGEN\_GPUCC)}}
+\DoxyCodeLine{00565\ }
+\DoxyCodeLine{00566\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ StaticKernelSize>}
+\DoxyCodeLine{00567\ \textcolor{keyword}{struct\ }GetKernelSize\ \{}
+\DoxyCodeLine{00568\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()\ }}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \textcolor{comment}{/*kernelSize*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00569\ \ \ \ \ \textcolor{keywordflow}{return}\ StaticKernelSize;}
+\DoxyCodeLine{00570\ \ \ \}}
+\DoxyCodeLine{00571\ \};}
+\DoxyCodeLine{00572\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00573\ \textcolor{keyword}{struct\ }GetKernelSize<Dynamic>\ \{}
+\DoxyCodeLine{00574\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()\ }}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernelSize)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00575\ \ \ \ \ \textcolor{keywordflow}{return}\ kernelSize;}
+\DoxyCodeLine{00576\ \ \ \}}
+\DoxyCodeLine{00577\ \};}
+\DoxyCodeLine{00578\ }
+\DoxyCodeLine{00579\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ InputEvaluator,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}},\ \textcolor{keyword}{typename}\ InputDims,}
+\DoxyCodeLine{00580\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ StaticKernelSize>}
+\DoxyCodeLine{00581\ \_\_global\_\_\ \mbox{\hyperlink{Macros_8h_ab7c87492b7a80ed45d2e0377b40cdee5}{EIGEN\_HIP\_LAUNCH\_BOUNDS\_1024}}\ \textcolor{keywordtype}{void}\ EigenConvolutionKernel1D(}
+\DoxyCodeLine{00582\ \ \ \ \ InputEvaluator\ eval,}
+\DoxyCodeLine{00583\ \ \ \ \ \textcolor{keyword}{const}\ internal::IndexMapper<Index,\ InputDims,\ 1,\ InputEvaluator::Layout>}
+\DoxyCodeLine{00584\ \ \ \ \ \ \ \ \ indexMapper,}
+\DoxyCodeLine{00585\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}*\ \_\_restrict\ kernel,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numPlanes,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numX,}
+\DoxyCodeLine{00586\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxX,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernelSize,\ \textcolor{keywordtype}{float}*\ buffer)\ \{}
+\DoxyCodeLine{00587\ \textcolor{preprocessor}{\#if\ defined(EIGEN\_HIPCC)}}
+\DoxyCodeLine{00588\ \ \ HIP\_DYNAMIC\_SHARED(\textcolor{keywordtype}{float},\ s)}
+\DoxyCodeLine{00589\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00590\ \ \ \textcolor{keyword}{extern}\ \_\_shared\_\_\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}[];}
+\DoxyCodeLine{00591\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00592\ }
+\DoxyCodeLine{00593\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ first\_x\ =\ blockIdx.x\ *\ maxX;}
+\DoxyCodeLine{00594\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ last\_x\ =\ (first\_x\ +\ maxX\ <\ numX\ ?\ first\_x\ +\ maxX\ :\ numX)\ -\/\ 1;}
+\DoxyCodeLine{00595\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_x\_input\ =\ last\_x\ -\/\ first\_x\ +\ GetKernelSize<StaticKernelSize>()(kernelSize);}
+\DoxyCodeLine{00596\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_x\_output\ =\ last\_x\ -\/\ first\_x\ +\ 1;}
+\DoxyCodeLine{00597\ }
+\DoxyCodeLine{00598\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ first\_plane\ =\ blockIdx.y\ *\ blockDim.y;}
+\DoxyCodeLine{00599\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_stride\ =\ blockDim.y\ *\ gridDim.y;}
+\DoxyCodeLine{00600\ }
+\DoxyCodeLine{00601\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ p\ =\ first\_plane\ +\ threadIdx.y;\ p\ <\ numPlanes;\ p\ +=\ plane\_stride)\ \{}
+\DoxyCodeLine{00602\ \ \ \ \ \textcolor{comment}{//\ Load\ inputs\ to\ shared\ memory}}
+\DoxyCodeLine{00603\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_input\_offset\ =\ indexMapper.mapGpuInputPlaneToTensorInputOffset(p);}
+\DoxyCodeLine{00604\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_kernel\_offset\ =\ threadIdx.y\ *\ num\_x\_input;}
+\DoxyCodeLine{00605\ \textcolor{preprocessor}{\ \ \ \ \#pragma\ unroll}}
+\DoxyCodeLine{00606\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ threadIdx.x;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ num\_x\_input;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +=\ blockDim.x)\ \{}
+\DoxyCodeLine{00607\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ tensor\_index\ =\ plane\_input\_offset\ +\ indexMapper.mapGpuInputKernelToTensorInputOffset(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}+first\_x);}
+\DoxyCodeLine{00608\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ plane\_kernel\_offset]\ =\ eval.coeff(tensor\_index);}
+\DoxyCodeLine{00609\ \ \ \ \ \}}
+\DoxyCodeLine{00610\ }
+\DoxyCodeLine{00611\ \ \ \ \ \_\_syncthreads();}
+\DoxyCodeLine{00612\ }
+\DoxyCodeLine{00613\ \ \ \ \ \textcolor{comment}{//\ Compute\ the\ convolution}}
+\DoxyCodeLine{00614\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_output\_offset\ =\ indexMapper.mapGpuOutputPlaneToTensorOutputOffset(p);}
+\DoxyCodeLine{00615\ }
+\DoxyCodeLine{00616\ \textcolor{preprocessor}{\ \ \ \ \#pragma\ unroll}}
+\DoxyCodeLine{00617\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ threadIdx.x;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ num\_x\_output;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +=\ blockDim.x)\ \{}
+\DoxyCodeLine{00618\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernel\_offset\ =\ plane\_kernel\_offset\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}};}
+\DoxyCodeLine{00619\ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ result\ =\ 0.0f;}
+\DoxyCodeLine{00620\ \textcolor{preprocessor}{\ \ \ \ \ \ \#pragma\ unroll}}
+\DoxyCodeLine{00621\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ k\ =\ 0;\ k\ <\ GetKernelSize<StaticKernelSize>()(kernelSize);\ ++k)\ \{}
+\DoxyCodeLine{00622\ \ \ \ \ \ \ \ \ result\ +=\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}[k\ +\ kernel\_offset]\ *\ kernel[k];}
+\DoxyCodeLine{00623\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00624\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ tensor\_index\ =\ plane\_output\_offset\ +\ indexMapper.mapGpuOutputKernelToTensorOutputOffset(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}+first\_x);}
+\DoxyCodeLine{00625\ \ \ \ \ \ \ buffer[tensor\_index]\ =\ result;}
+\DoxyCodeLine{00626\ \ \ \ \ \}}
+\DoxyCodeLine{00627\ \ \ \ \ \_\_syncthreads();}
+\DoxyCodeLine{00628\ \ \ \}}
+\DoxyCodeLine{00629\ \};}
+\DoxyCodeLine{00630\ }
+\DoxyCodeLine{00631\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ InputEvaluator,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}},\ \textcolor{keyword}{typename}\ InputDims,}
+\DoxyCodeLine{00632\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ StaticKernelSizeX,\ \textcolor{keywordtype}{int}\ StaticKernelSizeY>}
+\DoxyCodeLine{00633\ \_\_global\_\_\ \mbox{\hyperlink{Macros_8h_ab7c87492b7a80ed45d2e0377b40cdee5}{EIGEN\_HIP\_LAUNCH\_BOUNDS\_1024}}\ \textcolor{keywordtype}{void}\ EigenConvolutionKernel2D(}
+\DoxyCodeLine{00634\ \ \ \ \ InputEvaluator\ eval,}
+\DoxyCodeLine{00635\ \ \ \ \ \textcolor{keyword}{const}\ internal::IndexMapper<Index,\ InputDims,\ 2,\ InputEvaluator::Layout>}
+\DoxyCodeLine{00636\ \ \ \ \ \ \ \ \ indexMapper,}
+\DoxyCodeLine{00637\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}*\ \_\_restrict\ kernel,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numPlanes,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numX,}
+\DoxyCodeLine{00638\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxX,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numY,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxY,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernelSizeX,}
+\DoxyCodeLine{00639\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernelSizeY,\ \textcolor{keywordtype}{float}*\ buffer)\ \{}
+\DoxyCodeLine{00640\ \textcolor{preprocessor}{\#if\ defined(EIGEN\_HIPCC)}}
+\DoxyCodeLine{00641\ \ \ HIP\_DYNAMIC\_SHARED(\textcolor{keywordtype}{float},\ s)}
+\DoxyCodeLine{00642\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00643\ \ \ \textcolor{keyword}{extern}\ \_\_shared\_\_\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}[];}
+\DoxyCodeLine{00644\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00645\ }
+\DoxyCodeLine{00646\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ first\_x\ =\ blockIdx.x\ *\ maxX;}
+\DoxyCodeLine{00647\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ last\_x\ =\ (first\_x\ +\ maxX\ <\ numX\ ?\ first\_x\ +\ maxX\ :\ numX)\ -\/\ 1;}
+\DoxyCodeLine{00648\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_x\_input\ =\ last\_x\ -\/\ first\_x\ +\ GetKernelSize<StaticKernelSizeX>()(kernelSizeX);}
+\DoxyCodeLine{00649\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_x\_output\ =\ last\_x\ -\/\ first\_x\ +\ 1;}
+\DoxyCodeLine{00650\ }
+\DoxyCodeLine{00651\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ first\_y\ =\ blockIdx.y\ *\ maxY;}
+\DoxyCodeLine{00652\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ last\_y\ =\ (first\_y\ +\ maxY\ <\ numY\ ?\ first\_y\ +\ maxY\ :\ numY)\ -\/\ 1;}
+\DoxyCodeLine{00653\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_y\_input\ =\ last\_y\ -\/\ first\_y\ +\ GetKernelSize<StaticKernelSizeY>()(kernelSizeY);}
+\DoxyCodeLine{00654\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_y\_output\ =\ last\_y\ -\/\ first\_y\ +\ 1;}
+\DoxyCodeLine{00655\ }
+\DoxyCodeLine{00656\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ first\_plane\ =\ blockIdx.z\ *\ blockDim.z;}
+\DoxyCodeLine{00657\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_stride\ =\ blockDim.z\ *\ gridDim.z;}
+\DoxyCodeLine{00658\ }
+\DoxyCodeLine{00659\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ p\ =\ first\_plane\ +\ threadIdx.z;\ p\ <\ numPlanes;\ p\ +=\ plane\_stride)\ \{}
+\DoxyCodeLine{00660\ }
+\DoxyCodeLine{00661\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_input\_offset\ =\ indexMapper.mapGpuInputPlaneToTensorInputOffset(p);}
+\DoxyCodeLine{00662\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_kernel\_offset\ =\ threadIdx.z\ *\ num\_y\_input;}
+\DoxyCodeLine{00663\ }
+\DoxyCodeLine{00664\ \ \ \ \ \textcolor{comment}{//\ Load\ inputs\ to\ shared\ memory}}
+\DoxyCodeLine{00665\ \textcolor{preprocessor}{\ \ \ \ \#pragma\ unroll}}
+\DoxyCodeLine{00666\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ j\ =\ threadIdx.y;\ j\ <\ num\_y\_input;\ j\ +=\ blockDim.y)\ \{}
+\DoxyCodeLine{00667\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ input\_offset\ =\ num\_x\_input\ *\ (\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ +\ plane\_kernel\_offset);}
+\DoxyCodeLine{00668\ \textcolor{preprocessor}{\ \ \ \ \ \ \#pragma\ unroll}}
+\DoxyCodeLine{00669\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ threadIdx.x;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ num\_x\_input;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +=\ blockDim.x)\ \{}
+\DoxyCodeLine{00670\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ tensor\_index\ =\ plane\_input\_offset\ +\ indexMapper.mapGpuInputKernelToTensorInputOffset(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}+first\_x,\ j+first\_y);}
+\DoxyCodeLine{00671\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ input\_offset]\ =\ eval.coeff(tensor\_index);}
+\DoxyCodeLine{00672\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00673\ \ \ \ \ \}}
+\DoxyCodeLine{00674\ }
+\DoxyCodeLine{00675\ \ \ \ \ \_\_syncthreads();}
+\DoxyCodeLine{00676\ }
+\DoxyCodeLine{00677\ \ \ \ \ \textcolor{comment}{//\ Convolution}}
+\DoxyCodeLine{00678\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_output\_offset\ =\ indexMapper.mapGpuOutputPlaneToTensorOutputOffset(p);}
+\DoxyCodeLine{00679\ }
+\DoxyCodeLine{00680\ \textcolor{preprocessor}{\ \ \ \ \#pragma\ unroll}}
+\DoxyCodeLine{00681\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ j\ =\ threadIdx.y;\ j\ <\ num\_y\_output;\ j\ +=\ blockDim.y)\ \{}
+\DoxyCodeLine{00682\ \textcolor{preprocessor}{\ \ \ \ \ \ \#pragma\ unroll}}
+\DoxyCodeLine{00683\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ threadIdx.x;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ num\_x\_output;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +=\ blockDim.x)\ \{}
+\DoxyCodeLine{00684\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ result\ =\ 0.0f;}
+\DoxyCodeLine{00685\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \#pragma\ unroll}}
+\DoxyCodeLine{00686\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ l\ <\ GetKernelSize<StaticKernelSizeY>()(kernelSizeY);\ ++\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00687\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernel\_offset\ =\ kernelSizeX\ *\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}};}
+\DoxyCodeLine{00688\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ input\_offset\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ num\_x\_input\ *\ (\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ +\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}\ +\ plane\_kernel\_offset);}
+\DoxyCodeLine{00689\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \#pragma\ unroll}}
+\DoxyCodeLine{00690\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ k\ =\ 0;\ k\ <\ GetKernelSize<StaticKernelSizeX>()(kernelSizeX);\ ++k)\ \{}
+\DoxyCodeLine{00691\ \ \ \ \ \ \ \ \ \ \ \ \ result\ +=\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}[k\ +\ input\_offset]\ *\ kernel[k\ +\ kernel\_offset];}
+\DoxyCodeLine{00692\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00693\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00694\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ tensor\_index\ =\ plane\_output\_offset\ +\ indexMapper.mapGpuOutputKernelToTensorOutputOffset(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}+first\_x,\ j+first\_y);}
+\DoxyCodeLine{00695\ \ \ \ \ \ \ \ \ buffer[tensor\_index]\ =\ result;}
+\DoxyCodeLine{00696\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00697\ \ \ \ \ \}}
+\DoxyCodeLine{00698\ }
+\DoxyCodeLine{00699\ \ \ \ \ \_\_syncthreads();}
+\DoxyCodeLine{00700\ \ \ \}}
+\DoxyCodeLine{00701\ \};}
+\DoxyCodeLine{00702\ }
+\DoxyCodeLine{00703\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ InputEvaluator,\ \textcolor{keyword}{typename}\ Index,\ \textcolor{keyword}{typename}\ InputDims>}
+\DoxyCodeLine{00704\ \_\_global\_\_\ \mbox{\hyperlink{Macros_8h_ab7c87492b7a80ed45d2e0377b40cdee5}{EIGEN\_HIP\_LAUNCH\_BOUNDS\_1024}}\ \textcolor{keywordtype}{void}\ EigenConvolutionKernel3D(}
+\DoxyCodeLine{00705\ \ \ \ \ InputEvaluator\ eval,}
+\DoxyCodeLine{00706\ \ \ \ \ \textcolor{keyword}{const}\ internal::IndexMapper<Index,\ InputDims,\ 3,\ InputEvaluator::Layout>}
+\DoxyCodeLine{00707\ \ \ \ \ \ \ \ \ indexMapper,}
+\DoxyCodeLine{00708\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}*\ \_\_restrict\ kernel,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ numPlanes,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ numX,}
+\DoxyCodeLine{00709\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ maxX,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ numY,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ maxY,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ numZ,}
+\DoxyCodeLine{00710\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ maxZ,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ kernelSizeX,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ kernelSizeY,}
+\DoxyCodeLine{00711\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ kernelSizeZ,\ \textcolor{keywordtype}{float}*\ buffer)\ \{}
+\DoxyCodeLine{00712\ \textcolor{preprocessor}{\#if\ defined(EIGEN\_HIPCC)}}
+\DoxyCodeLine{00713\ \ \ HIP\_DYNAMIC\_SHARED(\textcolor{keywordtype}{float},\ s)}
+\DoxyCodeLine{00714\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00715\ \ \ \textcolor{keyword}{extern}\ \_\_shared\_\_\ \textcolor{keywordtype}{float}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}[];}
+\DoxyCodeLine{00716\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00717\ }
+\DoxyCodeLine{00718\ \ \ \textcolor{comment}{//\ Load\ inputs\ to\ shared\ memory}}
+\DoxyCodeLine{00719\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ first\_x\ =\ blockIdx.x\ *\ maxX;}
+\DoxyCodeLine{00720\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ last\_x\ =\ (first\_x\ +\ maxX\ <\ numX\ ?\ first\_x\ +\ maxX\ :\ numX)\ -\/\ 1;}
+\DoxyCodeLine{00721\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_x\_input\ =\ last\_x\ -\/\ first\_x\ +\ kernelSizeX;}
+\DoxyCodeLine{00722\ }
+\DoxyCodeLine{00723\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ first\_y\ =\ blockIdx.y\ *\ maxY;}
+\DoxyCodeLine{00724\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ last\_y\ =\ (first\_y\ +\ maxY\ <\ numY\ ?\ first\_y\ +\ maxY\ :\ numY)\ -\/\ 1;}
+\DoxyCodeLine{00725\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_y\_input\ =\ last\_y\ -\/\ first\_y\ +\ kernelSizeY;}
+\DoxyCodeLine{00726\ }
+\DoxyCodeLine{00727\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ first\_z\ =\ blockIdx.z\ *\ maxZ;}
+\DoxyCodeLine{00728\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ last\_z\ =\ (first\_z\ +\ maxZ\ <\ numZ\ ?\ first\_z\ +\ maxZ\ :\ numZ)\ -\/\ 1;}
+\DoxyCodeLine{00729\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_z\_input\ =\ last\_z\ -\/\ first\_z\ +\ kernelSizeZ;}
+\DoxyCodeLine{00730\ }
+\DoxyCodeLine{00731\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ p\ =\ 0;\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}\ <\ numPlanes;\ ++\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \{}
+\DoxyCodeLine{00732\ }
+\DoxyCodeLine{00733\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_input\_offset\ =\ indexMapper.mapGpuInputPlaneToTensorInputOffset(p);}
+\DoxyCodeLine{00734\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_kernel\_offset\ =\ 0;}
+\DoxyCodeLine{00735\ }
+\DoxyCodeLine{00736\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ k\ =\ threadIdx.z;\ k\ <\ num\_z\_input;\ k\ +=\ blockDim.z)\ \{}
+\DoxyCodeLine{00737\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ j\ =\ threadIdx.y;\ j\ <\ num\_y\_input;\ j\ +=\ blockDim.y)\ \{}
+\DoxyCodeLine{00738\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ threadIdx.x;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ num\_x\_input;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +=\ blockDim.x)\ \{}
+\DoxyCodeLine{00739\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ tensor\_index\ =\ plane\_input\_offset\ +\ indexMapper.mapGpuInputKernelToTensorInputOffset(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}+first\_x,\ j+first\_y,\ k+first\_z);}
+\DoxyCodeLine{00740\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ num\_x\_input\ *\ (\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ +\ num\_y\_input\ *\ (k\ +\ plane\_kernel\_offset))]\ =\ eval.coeff(tensor\_index);}
+\DoxyCodeLine{00741\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00742\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00743\ \ \ \ \ \}}
+\DoxyCodeLine{00744\ }
+\DoxyCodeLine{00745\ \ \ \ \ \_\_syncthreads();}
+\DoxyCodeLine{00746\ }
+\DoxyCodeLine{00747\ \ \ \ \ \textcolor{comment}{//\ Convolution}}
+\DoxyCodeLine{00748\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_z\_output\ =\ last\_z\ -\/\ first\_z\ +\ 1;}
+\DoxyCodeLine{00749\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_y\_output\ =\ last\_y\ -\/\ first\_y\ +\ 1;}
+\DoxyCodeLine{00750\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_x\_output\ =\ last\_x\ -\/\ first\_x\ +\ 1;}
+\DoxyCodeLine{00751\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ plane\_output\_offset\ =\ indexMapper.mapGpuOutputPlaneToTensorOutputOffset(p);}
+\DoxyCodeLine{00752\ }
+\DoxyCodeLine{00753\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ k\ =\ threadIdx.z;\ k\ <\ num\_z\_output;\ k\ +=\ blockDim.z)\ \{}
+\DoxyCodeLine{00754\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ j\ =\ threadIdx.y;\ j\ <\ num\_y\_output;\ j\ +=\ blockDim.y)\ \{}
+\DoxyCodeLine{00755\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ threadIdx.x;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ num\_x\_output;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +=\ blockDim.x)\ \{}
+\DoxyCodeLine{00756\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{float}\ result\ =\ 0.0f;}
+\DoxyCodeLine{00757\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ <\ kernelSizeZ;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ \{}
+\DoxyCodeLine{00758\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ m\ =\ 0;\ m\ <\ kernelSizeY;\ ++m)\ \{}
+\DoxyCodeLine{00759\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ l\ =\ 0;\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}\ <\ kernelSizeX;\ ++\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}})\ \{}
+\DoxyCodeLine{00760\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ result\ +=\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ +\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba2db95e8e1a9267b7a1188556b2013b33}{l}}\ +\ num\_x\_input\ *\ (\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81ba363b122c528f54df4a0446b6bab05515}{j}}\ +\ m\ +\ num\_y\_input\ *\ (k\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ +\ plane\_kernel\_offset))]\ *\ kernel[l\ +\ kernelSizeX\ *\ (m\ +\ kernelSizeY\ *\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})];}
+\DoxyCodeLine{00761\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00762\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00763\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00764\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ tensor\_index\ =\ plane\_output\_offset\ +\ indexMapper.mapGpuOutputKernelToTensorOutputOffset(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}+first\_x,\ j+first\_y,\ k+first\_z);}
+\DoxyCodeLine{00765\ \ \ \ \ \ \ \ \ \ \ buffer[tensor\_index]\ =\ result;}
+\DoxyCodeLine{00766\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00767\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00768\ \ \ \ \ \}}
+\DoxyCodeLine{00769\ \ \ \ \ \_\_syncthreads();}
+\DoxyCodeLine{00770\ \ \ \}}
+\DoxyCodeLine{00771\ \};}
+\DoxyCodeLine{00772\ }
+\DoxyCodeLine{00773\ }
+\DoxyCodeLine{00774\ }
+\DoxyCodeLine{00775\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Indices,\ \textcolor{keyword}{typename}\ InputArgType,\ \textcolor{keyword}{typename}\ KernelArgType>}
+\DoxyCodeLine{00776\ \textcolor{keyword}{struct\ }TensorEvaluator<const\ TensorConvolutionOp<Indices,\ InputArgType,\ KernelArgType>,\ GpuDevice>}
+\DoxyCodeLine{00777\ \{}
+\DoxyCodeLine{00778\ \ \ \textcolor{keyword}{typedef}\ TensorConvolutionOp<Indices,\ InputArgType,\ KernelArgType>\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a3c538ce6336ab633e4b4ea9acf00fef2}{XprType}};}
+\DoxyCodeLine{00779\ }
+\DoxyCodeLine{00780\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ NumDims\ =\ \ internal::array\_size<typename\ TensorEvaluator<InputArgType,\ GpuDevice>::Dimensions>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}};}
+\DoxyCodeLine{00781\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ NumKernelDims\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1array__size_a8040f330cd7748248101bdf65ec46dc4a0a833694bd0641dc89f958470e9f1238}{internal::array\_size<Indices>::value}};}
+\DoxyCodeLine{00782\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Index\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}};}
+\DoxyCodeLine{00783\ \ \ \textcolor{keyword}{typedef}\ DSizes<Index,\ NumDims>\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{Dimensions}};}
+\DoxyCodeLine{00784\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{TensorEvaluator<KernelArgType,\ GpuDevice>::Dimensions}}\ KernelDimensions;}
+\DoxyCodeLine{00785\ }
+\DoxyCodeLine{00786\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00787\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaf11db1f709324172bf7b0697066c3e32}{IsAligned}}\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaf11db1f709324172bf7b0697066c3e32}{TensorEvaluator<InputArgType,\ GpuDevice>::IsAligned}}\ \&\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaf11db1f709324172bf7b0697066c3e32}{TensorEvaluator<KernelArgType,\ GpuDevice>::IsAligned}},}
+\DoxyCodeLine{00788\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfa82e9bfc6394867187050ca7e4619cdf1}{PacketAccess}}\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{00789\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfa11319c5d2ee534b9aff85a27b4423fe9}{BlockAccess}}\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{00790\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfa3fe1a7f25f4c1da95f4f2c08ecb10450}{PreferBlockAccess}}\ =\ \textcolor{keyword}{false},}
+\DoxyCodeLine{00791\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}}\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{TensorEvaluator<InputArgType,\ GpuDevice>::Layout}},}
+\DoxyCodeLine{00792\ \ \ \ \ CoordAccess\ =\ \textcolor{keyword}{false},\ \ \textcolor{comment}{//\ to\ be\ implemented}}
+\DoxyCodeLine{00793\ \ \ \ \ RawAccess\ =\ \textcolor{keyword}{false}}
+\DoxyCodeLine{00794\ \ \ \};}
+\DoxyCodeLine{00795\ }
+\DoxyCodeLine{00796\ \ \ \textcolor{comment}{//===-\/\ Tensor\ block\ evaluation\ strategy\ (see\ TensorBlock.h)\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/===//}}
+\DoxyCodeLine{00797\ \ \ \textcolor{keyword}{typedef}\ internal::TensorBlockNotImplemented\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a9a3b7f52f7c1537feb2f5194ab1af8cf}{TensorBlock}};}
+\DoxyCodeLine{00798\ \ \ \textcolor{comment}{//===-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/===//}}
+\DoxyCodeLine{00799\ }
+\DoxyCodeLine{00800\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a3c538ce6336ab633e4b4ea9acf00fef2}{XprType}}\&\ op,\ \textcolor{keyword}{const}\ GpuDevice\&\ device)}
+\DoxyCodeLine{00801\ \ \ \ \ \ \ :\ m\_inputImpl(op.inputExpression(),\ device),\ m\_kernelImpl(op.kernelExpression(),\ device),\ m\_kernelArg(op.kernelExpression()),\ m\_indices(op.indices()),\ m\_buf(NULL),\ m\_kernel(NULL),\ m\_local\_kernel(false),\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}(device)}
+\DoxyCodeLine{00802\ \ \ \{}
+\DoxyCodeLine{00803\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_ac95cf960f4a8395b28af90edfda755f0}{EIGEN\_STATIC\_ASSERT}}((\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{TensorEvaluator<InputArgType,\ GpuDevice>::Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{TensorEvaluator<KernelArgType,\ GpuDevice>::Layout}})),\ YOU\_MADE\_A\_PROGRAMMING\_MISTAKE);}
+\DoxyCodeLine{00804\ }
+\DoxyCodeLine{00805\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{TensorEvaluator<InputArgType,\ GpuDevice>::Dimensions}}\&\ input\_dims\ =\ m\_inputImpl.dimensions();}
+\DoxyCodeLine{00806\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{TensorEvaluator<KernelArgType,\ GpuDevice>::Dimensions}}\&\ kernel\_dims\ =\ m\_kernelImpl.dimensions();}
+\DoxyCodeLine{00807\ }
+\DoxyCodeLine{00808\ \ \ \ \ m\_dimensions\ =\ m\_inputImpl.dimensions();}
+\DoxyCodeLine{00809\ \ \ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ NumKernelDims;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ \{}
+\DoxyCodeLine{00810\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ index\ =\ op.indices()[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00811\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ input\_dim\ =\ input\_dims[index];}
+\DoxyCodeLine{00812\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ kernel\_dim\ =\ kernel\_dims[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00813\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ result\_dim\ =\ input\_dim\ -\/\ kernel\_dim\ +\ 1;}
+\DoxyCodeLine{00814\ \ \ \ \ \ \ m\_dimensions[index]\ =\ result\_dim;}
+\DoxyCodeLine{00815\ \ \ \ \ \}}
+\DoxyCodeLine{00816\ \ \ \}}
+\DoxyCodeLine{00817\ }
+\DoxyCodeLine{00818\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::CoeffReturnType\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab9f94deb25a2d2b52dd0e827ef49ce3c}{CoeffReturnType}};}
+\DoxyCodeLine{00819\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1PacketType_aef48fcc1b8cc8df3b7c667a52a792869}{PacketType<CoeffReturnType,\ GpuDevice>::type}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a54f8127161abe33ad05c5ce46ebf3c0a}{PacketReturnType}};}
+\DoxyCodeLine{00820\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ InputArgType::Scalar\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}};}
+\DoxyCodeLine{00821\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1unpacket__traits_aa3c8daa4597ef6c42efb377d14f87dcba63cc10676eb13001d700f7bc4336f6ee}{internal::unpacket\_traits<PacketReturnType>::size}};}
+\DoxyCodeLine{00822\ }
+\DoxyCodeLine{00823\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{Dimensions}}\&\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_dimensions;\ \}}
+\DoxyCodeLine{00824\ }
+\DoxyCodeLine{00825\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a0fcd215ee81860d68da5c5c14e2d5b94}{evalSubExprsIfNeeded}}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}})\ \{}
+\DoxyCodeLine{00826\ \ \ \ \ preloadKernel();}
+\DoxyCodeLine{00827\ \ \ \ \ m\_inputImpl.evalSubExprsIfNeeded(NULL);}
+\DoxyCodeLine{00828\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}})\ \{}
+\DoxyCodeLine{00829\ \ \ \ \ \ \ executeEval(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{00830\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00831\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00832\ \ \ \ \ \ \ m\_buf\ =\ (\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*)\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.allocate(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}().TotalSize()\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}));}
+\DoxyCodeLine{00833\ \ \ \ \ \ \ executeEval(m\_buf);}
+\DoxyCodeLine{00834\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00835\ \ \ \ \ \}}
+\DoxyCodeLine{00836\ \ \ \}}
+\DoxyCodeLine{00837\ }
+\DoxyCodeLine{00838\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a77d1ef701d1651a0d47c9ae2083acc49}{cleanup}}()\ \{}
+\DoxyCodeLine{00839\ \ \ \ \ m\_inputImpl.cleanup();}
+\DoxyCodeLine{00840\ \ \ \ \ \textcolor{keywordflow}{if}\ (m\_buf)\ \{}
+\DoxyCodeLine{00841\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.deallocate(m\_buf);}
+\DoxyCodeLine{00842\ \ \ \ \ \ \ m\_buf\ =\ NULL;}
+\DoxyCodeLine{00843\ \ \ \ \ \}}
+\DoxyCodeLine{00844\ \ \ \ \ \textcolor{keywordflow}{if}\ (m\_local\_kernel)\ \{}
+\DoxyCodeLine{00845\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.deallocate((\textcolor{keywordtype}{void}*)m\_kernel);}
+\DoxyCodeLine{00846\ \ \ \ \ \ \ m\_local\_kernel\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00847\ \ \ \ \ \}}
+\DoxyCodeLine{00848\ \ \ \ \ m\_kernel\ =\ NULL;}
+\DoxyCodeLine{00849\ \ \ \}}
+\DoxyCodeLine{00850\ }
+\DoxyCodeLine{00851\ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keywordtype}{void}\ preloadKernel()\ \{}
+\DoxyCodeLine{00852\ \ \ \ \ \textcolor{comment}{//\ Don't\ make\ a\ local\ copy\ of\ the\ kernel\ unless\ we\ have\ to\ (i.e.\ it's\ an}}
+\DoxyCodeLine{00853\ \ \ \ \ \textcolor{comment}{//\ expression\ that\ needs\ to\ be\ evaluated)}}
+\DoxyCodeLine{00854\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*\ in\_place\ =\ m\_kernelImpl.data();}
+\DoxyCodeLine{00855\ \ \ \ \ \textcolor{keywordflow}{if}\ (in\_place)\ \{}
+\DoxyCodeLine{00856\ \ \ \ \ \ \ m\_kernel\ =\ in\_place;}
+\DoxyCodeLine{00857\ \ \ \ \ \ \ m\_local\_kernel\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00858\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00859\ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ kernel\_sz\ =\ m\_kernelImpl.dimensions().TotalSize()\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}});}
+\DoxyCodeLine{00860\ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*\ \mbox{\hyperlink{namespaceEigen_1_1TensorSycl_1_1internal_ae779b94e3f0127525eda5ff1db87719daf5ddaf0ca7929578b408c909429f68f2}{local}}\ =\ (\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*)\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.allocate(kernel\_sz);}
+\DoxyCodeLine{00861\ \ \ \ \ \ \ \textcolor{keyword}{typedef}\ TensorEvalToOp<const\ KernelArgType>\ EvalTo;}
+\DoxyCodeLine{00862\ \ \ \ \ \ \ EvalTo\ evalToTmp(local,\ m\_kernelArg);}
+\DoxyCodeLine{00863\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfa82e9bfc6394867187050ca7e4619cdf1}{PacketAccess}}\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1IsVectorizable_a63f1426b925a75938507573c67d99748}{internal::IsVectorizable<GpuDevice,\ KernelArgType>::value}};}
+\DoxyCodeLine{00864\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorExecutor_a50325b41f927e2c29141c7ac671efdec}{internal::TensorExecutor<const\ EvalTo,\ GpuDevice,\ PacketAccess>::run}}(evalToTmp,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}});}
+\DoxyCodeLine{00865\ }
+\DoxyCodeLine{00866\ \ \ \ \ \ \ m\_kernel\ =\ \mbox{\hyperlink{namespaceEigen_1_1TensorSycl_1_1internal_ae779b94e3f0127525eda5ff1db87719daf5ddaf0ca7929578b408c909429f68f2}{local}};}
+\DoxyCodeLine{00867\ \ \ \ \ \ \ m\_local\_kernel\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00868\ \ \ \ \ \}}
+\DoxyCodeLine{00869\ \ \ \}}
+\DoxyCodeLine{00870\ }
+\DoxyCodeLine{00871\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a86cf672daa4e0ad11ad10efc894d19c8}{num}},\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ denom)\ \{}
+\DoxyCodeLine{00872\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ rounded\_toward\_zero\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a86cf672daa4e0ad11ad10efc894d19c8}{num}}\ /\ denom;}
+\DoxyCodeLine{00873\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a86cf672daa4e0ad11ad10efc894d19c8}{num}}\ >\ rounded\_toward\_zero\ *\ denom)\ \{}
+\DoxyCodeLine{00874\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ rounded\_toward\_zero\ +\ 1;}
+\DoxyCodeLine{00875\ \ \ \ \ \}}
+\DoxyCodeLine{00876\ \ \ \ \ \textcolor{keywordflow}{return}\ rounded\_toward\_zero;}
+\DoxyCodeLine{00877\ \ \ \}}
+\DoxyCodeLine{00878\ }
+\DoxyCodeLine{00879\ \ \ \textcolor{keywordtype}{void}\ executeEval(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00880\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{TensorEvaluator<InputArgType,\ GpuDevice>::Dimensions}}\ InputDims;}
+\DoxyCodeLine{00881\ }
+\DoxyCodeLine{00882\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxSharedMem\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.sharedMemPerBlock();}
+\DoxyCodeLine{00883\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxThreadsPerBlock\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.maxGpuThreadsPerBlock();}
+\DoxyCodeLine{00884\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxBlocksPerProcessor\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.maxGpuThreadsPerMultiProcessor()\ /\ maxThreadsPerBlock;}
+\DoxyCodeLine{00885\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numMultiProcessors\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}}.getNumGpuMultiProcessors();}
+\DoxyCodeLine{00886\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ warpSize\ =\ 32;}
+\DoxyCodeLine{00887\ }
+\DoxyCodeLine{00888\ \ \ \ \ \textcolor{keywordflow}{switch}\ (NumKernelDims)\ \{}
+\DoxyCodeLine{00889\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 1:\ \{}
+\DoxyCodeLine{00890\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernel\_size\ =\ m\_kernelImpl.dimensions().TotalSize();}
+\DoxyCodeLine{00891\ }
+\DoxyCodeLine{00892\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numX\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}()[m\_indices[0]];}
+\DoxyCodeLine{00893\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numP\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}().TotalSize()\ /\ numX;}
+\DoxyCodeLine{00894\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ maxX;}
+\DoxyCodeLine{00895\ \ \ \ \ \ \ \ \ dim3\ block\_size;}
+\DoxyCodeLine{00896\ }
+\DoxyCodeLine{00897\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ single\_stride\_dim\ =}
+\DoxyCodeLine{00898\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})}
+\DoxyCodeLine{00899\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 0}
+\DoxyCodeLine{00900\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ m\_inputImpl.dimensions().rank()\ -\/\ 1;}
+\DoxyCodeLine{00901\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (m\_indices[0]\ ==\ single\_stride\_dim)\ \{}
+\DoxyCodeLine{00902\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Maximum\ the\ reuse}}
+\DoxyCodeLine{00903\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ inner\_dim\ =\ ((maxSharedMem\ /\ (\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}))\ -\/\ kernel\_size\ +\ 1\ +\ 31)\ /\ 32)\ *\ 32;}
+\DoxyCodeLine{00904\ \ \ \ \ \ \ \ \ \ \ maxX\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(inner\_dim,\ numX);}
+\DoxyCodeLine{00905\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxP\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(maxSharedMem\ /\ ((kernel\_size\ -\/\ 1\ +\ maxX)\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}})),\ numP);}
+\DoxyCodeLine{00906\ \ \ \ \ \ \ \ \ \ \ block\_size.x\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini}}(maxThreadsPerBlock,\ maxX);}
+\DoxyCodeLine{00907\ \ \ \ \ \ \ \ \ \ \ block\_size.y\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(maxThreadsPerBlock\ /\ block\_size.x,\ maxP);}
+\DoxyCodeLine{00908\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00909\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00910\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Read\ as\ much\ as\ possible\ alongside\ the\ inner\ most\ dimension,\ that\ is\ the\ plane}}
+\DoxyCodeLine{00911\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ inner\_dim\ =\ maxSharedMem\ /\ ((warpSize\ +\ kernel\_size)\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}));}
+\DoxyCodeLine{00912\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxP\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(inner\_dim,\ numP);}
+\DoxyCodeLine{00913\ \ \ \ \ \ \ \ \ \ \ maxX\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(maxSharedMem\ /\ (inner\_dim\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}))\ -\/\ kernel\_size\ +\ 1,\ numX);}
+\DoxyCodeLine{00914\ }
+\DoxyCodeLine{00915\ \ \ \ \ \ \ \ \ \ \ block\_size.x\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini}}(warpSize,\ maxX);}
+\DoxyCodeLine{00916\ \ \ \ \ \ \ \ \ \ \ block\_size.y\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(maxThreadsPerBlock/block\_size.x,\ maxP);}
+\DoxyCodeLine{00917\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00918\ }
+\DoxyCodeLine{00919\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ shared\_mem\ =\ block\_size.y\ *\ (maxX\ +\ kernel\_size\ -\/\ 1)\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}});}
+\DoxyCodeLine{00920\ \ \ \ \ \ \ \ \ gpu\_assert(shared\_mem\ <=\ maxSharedMem);}
+\DoxyCodeLine{00921\ }
+\DoxyCodeLine{00922\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_x\_blocks\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numX,\ maxX);}
+\DoxyCodeLine{00923\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ blocksPerProcessor\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini}}(maxBlocksPerProcessor,\ maxSharedMem\ /\ shared\_mem);}
+\DoxyCodeLine{00924\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_y\_blocks\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numMultiProcessors\ *\ blocksPerProcessor,\ num\_x\_blocks);}
+\DoxyCodeLine{00925\ }
+\DoxyCodeLine{00926\ \ \ \ \ \ \ \ \ dim3\ num\_blocks(num\_x\_blocks,\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(num\_y\_blocks,\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numP,\ block\_size.y)));}
+\DoxyCodeLine{00927\ }
+\DoxyCodeLine{00928\ }
+\DoxyCodeLine{00929\ \ \ \ \ \ \ \ \ \textcolor{comment}{//cout\ <<\ "{}launching\ 1D\ kernel\ with\ block\_size.x:\ "{}\ <<\ block\_size.x\ <<\ "{}\ block\_size.y:\ "{}\ <<\ block\_size.y\ <<\ "{}\ num\_blocks.x:\ "{}\ <<\ num\_blocks.x\ <<\ "{}\ num\_blocks.y:\ "{}\ <<\ num\_blocks.y\ <<\ "{}\ maxX:\ "{}\ <<\ maxX\ <<\ "{}\ shared\_mem:\ "{}\ <<\ shared\_mem\ <<\ "{}\ in\ stream\ "{}\ <<\ m\_device.stream()\ <<\ endl;}}
+\DoxyCodeLine{00930\ }
+\DoxyCodeLine{00931\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ array<Index,\ 1>\ indices(m\_indices[0]);}
+\DoxyCodeLine{00932\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ array<Index,\ 1>\ kernel\_dims(m\_kernelImpl.dimensions()[0]);}
+\DoxyCodeLine{00933\ \ \ \ \ \ \ \ \ internal::IndexMapper<Index,\ InputDims,\ 1,\ Layout>\ indexMapper(}
+\DoxyCodeLine{00934\ \ \ \ \ \ \ \ \ \ \ \ \ m\_inputImpl.dimensions(),\ kernel\_dims,\ indices);}
+\DoxyCodeLine{00935\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}(kernel\_size)\ \{}
+\DoxyCodeLine{00936\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 4:\ \{}
+\DoxyCodeLine{00937\ \ \ \ \ \ \ \ \ \ \ \ \ LAUNCH\_GPU\_KERNEL((EigenConvolutionKernel1D<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}},\ InputDims,\ 4>),\ num\_blocks,\ block\_size,\ shared\_mem,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}},\ m\_inputImpl,\ indexMapper,\ m\_kernel,\ numP,\ numX,\ maxX,\ 4,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{00938\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00939\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00940\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 7:\ \{}
+\DoxyCodeLine{00941\ \ \ \ \ \ \ \ \ \ \ \ \ LAUNCH\_GPU\_KERNEL((EigenConvolutionKernel1D<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}},\ InputDims,\ 7>),\ num\_blocks,\ block\_size,\ shared\_mem,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}},\ m\_inputImpl,\ indexMapper,\ m\_kernel,\ numP,\ numX,\ maxX,\ 7,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{00942\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00943\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00944\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{default}:\ \{}
+\DoxyCodeLine{00945\ \ \ \ \ \ \ \ \ \ \ \ \ LAUNCH\_GPU\_KERNEL((EigenConvolutionKernel1D<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}},\ InputDims,\ Dynamic>),\ num\_blocks,\ block\_size,\ shared\_mem,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}},\ m\_inputImpl,\ indexMapper,\ m\_kernel,\ numP,\ numX,\ maxX,\ kernel\_size,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{00946\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00947\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00948\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00949\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00950\ }
+\DoxyCodeLine{00951\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 2:\ \{}
+\DoxyCodeLine{00952\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ idxX\ =}
+\DoxyCodeLine{00953\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})\ ?\ 0\ :\ 1;}
+\DoxyCodeLine{00954\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ idxY\ =}
+\DoxyCodeLine{00955\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})\ ?\ 1\ :\ 0;}
+\DoxyCodeLine{00956\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernel\_size\_x\ =\ m\_kernelImpl.dimensions()[idxX];}
+\DoxyCodeLine{00957\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernel\_size\_y\ =\ m\_kernelImpl.dimensions()[idxY];}
+\DoxyCodeLine{00958\ }
+\DoxyCodeLine{00959\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numX\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}()[m\_indices[idxX]];}
+\DoxyCodeLine{00960\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numY\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}()[m\_indices[idxY]];}
+\DoxyCodeLine{00961\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numP\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}().TotalSize()\ /\ (numX*numY);}
+\DoxyCodeLine{00962\ }
+\DoxyCodeLine{00963\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ scaling\_factor\ =\ sqrtf(\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{float}\textcolor{keyword}{>}(maxSharedMem)\ /\ (\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}})\ *\ kernel\_size\_y\ *\ kernel\_size\_x));}
+\DoxyCodeLine{00964\ }
+\DoxyCodeLine{00965\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Snap\ maxX\ to\ warp\ size}}
+\DoxyCodeLine{00966\ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ inner\_dim\ =\ ((\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(scaling\_factor\ *\ kernel\_size\_x)\ -\/\ kernel\_size\_x\ +\ 1\ +\ 32)\ /\ 32)\ *\ 32;}
+\DoxyCodeLine{00967\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxX\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(inner\_dim,\ numX);}
+\DoxyCodeLine{00968\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxY\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(maxSharedMem\ /\ (\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}})\ *\ (maxX\ +\ kernel\_size\_x\ -\/\ 1))\ -\/\ kernel\_size\_y\ +\ 1,\ numY);}
+\DoxyCodeLine{00969\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxP\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(maxSharedMem\ /\ ((kernel\_size\_x\ -\/\ 1\ +\ maxX)\ *\ (kernel\_size\_y\ -\/\ 1\ +\ maxY)\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}})),\ numP);}
+\DoxyCodeLine{00970\ }
+\DoxyCodeLine{00971\ \ \ \ \ \ \ \ \ dim3\ block\_size;}
+\DoxyCodeLine{00972\ \ \ \ \ \ \ \ \ block\_size.x\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini}}(1024,\ maxX);}
+\DoxyCodeLine{00973\ \ \ \ \ \ \ \ \ block\_size.y\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(1024/block\_size.x,\ maxY);}
+\DoxyCodeLine{00974\ \ \ \ \ \ \ \ \ block\_size.z\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(1024/(block\_size.x*block\_size.y),\ maxP);}
+\DoxyCodeLine{00975\ }
+\DoxyCodeLine{00976\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ shared\_mem\ =\ block\_size.z\ *\ (maxX\ +\ kernel\_size\_x\ -\/\ 1)\ *\ (maxY\ +\ kernel\_size\_y\ -\/\ 1)\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}});}
+\DoxyCodeLine{00977\ \ \ \ \ \ \ \ \ gpu\_assert(shared\_mem\ <=\ maxSharedMem);}
+\DoxyCodeLine{00978\ }
+\DoxyCodeLine{00979\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_x\_blocks\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numX,\ maxX);}
+\DoxyCodeLine{00980\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_y\_blocks\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numY,\ maxY);}
+\DoxyCodeLine{00981\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ blocksPerProcessor\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini}}(maxBlocksPerProcessor,\ maxSharedMem\ /\ shared\_mem);}
+\DoxyCodeLine{00982\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ num\_z\_blocks\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numMultiProcessors\ *\ blocksPerProcessor,\ num\_x\_blocks\ *\ num\_y\_blocks);}
+\DoxyCodeLine{00983\ }
+\DoxyCodeLine{00984\ \ \ \ \ \ \ \ \ dim3\ num\_blocks(num\_x\_blocks,\ num\_y\_blocks,\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(num\_z\_blocks,\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numP,\ block\_size.z)));}
+\DoxyCodeLine{00985\ }
+\DoxyCodeLine{00986\ }
+\DoxyCodeLine{00987\ \ \ \ \ \ \ \ \ \textcolor{comment}{//cout\ <<\ "{}launching\ 2D\ kernel\ with\ block\_size.x:\ "{}\ <<\ block\_size.x\ <<\ "{}\ block\_size.y:\ "{}\ <<\ block\_size.y\ \ <<\ "{}\ block\_size.z:\ "{}\ <<\ block\_size.z\ <<\ "{}\ num\_blocks.x:\ "{}\ <<\ num\_blocks.x\ <<\ "{}\ num\_blocks.y:\ "{}\ <<\ num\_blocks.y\ <<\ "{}\ num\_blocks.z:\ "{}\ <<\ num\_blocks.z\ <<\ "{}\ maxX:\ "{}\ <<\ maxX\ <<\ "{}\ maxY:\ "{}\ <<\ maxY\ <<\ "{}\ maxP:\ "{}\ <<\ maxP\ <<\ "{}\ shared\_mem:\ "{}\ <<\ shared\_mem\ <<\ "{}\ in\ stream\ "{}\ <<\ m\_device.stream()\ <<\ endl;}}
+\DoxyCodeLine{00988\ }
+\DoxyCodeLine{00989\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ array<Index,\ 2>\ indices(m\_indices[idxX],\ m\_indices[idxY]);}
+\DoxyCodeLine{00990\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ array<Index,\ 2>\ kernel\_dims(m\_kernelImpl.dimensions()[idxX],}
+\DoxyCodeLine{00991\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_kernelImpl.dimensions()[idxY]);}
+\DoxyCodeLine{00992\ \ \ \ \ \ \ \ \ internal::IndexMapper<Index,\ InputDims,\ 2,\ Layout>\ indexMapper(}
+\DoxyCodeLine{00993\ \ \ \ \ \ \ \ \ \ \ \ \ m\_inputImpl.dimensions(),\ kernel\_dims,\ indices);}
+\DoxyCodeLine{00994\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (kernel\_size\_x)\ \{}
+\DoxyCodeLine{00995\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 4:\ \{}
+\DoxyCodeLine{00996\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (kernel\_size\_y)\ \{}
+\DoxyCodeLine{00997\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 7:\ \{}
+\DoxyCodeLine{00998\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ LAUNCH\_GPU\_KERNEL((EigenConvolutionKernel2D<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}},\ InputDims,\ 4,\ 7>),\ num\_blocks,\ block\_size,\ shared\_mem,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}},\ m\_inputImpl,\ indexMapper,\ m\_kernel,\ numP,\ numX,\ maxX,\ numY,\ maxY,\ 4,\ 7,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{00999\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01000\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01001\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{default}:\ \{}
+\DoxyCodeLine{01002\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ LAUNCH\_GPU\_KERNEL((EigenConvolutionKernel2D<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}},\ InputDims,\ 4,\ Dynamic>),\ num\_blocks,\ block\_size,\ shared\_mem,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}},\ m\_inputImpl,\ indexMapper,\ m\_kernel,\ numP,\ numX,\ maxX,\ numY,\ maxY,\ 4,\ kernel\_size\_y,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{01003\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01004\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01005\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01006\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01007\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01008\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 7:\ \{}
+\DoxyCodeLine{01009\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{switch}\ (kernel\_size\_y)\ \{}
+\DoxyCodeLine{01010\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 4:\ \{}
+\DoxyCodeLine{01011\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ LAUNCH\_GPU\_KERNEL((EigenConvolutionKernel2D<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}},\ InputDims,\ 7,\ 4>),\ num\_blocks,\ block\_size,\ shared\_mem,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}},\ m\_inputImpl,\ indexMapper,\ m\_kernel,\ numP,\ numX,\ maxX,\ numY,\ maxY,\ 7,\ 4,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{01012\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01013\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01014\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{default}:\ \{}
+\DoxyCodeLine{01015\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ LAUNCH\_GPU\_KERNEL((EigenConvolutionKernel2D<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}},\ InputDims,\ 7,\ Dynamic>),\ num\_blocks,\ block\_size,\ shared\_mem,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}},\ m\_inputImpl,\ indexMapper,\ m\_kernel,\ numP,\ numX,\ maxX,\ numY,\ maxY,\ 7,\ kernel\_size\_y,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{01016\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01017\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01018\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01019\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01020\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01021\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{default}:\ \{}
+\DoxyCodeLine{01022\ \ \ \ \ \ \ \ \ \ \ \ \ LAUNCH\_GPU\_KERNEL((EigenConvolutionKernel2D<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}},\ InputDims,\ Dynamic,\ Dynamic>),\ num\_blocks,\ block\_size,\ shared\_mem,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}},\ m\_inputImpl,\ indexMapper,\ m\_kernel,\ numP,\ numX,\ maxX,\ numY,\ maxY,\ kernel\_size\_x,\ kernel\_size\_y,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{01023\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01024\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01025\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01026\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01027\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01028\ }
+\DoxyCodeLine{01029\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 3:\ \{}
+\DoxyCodeLine{01030\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ idxX\ =}
+\DoxyCodeLine{01031\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})\ ?\ 0\ :\ 2;}
+\DoxyCodeLine{01032\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ idxY\ =}
+\DoxyCodeLine{01033\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})\ ?\ 1\ :\ 1;}
+\DoxyCodeLine{01034\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ idxZ\ =}
+\DoxyCodeLine{01035\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab7b4f74f4aa0536b0cf94e72acd3d7bfaaea01fe7598d6c1941853b693ec9f162}{Layout}})\ ==\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(\mbox{\hyperlink{group__enums_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62}{ColMajor}})\ ?\ 2\ :\ 0;}
+\DoxyCodeLine{01036\ }
+\DoxyCodeLine{01037\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernel\_size\_x\ =\ m\_kernelImpl.dimensions()[idxX];}
+\DoxyCodeLine{01038\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernel\_size\_y\ =\ m\_kernelImpl.dimensions()[idxY];}
+\DoxyCodeLine{01039\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ kernel\_size\_z\ =\ m\_kernelImpl.dimensions()[idxZ];}
+\DoxyCodeLine{01040\ }
+\DoxyCodeLine{01041\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numX\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}()[m\_indices[idxX]];}
+\DoxyCodeLine{01042\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numY\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}()[m\_indices[idxY]];}
+\DoxyCodeLine{01043\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numZ\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}()[m\_indices[idxZ]];}
+\DoxyCodeLine{01044\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ numP\ =\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a4b49b2c40bcb2220fb240083cd1833c6}{dimensions}}().TotalSize()\ /\ (numX*numY*numZ);}
+\DoxyCodeLine{01045\ }
+\DoxyCodeLine{01046\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxX\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(128,\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(maxSharedMem\ /\ (\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}})\ *\ kernel\_size\_y\ *\ kernel\_size\_z)\ -\/\ kernel\_size\_x\ +\ 1,\ numX));}
+\DoxyCodeLine{01047\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxY\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(128,\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(maxSharedMem\ /\ (\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}})\ *\ (maxX\ +\ kernel\_size\_x\ -\/\ 1)\ *\ kernel\_size\_z)\ -\/\ kernel\_size\_y\ +\ 1,\ numY));}
+\DoxyCodeLine{01048\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ maxZ\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(128,\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(maxSharedMem\ /\ (\textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}})\ *\ (maxX\ +\ kernel\_size\_x\ -\/\ 1)\ *\ (maxY\ +\ kernel\_size\_y\ -\/\ 1))\ -\/\ kernel\_size\_z\ +\ 1,\ numZ));}
+\DoxyCodeLine{01049\ }
+\DoxyCodeLine{01050\ \ \ \ \ \ \ \ \ dim3\ block\_size;}
+\DoxyCodeLine{01051\ \ \ \ \ \ \ \ \ block\_size.x\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini}}(32,\ maxX);}
+\DoxyCodeLine{01052\ \ \ \ \ \ \ \ \ block\_size.y\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini}}(32,\ maxY);}
+\DoxyCodeLine{01053\ \ \ \ \ \ \ \ \ block\_size.z\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_ab3b30bf0bcfa1ad91dbec75fabb3bea0}{numext::mini<int>}}(1024/(block\_size.x*block\_size.y),\ maxZ);}
+\DoxyCodeLine{01054\ \ \ \ \ \ \ \ \ dim3\ num\_blocks(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numX,\ maxX),\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numY,\ maxY),\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a63043b6807e8e10fb1adf4667e3664d2}{ceil}}(numZ,\ maxZ));}
+\DoxyCodeLine{01055\ }
+\DoxyCodeLine{01056\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ shared\_mem\ =\ (maxX\ +\ kernel\_size\_x\ -\/\ 1)\ *\ (maxY\ +\ kernel\_size\_y\ -\/\ 1)\ *\ (maxZ\ +\ kernel\_size\_z\ -\/\ 1)\ *\ \textcolor{keyword}{sizeof}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}});}
+\DoxyCodeLine{01057\ \ \ \ \ \ \ \ \ gpu\_assert(shared\_mem\ <=\ maxSharedMem);}
+\DoxyCodeLine{01058\ }
+\DoxyCodeLine{01059\ \ \ \ \ \ \ \ \ \textcolor{comment}{//cout\ <<\ "{}launching\ 3D\ kernel\ with\ block\_size.x:\ "{}\ <<\ block\_size.x\ <<\ "{}\ block\_size.y:\ "{}\ <<\ block\_size.y\ \ <<\ "{}\ block\_size.z:\ "{}\ <<\ block\_size.z\ <<\ "{}\ num\_blocks.x:\ "{}\ <<\ num\_blocks.x\ <<\ "{}\ num\_blocks.y:\ "{}\ <<\ num\_blocks.y\ <<\ "{}\ num\_blocks.z:\ "{}\ <<\ num\_blocks.z\ \ <<\ "{}\ shared\_mem:\ "{}\ <<\ shared\_mem\ <<\ "{}\ in\ stream\ "{}\ <<\ m\_device.stream()\ <<\ endl;}}
+\DoxyCodeLine{01060\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ array<Index,\ 3>\ indices(m\_indices[idxX],\ m\_indices[idxY],}
+\DoxyCodeLine{01061\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_indices[idxZ]);}
+\DoxyCodeLine{01062\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ array<Index,\ 3>\ kernel\_dims(m\_kernelImpl.dimensions()[idxX],}
+\DoxyCodeLine{01063\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_kernelImpl.dimensions()[idxY],}
+\DoxyCodeLine{01064\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_kernelImpl.dimensions()[idxZ]);}
+\DoxyCodeLine{01065\ \ \ \ \ \ \ \ \ internal::IndexMapper<Index,\ InputDims,\ 3,\ Layout>\ indexMapper(}
+\DoxyCodeLine{01066\ \ \ \ \ \ \ \ \ \ \ \ \ m\_inputImpl.dimensions(),\ kernel\_dims,\ indices);}
+\DoxyCodeLine{01067\ }
+\DoxyCodeLine{01068\ \ \ \ \ \ \ \ \ LAUNCH\_GPU\_KERNEL((EigenConvolutionKernel3D<\mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}},\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}},\ InputDims>),\ num\_blocks,\ block\_size,\ shared\_mem,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}},\ m\_inputImpl,\ indexMapper,\ m\_kernel,\ numP,\ numX,\ maxX,\ numY,\ maxY,\ numZ,\ maxZ,\ kernel\_size\_x,\ kernel\_size\_y,\ kernel\_size\_z,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a61c77b3f2d2a7b97a9bcf04f25e5018f}{data}});}
+\DoxyCodeLine{01069\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{01070\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01071\ }
+\DoxyCodeLine{01072\ \ \ \ \ \ \ \textcolor{keywordflow}{default}:\ \{}
+\DoxyCodeLine{01073\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_ac95cf960f4a8395b28af90edfda755f0}{EIGEN\_STATIC\_ASSERT}}((NumKernelDims\ >=\ 1\ \&\&\ NumKernelDims\ <=\ 3),\ THIS\_METHOD\_IS\_ONLY\_FOR\_OBJECTS\_OF\_A\_SPECIFIC\_SIZE);}
+\DoxyCodeLine{01074\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{01075\ \ \ \ \ \}}
+\DoxyCodeLine{01076\ \ \ \}}
+\DoxyCodeLine{01077\ }
+\DoxyCodeLine{01078\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab9f94deb25a2d2b52dd0e827ef49ce3c}{CoeffReturnType}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a7747e4223120fe698801fa12c186561d}{coeff}}(\mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ index)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{01079\ \textcolor{keyword}{\ \ }\{}
+\DoxyCodeLine{01080\ \ \ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(m\_buf);}
+\DoxyCodeLine{01081\ \ \ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(index\ <\ m\_dimensions.TotalSize());}
+\DoxyCodeLine{01082\ \ \ \ \ \textcolor{keywordflow}{return}\ m\_buf[index];}
+\DoxyCodeLine{01083\ \ \ \}}
+\DoxyCodeLine{01084\ }
+\DoxyCodeLine{01085\ \ \ \textcolor{keyword}{template}<\textcolor{keywordtype}{int}\ LoadMode>}
+\DoxyCodeLine{01086\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a54f8127161abe33ad05c5ce46ebf3c0a}{PacketReturnType}}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af8ba36b08b6aaabc799d5d86a48dcb9d}{packet}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_ab03361de0cb621f807b20cdeb621b807}{Index}}\ index)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{01087\ \textcolor{keyword}{\ \ }\{}
+\DoxyCodeLine{01088\ \ \ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(m\_buf);}
+\DoxyCodeLine{01089\ \ \ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(index\ <\ m\_dimensions.TotalSize());}
+\DoxyCodeLine{01090\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{internal::ploadt<PacketReturnType,\ LoadMode>}}(m\_buf+index);}
+\DoxyCodeLine{01091\ \ \ \}}
+\DoxyCodeLine{01092\ }
+\DoxyCodeLine{01093\ \ \ \mbox{\hyperlink{Macros_8h_a9efec3cfd22b9a33bead9c6718d128da}{EIGEN\_DEVICE\_FUNC}}\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ TensorOpCost}
+\DoxyCodeLine{01094\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af3251d42e115c7c14f7c82a68a3b799d}{costPerCoeff}}(\textcolor{keywordtype}{bool}\ vectorized)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01095\ \ \ \ \ \textcolor{comment}{//\ TODO(rmlarsen):\ FIXME:\ For\ now,\ this\ is\ just\ a\ copy\ of\ the\ CPU\ cost}}
+\DoxyCodeLine{01096\ \ \ \ \ \textcolor{comment}{//\ model.}}
+\DoxyCodeLine{01097\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ kernel\_size\ =\ m\_kernelImpl.dimensions().TotalSize();}
+\DoxyCodeLine{01098\ \ \ \ \ \textcolor{comment}{//\ We\ ignore\ the\ use\ of\ fused\ multiply-\/add.}}
+\DoxyCodeLine{01099\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ convolve\_compute\_cost\ =}
+\DoxyCodeLine{01100\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1TensorOpCost_a7c74e94f5c5992ddd756ba868df98441}{TensorOpCost::AddCost<Scalar>}}()\ +\ \mbox{\hyperlink{classEigen_1_1TensorOpCost_a6beccb61485f429ac575d0a22abf9014}{TensorOpCost::MulCost<Scalar>}}();}
+\DoxyCodeLine{01101\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ firstIndex\_compute\_cost\ =}
+\DoxyCodeLine{01102\ \ \ \ \ \ \ \ \ NumDims\ *}
+\DoxyCodeLine{01103\ \ \ \ \ \ \ \ \ (2\ *\ \mbox{\hyperlink{classEigen_1_1TensorOpCost_a7c74e94f5c5992ddd756ba868df98441}{TensorOpCost::AddCost<Index>}}()\ +\ 2\ *\ \mbox{\hyperlink{classEigen_1_1TensorOpCost_a6beccb61485f429ac575d0a22abf9014}{TensorOpCost::MulCost<Index>}}()\ +}
+\DoxyCodeLine{01104\ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1TensorOpCost_ab5da69fab8e443d48fafa9880aa8691c}{TensorOpCost::DivCost<Index>}}());}
+\DoxyCodeLine{01105\ \ \ \ \ \textcolor{keywordflow}{return}\ TensorOpCost(0,\ 0,\ firstIndex\_compute\_cost,\ vectorized,\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}})\ +}
+\DoxyCodeLine{01106\ \ \ \ \ \ \ \ \ \ \ \ kernel\_size\ *\ (m\_inputImpl.costPerCoeff(vectorized)\ +}
+\DoxyCodeLine{01107\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_kernelImpl.costPerCoeff(vectorized)\ +}
+\DoxyCodeLine{01108\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ TensorOpCost(0,\ 0,\ convolve\_compute\_cost,\ vectorized,}
+\DoxyCodeLine{01109\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_af01d9cb0f9c1d405b9d6a24843936d3f}{PacketSize}}));}
+\DoxyCodeLine{01110\ \ \ \}}
+\DoxyCodeLine{01111\ }
+\DoxyCodeLine{01112\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{01113\ \ \ \textcolor{comment}{//\ No\ assignment\ (copies\ are\ needed\ by\ the\ kernels)}}
+\DoxyCodeLine{01114\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator}}\&\ operator\ =\ (\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator}}\&);}
+\DoxyCodeLine{01115\ }
+\DoxyCodeLine{01116\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<InputArgType,\ GpuDevice>}}\ m\_inputImpl;}
+\DoxyCodeLine{01117\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a1f3e017095b2d83138929129ec8546e7}{TensorEvaluator<KernelArgType,\ GpuDevice>}}\ m\_kernelImpl;}
+\DoxyCodeLine{01118\ \ \ KernelArgType\ m\_kernelArg;}
+\DoxyCodeLine{01119\ \ \ Indices\ m\_indices;}
+\DoxyCodeLine{01120\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aa1d848f55dbb96ee9c789c995624a2cb}{Dimensions}}\ m\_dimensions;}
+\DoxyCodeLine{01121\ \ \ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*\ m\_buf;}
+\DoxyCodeLine{01122\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_aeb27d9f39037993ed07dd4338312b172}{Scalar}}*\ m\_kernel;}
+\DoxyCodeLine{01123\ \ \ \textcolor{keywordtype}{bool}\ m\_local\_kernel;}
+\DoxyCodeLine{01124\ }
+\DoxyCodeLine{01125\ \ \ \textcolor{keyword}{const}\ GpuDevice\&\ \mbox{\hyperlink{structEigen_1_1TensorEvaluator_a28c329f710d33ba7243b5d194bdcdfca}{m\_device}};}
+\DoxyCodeLine{01126\ \};}
+\DoxyCodeLine{01127\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{01128\ }
+\DoxyCodeLine{01129\ }
+\DoxyCodeLine{01130\ \}\ \textcolor{comment}{//\ end\ namespace\ Eigen}}
+\DoxyCodeLine{01131\ }
+\DoxyCodeLine{01132\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ EIGEN\_CXX11\_TENSOR\_TENSOR\_CONVOLUTION\_H}}
+
+\end{DoxyCode}

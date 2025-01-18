@@ -1,0 +1,344 @@
+\doxysection{str\+\_\+join\+\_\+internal.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2str__join__internal_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2str__join__internal_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/strings/internal/str\_join\_internal.h@{tensor/build/\_deps/absl-\/src/absl/strings/internal/str\_join\_internal.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2str__join__internal_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//}}
+\DoxyCodeLine{00016\ }
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ This\ file\ declares\ INTERNAL\ parts\ of\ the\ Join\ API\ that\ are\ inlined/templated}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ or\ otherwise\ need\ to\ be\ available\ at\ compile\ time.\ The\ main\ abstractions}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ defined\ in\ this\ file\ are:}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ \ \ -\/\ A\ handful\ of\ default\ Formatters}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ \ \ -\/\ JoinAlgorithm()\ overloads}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \ \ -\/\ JoinRange()\ overloads}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ \ \ -\/\ JoinTuple()}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ DO\ NOT\ INCLUDE\ THIS\ FILE\ DIRECTLY.\ Use\ this\ file\ by\ including}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ absl/strings/str\_join.h}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ IWYU\ pragma:\ private,\ include\ "{}absl/strings/str\_join.h"{}}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_INTERNAL\_STR\_JOIN\_INTERNAL\_H\_}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_INTERNAL\_STR\_JOIN\_INTERNAL\_H\_}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <cstring>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <initializer\_list>}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ <iterator>}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ <tuple>}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00044\ }
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/raw\_logging.h"{}}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/ostringstream.h"{}}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/resize\_uninitialized.h"{}}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#include\ "{}absl/strings/str\_cat.h"{}}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#include\ "{}absl/strings/string\_view.h"{}}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00053\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00054\ \textcolor{keyword}{namespace\ }strings\_internal\ \{}
+\DoxyCodeLine{00055\ }
+\DoxyCodeLine{00056\ \textcolor{comment}{//}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ Formatter\ objects}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ The\ following\ are\ implementation\ classes\ for\ standard\ Formatter\ objects.\ The}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ factory\ functions\ that\ users\ will\ call\ to\ create\ and\ use\ these\ formatters\ are}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ defined\ and\ documented\ in\ strings/join.h.}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//}}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ The\ default\ formatter.\ Converts\ alpha-\/numeric\ types\ to\ strings.}}
+\DoxyCodeLine{00065\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumFormatterImpl}{AlphaNumFormatterImpl}}\ \{}
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ This\ template\ is\ needed\ in\ order\ to\ support\ passing\ in\ a\ dereferenced}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ vector<bool>::iterator}}
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00069\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumFormatterImpl_ad604266c93b70c41fc7f1c4f39db9aed}{operator()}}(std::string*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00070\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{StrAppend}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}}));}
+\DoxyCodeLine{00071\ \ \ \}}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumFormatterImpl_a833d3551588cff48b04803cfcdb592cb}{operator()}}(std::string*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1AlphaNum}{AlphaNum}}\&\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00074\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_aab3f3f93df9cd616899447a620527d6f}{StrAppend}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}});}
+\DoxyCodeLine{00075\ \ \ \}}
+\DoxyCodeLine{00076\ \};}
+\DoxyCodeLine{00077\ }
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ A\ type\ that's\ used\ to\ overload\ the\ JoinAlgorithm()\ function\ (defined\ below)}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ for\ ranges\ that\ do\ not\ require\ additional\ formatting\ (e.g.,\ a\ range\ of}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ strings).}}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1NoFormatter}{NoFormatter}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumFormatterImpl}{AlphaNumFormatterImpl}}\ \{\};}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ Formats\ types\ to\ strings\ using\ the\ <<\ operator.}}
+\DoxyCodeLine{00085\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1StreamFormatterImpl}{StreamFormatterImpl}}\ \{}
+\DoxyCodeLine{00086\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00087\ \ \ \textcolor{comment}{//\ The\ method\ isn't\ const\ because\ it\ mutates\ state.\ Making\ it\ const\ will}}
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ render\ StreamFormatterImpl\ thread-\/hostile.}}
+\DoxyCodeLine{00089\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00090\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1StreamFormatterImpl_a01fa43f523db34be8b271b6185f86496}{operator()}}(std::string*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{}
+\DoxyCodeLine{00091\ \ \ \ \ \textcolor{comment}{//\ The\ stream\ is\ created\ lazily\ to\ avoid\ paying\ the\ relatively\ high\ cost}}
+\DoxyCodeLine{00092\ \ \ \ \ \textcolor{comment}{//\ of\ its\ construction\ when\ joining\ an\ empty\ range.}}
+\DoxyCodeLine{00093\ \ \ \ \ \textcolor{keywordflow}{if}\ (strm\_)\ \{}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ strm\_-\/>clear();\ \ \textcolor{comment}{//\ clear\ the\ bad,\ fail\ and\ eof\ bits\ in\ case\ they\ were\ set}}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ strm\_-\/>str(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}});}
+\DoxyCodeLine{00096\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ strm\_.reset(\textcolor{keyword}{new}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1OStringStream}{strings\_internal::OStringStream}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}}));}
+\DoxyCodeLine{00098\ \ \ \ \ \}}
+\DoxyCodeLine{00099\ \ \ \ \ *strm\_\ <<\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};}
+\DoxyCodeLine{00100\ \ \ \}}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00103\ \ \ std::unique\_ptr<strings\_internal::OStringStream>\ strm\_;}
+\DoxyCodeLine{00104\ \};}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ Formats\ a\ std::pair<>.\ The\ 'first'\ member\ is\ formatted\ using\ f1\_\ and\ the}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ 'second'\ member\ is\ formatted\ using\ f2\_.\ sep\_\ is\ the\ separator.}}
+\DoxyCodeLine{00108\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ F1,\ \textcolor{keyword}{typename}\ F2>}
+\DoxyCodeLine{00109\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1PairFormatterImpl}{PairFormatterImpl}}\ \{}
+\DoxyCodeLine{00110\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00111\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1PairFormatterImpl_aab84dff2a6c4ef17c1f198b6bc80b1b3}{PairFormatterImpl}}(\mbox{\hyperlink{abseil-cpp_2absl_2flags_2parse__test_8cc_a9d368ffbdce8ce83fe035b3fa2195ed0}{F1}}\ f1,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ sep,\ \mbox{\hyperlink{abseil-cpp_2absl_2flags_2parse__test_8cc_af8f646a22f1e68d087a00d6699aea165}{F2}}\ f2)}
+\DoxyCodeLine{00112\ \ \ \ \ \ \ :\ f1\_(\mbox{\hyperlink{namespacestd}{std}}::move(f1)),\ sep\_(sep),\ f2\_(\mbox{\hyperlink{namespacestd}{std}}::move(f2))\ \{\}}
+\DoxyCodeLine{00113\ }
+\DoxyCodeLine{00114\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00115\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1PairFormatterImpl_a386d2b8cec009941cb8c3096d25f113c}{operator()}}(std::string*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \{}
+\DoxyCodeLine{00116\ \ \ \ \ f1\_(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}.first);}
+\DoxyCodeLine{00117\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}}-\/>append(sep\_);}
+\DoxyCodeLine{00118\ \ \ \ \ f2\_(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}.second);}
+\DoxyCodeLine{00119\ \ \ \}}
+\DoxyCodeLine{00120\ }
+\DoxyCodeLine{00121\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00122\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1PairFormatterImpl_aa4376d6347640d0d10ff428ec7f765a2}{operator()}}(std::string*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00123\ \ \ \ \ f1\_(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}.first);}
+\DoxyCodeLine{00124\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}}-\/>append(sep\_);}
+\DoxyCodeLine{00125\ \ \ \ \ f2\_(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}.second);}
+\DoxyCodeLine{00126\ \ \ \}}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00129\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2flags_2parse__test_8cc_a9d368ffbdce8ce83fe035b3fa2195ed0}{F1}}\ f1\_;}
+\DoxyCodeLine{00130\ \ \ std::string\ sep\_;}
+\DoxyCodeLine{00131\ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2flags_2parse__test_8cc_af8f646a22f1e68d087a00d6699aea165}{F2}}\ f2\_;}
+\DoxyCodeLine{00132\ \};}
+\DoxyCodeLine{00133\ }
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ Wraps\ another\ formatter\ and\ dereferences\ the\ argument\ to\ operator()\ then}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ passes\ the\ dereferenced\ argument\ to\ the\ wrapped\ formatter.\ This\ can\ be}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ useful,\ for\ example,\ to\ join\ a\ std::vector<int*>.}}
+\DoxyCodeLine{00137\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Formatter>}
+\DoxyCodeLine{00138\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1DereferenceFormatterImpl}{DereferenceFormatterImpl}}\ \{}
+\DoxyCodeLine{00139\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00140\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1DereferenceFormatterImpl_afd1c5636de89de4e1f747881eb262efa}{DereferenceFormatterImpl}}()\ :\ f\_()\ \{\}}
+\DoxyCodeLine{00141\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1DereferenceFormatterImpl_ae8b449f0439eed0c74b59d7c122e965e}{DereferenceFormatterImpl}}(Formatter\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ :\ f\_(\mbox{\hyperlink{namespacestd}{std}}::forward<Formatter>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}))\ \{\}}
+\DoxyCodeLine{00143\ }
+\DoxyCodeLine{00144\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00145\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1DereferenceFormatterImpl_ad1e3e557bc80ed09c195704f753a2f78}{operator()}}(std::string*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\ \{}
+\DoxyCodeLine{00146\ \ \ \ \ f\_(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ *\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}});}
+\DoxyCodeLine{00147\ \ \ \}}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00150\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1DereferenceFormatterImpl_af6ec34447b50d11c1be2858dae4eff63}{operator()}}(std::string*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00151\ \ \ \ \ f\_(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ *\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}});}
+\DoxyCodeLine{00152\ \ \ \}}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00155\ \ \ Formatter\ f\_;}
+\DoxyCodeLine{00156\ \};}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \textcolor{comment}{//\ DefaultFormatter<T>\ is\ a\ traits\ class\ that\ selects\ a\ default\ Formatter\ to\ use}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ for\ the\ given\ type\ T.\ The\ ::Type\ member\ names\ the\ Formatter\ to\ use.\ This\ is}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ used\ by\ the\ strings::Join()\ functions\ that\ do\ NOT\ take\ a\ Formatter\ argument,}}
+\DoxyCodeLine{00161\ \textcolor{comment}{//\ in\ which\ case\ a\ default\ Formatter\ must\ be\ chosen.}}
+\DoxyCodeLine{00162\ \textcolor{comment}{//}}
+\DoxyCodeLine{00163\ \textcolor{comment}{//\ AlphaNumFormatterImpl\ is\ the\ default\ in\ the\ base\ template,\ followed\ by}}
+\DoxyCodeLine{00164\ \textcolor{comment}{//\ specializations\ for\ other\ types.}}
+\DoxyCodeLine{00165\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueType>}
+\DoxyCodeLine{00166\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter}{DefaultFormatter}}\ \{}
+\DoxyCodeLine{00167\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumFormatterImpl}{AlphaNumFormatterImpl}}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter_a65977d71afabab127e0207dcba1cba10}{Type}};}
+\DoxyCodeLine{00168\ \};}
+\DoxyCodeLine{00169\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00170\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter}{DefaultFormatter}}<const\ char*>\ \{}
+\DoxyCodeLine{00171\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumFormatterImpl}{AlphaNumFormatterImpl}}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumFormatterImpl}{Type}};}
+\DoxyCodeLine{00172\ \};}
+\DoxyCodeLine{00173\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00174\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter}{DefaultFormatter}}<char*>\ \{}
+\DoxyCodeLine{00175\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumFormatterImpl}{AlphaNumFormatterImpl}}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1AlphaNumFormatterImpl}{Type}};}
+\DoxyCodeLine{00176\ \};}
+\DoxyCodeLine{00177\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00178\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter}{DefaultFormatter}}<\mbox{\hyperlink{namespacestd}{std}}::string>\ \{}
+\DoxyCodeLine{00179\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1NoFormatter}{NoFormatter}}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter_a65977d71afabab127e0207dcba1cba10}{Type}};}
+\DoxyCodeLine{00180\ \};}
+\DoxyCodeLine{00181\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00182\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter}{DefaultFormatter}}<\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}>\ \{}
+\DoxyCodeLine{00183\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1NoFormatter}{NoFormatter}}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter_a65977d71afabab127e0207dcba1cba10}{Type}};}
+\DoxyCodeLine{00184\ \};}
+\DoxyCodeLine{00185\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueType>}
+\DoxyCodeLine{00186\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter}{DefaultFormatter}}<ValueType*>\ \{}
+\DoxyCodeLine{00187\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1DereferenceFormatterImpl}{DereferenceFormatterImpl<typename\ DefaultFormatter<ValueType>::Type}}>}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1DereferenceFormatterImpl}{Type}};}
+\DoxyCodeLine{00189\ \};}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ ValueType>}
+\DoxyCodeLine{00192\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter}{DefaultFormatter}}<\mbox{\hyperlink{namespacestd}{std}}::unique\_ptr<ValueType>>}
+\DoxyCodeLine{00193\ \ \ \ \ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter}{DefaultFormatter}}<ValueType*>\ \{\};}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \textcolor{comment}{//}}
+\DoxyCodeLine{00196\ \textcolor{comment}{//\ JoinAlgorithm()\ functions}}
+\DoxyCodeLine{00197\ \textcolor{comment}{//}}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ \textcolor{comment}{//\ The\ main\ joining\ algorithm.\ This\ simply\ joins\ the\ elements\ in\ the\ given}}
+\DoxyCodeLine{00200\ \textcolor{comment}{//\ iterator\ range,\ each\ separated\ by\ the\ given\ separator,\ into\ an\ output\ string,}}
+\DoxyCodeLine{00201\ \textcolor{comment}{//\ and\ formats\ each\ element\ using\ the\ provided\ Formatter\ object.}}
+\DoxyCodeLine{00202\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Iterator,\ \textcolor{keyword}{typename}\ Formatter>}
+\DoxyCodeLine{00203\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ad5b694c25b0f1ab42df683172f72e1ce}{JoinAlgorithm}}(Iterator\ start,\ Iterator\ end,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Formatter\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \{}
+\DoxyCodeLine{00205\ \ \ std::string\ result;}
+\DoxyCodeLine{00206\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ sep(\textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{00207\ \ \ \textcolor{keywordflow}{for}\ (Iterator\ it\ =\ start;\ it\ !=\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}};\ ++it)\ \{}
+\DoxyCodeLine{00208\ \ \ \ \ result.append(sep.data(),\ sep.size());}
+\DoxyCodeLine{00209\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}(\&result,\ *it);}
+\DoxyCodeLine{00210\ \ \ \ \ sep\ =\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}};}
+\DoxyCodeLine{00211\ \ \ \}}
+\DoxyCodeLine{00212\ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00213\ \}}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \textcolor{comment}{//\ A\ joining\ algorithm\ that's\ optimized\ for\ a\ forward\ iterator\ range\ of}}
+\DoxyCodeLine{00216\ \textcolor{comment}{//\ string-\/like\ objects\ that\ do\ not\ need\ any\ additional\ formatting.\ This\ is\ to}}
+\DoxyCodeLine{00217\ \textcolor{comment}{//\ optimize\ the\ common\ case\ of\ joining,\ say,\ a\ std::vector<string>\ or\ a}}
+\DoxyCodeLine{00218\ \textcolor{comment}{//\ std::vector<absl::string\_view>.}}
+\DoxyCodeLine{00219\ \textcolor{comment}{//}}
+\DoxyCodeLine{00220\ \textcolor{comment}{//\ This\ is\ an\ overload\ of\ the\ previous\ JoinAlgorithm()\ function.\ Here\ the}}
+\DoxyCodeLine{00221\ \textcolor{comment}{//\ Formatter\ argument\ is\ of\ type\ NoFormatter.\ Since\ NoFormatter\ is\ an\ internal}}
+\DoxyCodeLine{00222\ \textcolor{comment}{//\ type,\ this\ overload\ is\ only\ invoked\ when\ strings::Join()\ is\ called\ with\ a}}
+\DoxyCodeLine{00223\ \textcolor{comment}{//\ range\ of\ string-\/like\ objects\ (e.g.,\ std::string,\ absl::string\_view),\ and\ an}}
+\DoxyCodeLine{00224\ \textcolor{comment}{//\ explicit\ Formatter\ argument\ was\ NOT\ specified.}}
+\DoxyCodeLine{00225\ \textcolor{comment}{//}}
+\DoxyCodeLine{00226\ \textcolor{comment}{//\ The\ optimization\ is\ that\ the\ needed\ space\ will\ be\ reserved\ in\ the\ output}}
+\DoxyCodeLine{00227\ \textcolor{comment}{//\ string\ to\ avoid\ the\ need\ to\ resize\ while\ appending.\ To\ do\ this,\ the\ iterator}}
+\DoxyCodeLine{00228\ \textcolor{comment}{//\ range\ will\ be\ traversed\ twice:\ once\ to\ calculate\ the\ total\ needed\ size,\ and}}
+\DoxyCodeLine{00229\ \textcolor{comment}{//\ then\ again\ to\ copy\ the\ elements\ and\ delimiters\ to\ the\ output\ string.}}
+\DoxyCodeLine{00230\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Iterator,}
+\DoxyCodeLine{00231\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ =\ \textcolor{keyword}{typename}\ std::enable\_if<std::is\_convertible<}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::iterator\_traits<Iterator>::iterator\_category,}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward\_iterator\_tag>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}>::type>}
+\DoxyCodeLine{00234\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ad5b694c25b0f1ab42df683172f72e1ce}{JoinAlgorithm}}(Iterator\ start,\ Iterator\ end,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},}
+\DoxyCodeLine{00235\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ NoFormatter)\ \{}
+\DoxyCodeLine{00236\ \ \ std::string\ result;}
+\DoxyCodeLine{00237\ \ \ \textcolor{keywordflow}{if}\ (start\ !=\ end)\ \{}
+\DoxyCodeLine{00238\ \ \ \ \ \textcolor{comment}{//\ Sums\ size}}
+\DoxyCodeLine{00239\ \ \ \ \ \textcolor{keyword}{auto}\&\&\ start\_value\ =\ *start;}
+\DoxyCodeLine{00240\ \ \ \ \ \textcolor{comment}{//\ Use\ uint64\_t\ to\ prevent\ size\_t\ overflow.\ We\ assume\ it\ is\ not\ possible\ for}}
+\DoxyCodeLine{00241\ \ \ \ \ \textcolor{comment}{//\ in\ memory\ strings\ to\ overflow\ a\ uint64\_t.}}
+\DoxyCodeLine{00242\ \ \ \ \ uint64\_t\ result\_size\ =\ start\_value.size();}
+\DoxyCodeLine{00243\ \ \ \ \ \textcolor{keywordflow}{for}\ (Iterator\ it\ =\ start;\ ++it\ !=\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}};)\ \{}
+\DoxyCodeLine{00244\ \ \ \ \ \ \ result\_size\ +=\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.size();}
+\DoxyCodeLine{00245\ \ \ \ \ \ \ result\_size\ +=\ (*it).size();}
+\DoxyCodeLine{00246\ \ \ \ \ \}}
+\DoxyCodeLine{00247\ }
+\DoxyCodeLine{00248\ \ \ \ \ \textcolor{keywordflow}{if}\ (result\_size\ >\ 0)\ \{}
+\DoxyCodeLine{00249\ \ \ \ \ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ kMaxSize\ =}
+\DoxyCodeLine{00250\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\{(std::numeric\_limits<size\_t>::max)()\};}
+\DoxyCodeLine{00251\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2raw__logging_8h_a90affe12edec65b5eef66576aa7a1af9}{ABSL\_INTERNAL\_CHECK}}(result\_size\ <=\ kMaxSize,\ \textcolor{stringliteral}{"{}size\_t\ overflow"{}});}
+\DoxyCodeLine{00252\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_a3b42e58848e7dba9408671c18d53ea6e}{STLStringResizeUninitialized}}(\&result,\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(result\_size));}
+\DoxyCodeLine{00253\ }
+\DoxyCodeLine{00254\ \ \ \ \ \ \ \textcolor{comment}{//\ Joins\ strings}}
+\DoxyCodeLine{00255\ \ \ \ \ \ \ \textcolor{keywordtype}{char}*\ result\_buf\ =\ \&*result.begin();}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ \ \ \ \ \ \ memcpy(result\_buf,\ start\_value.data(),\ start\_value.size());}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ result\_buf\ +=\ start\_value.size();}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (Iterator\ it\ =\ start;\ ++it\ !=\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}};)\ \{}
+\DoxyCodeLine{00260\ \ \ \ \ \ \ \ \ memcpy(result\_buf,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.data(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.size());}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ \ \ result\_buf\ +=\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.size();}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ \ \ \textcolor{keyword}{auto}\&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}\ =\ *it;}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ memcpy(result\_buf,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}.data(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}.size());}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ \ \ result\_buf\ +=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}.size();}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00266\ \ \ \ \ \}}
+\DoxyCodeLine{00267\ \ \ \}}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00269\ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00270\ \}}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00272\ \textcolor{comment}{//\ JoinTupleLoop\ implements\ a\ loop\ over\ the\ elements\ of\ a\ std::tuple,\ which}}
+\DoxyCodeLine{00273\ \textcolor{comment}{//\ are\ heterogeneous.\ The\ primary\ template\ matches\ the\ tuple\ interior\ case.\ It}}
+\DoxyCodeLine{00274\ \textcolor{comment}{//\ continues\ the\ iteration\ after\ appending\ a\ separator\ (for\ nonzero\ indices)}}
+\DoxyCodeLine{00275\ \textcolor{comment}{//\ and\ formatting\ an\ element\ of\ the\ tuple.\ The\ specialization\ for\ the\ I=N\ case}}
+\DoxyCodeLine{00276\ \textcolor{comment}{//\ matches\ the\ end-\/of-\/tuple,\ and\ terminates\ the\ iteration.}}
+\DoxyCodeLine{00277\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ I,\ \textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00278\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1JoinTupleLoop}{JoinTupleLoop}}\ \{}
+\DoxyCodeLine{00279\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Tup,\ \textcolor{keyword}{typename}\ Formatter>}
+\DoxyCodeLine{00280\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1JoinTupleLoop_a03751eadcc5f8322f49baf05c15e7e55}{operator()}}(std::string*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ \textcolor{keyword}{const}\ Tup\&\ tup,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ sep,}
+\DoxyCodeLine{00281\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Formatter\&\&\ fmt)\ \{}
+\DoxyCodeLine{00282\ \ \ \ \ \textcolor{keywordflow}{if}\ (I\ >\ 0)\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}}-\/>append(sep.\mbox{\hyperlink{classabsl_1_1string__view_acdd63d87adecc9cb89e3bb2c4efedf47}{data}}(),\ sep.\mbox{\hyperlink{classabsl_1_1string__view_a3950f228eccec8f88e34b9a90ad94428}{size}}());}
+\DoxyCodeLine{00283\ \ \ \ \ fmt(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ std::get<I>(tup));}
+\DoxyCodeLine{00284\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1JoinTupleLoop}{JoinTupleLoop<I\ +\ 1,\ N>}}()(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2parser__test_8cc_a8905de849f303a8598c0f7c3d37d46ed}{out}},\ tup,\ sep,\ fmt);}
+\DoxyCodeLine{00285\ \ \ \}}
+\DoxyCodeLine{00286\ \};}
+\DoxyCodeLine{00287\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ N>}
+\DoxyCodeLine{00288\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1JoinTupleLoop}{JoinTupleLoop}}<\mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}},\ \mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}}>\ \{}
+\DoxyCodeLine{00289\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Tup,\ \textcolor{keyword}{typename}\ Formatter>}
+\DoxyCodeLine{00290\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1JoinTupleLoop_3_01N_00_01N_01_4_a801fc971b5bce715e7d36959591aee1b}{operator()}}(std::string*,\ \textcolor{keyword}{const}\ Tup\&,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}},\ Formatter\&\&)\ \{\}}
+\DoxyCodeLine{00291\ \};}
+\DoxyCodeLine{00292\ }
+\DoxyCodeLine{00293\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ T,\ \textcolor{keyword}{typename}\ Formatter>}
+\DoxyCodeLine{00294\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ad5b694c25b0f1ab42df683172f72e1ce}{JoinAlgorithm}}(\textcolor{keyword}{const}\ std::tuple<T...>\&\ tup,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ sep,}
+\DoxyCodeLine{00295\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Formatter\&\&\ fmt)\ \{}
+\DoxyCodeLine{00296\ \ \ std::string\ result;}
+\DoxyCodeLine{00297\ \ \ JoinTupleLoop<0,\ \textcolor{keyword}{sizeof}...(T)>()(\&result,\ tup,\ sep,\ fmt);}
+\DoxyCodeLine{00298\ \ \ \textcolor{keywordflow}{return}\ result;}
+\DoxyCodeLine{00299\ \}}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Iterator>}
+\DoxyCodeLine{00302\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_aeccbd50508043de6f61a7755ca497faf}{JoinRange}}(Iterator\ first,\ Iterator\ last,}
+\DoxyCodeLine{00303\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ separator)\ \{}
+\DoxyCodeLine{00304\ \ \ \textcolor{comment}{//\ No\ formatter\ was\ explicitly\ given,\ so\ a\ default\ must\ be\ chosen.}}
+\DoxyCodeLine{00305\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ std::iterator\_traits<Iterator>::value\_type\ ValueType;}
+\DoxyCodeLine{00306\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1DefaultFormatter_a65977d71afabab127e0207dcba1cba10}{DefaultFormatter<ValueType>::Type}}\ Formatter;}
+\DoxyCodeLine{00307\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ad5b694c25b0f1ab42df683172f72e1ce}{JoinAlgorithm}}(first,\ last,\ separator,\ Formatter());}
+\DoxyCodeLine{00308\ \}}
+\DoxyCodeLine{00309\ }
+\DoxyCodeLine{00310\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Range,\ \textcolor{keyword}{typename}\ Formatter>}
+\DoxyCodeLine{00311\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_aeccbd50508043de6f61a7755ca497faf}{JoinRange}}(\textcolor{keyword}{const}\ Range\&\ range,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ separator,}
+\DoxyCodeLine{00312\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Formatter\&\&\ fmt)\ \{}
+\DoxyCodeLine{00313\ \ \ \textcolor{keyword}{using\ }std::begin;}
+\DoxyCodeLine{00314\ \ \ \textcolor{keyword}{using\ }std::end;}
+\DoxyCodeLine{00315\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_ad5b694c25b0f1ab42df683172f72e1ce}{JoinAlgorithm}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_aa9f974458dc400bd897fe724a13dcd47}{begin}}(range),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}}(range),\ separator,\ fmt);}
+\DoxyCodeLine{00316\ \}}
+\DoxyCodeLine{00317\ }
+\DoxyCodeLine{00318\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Range>}
+\DoxyCodeLine{00319\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_aeccbd50508043de6f61a7755ca497faf}{JoinRange}}(\textcolor{keyword}{const}\ Range\&\ range,\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ separator)\ \{}
+\DoxyCodeLine{00320\ \ \ \textcolor{keyword}{using\ }std::begin;}
+\DoxyCodeLine{00321\ \ \ \textcolor{keyword}{using\ }std::end;}
+\DoxyCodeLine{00322\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_aeccbd50508043de6f61a7755ca497faf}{JoinRange}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_aa9f974458dc400bd897fe724a13dcd47}{begin}}(range),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}}(range),\ separator);}
+\DoxyCodeLine{00323\ \}}
+\DoxyCodeLine{00324\ }
+\DoxyCodeLine{00325\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Tuple,\ std::size\_t...\ I>}
+\DoxyCodeLine{00326\ std::string\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_a56ee4be625bd04067993793fce671ce6}{JoinTuple}}(\textcolor{keyword}{const}\ Tuple\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}},\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ separator,}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::index\_sequence<I...>)\ \{}
+\DoxyCodeLine{00328\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1strings__internal_aeccbd50508043de6f61a7755ca497faf}{JoinRange}}(}
+\DoxyCodeLine{00329\ \ \ \ \ \ \ std::initializer\_list<absl::string\_view>\{}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keyword}{const\ }AlphaNum\&\textcolor{keyword}{>}(std::get<I>(\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}})).Piece()...\},}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ separator);}
+\DoxyCodeLine{00332\ \}}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00334\ \}\ \ \textcolor{comment}{//\ namespace\ strings\_internal}}
+\DoxyCodeLine{00335\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00336\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00337\ }
+\DoxyCodeLine{00338\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_INTERNAL\_STR\_JOIN\_INTERNAL\_H\_}}
+
+\end{DoxyCode}

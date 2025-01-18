@@ -1,0 +1,588 @@
+\doxysection{str\+\_\+split.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2strings_2str__split_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2strings_2str__split_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/strings/str\_split.h@{tensor/build/\_deps/absl-\/src/absl/strings/str\_split.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2strings_2str__split_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ File:\ str\_split.h}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ This\ file\ contains\ functions\ for\ splitting\ strings.\ It\ defines\ the\ main}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ \`{}StrSplit()`\ function,\ several\ delimiters\ for\ determining\ the\ boundaries\ on}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ which\ to\ split\ the\ string,\ and\ predicates\ for\ filtering\ delimited\ results.}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \`{}StrSplit()`\ adapts\ the\ returned\ collection\ to\ the\ type\ specified\ by\ the}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ caller.}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ \ \ //\ Splits\ the\ given\ string\ on\ commas.\ Returns\ the\ results\ in\ a}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ \ \ //\ vector\ of\ strings.}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}a,b,c"{},\ ',');}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ \ \ //\ Can\ also\ use\ "{},"{}}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}b"{},\ v[2]\ ==\ "{}c"{}}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ See\ StrSplit()\ below\ for\ more\ information.}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_STR\_SPLIT\_H\_}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_STR\_SPLIT\_H\_}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ <map>}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ <set>}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/raw\_logging.h"{}}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/str\_split\_internal.h"{}}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#include\ "{}absl/strings/string\_view.h"{}}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#include\ "{}absl/strings/strip.h"{}}}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00053\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ Delimiters}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ \`{}StrSplit()`\ uses\ delimiters\ to\ define\ the\ boundaries\ between\ elements\ in\ the}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ provided\ input.\ Several\ \`{}Delimiter`\ types\ are\ defined\ below.\ If\ a\ string}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ (`const\ char*`,\ \`{}std::string`,\ or\ \`{}absl::string\_view`)\ is\ passed\ in\ place\ of}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ an\ explicit\ \`{}Delimiter`\ object,\ \`{}StrSplit()`\ treats\ it\ the\ same\ way\ as\ if\ it}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ were\ passed\ a\ \`{}ByString`\ delimiter.}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ A\ \`{}Delimiter`\ is\ an\ object\ with\ a\ \`{}Find()`\ function\ that\ knows\ how\ to\ find}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ the\ first\ occurrence\ of\ itself\ in\ a\ given\ \`{}absl::string\_view`.}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ The\ following\ \`{}Delimiter`\ types\ are\ available\ for\ use\ within\ \`{}StrSplit()`:}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \ \ -\/\ \`{}ByString`\ (default\ for\ string\ arguments)}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ \ -\/\ \`{}ByChar`\ (default\ for\ a\ char\ argument)}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ \ \ -\/\ \`{}ByAnyChar`}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ \ -\/\ \`{}ByLength`}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ \ \ -\/\ \`{}MaxSplits`}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ A\ Delimiter's\ \`{}Find()`\ member\ function\ will\ be\ passed\ an\ input\ \`{}text`\ that\ is}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ to\ be\ split\ and\ a\ position\ (`pos`)\ to\ begin\ searching\ for\ the\ next\ delimiter}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ in\ \`{}text`.\ The\ returned\ absl::string\_view\ should\ refer\ to\ the\ next\ occurrence}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ (after\ \`{}pos`)\ of\ the\ represented\ delimiter;\ this\ returned\ absl::string\_view}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ represents\ the\ next\ location\ where\ the\ input\ \`{}text`\ should\ be\ broken.}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ The\ returned\ absl::string\_view\ may\ be\ zero-\/length\ if\ the\ Delimiter\ does\ not}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ represent\ a\ part\ of\ the\ string\ (e.g.,\ a\ fixed-\/length\ delimiter).\ If\ no}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ delimiter\ is\ found\ in\ the\ input\ \`{}text`,\ a\ zero-\/length\ absl::string\_view}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ referring\ to\ \`{}text.end()`\ should\ be\ returned\ (e.g.,}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ \`{}text.substr(text.size())`).\ It\ is\ important\ that\ the\ returned}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ absl::string\_view\ always\ be\ within\ the\ bounds\ of\ the\ input\ \`{}text`\ given\ as\ an}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ argument-\/-\/it\ must\ not\ refer\ to\ a\ string\ that\ is\ physically\ located\ outside\ of}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ the\ given\ string.}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ The\ following\ example\ is\ a\ simple\ Delimiter\ object\ that\ is\ created\ with\ a}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ single\ char\ and\ will\ look\ for\ that\ char\ in\ the\ text\ passed\ to\ the\ \`{}Find()`}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ function:}}
+\DoxyCodeLine{00094\ \textcolor{comment}{//}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ \ \ struct\ SimpleDelimiter\ \{}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//\ \ \ \ \ const\ char\ c\_;}}
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ \ \ \ \ explicit\ SimpleDelimiter(char\ c)\ :\ c\_(c)\ \{\}}}
+\DoxyCodeLine{00098\ \textcolor{comment}{//\ \ \ \ \ absl::string\_view\ Find(absl::string\_view\ text,\ size\_t\ pos)\ \{}}
+\DoxyCodeLine{00099\ \textcolor{comment}{//\ \ \ \ \ \ \ auto\ found\ =\ text.find(c\_,\ pos);}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ \ \ \ \ \ \ if\ (found\ ==\ absl::string\_view::npos)}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ return\ text.substr(text.size());}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//\ \ \ \ \ \ \ return\ text.substr(found,\ 1);}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ \ \ \};}}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ ByString}}
+\DoxyCodeLine{00108\ \textcolor{comment}{//}}
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ A\ sub-\/string\ delimiter.\ If\ \`{}StrSplit()`\ is\ passed\ a\ string\ in\ place\ of\ a}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//\ \`{}Delimiter`\ object,\ the\ string\ will\ be\ implicitly\ converted\ into\ a}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ \`{}ByString`\ delimiter.}}
+\DoxyCodeLine{00112\ \textcolor{comment}{//}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ \ \ //\ Because\ a\ string\ literal\ is\ converted\ to\ an\ \`{}absl::ByString`,}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ \ \ //\ the\ following\ two\ splits\ are\ equivalent.}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v1\ =\ absl::StrSplit("{}a,\ b,\ c"{},\ "{},\ "{});}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ \ \ using\ absl::ByString;}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v2\ =\ absl::StrSplit("{}a,\ b,\ c"{},}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ByString("{},\ "{}));}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}b"{},\ v[2]\ ==\ "{}c"{}}}
+\DoxyCodeLine{00124\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1ByString}{ByString}}\ \{}
+\DoxyCodeLine{00125\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00126\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1ByString_ae0691ccef6baa13a0716ce572881895a}{ByString}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ sp);}
+\DoxyCodeLine{00127\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1ByString_a3c2f159d066fbacb1c74b4e61a2b2319}{Find}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ text,\ \textcolor{keywordtype}{size\_t}\ pos)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00129\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00130\ \ \ \textcolor{keyword}{const}\ std::string\ delimiter\_;}
+\DoxyCodeLine{00131\ \};}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ ByAsciiWhitespace}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ A\ sub-\/string\ delimiter\ that\ splits\ by\ ASCII\ whitespace}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ (space,\ tab,\ vertical\ tab,\ formfeed,\ linefeed,\ or\ carriage\ return).}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ Note:\ you\ probably\ want\ to\ use\ absl::SkipEmpty()\ as\ well!}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ This\ class\ is\ equivalent\ to\ ByAnyChar\ with\ ASCII\ whitespace\ chars.}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit(}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ \ \ \ \ \ \ "{}a\ b\(\backslash\)tc\(\backslash\)n\ \ d\ \ \(\backslash\)n"{},\ absl::ByAsciiWhitespace(),\ absl::SkipEmpty());}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}b"{},\ v[2]\ ==\ "{}c"{},\ v[3]\ ==\ "{}d"{}}}
+\DoxyCodeLine{00146\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1ByAsciiWhitespace}{ByAsciiWhitespace}}\ \{}
+\DoxyCodeLine{00147\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00148\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1ByAsciiWhitespace_a51254009051da990d1c8f24c72b1acaa}{Find}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ text,\ \textcolor{keywordtype}{size\_t}\ pos)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00149\ \};}
+\DoxyCodeLine{00150\ }
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ ByChar}}
+\DoxyCodeLine{00152\ \textcolor{comment}{//}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ A\ single\ character\ delimiter.\ \`{}ByChar`\ is\ functionally\ equivalent\ to\ a}}
+\DoxyCodeLine{00154\ \textcolor{comment}{//\ 1-\/char\ string\ within\ a\ \`{}ByString`\ delimiter,\ but\ slightly\ more\ efficient.}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//}}
+\DoxyCodeLine{00158\ \textcolor{comment}{//\ \ \ //\ Because\ a\ char\ literal\ is\ converted\ to\ a\ absl::ByChar,}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ \ \ //\ the\ following\ two\ splits\ are\ equivalent.}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v1\ =\ absl::StrSplit("{}a,b,c"{},\ ',');}}
+\DoxyCodeLine{00161\ \textcolor{comment}{//\ \ \ using\ absl::ByChar;}}
+\DoxyCodeLine{00162\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v2\ =\ absl::StrSplit("{}a,b,c"{},\ ByChar(','));}}
+\DoxyCodeLine{00163\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}b"{},\ v[2]\ ==\ "{}c"{}}}
+\DoxyCodeLine{00164\ \textcolor{comment}{//}}
+\DoxyCodeLine{00165\ \textcolor{comment}{//\ \`{}ByChar`\ is\ also\ the\ default\ delimiter\ if\ a\ single\ character\ is\ given}}
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ as\ the\ delimiter\ to\ \`{}StrSplit()`.\ For\ example,\ the\ following\ calls\ are}}
+\DoxyCodeLine{00167\ \textcolor{comment}{//\ equivalent:}}
+\DoxyCodeLine{00168\ \textcolor{comment}{//}}
+\DoxyCodeLine{00169\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}a-\/b"{},\ '-\/');}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//}}
+\DoxyCodeLine{00171\ \textcolor{comment}{//\ \ \ using\ absl::ByChar;}}
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}a-\/b"{},\ ByChar('-\/'));}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//}}
+\DoxyCodeLine{00174\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1ByChar}{ByChar}}\ \{}
+\DoxyCodeLine{00175\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00176\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1ByChar_a97055d04775a20c05f921e79033ca7f7}{ByChar}}(\textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}})\ :\ c\_(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}})\ \{\}}
+\DoxyCodeLine{00177\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1ByChar_a88368014758c9be9e4316c0e0f00a79d}{Find}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ text,\ \textcolor{keywordtype}{size\_t}\ pos)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00180\ \ \ \textcolor{keywordtype}{char}\ c\_;}
+\DoxyCodeLine{00181\ \};}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \textcolor{comment}{//\ ByAnyChar}}
+\DoxyCodeLine{00184\ \textcolor{comment}{//}}
+\DoxyCodeLine{00185\ \textcolor{comment}{//\ A\ delimiter\ that\ will\ match\ any\ of\ the\ given\ byte-\/sized\ characters\ within}}
+\DoxyCodeLine{00186\ \textcolor{comment}{//\ its\ provided\ string.}}
+\DoxyCodeLine{00187\ \textcolor{comment}{//}}
+\DoxyCodeLine{00188\ \textcolor{comment}{//\ Note:\ this\ delimiter\ works\ with\ single-\/byte\ string\ data,\ but\ does\ not\ work}}
+\DoxyCodeLine{00189\ \textcolor{comment}{//\ with\ variable-\/width\ encodings,\ such\ as\ UTF-\/8.}}
+\DoxyCodeLine{00190\ \textcolor{comment}{//}}
+\DoxyCodeLine{00191\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00192\ \textcolor{comment}{//}}
+\DoxyCodeLine{00193\ \textcolor{comment}{//\ \ \ using\ absl::ByAnyChar;}}
+\DoxyCodeLine{00194\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}a,b=c"{},\ ByAnyChar("{},="{}));}}
+\DoxyCodeLine{00195\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}b"{},\ v[2]\ ==\ "{}c"{}}}
+\DoxyCodeLine{00196\ \textcolor{comment}{//}}
+\DoxyCodeLine{00197\ \textcolor{comment}{//\ If\ \`{}ByAnyChar`\ is\ given\ the\ empty\ string,\ it\ behaves\ exactly\ like}}
+\DoxyCodeLine{00198\ \textcolor{comment}{//\ \`{}ByString`\ and\ matches\ each\ individual\ character\ in\ the\ input\ string.}}
+\DoxyCodeLine{00199\ \textcolor{comment}{//}}
+\DoxyCodeLine{00200\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1ByAnyChar}{ByAnyChar}}\ \{}
+\DoxyCodeLine{00201\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00202\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1ByAnyChar_a3487763676d50f530d56b6acae5028c1}{ByAnyChar}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ sp);}
+\DoxyCodeLine{00203\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1ByAnyChar_aa10f4cb80cfbc8f7f57a6e5d7a735d08}{Find}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ text,\ \textcolor{keywordtype}{size\_t}\ pos)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00205\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00206\ \ \ \textcolor{keyword}{const}\ std::string\ delimiters\_;}
+\DoxyCodeLine{00207\ \};}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00209\ \textcolor{comment}{//\ ByLength}}
+\DoxyCodeLine{00210\ \textcolor{comment}{//}}
+\DoxyCodeLine{00211\ \textcolor{comment}{//\ A\ delimiter\ for\ splitting\ into\ equal-\/length\ strings.\ The\ length\ argument\ to}}
+\DoxyCodeLine{00212\ \textcolor{comment}{//\ the\ constructor\ must\ be\ greater\ than\ 0.}}
+\DoxyCodeLine{00213\ \textcolor{comment}{//}}
+\DoxyCodeLine{00214\ \textcolor{comment}{//\ Note:\ this\ delimiter\ works\ with\ single-\/byte\ string\ data,\ but\ does\ not\ work}}
+\DoxyCodeLine{00215\ \textcolor{comment}{//\ with\ variable-\/width\ encodings,\ such\ as\ UTF-\/8.}}
+\DoxyCodeLine{00216\ \textcolor{comment}{//}}
+\DoxyCodeLine{00217\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00218\ \textcolor{comment}{//}}
+\DoxyCodeLine{00219\ \textcolor{comment}{//\ \ \ using\ absl::ByLength;}}
+\DoxyCodeLine{00220\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}123456789"{},\ ByLength(3));}}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}123"{},\ v[1]\ ==\ "{}456"{},\ v[2]\ ==\ "{}789"{}}}
+\DoxyCodeLine{00223\ \textcolor{comment}{//}}
+\DoxyCodeLine{00224\ \textcolor{comment}{//\ Note\ that\ the\ string\ does\ not\ have\ to\ be\ a\ multiple\ of\ the\ fixed\ split}}
+\DoxyCodeLine{00225\ \textcolor{comment}{//\ length.\ In\ such\ a\ case,\ the\ last\ substring\ will\ be\ shorter.}}
+\DoxyCodeLine{00226\ \textcolor{comment}{//}}
+\DoxyCodeLine{00227\ \textcolor{comment}{//\ \ \ using\ absl::ByLength;}}
+\DoxyCodeLine{00228\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}12345"{},\ ByLength(2));}}
+\DoxyCodeLine{00229\ \textcolor{comment}{//}}
+\DoxyCodeLine{00230\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}12"{},\ v[1]\ ==\ "{}34"{},\ v[2]\ ==\ "{}5"{}}}
+\DoxyCodeLine{00231\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1ByLength}{ByLength}}\ \{}
+\DoxyCodeLine{00232\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00233\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1ByLength_a7db9a18de33f43bc8332fb35081e91b1}{ByLength}}(ptrdiff\_t\ length);}
+\DoxyCodeLine{00234\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1ByLength_aabf5e1ce628d88d5f4d9495cb885050d}{Find}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ text,\ \textcolor{keywordtype}{size\_t}\ pos)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00237\ \ \ \textcolor{keyword}{const}\ ptrdiff\_t\ length\_;}
+\DoxyCodeLine{00238\ \};}
+\DoxyCodeLine{00239\ }
+\DoxyCodeLine{00240\ \textcolor{keyword}{namespace\ }strings\_internal\ \{}
+\DoxyCodeLine{00241\ }
+\DoxyCodeLine{00242\ \textcolor{comment}{//\ A\ traits-\/like\ metafunction\ for\ selecting\ the\ default\ Delimiter\ object\ type}}
+\DoxyCodeLine{00243\ \textcolor{comment}{//\ for\ a\ particular\ Delimiter\ type.\ The\ base\ case\ simply\ exposes\ type\ Delimiter}}
+\DoxyCodeLine{00244\ \textcolor{comment}{//\ itself\ as\ the\ delimiter's\ Type.\ However,\ there\ are\ specializations\ for}}
+\DoxyCodeLine{00245\ \textcolor{comment}{//\ string-\/like\ objects\ that\ map\ them\ to\ the\ ByString\ delimiter\ object.}}
+\DoxyCodeLine{00246\ \textcolor{comment}{//\ This\ allows\ functions\ like\ absl::StrSplit()\ and\ absl::MaxSplits()\ to\ accept}}
+\DoxyCodeLine{00247\ \textcolor{comment}{//\ string-\/like\ objects\ (e.g.,\ ',')\ as\ delimiter\ arguments\ but\ they\ will\ be}}
+\DoxyCodeLine{00248\ \textcolor{comment}{//\ treated\ as\ if\ a\ ByString\ delimiter\ was\ given.}}
+\DoxyCodeLine{00249\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Delimiter>}
+\DoxyCodeLine{00250\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter}{SelectDelimiter}}\ \{}
+\DoxyCodeLine{00251\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{type}}\ =\ Delimiter;}
+\DoxyCodeLine{00252\ \};}
+\DoxyCodeLine{00253\ }
+\DoxyCodeLine{00254\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00255\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter}{SelectDelimiter}}<char>\ \{}
+\DoxyCodeLine{00256\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1ByChar}{type}}\ =\ \mbox{\hyperlink{classabsl_1_1ByChar}{ByChar}};}
+\DoxyCodeLine{00257\ \};}
+\DoxyCodeLine{00258\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00259\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter}{SelectDelimiter}}<char*>\ \{}
+\DoxyCodeLine{00260\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1ByString}{type}}\ =\ \mbox{\hyperlink{classabsl_1_1ByString}{ByString}};}
+\DoxyCodeLine{00261\ \};}
+\DoxyCodeLine{00262\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00263\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter}{SelectDelimiter}}<const\ char*>\ \{}
+\DoxyCodeLine{00264\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1ByString}{type}}\ =\ \mbox{\hyperlink{classabsl_1_1ByString}{ByString}};}
+\DoxyCodeLine{00265\ \};}
+\DoxyCodeLine{00266\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00267\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter}{SelectDelimiter}}<\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}>\ \{}
+\DoxyCodeLine{00268\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1ByString}{type}}\ =\ \mbox{\hyperlink{classabsl_1_1ByString}{ByString}};}
+\DoxyCodeLine{00269\ \};}
+\DoxyCodeLine{00270\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00271\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter}{SelectDelimiter}}<\mbox{\hyperlink{namespacestd}{std}}::string>\ \{}
+\DoxyCodeLine{00272\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1ByString}{type}}\ =\ \mbox{\hyperlink{classabsl_1_1ByString}{ByString}};}
+\DoxyCodeLine{00273\ \};}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00275\ \textcolor{comment}{//\ Wraps\ another\ delimiter\ and\ sets\ a\ max\ number\ of\ matches\ for\ that\ delimiter.}}
+\DoxyCodeLine{00276\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Delimiter>}
+\DoxyCodeLine{00277\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1strings__internal_1_1MaxSplitsImpl}{MaxSplitsImpl}}\ \{}
+\DoxyCodeLine{00278\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00279\ \ \ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1MaxSplitsImpl_a5514b31e2ef494c8fae4ac19ea7f6263}{MaxSplitsImpl}}(Delimiter\ delimiter,\ \textcolor{keywordtype}{int}\ limit)}
+\DoxyCodeLine{00280\ \ \ \ \ \ \ :\ delimiter\_(delimiter),\ limit\_(limit),\ count\_(0)\ \{\}}
+\DoxyCodeLine{00281\ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{classabsl_1_1strings__internal_1_1MaxSplitsImpl_ab83204d1e5936ddfff85b8f33118b965}{Find}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ text,\ \textcolor{keywordtype}{size\_t}\ pos)\ \{}
+\DoxyCodeLine{00282\ \ \ \ \ \textcolor{keywordflow}{if}\ (count\_++\ ==\ limit\_)\ \{}
+\DoxyCodeLine{00283\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}(text.\mbox{\hyperlink{classabsl_1_1string__view_acdd63d87adecc9cb89e3bb2c4efedf47}{data}}()\ +\ text.\mbox{\hyperlink{classabsl_1_1string__view_a3950f228eccec8f88e34b9a90ad94428}{size}}(),}
+\DoxyCodeLine{00284\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 0);\ \ \textcolor{comment}{//\ No\ more\ matches.}}
+\DoxyCodeLine{00285\ \ \ \ \ \}}
+\DoxyCodeLine{00286\ \ \ \ \ \textcolor{keywordflow}{return}\ delimiter\_.Find(text,\ pos);}
+\DoxyCodeLine{00287\ \ \ \}}
+\DoxyCodeLine{00288\ }
+\DoxyCodeLine{00289\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00290\ \ \ Delimiter\ delimiter\_;}
+\DoxyCodeLine{00291\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\ limit\_;}
+\DoxyCodeLine{00292\ \ \ \textcolor{keywordtype}{int}\ count\_;}
+\DoxyCodeLine{00293\ \};}
+\DoxyCodeLine{00294\ }
+\DoxyCodeLine{00295\ \}\ \ \textcolor{comment}{//\ namespace\ strings\_internal}}
+\DoxyCodeLine{00296\ }
+\DoxyCodeLine{00297\ \textcolor{comment}{//\ MaxSplits()}}
+\DoxyCodeLine{00298\ \textcolor{comment}{//}}
+\DoxyCodeLine{00299\ \textcolor{comment}{//\ A\ delimiter\ that\ limits\ the\ number\ of\ matches\ which\ can\ occur\ to\ the\ passed}}
+\DoxyCodeLine{00300\ \textcolor{comment}{//\ \`{}limit`.\ The\ last\ element\ in\ the\ returned\ collection\ will\ contain\ all}}
+\DoxyCodeLine{00301\ \textcolor{comment}{//\ remaining\ unsplit\ pieces,\ which\ may\ contain\ instances\ of\ the\ delimiter.}}
+\DoxyCodeLine{00302\ \textcolor{comment}{//\ The\ collection\ will\ contain\ at\ most\ \`{}limit`\ +\ 1\ elements.}}
+\DoxyCodeLine{00303\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00304\ \textcolor{comment}{//}}
+\DoxyCodeLine{00305\ \textcolor{comment}{//\ \ \ using\ absl::MaxSplits;}}
+\DoxyCodeLine{00306\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}a,b,c"{},\ MaxSplits(',',\ 1));}}
+\DoxyCodeLine{00307\ \textcolor{comment}{//}}
+\DoxyCodeLine{00308\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}b,c"{}}}
+\DoxyCodeLine{00309\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Delimiter>}
+\DoxyCodeLine{00310\ \textcolor{keyword}{inline}\ strings\_internal::MaxSplitsImpl<}
+\DoxyCodeLine{00311\ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}}>}
+\DoxyCodeLine{00312\ \mbox{\hyperlink{namespaceabsl_a1168525130c0e2512db3ae89c9261ee5}{MaxSplits}}(Delimiter\ delimiter,\ \textcolor{keywordtype}{int}\ limit)\ \{}
+\DoxyCodeLine{00313\ \ \ \textcolor{keyword}{typedef}}
+\DoxyCodeLine{00314\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}}\ DelimiterType;}
+\DoxyCodeLine{00315\ \ \ \textcolor{keywordflow}{return}\ strings\_internal::MaxSplitsImpl<DelimiterType>(}
+\DoxyCodeLine{00316\ \ \ \ \ \ \ DelimiterType(delimiter),\ limit);}
+\DoxyCodeLine{00317\ \}}
+\DoxyCodeLine{00318\ }
+\DoxyCodeLine{00319\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00320\ \textcolor{comment}{//\ Predicates}}
+\DoxyCodeLine{00321\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00322\ \textcolor{comment}{//}}
+\DoxyCodeLine{00323\ \textcolor{comment}{//\ Predicates\ filter\ the\ results\ of\ a\ \`{}StrSplit()`\ by\ determining\ whether\ or\ not}}
+\DoxyCodeLine{00324\ \textcolor{comment}{//\ a\ resultant\ element\ is\ included\ in\ the\ result\ set.\ A\ predicate\ may\ be\ passed}}
+\DoxyCodeLine{00325\ \textcolor{comment}{//\ as\ an\ optional\ third\ argument\ to\ the\ \`{}StrSplit()`\ function.}}
+\DoxyCodeLine{00326\ \textcolor{comment}{//}}
+\DoxyCodeLine{00327\ \textcolor{comment}{//\ Predicates\ are\ unary\ functions\ (or\ functors)\ that\ take\ a\ single}}
+\DoxyCodeLine{00328\ \textcolor{comment}{//\ \`{}absl::string\_view`\ argument\ and\ return\ a\ bool\ indicating\ whether\ the}}
+\DoxyCodeLine{00329\ \textcolor{comment}{//\ argument\ should\ be\ included\ (`true`)\ or\ excluded\ (`false`).}}
+\DoxyCodeLine{00330\ \textcolor{comment}{//}}
+\DoxyCodeLine{00331\ \textcolor{comment}{//\ Predicates\ are\ useful\ when\ filtering\ out\ empty\ substrings.\ By\ default,\ empty}}
+\DoxyCodeLine{00332\ \textcolor{comment}{//\ substrings\ may\ be\ returned\ by\ \`{}StrSplit()`,\ which\ is\ similar\ to\ the\ way\ split}}
+\DoxyCodeLine{00333\ \textcolor{comment}{//\ functions\ work\ in\ other\ programming\ languages.}}
+\DoxyCodeLine{00334\ }
+\DoxyCodeLine{00335\ \textcolor{comment}{//\ AllowEmpty()}}
+\DoxyCodeLine{00336\ \textcolor{comment}{//}}
+\DoxyCodeLine{00337\ \textcolor{comment}{//\ Always\ returns\ \`{}true`,\ indicating\ that\ all\ strings-\/-\/including\ empty}}
+\DoxyCodeLine{00338\ \textcolor{comment}{//\ strings-\/-\/should\ be\ included\ in\ the\ split\ output.\ This\ predicate\ is\ not}}
+\DoxyCodeLine{00339\ \textcolor{comment}{//\ strictly\ needed\ because\ this\ is\ the\ default\ behavior\ of\ \`{}StrSplit()`;}}
+\DoxyCodeLine{00340\ \textcolor{comment}{//\ however,\ it\ might\ be\ useful\ at\ some\ call\ sites\ to\ make\ the\ intent\ explicit.}}
+\DoxyCodeLine{00341\ \textcolor{comment}{//}}
+\DoxyCodeLine{00342\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00343\ \textcolor{comment}{//}}
+\DoxyCodeLine{00344\ \textcolor{comment}{//\ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}\ a\ ,\ ,,b,"{},\ ',',\ AllowEmpty());}}
+\DoxyCodeLine{00345\ \textcolor{comment}{//}}
+\DoxyCodeLine{00346\ \textcolor{comment}{//\ \ //\ v[0]\ ==\ "{}\ a\ "{},\ v[1]\ ==\ "{}\ "{},\ v[2]\ ==\ "{}"{},\ v[3]\ =\ "{}b"{},\ v[4]\ ==\ "{}"{}}}
+\DoxyCodeLine{00347\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1AllowEmpty}{AllowEmpty}}\ \{}
+\DoxyCodeLine{00348\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1AllowEmpty_ab6df5ecbd0a738facd4419cb59d0c8df}{operator()}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}})\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};\ \}}
+\DoxyCodeLine{00349\ \};}
+\DoxyCodeLine{00350\ }
+\DoxyCodeLine{00351\ \textcolor{comment}{//\ SkipEmpty()}}
+\DoxyCodeLine{00352\ \textcolor{comment}{//}}
+\DoxyCodeLine{00353\ \textcolor{comment}{//\ Returns\ \`{}false`\ if\ the\ given\ \`{}absl::string\_view`\ is\ empty,\ indicating\ that}}
+\DoxyCodeLine{00354\ \textcolor{comment}{//\ \`{}StrSplit()`\ should\ omit\ the\ empty\ string.}}
+\DoxyCodeLine{00355\ \textcolor{comment}{//}}
+\DoxyCodeLine{00356\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00357\ \textcolor{comment}{//}}
+\DoxyCodeLine{00358\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{},a,,b,"{},\ ',',\ SkipEmpty());}}
+\DoxyCodeLine{00359\ \textcolor{comment}{//}}
+\DoxyCodeLine{00360\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}b"{}}}
+\DoxyCodeLine{00361\ \textcolor{comment}{//}}
+\DoxyCodeLine{00362\ \textcolor{comment}{//\ Note:\ \`{}SkipEmpty()`\ does\ not\ consider\ a\ string\ containing\ only\ whitespace}}
+\DoxyCodeLine{00363\ \textcolor{comment}{//\ to\ be\ empty.\ To\ skip\ such\ whitespace\ as\ well,\ use\ the\ \`{}SkipWhitespace()`}}
+\DoxyCodeLine{00364\ \textcolor{comment}{//\ predicate.}}
+\DoxyCodeLine{00365\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1SkipEmpty}{SkipEmpty}}\ \{}
+\DoxyCodeLine{00366\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1SkipEmpty_a22b807062e01e760a9dadc3e64f5dd6c}{operator()}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ sp)\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ !sp.\mbox{\hyperlink{classabsl_1_1string__view_afd8bd29b979f1655dea7e5fd8431162d}{empty}}();\ \}}
+\DoxyCodeLine{00367\ \};}
+\DoxyCodeLine{00368\ }
+\DoxyCodeLine{00369\ \textcolor{comment}{//\ SkipWhitespace()}}
+\DoxyCodeLine{00370\ \textcolor{comment}{//}}
+\DoxyCodeLine{00371\ \textcolor{comment}{//\ Returns\ \`{}false`\ if\ the\ given\ \`{}absl::string\_view`\ is\ empty\ *or*\ contains\ only}}
+\DoxyCodeLine{00372\ \textcolor{comment}{//\ whitespace,\ indicating\ that\ \`{}StrSplit()`\ should\ omit\ the\ string.}}
+\DoxyCodeLine{00373\ \textcolor{comment}{//}}
+\DoxyCodeLine{00374\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00375\ \textcolor{comment}{//}}
+\DoxyCodeLine{00376\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}\ a\ ,\ ,,b,"{},}}
+\DoxyCodeLine{00377\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ',',\ SkipWhitespace());}}
+\DoxyCodeLine{00378\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}\ a\ "{},\ v[1]\ ==\ "{}b"{}}}
+\DoxyCodeLine{00379\ \textcolor{comment}{//}}
+\DoxyCodeLine{00380\ \textcolor{comment}{//\ \ \ //\ SkipEmpty()\ would\ return\ whitespace\ elements}}
+\DoxyCodeLine{00381\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}\ a\ ,\ ,,b,"{},\ ',',\ SkipEmpty());}}
+\DoxyCodeLine{00382\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}\ a\ "{},\ v[1]\ ==\ "{}\ "{},\ v[2]\ ==\ "{}b"{}}}
+\DoxyCodeLine{00383\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1SkipWhitespace}{SkipWhitespace}}\ \{}
+\DoxyCodeLine{00384\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structabsl_1_1SkipWhitespace_a6b5bc994b0ece6782943241bb36b7d92}{operator()}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ sp)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00385\ \ \ \ \ sp\ =\ \mbox{\hyperlink{namespaceabsl_aaaa459e966bac678977d82d507b66ddd}{absl::StripAsciiWhitespace}}(sp);}
+\DoxyCodeLine{00386\ \ \ \ \ \textcolor{keywordflow}{return}\ !sp.\mbox{\hyperlink{classabsl_1_1string__view_afd8bd29b979f1655dea7e5fd8431162d}{empty}}();}
+\DoxyCodeLine{00387\ \ \ \}}
+\DoxyCodeLine{00388\ \};}
+\DoxyCodeLine{00389\ }
+\DoxyCodeLine{00390\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00391\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_a124b1288e5be91e66320ee35e93a4f06}{EnableSplitIfString}}\ =}
+\DoxyCodeLine{00392\ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<std::is\_same<T,\ std::string>::value\ ||}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_same<T,\ const\ std::string>::value,}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}>::type;}
+\DoxyCodeLine{00395\ }
+\DoxyCodeLine{00396\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00397\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ StrSplit()}}
+\DoxyCodeLine{00398\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00399\ }
+\DoxyCodeLine{00400\ \textcolor{comment}{//\ StrSplit()}}
+\DoxyCodeLine{00401\ \textcolor{comment}{//}}
+\DoxyCodeLine{00402\ \textcolor{comment}{//\ Splits\ a\ given\ string\ based\ on\ the\ provided\ \`{}Delimiter`\ object,\ returning\ the}}
+\DoxyCodeLine{00403\ \textcolor{comment}{//\ elements\ within\ the\ type\ specified\ by\ the\ caller.\ Optionally,\ you\ may\ pass\ a}}
+\DoxyCodeLine{00404\ \textcolor{comment}{//\ \`{}Predicate`\ to\ \`{}StrSplit()`\ indicating\ whether\ to\ include\ or\ exclude\ the}}
+\DoxyCodeLine{00405\ \textcolor{comment}{//\ resulting\ element\ within\ the\ final\ result\ set.\ (See\ the\ overviews\ for}}
+\DoxyCodeLine{00406\ \textcolor{comment}{//\ Delimiters\ and\ Predicates\ above.)}}
+\DoxyCodeLine{00407\ \textcolor{comment}{//}}
+\DoxyCodeLine{00408\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00409\ \textcolor{comment}{//}}
+\DoxyCodeLine{00410\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}a,b,c,d"{},\ ',');}}
+\DoxyCodeLine{00411\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}b"{},\ v[2]\ ==\ "{}c"{},\ v[3]\ ==\ "{}d"{}}}
+\DoxyCodeLine{00412\ \textcolor{comment}{//}}
+\DoxyCodeLine{00413\ \textcolor{comment}{//\ You\ can\ also\ provide\ an\ explicit\ \`{}Delimiter`\ object:}}
+\DoxyCodeLine{00414\ \textcolor{comment}{//}}
+\DoxyCodeLine{00415\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00416\ \textcolor{comment}{//}}
+\DoxyCodeLine{00417\ \textcolor{comment}{//\ \ \ using\ absl::ByAnyChar;}}
+\DoxyCodeLine{00418\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}a,b=c"{},\ ByAnyChar("{},="{}));}}
+\DoxyCodeLine{00419\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}b"{},\ v[2]\ ==\ "{}c"{}}}
+\DoxyCodeLine{00420\ \textcolor{comment}{//}}
+\DoxyCodeLine{00421\ \textcolor{comment}{//\ See\ above\ for\ more\ information\ on\ delimiters.}}
+\DoxyCodeLine{00422\ \textcolor{comment}{//}}
+\DoxyCodeLine{00423\ \textcolor{comment}{//\ By\ default,\ empty\ strings\ are\ included\ in\ the\ result\ set.\ You\ can\ optionally}}
+\DoxyCodeLine{00424\ \textcolor{comment}{//\ include\ a\ third\ \`{}Predicate`\ argument\ to\ apply\ a\ test\ for\ whether\ the}}
+\DoxyCodeLine{00425\ \textcolor{comment}{//\ resultant\ element\ should\ be\ included\ in\ the\ result\ set:}}
+\DoxyCodeLine{00426\ \textcolor{comment}{//}}
+\DoxyCodeLine{00427\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00428\ \textcolor{comment}{//}}
+\DoxyCodeLine{00429\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ absl::StrSplit("{}\ a\ ,\ ,,b,"{},}}
+\DoxyCodeLine{00430\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ',',\ SkipWhitespace());}}
+\DoxyCodeLine{00431\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}\ a\ "{},\ v[1]\ ==\ "{}b"{}}}
+\DoxyCodeLine{00432\ \textcolor{comment}{//}}
+\DoxyCodeLine{00433\ \textcolor{comment}{//\ See\ above\ for\ more\ information\ on\ predicates.}}
+\DoxyCodeLine{00434\ \textcolor{comment}{//}}
+\DoxyCodeLine{00435\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00436\ \textcolor{comment}{//\ StrSplit()\ Return\ Types}}
+\DoxyCodeLine{00437\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00438\ \textcolor{comment}{//}}
+\DoxyCodeLine{00439\ \textcolor{comment}{//\ The\ \`{}StrSplit()`\ function\ adapts\ the\ returned\ collection\ to\ the\ collection}}
+\DoxyCodeLine{00440\ \textcolor{comment}{//\ specified\ by\ the\ caller\ (e.g.\ \`{}std::vector`\ above).\ The\ returned\ collections}}
+\DoxyCodeLine{00441\ \textcolor{comment}{//\ may\ contain\ \`{}std::string`,\ \`{}absl::string\_view`\ (in\ which\ case\ the\ original}}
+\DoxyCodeLine{00442\ \textcolor{comment}{//\ string\ being\ split\ must\ ensure\ that\ it\ outlives\ the\ collection),\ or\ any}}
+\DoxyCodeLine{00443\ \textcolor{comment}{//\ object\ that\ can\ be\ explicitly\ created\ from\ an\ \`{}absl::string\_view`.\ This}}
+\DoxyCodeLine{00444\ \textcolor{comment}{//\ behavior\ works\ for:}}
+\DoxyCodeLine{00445\ \textcolor{comment}{//}}
+\DoxyCodeLine{00446\ \textcolor{comment}{//\ 1)\ All\ standard\ STL\ containers\ including\ \`{}std::vector`,\ \`{}std::list`,}}
+\DoxyCodeLine{00447\ \textcolor{comment}{//\ \ \ \ \`{}std::deque`,\ \`{}std::set`,`std::multiset`,\ 'std::map`,\ and\ \`{}std::multimap`.}}
+\DoxyCodeLine{00448\ \textcolor{comment}{//\ 2)\ \`{}std::pair`\ (which\ is\ not\ actually\ a\ container).\ See\ below.}}
+\DoxyCodeLine{00449\ \textcolor{comment}{//\ 3)\ \`{}std::array`,\ which\ is\ a\ container\ but\ has\ different\ behavior\ due\ to\ its}}
+\DoxyCodeLine{00450\ \textcolor{comment}{//\ \ \ \ fixed\ size.\ See\ below.}}
+\DoxyCodeLine{00451\ \textcolor{comment}{//}}
+\DoxyCodeLine{00452\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00453\ \textcolor{comment}{//}}
+\DoxyCodeLine{00454\ \textcolor{comment}{//\ \ \ //\ The\ results\ are\ returned\ as\ \`{}absl::string\_view`\ objects.\ Note\ that\ we}}
+\DoxyCodeLine{00455\ \textcolor{comment}{//\ \ \ //\ have\ to\ ensure\ that\ the\ input\ string\ outlives\ any\ results.}}
+\DoxyCodeLine{00456\ \textcolor{comment}{//\ \ \ std::vector<absl::string\_view>\ v\ =\ absl::StrSplit("{}a,b,c"{},\ ',');}}
+\DoxyCodeLine{00457\ \textcolor{comment}{//}}
+\DoxyCodeLine{00458\ \textcolor{comment}{//\ \ \ //\ Stores\ results\ in\ a\ std::set<std::string>,\ which\ also\ performs}}
+\DoxyCodeLine{00459\ \textcolor{comment}{//\ \ \ //\ de-\/duplication\ and\ orders\ the\ elements\ in\ ascending\ order.}}
+\DoxyCodeLine{00460\ \textcolor{comment}{//\ \ \ std::set<std::string>\ a\ =\ absl::StrSplit("{}b,a,c,a,b"{},\ ',');}}
+\DoxyCodeLine{00461\ \textcolor{comment}{//\ \ \ //\ a[0]\ ==\ "{}a"{},\ a[1]\ ==\ "{}b"{},\ a[2]\ ==\ "{}c"{}}}
+\DoxyCodeLine{00462\ \textcolor{comment}{//}}
+\DoxyCodeLine{00463\ \textcolor{comment}{//\ \ \ //\ \`{}StrSplit()`\ can\ be\ used\ within\ a\ range-\/based\ for\ loop,\ in\ which\ case}}
+\DoxyCodeLine{00464\ \textcolor{comment}{//\ \ \ //\ each\ element\ will\ be\ of\ type\ \`{}absl::string\_view`.}}
+\DoxyCodeLine{00465\ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v;}}
+\DoxyCodeLine{00466\ \textcolor{comment}{//\ \ \ for\ (const\ auto\ sv\ :\ absl::StrSplit("{}a,b,c"{},\ ','))\ \{}}
+\DoxyCodeLine{00467\ \textcolor{comment}{//\ \ \ \ \ if\ (sv\ !=\ "{}b"{})\ v.emplace\_back(sv);}}
+\DoxyCodeLine{00468\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00469\ \textcolor{comment}{//\ \ \ //\ v[0]\ ==\ "{}a"{},\ v[1]\ ==\ "{}c"{}}}
+\DoxyCodeLine{00470\ \textcolor{comment}{//}}
+\DoxyCodeLine{00471\ \textcolor{comment}{//\ \ \ //\ Stores\ results\ in\ a\ map.\ The\ map\ implementation\ assumes\ that\ the\ input}}
+\DoxyCodeLine{00472\ \textcolor{comment}{//\ \ \ //\ is\ provided\ as\ a\ series\ of\ key/value\ pairs.\ For\ example,\ the\ 0th\ element}}
+\DoxyCodeLine{00473\ \textcolor{comment}{//\ \ \ //\ resulting\ from\ the\ split\ will\ be\ stored\ as\ a\ key\ to\ the\ 1st\ element.\ If}}
+\DoxyCodeLine{00474\ \textcolor{comment}{//\ \ \ //\ an\ odd\ number\ of\ elements\ are\ resolved,\ the\ last\ element\ is\ paired\ with}}
+\DoxyCodeLine{00475\ \textcolor{comment}{//\ \ \ //\ a\ default-\/constructed\ value\ (e.g.,\ empty\ string).}}
+\DoxyCodeLine{00476\ \textcolor{comment}{//\ \ \ std::map<std::string,\ std::string>\ m\ =\ absl::StrSplit("{}a,b,c"{},\ ',');}}
+\DoxyCodeLine{00477\ \textcolor{comment}{//\ \ \ //\ m["{}a"{}]\ ==\ "{}b"{},\ m["{}c"{}]\ ==\ "{}"{}\ \ \ \ \ //\ last\ component\ value\ equals\ "{}"{}}}
+\DoxyCodeLine{00478\ \textcolor{comment}{//}}
+\DoxyCodeLine{00479\ \textcolor{comment}{//\ Splitting\ to\ \`{}std::pair`\ is\ an\ interesting\ case\ because\ it\ can\ hold\ only\ two}}
+\DoxyCodeLine{00480\ \textcolor{comment}{//\ elements\ and\ is\ not\ a\ collection\ type.\ When\ splitting\ to\ a\ \`{}std::pair`\ the}}
+\DoxyCodeLine{00481\ \textcolor{comment}{//\ first\ two\ split\ strings\ become\ the\ \`{}std::pair`\ \`{}.first`\ and\ \`{}.second`}}
+\DoxyCodeLine{00482\ \textcolor{comment}{//\ members,\ respectively.\ The\ remaining\ split\ substrings\ are\ discarded.\ If\ there}}
+\DoxyCodeLine{00483\ \textcolor{comment}{//\ are\ less\ than\ two\ split\ substrings,\ the\ empty\ string\ is\ used\ for\ the}}
+\DoxyCodeLine{00484\ \textcolor{comment}{//\ corresponding\ \`{}std::pair`\ member.}}
+\DoxyCodeLine{00485\ \textcolor{comment}{//}}
+\DoxyCodeLine{00486\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00487\ \textcolor{comment}{//}}
+\DoxyCodeLine{00488\ \textcolor{comment}{//\ \ \ //\ Stores\ first\ two\ split\ strings\ as\ the\ members\ in\ a\ std::pair.}}
+\DoxyCodeLine{00489\ \textcolor{comment}{//\ \ \ std::pair<std::string,\ std::string>\ p\ =\ absl::StrSplit("{}a,b,c"{},\ ',');}}
+\DoxyCodeLine{00490\ \textcolor{comment}{//\ \ \ //\ p.first\ ==\ "{}a"{},\ p.second\ ==\ "{}b"{}\ \ \ \ \ \ \ //\ "{}c"{}\ is\ omitted.}}
+\DoxyCodeLine{00491\ \textcolor{comment}{//}}
+\DoxyCodeLine{00492\ \textcolor{comment}{//}}
+\DoxyCodeLine{00493\ \textcolor{comment}{//\ Splitting\ to\ \`{}std::array`\ is\ similar\ to\ splitting\ to\ \`{}std::pair`,\ but\ for}}
+\DoxyCodeLine{00494\ \textcolor{comment}{//\ N\ elements\ instead\ of\ two;\ missing\ elements\ are\ filled\ with\ the\ empty\ string}}
+\DoxyCodeLine{00495\ \textcolor{comment}{//\ and\ extra\ elements\ are\ discarded.}}
+\DoxyCodeLine{00496\ \textcolor{comment}{//}}
+\DoxyCodeLine{00497\ \textcolor{comment}{//\ Examples:}}
+\DoxyCodeLine{00498\ \textcolor{comment}{//}}
+\DoxyCodeLine{00499\ \textcolor{comment}{//\ \ \ //\ Stores\ first\ two\ split\ strings\ as\ the\ elements\ in\ a\ std::array.}}
+\DoxyCodeLine{00500\ \textcolor{comment}{//\ \ \ std::array<std::string,\ 2>\ a\ =\ absl::StrSplit("{}a,b,c"{},\ ',');}}
+\DoxyCodeLine{00501\ \textcolor{comment}{//\ \ \ //\ a[0]\ ==\ "{}a"{},\ a[1]\ ==\ "{}b"{}\ \ \ //\ "{}c"{}\ is\ omitted.}}
+\DoxyCodeLine{00502\ \textcolor{comment}{//}}
+\DoxyCodeLine{00503\ \textcolor{comment}{//\ \ \ //\ The\ second\ element\ is\ empty.}}
+\DoxyCodeLine{00504\ \textcolor{comment}{//\ \ \ std::array<std::string,\ 2>\ a\ =\ absl::StrSplit("{}a,"{},\ ',');}}
+\DoxyCodeLine{00505\ \textcolor{comment}{//\ \ \ //\ a[0]\ ==\ "{}a"{},\ a[1]\ ==\ "{}"{}}}
+\DoxyCodeLine{00506\ \textcolor{comment}{//}}
+\DoxyCodeLine{00507\ \textcolor{comment}{//\ The\ \`{}StrSplit()`\ function\ can\ be\ used\ multiple\ times\ to\ perform\ more}}
+\DoxyCodeLine{00508\ \textcolor{comment}{//\ complicated\ splitting\ logic,\ such\ as\ intelligently\ parsing\ key-\/value\ pairs.}}
+\DoxyCodeLine{00509\ \textcolor{comment}{//}}
+\DoxyCodeLine{00510\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00511\ \textcolor{comment}{//}}
+\DoxyCodeLine{00512\ \textcolor{comment}{//\ \ \ //\ The\ input\ string\ "{}a=b=c,d=e,f=,g"{}\ becomes}}
+\DoxyCodeLine{00513\ \textcolor{comment}{//\ \ \ //\ \{\ "{}a"{}\ =>\ "{}b=c"{},\ "{}d"{}\ =>\ "{}e"{},\ "{}f"{}\ =>\ "{}"{},\ "{}g"{}\ =>\ "{}"{}\ \}}}
+\DoxyCodeLine{00514\ \textcolor{comment}{//\ \ \ std::map<std::string,\ std::string>\ m;}}
+\DoxyCodeLine{00515\ \textcolor{comment}{//\ \ \ for\ (absl::string\_view\ sp\ :\ absl::StrSplit("{}a=b=c,d=e,f=,g"{},\ ','))\ \{}}
+\DoxyCodeLine{00516\ \textcolor{comment}{//\ \ \ \ \ m.insert(absl::StrSplit(sp,\ absl::MaxSplits('=',\ 1)));}}
+\DoxyCodeLine{00517\ \textcolor{comment}{//\ \ \ \}}}
+\DoxyCodeLine{00518\ \textcolor{comment}{//\ \ \ EXPECT\_EQ("{}b=c"{},\ m.find("{}a"{})-\/>second);}}
+\DoxyCodeLine{00519\ \textcolor{comment}{//\ \ \ EXPECT\_EQ("{}e"{},\ m.find("{}d"{})-\/>second);}}
+\DoxyCodeLine{00520\ \textcolor{comment}{//\ \ \ EXPECT\_EQ("{}"{},\ m.find("{}f"{})-\/>second);}}
+\DoxyCodeLine{00521\ \textcolor{comment}{//\ \ \ EXPECT\_EQ("{}"{},\ m.find("{}g"{})-\/>second);}}
+\DoxyCodeLine{00522\ \textcolor{comment}{//}}
+\DoxyCodeLine{00523\ \textcolor{comment}{//\ WARNING:\ Due\ to\ a\ legacy\ bug\ that\ is\ maintained\ for\ backward\ compatibility,}}
+\DoxyCodeLine{00524\ \textcolor{comment}{//\ splitting\ the\ following\ empty\ string\_views\ produces\ different\ results:}}
+\DoxyCodeLine{00525\ \textcolor{comment}{//}}
+\DoxyCodeLine{00526\ \textcolor{comment}{//\ \ \ absl::StrSplit(absl::string\_view("{}"{}),\ '-\/');\ \ //\ \{"{}"{}\}}}
+\DoxyCodeLine{00527\ \textcolor{comment}{//\ \ \ absl::StrSplit(absl::string\_view(),\ '-\/');\ \ \ \ //\ \{\},\ but\ should\ be\ \{"{}"{}\}}}
+\DoxyCodeLine{00528\ \textcolor{comment}{//}}
+\DoxyCodeLine{00529\ \textcolor{comment}{//\ Try\ not\ to\ depend\ on\ this\ distinction\ because\ the\ bug\ may\ one\ day\ be\ fixed.}}
+\DoxyCodeLine{00530\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Delimiter>}
+\DoxyCodeLine{00531\ strings\_internal::Splitter<}
+\DoxyCodeLine{00532\ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}},\ AllowEmpty,}
+\DoxyCodeLine{00533\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}>}
+\DoxyCodeLine{00534\ \mbox{\hyperlink{namespaceabsl_a5f113a4d08f171c39b3b4f2709d154bb}{StrSplit}}(strings\_internal::ConvertibleToStringView\ text,\ Delimiter\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}})\ \{}
+\DoxyCodeLine{00535\ \ \ \textcolor{keyword}{using\ }DelimiterType\ =}
+\DoxyCodeLine{00536\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}};}
+\DoxyCodeLine{00537\ \ \ \textcolor{keywordflow}{return}\ strings\_internal::Splitter<DelimiterType,\ AllowEmpty,}
+\DoxyCodeLine{00538\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}>(}
+\DoxyCodeLine{00539\ \ \ \ \ \ \ text.value(),\ DelimiterType(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}}),\ AllowEmpty());}
+\DoxyCodeLine{00540\ \}}
+\DoxyCodeLine{00541\ }
+\DoxyCodeLine{00542\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Delimiter,\ \textcolor{keyword}{typename}\ StringType,}
+\DoxyCodeLine{00543\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a124b1288e5be91e66320ee35e93a4f06}{EnableSplitIfString<StringType>}}\ =\ 0>}
+\DoxyCodeLine{00544\ strings\_internal::Splitter<}
+\DoxyCodeLine{00545\ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}},\ AllowEmpty,}
+\DoxyCodeLine{00546\ \ \ \ \ std::string>}
+\DoxyCodeLine{00547\ \mbox{\hyperlink{namespaceabsl_a5f113a4d08f171c39b3b4f2709d154bb}{StrSplit}}(StringType\&\&\ text,\ Delimiter\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}})\ \{}
+\DoxyCodeLine{00548\ \ \ \textcolor{keyword}{using\ }DelimiterType\ =}
+\DoxyCodeLine{00549\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}};}
+\DoxyCodeLine{00550\ \ \ \textcolor{keywordflow}{return}\ strings\_internal::Splitter<DelimiterType,\ AllowEmpty,\ std::string>(}
+\DoxyCodeLine{00551\ \ \ \ \ \ \ std::move(text),\ DelimiterType(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}}),\ AllowEmpty());}
+\DoxyCodeLine{00552\ \}}
+\DoxyCodeLine{00553\ }
+\DoxyCodeLine{00554\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Delimiter,\ \textcolor{keyword}{typename}\ Predicate>}
+\DoxyCodeLine{00555\ strings\_internal::Splitter<}
+\DoxyCodeLine{00556\ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}},\ Predicate,}
+\DoxyCodeLine{00557\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}>}
+\DoxyCodeLine{00558\ \mbox{\hyperlink{namespaceabsl_a5f113a4d08f171c39b3b4f2709d154bb}{StrSplit}}(strings\_internal::ConvertibleToStringView\ text,\ Delimiter\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}},}
+\DoxyCodeLine{00559\ \ \ \ \ \ \ \ \ \ Predicate\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \{}
+\DoxyCodeLine{00560\ \ \ \textcolor{keyword}{using\ }DelimiterType\ =}
+\DoxyCodeLine{00561\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}};}
+\DoxyCodeLine{00562\ \ \ \textcolor{keywordflow}{return}\ strings\_internal::Splitter<DelimiterType,\ Predicate,}
+\DoxyCodeLine{00563\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}>(}
+\DoxyCodeLine{00564\ \ \ \ \ \ \ text.value(),\ DelimiterType(std::move(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}})),\ std::move(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}));}
+\DoxyCodeLine{00565\ \}}
+\DoxyCodeLine{00566\ }
+\DoxyCodeLine{00567\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Delimiter,\ \textcolor{keyword}{typename}\ Predicate,\ \textcolor{keyword}{typename}\ StringType,}
+\DoxyCodeLine{00568\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a124b1288e5be91e66320ee35e93a4f06}{EnableSplitIfString<StringType>}}\ =\ 0>}
+\DoxyCodeLine{00569\ strings\_internal::Splitter<}
+\DoxyCodeLine{00570\ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}},\ Predicate,}
+\DoxyCodeLine{00571\ \ \ \ \ std::string>}
+\DoxyCodeLine{00572\ \mbox{\hyperlink{namespaceabsl_a5f113a4d08f171c39b3b4f2709d154bb}{StrSplit}}(StringType\&\&\ text,\ Delimiter\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}},\ Predicate\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \{}
+\DoxyCodeLine{00573\ \ \ \textcolor{keyword}{using\ }DelimiterType\ =}
+\DoxyCodeLine{00574\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1strings__internal_1_1SelectDelimiter_ae7782a5a5c2e50a2610d081df49e5750}{strings\_internal::SelectDelimiter<Delimiter>::type}};}
+\DoxyCodeLine{00575\ \ \ \textcolor{keywordflow}{return}\ strings\_internal::Splitter<DelimiterType,\ Predicate,\ std::string>(}
+\DoxyCodeLine{00576\ \ \ \ \ \ \ std::move(text),\ DelimiterType(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8277e0910d750195b448797616e091ad}{d}}),\ std::move(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}));}
+\DoxyCodeLine{00577\ \}}
+\DoxyCodeLine{00578\ }
+\DoxyCodeLine{00579\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00580\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00581\ }
+\DoxyCodeLine{00582\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_STR\_SPLIT\_H\_}}
+
+\end{DoxyCode}

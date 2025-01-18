@@ -1,0 +1,728 @@
+\doxysection{Sparse\+Cwise\+Binary\+Op.\+h}
+\hypertarget{SparseCwiseBinaryOp_8h_source}{}\label{SparseCwiseBinaryOp_8h_source}\index{eigen/Eigen/src/SparseCore/SparseCwiseBinaryOp.h@{eigen/Eigen/src/SparseCore/SparseCwiseBinaryOp.h}}
+\mbox{\hyperlink{SparseCwiseBinaryOp_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2008-\/2014\ Gael\ Guennebaud\ <gael.guennebaud@inria.fr>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00009\ }
+\DoxyCodeLine{00010\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_SPARSE\_CWISE\_BINARY\_OP\_H}}
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#define\ EIGEN\_SPARSE\_CWISE\_BINARY\_OP\_H}}
+\DoxyCodeLine{00012\ }
+\DoxyCodeLine{00013\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{\ }
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Here\ we\ have\ to\ handle\ 3\ cases:}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ \ 1\ -\/\ sparse\ op\ dense}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ \ 2\ -\/\ dense\ op\ sparse}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ \ 3\ -\/\ sparse\ op\ sparse}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ We\ also\ need\ to\ implement\ a\ 4th\ iterator\ for:}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ \ 4\ -\/\ dense\ op\ dense}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ Finally,\ we\ also\ need\ to\ distinguish\ between\ the\ product\ and\ other\ operations\ :}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ configuration\ \ \ \ \ \ returned\ mode}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \ 1\ -\/\ sparse\ op\ dense\ \ \ \ product\ \ \ \ \ \ sparse}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ generic\ \ \ \ \ \ dense}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ \ 2\ -\/\ dense\ op\ sparse\ \ \ \ product\ \ \ \ \ \ sparse}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ generic\ \ \ \ \ \ dense}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ \ 3\ -\/\ sparse\ op\ sparse\ \ \ product\ \ \ \ \ \ sparse}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ generic\ \ \ \ \ \ sparse}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ \ 4\ -\/\ dense\ op\ dense\ \ \ \ \ product\ \ \ \ \ \ dense}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ generic\ \ \ \ \ \ dense}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ TODO\ to\ ease\ compiler\ job,\ we\ could\ specialize\ product/quotient\ with\ a\ scalar}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ \ \ \ \ \ and\ fallback\ to\ cwise-\/unary\ evaluator\ using\ bind1st\_op\ and\ bind2nd\_op.}}
+\DoxyCodeLine{00034\ }
+\DoxyCodeLine{00035\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ BinaryOp,\ \textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00036\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1CwiseBinaryOpImpl}{CwiseBinaryOpImpl}}<BinaryOp,\ Lhs,\ Rhs,\ \mbox{\hyperlink{structEigen_1_1Sparse}{Sparse}}>}
+\DoxyCodeLine{00037\ \ \ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase}{SparseMatrixBase}}<CwiseBinaryOp<BinaryOp,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00038\ \{}
+\DoxyCodeLine{00039\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00040\ \ \ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<BinaryOp,\ Lhs,\ Rhs>}}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOpImpl_3_01BinaryOp_00_01Lhs_00_01Rhs_00_01Sparse_01_4_a86a392ae089deaff34eae0ca41b281ec}{Derived}};}
+\DoxyCodeLine{00041\ \ \ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase}{SparseMatrixBase<Derived>}}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOpImpl_3_01BinaryOp_00_01Lhs_00_01Rhs_00_01Sparse_01_4_a0eb53474aee708bb875a0056e68c452d}{Base}};}
+\DoxyCodeLine{00042\ \ \ \ \ \mbox{\hyperlink{SparseUtil_8h_a936f4ca73ea9a70e080520f8c7c4fa03}{EIGEN\_SPARSE\_PUBLIC\_INTERFACE}}(\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{Derived}})}
+\DoxyCodeLine{00043\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOpImpl}{CwiseBinaryOpImpl}}()}
+\DoxyCodeLine{00044\ \ \ \ \ \{}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_ac95cf960f4a8395b28af90edfda755f0}{EIGEN\_STATIC\_ASSERT}}((}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (!\mbox{\hyperlink{structEigen_1_1internal_1_1is__same}{internal::is\_same}}<\textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{internal::traits<Lhs>::StorageKind}},}
+\DoxyCodeLine{00047\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{internal::traits<Rhs>::StorageKind}}>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}})}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ \ \ \ \ ||\ \ ((\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{internal::evaluator<Lhs>::Flags}}\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}})\ ==\ (\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{internal::evaluator<Rhs>::Flags}}\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}}))),}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ \ \ \ \ THE\_STORAGE\_ORDER\_OF\_BOTH\_SIDES\_MUST\_MATCH);}
+\DoxyCodeLine{00050\ \ \ \ \ \}}
+\DoxyCodeLine{00051\ \};}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}\ \{}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \ \ }
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ Generic\ "{}sparse\ OP\ sparse"{}}}
+\DoxyCodeLine{00057\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ XprType>\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__sparse__evaluator}{binary\_sparse\_evaluator}};}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ BinaryOp,\ \textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00060\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<BinaryOp,\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}}>}
+\DoxyCodeLine{00061\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator__base}{evaluator\_base}}<CwiseBinaryOp<BinaryOp,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00062\ \{}
+\DoxyCodeLine{00063\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00064\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ evaluator<Lhs>::InnerIterator\ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a68c5c1b091ea8d0c238271dd9ee9d768}{LhsIterator}};}
+\DoxyCodeLine{00065\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ evaluator<Rhs>::InnerIterator\ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_aa5bae657cc68577a34c1f8df563b9feb}{RhsIterator}};}
+\DoxyCodeLine{00066\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<BinaryOp,\ Lhs,\ Rhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a9118b0107a21c10a1db8626237e3d2ef}{XprType}};}
+\DoxyCodeLine{00067\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<XprType>::Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a4a98287f982ad8424430db5d54b4b22f}{Scalar}};}
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::StorageIndex\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a3b00970e4b81f982a066a7ed730bd74b}{StorageIndex}};}
+\DoxyCodeLine{00069\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525}{InnerIterator}}}
+\DoxyCodeLine{00072\ \ \ \{}
+\DoxyCodeLine{00073\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00074\ \ \ \ \ }
+\DoxyCodeLine{00075\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_a3758a600e7d9f1d7e3904d169f9ab16e}{InnerIterator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}\&\ aEval,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer)}
+\DoxyCodeLine{00076\ \ \ \ \ \ \ :\ m\_lhsIter(aEval.m\_lhsImpl,outer),\ m\_rhsIter(aEval.m\_rhsImpl,outer),\ m\_functor(aEval.m\_functor)}
+\DoxyCodeLine{00077\ \ \ \ \ \{}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ this-\/>operator++();}
+\DoxyCodeLine{00079\ \ \ \ \ \}}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525}{InnerIterator}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_ab8d440c765d01182c168438fad9a5e42}{operator++}}()}
+\DoxyCodeLine{00082\ \ \ \ \ \{}
+\DoxyCodeLine{00083\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (m\_lhsIter\ \&\&\ m\_rhsIter\ \&\&\ (m\_lhsIter.index()\ ==\ m\_rhsIter.index()))}
+\DoxyCodeLine{00084\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ m\_id\ =\ m\_lhsIter.index();}
+\DoxyCodeLine{00086\ \ \ \ \ \ \ \ \ m\_value\ =\ m\_functor(m\_lhsIter.value(),\ m\_rhsIter.value());}
+\DoxyCodeLine{00087\ \ \ \ \ \ \ \ \ ++m\_lhsIter;}
+\DoxyCodeLine{00088\ \ \ \ \ \ \ \ \ ++m\_rhsIter;}
+\DoxyCodeLine{00089\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (m\_lhsIter\ \&\&\ (!m\_rhsIter\ ||\ (m\_lhsIter.index()\ <\ m\_rhsIter.index())))}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \ \ m\_id\ =\ m\_lhsIter.index();}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \ \ m\_value\ =\ m\_functor(m\_lhsIter.value(),\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a4a98287f982ad8424430db5d54b4b22f}{Scalar}}(0));}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ ++m\_lhsIter;}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (m\_rhsIter\ \&\&\ (!m\_lhsIter\ ||\ (m\_lhsIter.index()\ >\ m\_rhsIter.index())))}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ m\_id\ =\ m\_rhsIter.index();}
+\DoxyCodeLine{00099\ \ \ \ \ \ \ \ \ m\_value\ =\ m\_functor(\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a4a98287f982ad8424430db5d54b4b22f}{Scalar}}(0),\ m\_rhsIter.value());}
+\DoxyCodeLine{00100\ \ \ \ \ \ \ \ \ ++m\_rhsIter;}
+\DoxyCodeLine{00101\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00102\ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00104\ \ \ \ \ \ \ \ \ m\_value\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a4a98287f982ad8424430db5d54b4b22f}{Scalar}}(0);\ \textcolor{comment}{//\ this\ is\ to\ avoid\ a\ compilation\ warning}}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ m\_id\ =\ -\/1;}
+\DoxyCodeLine{00106\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00107\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00108\ \ \ \ \ \}}
+\DoxyCodeLine{00109\ }
+\DoxyCodeLine{00110\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a4a98287f982ad8424430db5d54b4b22f}{Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_a1d4df446a75d1556430928a76820455a}{value}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_value;\ \}}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a3b00970e4b81f982a066a7ed730bd74b}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_a34216d3a08b8d8ae18c1eb69323f4d9b}{index}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_id;\ \}}
+\DoxyCodeLine{00113\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_a265f1d224568493b2fbb3d543fc4ed2e}{outer}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.outer();\ \}}
+\DoxyCodeLine{00114\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_ac3dc285210f3cd777f6152c97c7a83de}{row}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ Lhs::IsRowMajor\ ?\ m\_lhsIter.row()\ :\ index();\ \}}
+\DoxyCodeLine{00115\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_ae19ec78f6d49656c667cc7e0f0691234}{col}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ Lhs::IsRowMajor\ ?\ index()\ :\ m\_lhsIter.col();\ \}}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{operator}\ bool()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_id>=0;\ \}}
+\DoxyCodeLine{00118\ }
+\DoxyCodeLine{00119\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00120\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a68c5c1b091ea8d0c238271dd9ee9d768}{LhsIterator}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_a83d42d7f86a02cd0e24334ecf75834ab}{m\_lhsIter}};}
+\DoxyCodeLine{00121\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_aa5bae657cc68577a34c1f8df563b9feb}{RhsIterator}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_a3805f0c861f82e10492da6786cc9a9f2}{m\_rhsIter}};}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keyword}{const}\ BinaryOp\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_a48d811ac2282bb7ed6c8da6ecfa6fc0d}{m\_functor}};}
+\DoxyCodeLine{00123\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a4a98287f982ad8424430db5d54b4b22f}{Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_a601cf7cc0e140b4fbbfbd7be4367b912}{m\_value}};}
+\DoxyCodeLine{00124\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a3b00970e4b81f982a066a7ed730bd74b}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_94cca4c1af5953cf8db0bca2176b8525_a7f7bc057c902eb974576cacaa316f7dd}{m\_id}};}
+\DoxyCodeLine{00125\ \ \ \};}
+\DoxyCodeLine{00126\ \ \ }
+\DoxyCodeLine{00127\ \ \ }
+\DoxyCodeLine{00128\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00129\ \ \ \ \ CoeffReadCost\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Lhs>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Rhs>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}}),}
+\DoxyCodeLine{00130\ \ \ \ \ Flags\ =\ XprType::Flags}
+\DoxyCodeLine{00131\ \ \ \};}
+\DoxyCodeLine{00132\ \ \ }
+\DoxyCodeLine{00133\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a7747e8ec8f8ab77d4b5c34d8ec147d63}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)}
+\DoxyCodeLine{00134\ \ \ \ \ :\ m\_functor(xpr.functor()),}
+\DoxyCodeLine{00135\ \ \ \ \ \ \ m\_lhsImpl(xpr.lhs()),\ }
+\DoxyCodeLine{00136\ \ \ \ \ \ \ m\_rhsImpl(xpr.rhs())\ \ }
+\DoxyCodeLine{00137\ \ \ \{}
+\DoxyCodeLine{00138\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}});}
+\DoxyCodeLine{00139\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(CoeffReadCost);}
+\DoxyCodeLine{00140\ \ \ \}}
+\DoxyCodeLine{00141\ \ \ }
+\DoxyCodeLine{00142\ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a9dcef6b1bd94b3ef2340701cb89a7d88}{nonZerosEstimate}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00143\ \ \ \ \ \textcolor{keywordflow}{return}\ m\_lhsImpl.nonZerosEstimate()\ +\ m\_rhsImpl.nonZerosEstimate();}
+\DoxyCodeLine{00144\ \ \ \}}
+\DoxyCodeLine{00145\ }
+\DoxyCodeLine{00146\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00147\ \ \ \textcolor{keyword}{const}\ BinaryOp\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a25ce5e8eb8ee596b2c0f3b6b43179c70}{m\_functor}};}
+\DoxyCodeLine{00148\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Lhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_ac9d9bb135cf00c16bb4efea3977a6dbe}{m\_lhsImpl}};}
+\DoxyCodeLine{00149\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Rhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_0187ef7211a78264dbf25c6de69e48634c_a96a2e714753042bdd908cb1e21899d7f}{m\_rhsImpl}};}
+\DoxyCodeLine{00150\ \};}
+\DoxyCodeLine{00151\ }
+\DoxyCodeLine{00152\ \textcolor{comment}{//\ dense\ op\ sparse}}
+\DoxyCodeLine{00153\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ BinaryOp,\ \textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00154\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<BinaryOp,\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{IndexBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}}>}
+\DoxyCodeLine{00155\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator__base}{evaluator\_base}}<CwiseBinaryOp<BinaryOp,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00156\ \{}
+\DoxyCodeLine{00157\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00158\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ evaluator<Rhs>::InnerIterator\ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a3c3f204e510aa9dc743904474d82636b}{RhsIterator}};}
+\DoxyCodeLine{00159\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<BinaryOp,\ Lhs,\ Rhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a8b8dcd21eba01e3c465a7557960177a2}{XprType}};}
+\DoxyCodeLine{00160\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<XprType>::Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a827591c06f41d9f4c8c4885307b46e31}{Scalar}};}
+\DoxyCodeLine{00161\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::StorageIndex\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a79256f64a066dae164ad6cf5d9191bdb}{StorageIndex}};}
+\DoxyCodeLine{00162\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6}{InnerIterator}}}
+\DoxyCodeLine{00165\ \ \ \{}
+\DoxyCodeLine{00166\ \ \ \ \ \textcolor{keyword}{enum}\ \{\ IsRowMajor\ =\ (int(Rhs::Flags)\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}})==\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}}\ \};}
+\DoxyCodeLine{00167\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00168\ }
+\DoxyCodeLine{00169\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_a4fae72585286ecb39263b94fcb7c9723}{InnerIterator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}\&\ aEval,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer)}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ :\ m\_lhsEval(aEval.m\_lhsImpl),\ m\_rhsIter(aEval.m\_rhsImpl,outer),\ m\_functor(aEval.m\_functor),\ m\_value(0),\ m\_id(-\/1),\ m\_innerSize(aEval.m\_expr.rhs().innerSize())}
+\DoxyCodeLine{00171\ \ \ \ \ \{}
+\DoxyCodeLine{00172\ \ \ \ \ \ \ this-\/>operator++();}
+\DoxyCodeLine{00173\ \ \ \ \ \}}
+\DoxyCodeLine{00174\ }
+\DoxyCodeLine{00175\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6}{InnerIterator}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_a95ac1968466252e84354aec26e67d6d5}{operator++}}()}
+\DoxyCodeLine{00176\ \ \ \ \ \{}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ ++m\_id;}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(m\_id<m\_innerSize)}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a827591c06f41d9f4c8c4885307b46e31}{Scalar}}\ lhsVal\ =\ m\_lhsEval.coeff(IsRowMajor?m\_rhsIter.outer():m\_id,}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ IsRowMajor?m\_id:m\_rhsIter.outer());}
+\DoxyCodeLine{00182\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(m\_rhsIter\ \&\&\ m\_rhsIter.index()==m\_id)}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \ \ \ \ m\_value\ =\ m\_functor(lhsVal,\ m\_rhsIter.value());}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ \ \ ++m\_rhsIter;}
+\DoxyCodeLine{00186\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \ \ \ \ m\_value\ =\ m\_functor(lhsVal,\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a827591c06f41d9f4c8c4885307b46e31}{Scalar}}(0));}
+\DoxyCodeLine{00189\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00192\ \ \ \ \ \}}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a827591c06f41d9f4c8c4885307b46e31}{Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_a8e49e77e69787f4ca6b61b1dbc09d1d8}{value}}()\textcolor{keyword}{\ const\ }\{\ \mbox{\hyperlink{Macros_8h_a4e742b5a08636a61784c0e173b61e710}{eigen\_internal\_assert}}(m\_id<m\_innerSize);\ \textcolor{keywordflow}{return}\ m\_value;\ \}}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a79256f64a066dae164ad6cf5d9191bdb}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_af7629212492d526cda8f0fa7ccc3cb52}{index}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_id;\ \}}
+\DoxyCodeLine{00197\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_a8664d2b0ad3239fcb3f7b9f5a2a29cfe}{outer}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_rhsIter.outer();\ \}}
+\DoxyCodeLine{00198\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_ad6e96a5c4eb871980bcc2b7812c0fc51}{row}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ IsRowMajor\ ?\ m\_rhsIter.outer()\ :\ m\_id;\ \}}
+\DoxyCodeLine{00199\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_a17926f70074b0c4c11a95ac7c98438c7}{col}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ IsRowMajor\ ?\ m\_id\ :\ m\_rhsIter.outer();\ \}}
+\DoxyCodeLine{00200\ }
+\DoxyCodeLine{00201\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{operator}\ bool()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_id<m\_innerSize;\ \}}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00204\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Lhs>}}\ \&\mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_a4d5fb49468089e9ea03c43ebc72291e9}{m\_lhsEval}};}
+\DoxyCodeLine{00205\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a3c3f204e510aa9dc743904474d82636b}{RhsIterator}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_a1048f095e6d0621393b10fcc485dd3fd}{m\_rhsIter}};}
+\DoxyCodeLine{00206\ \ \ \ \ \textcolor{keyword}{const}\ BinaryOp\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_a6b1c8dc90980badd2d93eac0ce967f46}{m\_functor}};}
+\DoxyCodeLine{00207\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a827591c06f41d9f4c8c4885307b46e31}{Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_a709650fd5ad2bb093ecf90f41e0e9c93}{m\_value}};}
+\DoxyCodeLine{00208\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a79256f64a066dae164ad6cf5d9191bdb}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_abfa351c24d17c148f42c9f779fcd2a92}{m\_id}};}
+\DoxyCodeLine{00209\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a79256f64a066dae164ad6cf5d9191bdb}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_0600a8e9fae3a70564707e2fc93e10a6_ad967099d7a435c8ff8400ee92a831c09}{m\_innerSize}};}
+\DoxyCodeLine{00210\ \ \ \};}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00214\ \ \ \ \ CoeffReadCost\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Lhs>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Rhs>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}}),}
+\DoxyCodeLine{00215\ \ \ \ \ Flags\ =\ XprType::Flags}
+\DoxyCodeLine{00216\ \ \ \};}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_ad52c21c8b66c9d493fa86c1f5e0eb000}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)}
+\DoxyCodeLine{00219\ \ \ \ \ :\ m\_functor(xpr.functor()),}
+\DoxyCodeLine{00220\ \ \ \ \ \ \ m\_lhsImpl(xpr.lhs()),}
+\DoxyCodeLine{00221\ \ \ \ \ \ \ m\_rhsImpl(xpr.rhs()),}
+\DoxyCodeLine{00222\ \ \ \ \ \ \ m\_expr(xpr)}
+\DoxyCodeLine{00223\ \ \ \{}
+\DoxyCodeLine{00224\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}});}
+\DoxyCodeLine{00225\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(CoeffReadCost);}
+\DoxyCodeLine{00226\ \ \ \}}
+\DoxyCodeLine{00227\ }
+\DoxyCodeLine{00228\ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a540f79ec374a860c0e9d119910878d2f}{nonZerosEstimate}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00229\ \ \ \ \ \textcolor{keywordflow}{return}\ m\_expr.size();}
+\DoxyCodeLine{00230\ \ \ \}}
+\DoxyCodeLine{00231\ }
+\DoxyCodeLine{00232\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00233\ \ \ \textcolor{keyword}{const}\ BinaryOp\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_aff8d0dc0c3e9dfa4191bbd4f69715657}{m\_functor}};}
+\DoxyCodeLine{00234\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Lhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a99fa002c958af593f3b159c969cf1dc5}{m\_lhsImpl}};}
+\DoxyCodeLine{00235\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Rhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a40f8ff8adeb2a32ddfd2184353314bca}{m\_rhsImpl}};}
+\DoxyCodeLine{00236\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_016c8507d526cf185db2d56b7742a252e4_a9458aca3103f7de7c30ca71a7056ffcc}{m\_expr}};}
+\DoxyCodeLine{00237\ \};}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \textcolor{comment}{//\ sparse\ op\ dense}}
+\DoxyCodeLine{00240\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ BinaryOp,\ \textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00241\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<BinaryOp,\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{IndexBased}}>}
+\DoxyCodeLine{00242\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator__base}{evaluator\_base}}<CwiseBinaryOp<BinaryOp,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00243\ \{}
+\DoxyCodeLine{00244\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00245\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ evaluator<Lhs>::InnerIterator\ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_a3a0c2f1d57f71f9307ebd2324c2bd3ae}{LhsIterator}};}
+\DoxyCodeLine{00246\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<BinaryOp,\ Lhs,\ Rhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_a8c42de43dd4ad0dc4cba86c91e52f211}{XprType}};}
+\DoxyCodeLine{00247\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<XprType>::Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_a3343d12cf8ddb67ae75368be2c19d5e3}{Scalar}};}
+\DoxyCodeLine{00248\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::StorageIndex\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_aeac90faa2f276a55915827e714d5c9f5}{StorageIndex}};}
+\DoxyCodeLine{00249\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00251\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8}{InnerIterator}}}
+\DoxyCodeLine{00252\ \ \ \{}
+\DoxyCodeLine{00253\ \ \ \ \ \textcolor{keyword}{enum}\ \{\ IsRowMajor\ =\ (int(Lhs::Flags)\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}})==\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}}\ \};}
+\DoxyCodeLine{00254\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a5d49c38c7b7e09c66cf5445cba43501c}{InnerIterator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}\&\ aEval,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer)}
+\DoxyCodeLine{00257\ \ \ \ \ \ \ :\ m\_lhsIter(aEval.m\_lhsImpl,outer),\ m\_rhsEval(aEval.m\_rhsImpl),\ m\_functor(aEval.m\_functor),\ m\_value(0),\ m\_id(-\/1),\ m\_innerSize(aEval.m\_expr.lhs().innerSize())}
+\DoxyCodeLine{00258\ \ \ \ \ \{}
+\DoxyCodeLine{00259\ \ \ \ \ \ \ this-\/>operator++();}
+\DoxyCodeLine{00260\ \ \ \ \ \}}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8}{InnerIterator}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a4a7b76d80e5b7a3b4138569a91b0bc70}{operator++}}()}
+\DoxyCodeLine{00263\ \ \ \ \ \{}
+\DoxyCodeLine{00264\ \ \ \ \ \ \ ++m\_id;}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(m\_id<m\_innerSize)}
+\DoxyCodeLine{00266\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00267\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_a3343d12cf8ddb67ae75368be2c19d5e3}{Scalar}}\ rhsVal\ =\ m\_rhsEval.coeff(IsRowMajor?m\_lhsIter.outer():m\_id,}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ IsRowMajor?m\_id:m\_lhsIter.outer());}
+\DoxyCodeLine{00269\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(m\_lhsIter\ \&\&\ m\_lhsIter.index()==m\_id)}
+\DoxyCodeLine{00270\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00271\ \ \ \ \ \ \ \ \ \ \ m\_value\ =\ m\_functor(m\_lhsIter.value(),\ rhsVal);}
+\DoxyCodeLine{00272\ \ \ \ \ \ \ \ \ \ \ ++m\_lhsIter;}
+\DoxyCodeLine{00273\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00274\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00275\ \ \ \ \ \ \ \ \ \ \ m\_value\ =\ m\_functor(\mbox{\hyperlink{classEigen_1_1SparseMatrixBase_a610b52956ea76bcc06f72cd6e119b6c3}{Scalar}}(0),rhsVal);}
+\DoxyCodeLine{00276\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00277\ }
+\DoxyCodeLine{00278\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00279\ \ \ \ \ \}}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_a3343d12cf8ddb67ae75368be2c19d5e3}{Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a754f152a4896443ed1d252b5aa6b099a}{value}}()\textcolor{keyword}{\ const\ }\{\ \mbox{\hyperlink{Macros_8h_a4e742b5a08636a61784c0e173b61e710}{eigen\_internal\_assert}}(m\_id<m\_innerSize);\ \textcolor{keywordflow}{return}\ m\_value;\ \}}
+\DoxyCodeLine{00282\ }
+\DoxyCodeLine{00283\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_aeac90faa2f276a55915827e714d5c9f5}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_ae04bfcd70e22b4854236a4d054c20e26}{index}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_id;\ \}}
+\DoxyCodeLine{00284\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_ac9ad6f5f0d10b116afa1a6763899b2eb}{outer}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.outer();\ \}}
+\DoxyCodeLine{00285\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a1f780f52134e38a46611b09284a13b0a}{row}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ IsRowMajor\ ?\ m\_lhsIter.outer()\ :\ m\_id;\ \}}
+\DoxyCodeLine{00286\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a19e2e374f8eb2df24bfa439cfe1f96a0}{col}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ IsRowMajor\ ?\ m\_id\ :\ m\_lhsIter.outer();\ \}}
+\DoxyCodeLine{00287\ }
+\DoxyCodeLine{00288\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{operator}\ bool()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_id<m\_innerSize;\ \}}
+\DoxyCodeLine{00289\ }
+\DoxyCodeLine{00290\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00291\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_a3a0c2f1d57f71f9307ebd2324c2bd3ae}{LhsIterator}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a814ddd99900c7ded196e339c093f0086}{m\_lhsIter}};}
+\DoxyCodeLine{00292\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Rhs>}}\ \&\mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a62fbea8273aaf0d245b03985e5951ecb}{m\_rhsEval}};}
+\DoxyCodeLine{00293\ \ \ \ \ \textcolor{keyword}{const}\ BinaryOp\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a1516449043cd32be402fbee1817f266a}{m\_functor}};}
+\DoxyCodeLine{00294\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_a3343d12cf8ddb67ae75368be2c19d5e3}{Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a5772fd05a63d13893b8af5672d2f31af}{m\_value}};}
+\DoxyCodeLine{00295\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_aeac90faa2f276a55915827e714d5c9f5}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a336332a167051030a8b88480830526dc}{m\_id}};}
+\DoxyCodeLine{00296\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_aeac90faa2f276a55915827e714d5c9f5}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01_fe69422f962511fe252c09cb09c065b8_a902eb8c03862873313a3452865bad121}{m\_innerSize}};}
+\DoxyCodeLine{00297\ \ \ \};}
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00299\ }
+\DoxyCodeLine{00300\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00301\ \ \ \ \ CoeffReadCost\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Lhs>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Rhs>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}}),}
+\DoxyCodeLine{00302\ \ \ \ \ Flags\ =\ XprType::Flags}
+\DoxyCodeLine{00303\ \ \ \};}
+\DoxyCodeLine{00304\ }
+\DoxyCodeLine{00305\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_ae651ac32465859b332b06ec2d6b21b14}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)}
+\DoxyCodeLine{00306\ \ \ \ \ :\ m\_functor(xpr.functor()),}
+\DoxyCodeLine{00307\ \ \ \ \ \ \ m\_lhsImpl(xpr.lhs()),}
+\DoxyCodeLine{00308\ \ \ \ \ \ \ m\_rhsImpl(xpr.rhs()),}
+\DoxyCodeLine{00309\ \ \ \ \ \ \ m\_expr(xpr)}
+\DoxyCodeLine{00310\ \ \ \{}
+\DoxyCodeLine{00311\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}});}
+\DoxyCodeLine{00312\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(CoeffReadCost);}
+\DoxyCodeLine{00313\ \ \ \}}
+\DoxyCodeLine{00314\ }
+\DoxyCodeLine{00315\ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_a287b169a07a616c109fa94a9eb32c9dd}{nonZerosEstimate}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00316\ \ \ \ \ \textcolor{keywordflow}{return}\ m\_expr.size();}
+\DoxyCodeLine{00317\ \ \ \}}
+\DoxyCodeLine{00318\ }
+\DoxyCodeLine{00319\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00320\ \ \ \textcolor{keyword}{const}\ BinaryOp\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_abecc44c75458c4ffbf3f819f0b05a0b5}{m\_functor}};}
+\DoxyCodeLine{00321\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Lhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_af07052c9e9ae6334de98f6fbc859da51}{m\_lhsImpl}};}
+\DoxyCodeLine{00322\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<Rhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_afa9cd73f0db45a3fdebb42203a82af82}{m\_rhsImpl}};}
+\DoxyCodeLine{00323\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\ \&\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01BinaryOp_00_01Lhs_00_01Rhs_01c6fbc10b988770a8d370b5099cb91ae3_a245d953951d776c44160a41718a35dd3}{m\_expr}};}
+\DoxyCodeLine{00324\ \};}
+\DoxyCodeLine{00325\ }
+\DoxyCodeLine{00326\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00327\ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ LhsKind\ \ \ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{evaluator\_traits<typename\ T::Lhs>::Kind}},}
+\DoxyCodeLine{00328\ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ RhsKind\ \ \ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{evaluator\_traits<typename\ T::Rhs>::Kind}},}
+\DoxyCodeLine{00329\ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ LhsScalar\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<typename\ T::Lhs>::Scalar}},}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ RhsScalar\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<typename\ T::Rhs>::Scalar}}>\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}};}
+\DoxyCodeLine{00331\ }
+\DoxyCodeLine{00332\ \textcolor{comment}{//\ "{}sparse\ .*\ sparse"{}}}
+\DoxyCodeLine{00333\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ T1,\ \textcolor{keyword}{typename}\ T2,\ \textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00334\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__product__op}{scalar\_product\_op}}<T1,T2>,\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}}>}
+\DoxyCodeLine{00335\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<CwiseBinaryOp<scalar\_product\_op<T1,T2>,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00336\ \{}
+\DoxyCodeLine{00337\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<scalar\_product\_op<T1,T2>}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__product__op_3_01T1_0099f4848f018b8a5a0922648487955a02_ac5e8d81fe68b76634bfd197f775c3adc}{XprType}};}
+\DoxyCodeLine{00338\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator<XprType>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__product__op_3_01T1_0099f4848f018b8a5a0922648487955a02_a1f3608bccb7f21c6d481913d9a09dc61}{Base}};}
+\DoxyCodeLine{00339\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__product__op_3_01T1_0099f4848f018b8a5a0922648487955a02_a3d9715fa9b763957643996d9dda10067}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)\ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{Base}}(xpr)\ \{\}}
+\DoxyCodeLine{00340\ \};}
+\DoxyCodeLine{00341\ \textcolor{comment}{//\ "{}dense\ .*\ sparse"{}}}
+\DoxyCodeLine{00342\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ T1,\ \textcolor{keyword}{typename}\ T2,\ \textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00343\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__product__op}{scalar\_product\_op}}<T1,T2>,\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{IndexBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}}>}
+\DoxyCodeLine{00344\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<CwiseBinaryOp<scalar\_product\_op<T1,T2>,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00345\ \{}
+\DoxyCodeLine{00346\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<scalar\_product\_op<T1,T2>}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__product__op_3_01T1_00fc6d7062fc4c4559967b5942c918a999_a05fdfce16c1d4d07d18c0032e15b2080}{XprType}};}
+\DoxyCodeLine{00347\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator<XprType>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__product__op_3_01T1_00fc6d7062fc4c4559967b5942c918a999_a7bf6cfa489b542dc227adb20055da993}{Base}};}
+\DoxyCodeLine{00348\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__product__op_3_01T1_00fc6d7062fc4c4559967b5942c918a999_a90e0ed72c3cd96c8855dc433efb3a5e6}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)\ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{Base}}(xpr)\ \{\}}
+\DoxyCodeLine{00349\ \};}
+\DoxyCodeLine{00350\ \textcolor{comment}{//\ "{}sparse\ .*\ dense"{}}}
+\DoxyCodeLine{00351\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ T1,\ \textcolor{keyword}{typename}\ T2,\ \textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00352\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__product__op}{scalar\_product\_op}}<T1,T2>,\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{IndexBased}}>}
+\DoxyCodeLine{00353\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<CwiseBinaryOp<scalar\_product\_op<T1,T2>,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00354\ \{}
+\DoxyCodeLine{00355\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<scalar\_product\_op<T1,T2>}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__product__op_3_01T1_003e0236402ae370a1386044562ebd1566_aa9e27a0411873e8a179a8823c183cbeb}{XprType}};}
+\DoxyCodeLine{00356\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator<XprType>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__product__op_3_01T1_003e0236402ae370a1386044562ebd1566_a76fa3844c54933b62090ab68c7d380e6}{Base}};}
+\DoxyCodeLine{00357\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__product__op_3_01T1_003e0236402ae370a1386044562ebd1566_aab8abc31d595ff831492f2fe97c8038d}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)\ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{Base}}(xpr)\ \{\}}
+\DoxyCodeLine{00358\ \};}
+\DoxyCodeLine{00359\ }
+\DoxyCodeLine{00360\ \textcolor{comment}{//\ "{}sparse\ ./\ dense"{}}}
+\DoxyCodeLine{00361\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ T1,\ \textcolor{keyword}{typename}\ T2,\ \textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00362\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__quotient__op}{scalar\_quotient\_op}}<T1,T2>,\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{IndexBased}}>}
+\DoxyCodeLine{00363\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<CwiseBinaryOp<scalar\_quotient\_op<T1,T2>,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00364\ \{}
+\DoxyCodeLine{00365\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<scalar\_quotient\_op<T1,T2>}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__quotient__op_3_01T1_0c2e564b42d6f622f85de93aa31d9344f_ad8a2a7c79d4ebd90b32a75ed1bdefd6b}{XprType}};}
+\DoxyCodeLine{00366\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator<XprType>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__quotient__op_3_01T1_0c2e564b42d6f622f85de93aa31d9344f_ab5db94ed43b729d2bbf45b69886bd1ba}{Base}};}
+\DoxyCodeLine{00367\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__quotient__op_3_01T1_0c2e564b42d6f622f85de93aa31d9344f_ae8ca96c2ca5f0b7a309ab3847fc343de}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)\ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{Base}}(xpr)\ \{\}}
+\DoxyCodeLine{00368\ \};}
+\DoxyCodeLine{00369\ }
+\DoxyCodeLine{00370\ \textcolor{comment}{//\ "{}sparse\ \&\&\ sparse"{}}}
+\DoxyCodeLine{00371\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00372\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__boolean__and__op}{scalar\_boolean\_and\_op}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}}>}
+\DoxyCodeLine{00373\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<CwiseBinaryOp<scalar\_boolean\_and\_op,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00374\ \{}
+\DoxyCodeLine{00375\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<scalar\_boolean\_and\_op,\ Lhs,\ Rhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__boolean__and__op_00_0bcdcf6b4f7ab9d1640cc219fdae5a498_a544865c228c7093746699e5fb22a2f30}{XprType}};}
+\DoxyCodeLine{00376\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator<XprType>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__boolean__and__op_00_0bcdcf6b4f7ab9d1640cc219fdae5a498_af242395323a6657873b3d63566c78400}{Base}};}
+\DoxyCodeLine{00377\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__boolean__and__op_00_0bcdcf6b4f7ab9d1640cc219fdae5a498_af909c8e5453e3c5725cc693c65ab8cb1}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)\ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{Base}}(xpr)\ \{\}}
+\DoxyCodeLine{00378\ \};}
+\DoxyCodeLine{00379\ \textcolor{comment}{//\ "{}dense\ \&\&\ sparse"{}}}
+\DoxyCodeLine{00380\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00381\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__boolean__and__op}{scalar\_boolean\_and\_op}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{IndexBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}}>}
+\DoxyCodeLine{00382\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<CwiseBinaryOp<scalar\_boolean\_and\_op,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00383\ \{}
+\DoxyCodeLine{00384\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<scalar\_boolean\_and\_op,\ Lhs,\ Rhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__boolean__and__op_00_0f1eadf0d6878b69df23c5fe7965ce379_a94ba7341bb3fbea57780ac7e25d782af}{XprType}};}
+\DoxyCodeLine{00385\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator<XprType>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__boolean__and__op_00_0f1eadf0d6878b69df23c5fe7965ce379_a1814e19e37b08ee931b73f4c52cefe42}{Base}};}
+\DoxyCodeLine{00386\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__boolean__and__op_00_0f1eadf0d6878b69df23c5fe7965ce379_a798104c34bbdb42c524111d8eef0ccab}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)\ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{Base}}(xpr)\ \{\}}
+\DoxyCodeLine{00387\ \};}
+\DoxyCodeLine{00388\ \textcolor{comment}{//\ "{}sparse\ \&\&\ dense"{}}}
+\DoxyCodeLine{00389\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Lhs,\ \textcolor{keyword}{typename}\ Rhs>}
+\DoxyCodeLine{00390\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator}{binary\_evaluator}}<\mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp}}<\mbox{\hyperlink{structEigen_1_1internal_1_1scalar__boolean__and__op}{scalar\_boolean\_and\_op}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a1a7f4ccbeaf23168b50a83680f8f35fb}{Lhs}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_aab428dd46398111876d6a898035cb587a6c8de80f9984c6a6da22b7c288fee57d}{Rhs}}>,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{IndexBased}}>}
+\DoxyCodeLine{00391\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<CwiseBinaryOp<scalar\_boolean\_and\_op,\ Lhs,\ Rhs>\ >}
+\DoxyCodeLine{00392\ \{}
+\DoxyCodeLine{00393\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<scalar\_boolean\_and\_op,\ Lhs,\ Rhs>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__boolean__and__op_00_08c62c593168556572fa8be05f4d44538_a14485f32e16e734e13e824ed579c3146}{XprType}};}
+\DoxyCodeLine{00394\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator<XprType>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__boolean__and__op_00_08c62c593168556572fa8be05f4d44538_ae71ec469be67f7857eeb335d2ebdbc98}{Base}};}
+\DoxyCodeLine{00395\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1binary__evaluator_3_01CwiseBinaryOp_3_01scalar__boolean__and__op_00_08c62c593168556572fa8be05f4d44538_a92a63ea9d84cb5fa395ef722c620fbbc}{binary\_evaluator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{XprType}}\&\ xpr)\ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{Base}}(xpr)\ \{\}}
+\DoxyCodeLine{00396\ \};}
+\DoxyCodeLine{00397\ }
+\DoxyCodeLine{00398\ \textcolor{comment}{//\ "{}sparse\ \string^\ sparse"{}}}
+\DoxyCodeLine{00399\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ XprType>}
+\DoxyCodeLine{00400\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<XprType,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}}>}
+\DoxyCodeLine{00401\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator__base}{evaluator\_base}}<XprType>}
+\DoxyCodeLine{00402\ \{}
+\DoxyCodeLine{00403\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00404\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Functor\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_ade621d11c8c891809de9b414ff267223}{BinaryOp}};}
+\DoxyCodeLine{00405\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Lhs\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_ab00000374f1b1e87d48d7b4f7e5f30fb}{LhsArg}};}
+\DoxyCodeLine{00406\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Rhs\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a28602fd0b5e01bfac10ed3bffdeda0bc}{RhsArg}};}
+\DoxyCodeLine{00407\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ evaluator<LhsArg>::InnerIterator\ \ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a906bae3aec9e091708621b85435402a5}{LhsIterator}};}
+\DoxyCodeLine{00408\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ evaluator<RhsArg>::InnerIterator\ \ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a0f368181672372991754d5ca6874b917}{RhsIterator}};}
+\DoxyCodeLine{00409\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::StorageIndex\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a4ea103253f329736a4370585fbcdc446}{StorageIndex}};}
+\DoxyCodeLine{00410\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<XprType>::Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_aa2a0b98b4b740f334de08725e1e36583}{Scalar}};}
+\DoxyCodeLine{00411\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00412\ }
+\DoxyCodeLine{00413\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751}{InnerIterator}}}
+\DoxyCodeLine{00414\ \ \ \{}
+\DoxyCodeLine{00415\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00416\ \ \ \ \ }
+\DoxyCodeLine{00417\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_aee612be04056057da0191a10ed6f0a05}{InnerIterator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}\&\ aEval,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer)}
+\DoxyCodeLine{00418\ \ \ \ \ \ \ :\ m\_lhsIter(aEval.m\_lhsImpl,outer),\ m\_rhsIter(aEval.m\_rhsImpl,outer),\ m\_functor(aEval.m\_functor)}
+\DoxyCodeLine{00419\ \ \ \ \ \{}
+\DoxyCodeLine{00420\ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (m\_lhsIter\ \&\&\ m\_rhsIter\ \&\&\ (m\_lhsIter.index()\ !=\ m\_rhsIter.index()))}
+\DoxyCodeLine{00421\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00422\ \ \ \ \ \ \ \ \ if\ (m\_lhsIter.index()\ <\ m\_rhsIter.index())}
+\DoxyCodeLine{00423\ \ \ \ \ \ \ \ \ \ \ ++m\_lhsIter;}
+\DoxyCodeLine{00424\ \ \ \ \ \ \ \ \ else}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \ \ \ \ ++m\_rhsIter;}
+\DoxyCodeLine{00426\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00427\ \ \ \ \ \}}
+\DoxyCodeLine{00428\ }
+\DoxyCodeLine{00429\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751}{InnerIterator}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_aafe6ea78e97995a46ac3df61accaae63}{operator++}}()}
+\DoxyCodeLine{00430\ \ \ \ \ \{}
+\DoxyCodeLine{00431\ \ \ \ \ \ \ ++m\_lhsIter;}
+\DoxyCodeLine{00432\ \ \ \ \ \ \ ++m\_rhsIter;}
+\DoxyCodeLine{00433\ \ \ \ \ \ \ \textcolor{keywordflow}{while}\ (m\_lhsIter\ \&\&\ m\_rhsIter\ \&\&\ (m\_lhsIter.index()\ !=\ m\_rhsIter.index()))}
+\DoxyCodeLine{00434\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00435\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (m\_lhsIter.index()\ <\ m\_rhsIter.index())}
+\DoxyCodeLine{00436\ \ \ \ \ \ \ \ \ \ \ ++m\_lhsIter;}
+\DoxyCodeLine{00437\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00438\ \ \ \ \ \ \ \ \ \ \ ++m\_rhsIter;}
+\DoxyCodeLine{00439\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00440\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00441\ \ \ \ \ \}}
+\DoxyCodeLine{00442\ \ \ \ \ }
+\DoxyCodeLine{00443\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_aa2a0b98b4b740f334de08725e1e36583}{Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_a014b8683fd7ebcc1d617ba5f56d04b42}{value}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_functor(m\_lhsIter.value(),\ m\_rhsIter.value());\ \}}
+\DoxyCodeLine{00444\ }
+\DoxyCodeLine{00445\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a4ea103253f329736a4370585fbcdc446}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_a9bf94fdca2a751f940d74a56382381ff}{index}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.index();\ \}}
+\DoxyCodeLine{00446\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_a6d27a6d019371c7822ca752556c7780f}{outer}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.outer();\ \}}
+\DoxyCodeLine{00447\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_af2fd9355b705f53dbde55c6975ba01d3}{row}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.row();\ \}}
+\DoxyCodeLine{00448\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_a146b27402b96a99b951c8a565d411ec0}{col}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.col();\ \}}
+\DoxyCodeLine{00449\ }
+\DoxyCodeLine{00450\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{operator}\ bool()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ (m\_lhsIter\ \&\&\ m\_rhsIter);\ \}}
+\DoxyCodeLine{00451\ }
+\DoxyCodeLine{00452\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00453\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a906bae3aec9e091708621b85435402a5}{LhsIterator}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_af33d65ea7027c1939a53fee95c104e5a}{m\_lhsIter}};}
+\DoxyCodeLine{00454\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a0f368181672372991754d5ca6874b917}{RhsIterator}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_af2c529a0484cc7d34d88a82469244ded}{m\_rhsIter}};}
+\DoxyCodeLine{00455\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_ade621d11c8c891809de9b414ff267223}{BinaryOp}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01Ite267c0cf6c4ff0e9fff9acb4294744751_a439a520e310e64ffbe0a599750c3aaa6}{m\_functor}};}
+\DoxyCodeLine{00456\ \ \ \};}
+\DoxyCodeLine{00457\ \ \ }
+\DoxyCodeLine{00458\ \ \ }
+\DoxyCodeLine{00459\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00460\ \ \ \ \ CoeffReadCost\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<LhsArg>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<RhsArg>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}}),}
+\DoxyCodeLine{00461\ \ \ \ \ Flags\ =\ XprType::Flags}
+\DoxyCodeLine{00462\ \ \ \};}
+\DoxyCodeLine{00463\ \ \ }
+\DoxyCodeLine{00464\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a1e98566b0ef34071e30fd1be24d239ce}{sparse\_conjunction\_evaluator}}(\textcolor{keyword}{const}\ XprType\&\ xpr)}
+\DoxyCodeLine{00465\ \ \ \ \ :\ m\_functor(xpr.functor()),}
+\DoxyCodeLine{00466\ \ \ \ \ \ \ m\_lhsImpl(xpr.lhs()),\ }
+\DoxyCodeLine{00467\ \ \ \ \ \ \ m\_rhsImpl(xpr.rhs())\ \ }
+\DoxyCodeLine{00468\ \ \ \{}
+\DoxyCodeLine{00469\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}});}
+\DoxyCodeLine{00470\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(CoeffReadCost);}
+\DoxyCodeLine{00471\ \ \ \}}
+\DoxyCodeLine{00472\ \ \ }
+\DoxyCodeLine{00473\ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a05d24b66562ee67d403a308d59aada26}{nonZerosEstimate}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00474\ \ \ \ \ \textcolor{keywordflow}{return}\ (std::min)(m\_lhsImpl.nonZerosEstimate(),\ m\_rhsImpl.nonZerosEstimate());}
+\DoxyCodeLine{00475\ \ \ \}}
+\DoxyCodeLine{00476\ }
+\DoxyCodeLine{00477\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00478\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_ade621d11c8c891809de9b414ff267223}{BinaryOp}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_a30afc564228923acfd574f7ce7c8181f}{m\_functor}};}
+\DoxyCodeLine{00479\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<LhsArg>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_acb7a4ee684c39305de9965015f3aa264}{m\_lhsImpl}};}
+\DoxyCodeLine{00480\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<RhsArg>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IteratorBased_01_4_ab15c77adeeef5ade7970999e23461782}{m\_rhsImpl}};}
+\DoxyCodeLine{00481\ \};}
+\DoxyCodeLine{00482\ }
+\DoxyCodeLine{00483\ \textcolor{comment}{//\ "{}dense\ \string^\ sparse"{}}}
+\DoxyCodeLine{00484\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ XprType>}
+\DoxyCodeLine{00485\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<XprType,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{IndexBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}}>}
+\DoxyCodeLine{00486\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator__base}{evaluator\_base}}<XprType>}
+\DoxyCodeLine{00487\ \{}
+\DoxyCodeLine{00488\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00489\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Functor\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a99baae18774a81821474fb0bd3c7aaf0}{BinaryOp}};}
+\DoxyCodeLine{00490\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Lhs\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_adb0fd02b2208bdc5b911aaea21f70c24}{LhsArg}};}
+\DoxyCodeLine{00491\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Rhs\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a27f1240e6a56048e1b437e5c378ce6fb}{RhsArg}};}
+\DoxyCodeLine{00492\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<LhsArg>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a10b71fcd2d00882403792307ea2c6896}{LhsEvaluator}};}
+\DoxyCodeLine{00493\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ evaluator<RhsArg>::InnerIterator\ \ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a9295236670146a300e7be36a692eb7af}{RhsIterator}};}
+\DoxyCodeLine{00494\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::StorageIndex\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a1212d335f7035aa603109dc8675dfe5d}{StorageIndex}};}
+\DoxyCodeLine{00495\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<XprType>::Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_ac63e68f632f0d675a8d7c806d93c9247}{Scalar}};}
+\DoxyCodeLine{00496\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00497\ }
+\DoxyCodeLine{00498\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator}{InnerIterator}}}
+\DoxyCodeLine{00499\ \ \ \{}
+\DoxyCodeLine{00500\ \ \ \ \ \textcolor{keyword}{enum}\ \{\ IsRowMajor\ =\ (int(RhsArg::Flags)\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}})==\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}}\ \};}
+\DoxyCodeLine{00501\ }
+\DoxyCodeLine{00502\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00503\ \ \ \ \ }
+\DoxyCodeLine{00504\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_a445ebe480175315d1d7eecdd04fa9c46}{InnerIterator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}\&\ aEval,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer)}
+\DoxyCodeLine{00505\ \ \ \ \ \ \ :\ m\_lhsEval(aEval.m\_lhsImpl),\ m\_rhsIter(aEval.m\_rhsImpl,outer),\ m\_functor(aEval.m\_functor),\ m\_outer(outer)}
+\DoxyCodeLine{00506\ \ \ \ \ \{\}}
+\DoxyCodeLine{00507\ }
+\DoxyCodeLine{00508\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator}{InnerIterator}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_a0ab08730b555a1c7d96be91d7e324d60}{operator++}}()}
+\DoxyCodeLine{00509\ \ \ \ \ \{}
+\DoxyCodeLine{00510\ \ \ \ \ \ \ ++m\_rhsIter;}
+\DoxyCodeLine{00511\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00512\ \ \ \ \ \}}
+\DoxyCodeLine{00513\ }
+\DoxyCodeLine{00514\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_ac63e68f632f0d675a8d7c806d93c9247}{Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_ab8dd9f84ed66aac3efc9c919a7ddd9ee}{value}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00515\ \textcolor{keyword}{\ \ \ \ }\{\ \textcolor{keywordflow}{return}\ m\_functor(m\_lhsEval.coeff(IsRowMajor?m\_outer:m\_rhsIter.index(),IsRowMajor?m\_rhsIter.index():m\_outer),\ m\_rhsIter.value());\ \}}
+\DoxyCodeLine{00516\ }
+\DoxyCodeLine{00517\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a1212d335f7035aa603109dc8675dfe5d}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_a06f1a79196a5aee52af7c12b141feb0e}{index}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_rhsIter.index();\ \}}
+\DoxyCodeLine{00518\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_a10d6c427dc9ad91540256699f351edcf}{outer}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_rhsIter.outer();\ \}}
+\DoxyCodeLine{00519\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_a4d465d6c045a18e5a99c4805f5beecf6}{row}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_rhsIter.row();\ \}}
+\DoxyCodeLine{00520\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_a4f612d547ef004f5d335a8f16a82ab7b}{col}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_rhsIter.col();\ \}}
+\DoxyCodeLine{00521\ }
+\DoxyCodeLine{00522\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{operator}\ bool()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_rhsIter;\ \}}
+\DoxyCodeLine{00523\ \ \ \ \ }
+\DoxyCodeLine{00524\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00525\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{LhsEvaluator}}\ \&\mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_aa8c4bb78baa73d90c9c2e51b987c70c3}{m\_lhsEval}};}
+\DoxyCodeLine{00526\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a9295236670146a300e7be36a692eb7af}{RhsIterator}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_ab5e1e7d6b15ce17a283ed9eed4f254b6}{m\_rhsIter}};}
+\DoxyCodeLine{00527\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a99baae18774a81821474fb0bd3c7aaf0}{BinaryOp}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_acb7dd4aab4788ff3a71899b9edebeb38}{m\_functor}};}
+\DoxyCodeLine{00528\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_1_1InnerIterator_a2390294c4596f647cbb36a2ac622e764}{m\_outer}};}
+\DoxyCodeLine{00529\ \ \ \};}
+\DoxyCodeLine{00530\ \ \ }
+\DoxyCodeLine{00531\ \ \ }
+\DoxyCodeLine{00532\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00533\ \ \ \ \ CoeffReadCost\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<LhsArg>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<RhsArg>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}}),}
+\DoxyCodeLine{00534\ \ \ \ \ Flags\ =\ XprType::Flags}
+\DoxyCodeLine{00535\ \ \ \};}
+\DoxyCodeLine{00536\ \ \ }
+\DoxyCodeLine{00537\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a2fbfe5c37abd499b6b8034deed7b5a6c}{sparse\_conjunction\_evaluator}}(\textcolor{keyword}{const}\ XprType\&\ xpr)}
+\DoxyCodeLine{00538\ \ \ \ \ :\ m\_functor(xpr.functor()),}
+\DoxyCodeLine{00539\ \ \ \ \ \ \ m\_lhsImpl(xpr.lhs()),\ }
+\DoxyCodeLine{00540\ \ \ \ \ \ \ m\_rhsImpl(xpr.rhs())\ \ }
+\DoxyCodeLine{00541\ \ \ \{}
+\DoxyCodeLine{00542\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}});}
+\DoxyCodeLine{00543\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(CoeffReadCost);}
+\DoxyCodeLine{00544\ \ \ \}}
+\DoxyCodeLine{00545\ \ \ }
+\DoxyCodeLine{00546\ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_af6cea44890a2a97b728129b7fe11daf0}{nonZerosEstimate}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00547\ \ \ \ \ \textcolor{keywordflow}{return}\ m\_rhsImpl.nonZerosEstimate();}
+\DoxyCodeLine{00548\ \ \ \}}
+\DoxyCodeLine{00549\ }
+\DoxyCodeLine{00550\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00551\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_a99baae18774a81821474fb0bd3c7aaf0}{BinaryOp}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_ac37a7e14809069ff8a9b978a1ffb7444}{m\_functor}};}
+\DoxyCodeLine{00552\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<LhsArg>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_addc2697507be35d6f64c66de36afe9c6}{m\_lhsImpl}};}
+\DoxyCodeLine{00553\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<RhsArg>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IndexBased_00_01IteratorBased_01_4_ab1a74be8e58850b137ed62f10a768578}{m\_rhsImpl}};}
+\DoxyCodeLine{00554\ \};}
+\DoxyCodeLine{00555\ }
+\DoxyCodeLine{00556\ \textcolor{comment}{//\ "{}sparse\ \string^\ dense"{}}}
+\DoxyCodeLine{00557\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ XprType>}
+\DoxyCodeLine{00558\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}<XprType,\ \mbox{\hyperlink{structEigen_1_1internal_1_1IteratorBased}{IteratorBased}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1IndexBased}{IndexBased}}>}
+\DoxyCodeLine{00559\ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator__base}{evaluator\_base}}<XprType>}
+\DoxyCodeLine{00560\ \{}
+\DoxyCodeLine{00561\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00562\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Functor\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_ab5d8e3794d7a033fd2885752e84f2f50}{BinaryOp}};}
+\DoxyCodeLine{00563\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Lhs\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_a900fbc607e99c8c707b556520828c424}{LhsArg}};}
+\DoxyCodeLine{00564\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::Rhs\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_a668e42636afebdd3dd3827f8e6c8ed58}{RhsArg}};}
+\DoxyCodeLine{00565\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ evaluator<LhsArg>::InnerIterator\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_ad46594837a15125a8aadf007db1a9ecc}{LhsIterator}};}
+\DoxyCodeLine{00566\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<RhsArg>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_acbc58006256d9302e988f74c16b4b1cc}{RhsEvaluator}};}
+\DoxyCodeLine{00567\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ XprType::StorageIndex\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_a7d49105a30af6d9e41646b53db5b0209}{StorageIndex}};}
+\DoxyCodeLine{00568\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<XprType>::Scalar}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_ac31ecfa8cb8910ca02a1e29fed4c873f}{Scalar}};}
+\DoxyCodeLine{00569\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00570\ }
+\DoxyCodeLine{00571\ \ \ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator}{InnerIterator}}}
+\DoxyCodeLine{00572\ \ \ \{}
+\DoxyCodeLine{00573\ \ \ \ \ \textcolor{keyword}{enum}\ \{\ IsRowMajor\ =\ (int(LhsArg::Flags)\&\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}})==\mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}}\ \};}
+\DoxyCodeLine{00574\ }
+\DoxyCodeLine{00575\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00576\ \ \ \ \ }
+\DoxyCodeLine{00577\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_a8fedd71fd398855664c4592f45c92f4a}{InnerIterator}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator}{sparse\_conjunction\_evaluator}}\&\ aEval,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ outer)}
+\DoxyCodeLine{00578\ \ \ \ \ \ \ :\ m\_lhsIter(aEval.m\_lhsImpl,outer),\ m\_rhsEval(aEval.m\_rhsImpl),\ m\_functor(aEval.m\_functor),\ m\_outer(outer)}
+\DoxyCodeLine{00579\ \ \ \ \ \{\}}
+\DoxyCodeLine{00580\ }
+\DoxyCodeLine{00581\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator}{InnerIterator}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_a6dbc8adc4b4938dc9737f43d2b12450c}{operator++}}()}
+\DoxyCodeLine{00582\ \ \ \ \ \{}
+\DoxyCodeLine{00583\ \ \ \ \ \ \ ++m\_lhsIter;}
+\DoxyCodeLine{00584\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00585\ \ \ \ \ \}}
+\DoxyCodeLine{00586\ }
+\DoxyCodeLine{00587\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_ac31ecfa8cb8910ca02a1e29fed4c873f}{Scalar}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_aa6ee69b689899cc8af43da3ea49eb01b}{value}}()\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00588\ \textcolor{keyword}{\ \ \ \ }\{\ \textcolor{keywordflow}{return}\ m\_functor(m\_lhsIter.value(),}
+\DoxyCodeLine{00589\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ m\_rhsEval.coeff(IsRowMajor?m\_outer:m\_lhsIter.index(),IsRowMajor?m\_lhsIter.index():m\_outer));\ \}}
+\DoxyCodeLine{00590\ }
+\DoxyCodeLine{00591\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_a7d49105a30af6d9e41646b53db5b0209}{StorageIndex}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_a6f3bf2927742b856d8e81d10cd85784f}{index}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.index();\ \}}
+\DoxyCodeLine{00592\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_affaba91206f24eaacb8fbe89c7f4e917}{outer}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.outer();\ \}}
+\DoxyCodeLine{00593\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_a873f4b7efdc334c4a8145e1ba27e7c08}{row}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.row();\ \}}
+\DoxyCodeLine{00594\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_a3d8dbd36fba433bb8af0f8a288db87d1}{col}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter.col();\ \}}
+\DoxyCodeLine{00595\ }
+\DoxyCodeLine{00596\ \ \ \ \ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{operator}\ bool()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ m\_lhsIter;\ \}}
+\DoxyCodeLine{00597\ \ \ \ \ }
+\DoxyCodeLine{00598\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00599\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_ad46594837a15125a8aadf007db1a9ecc}{LhsIterator}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_a58002ccc817387927d787a111b54d6da}{m\_lhsIter}};}
+\DoxyCodeLine{00600\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<RhsArg>}}\ \&\mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_a9cf228fb28a2120b255d9121ac402327}{m\_rhsEval}};}
+\DoxyCodeLine{00601\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_ab5d8e3794d7a033fd2885752e84f2f50}{BinaryOp}}\&\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_a8470bd7040e38ea14b746c3868ce6258}{m\_functor}};}
+\DoxyCodeLine{00602\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_1_1InnerIterator_a770468196061d77f5a30f20469529bc4}{m\_outer}};}
+\DoxyCodeLine{00603\ \ \ \};}
+\DoxyCodeLine{00604\ \ \ }
+\DoxyCodeLine{00605\ \ \ }
+\DoxyCodeLine{00606\ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00607\ \ \ \ \ CoeffReadCost\ =\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<LhsArg>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<RhsArg>::CoeffReadCost}})\ +\ int(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}}),}
+\DoxyCodeLine{00608\ \ \ \ \ Flags\ =\ XprType::Flags}
+\DoxyCodeLine{00609\ \ \ \};}
+\DoxyCodeLine{00610\ \ \ }
+\DoxyCodeLine{00611\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_a33a395e07160ff99d2e762a6b0df0f95}{sparse\_conjunction\_evaluator}}(\textcolor{keyword}{const}\ XprType\&\ xpr)}
+\DoxyCodeLine{00612\ \ \ \ \ :\ m\_functor(xpr.functor()),}
+\DoxyCodeLine{00613\ \ \ \ \ \ \ m\_lhsImpl(xpr.lhs()),\ }
+\DoxyCodeLine{00614\ \ \ \ \ \ \ m\_rhsImpl(xpr.rhs())\ \ }
+\DoxyCodeLine{00615\ \ \ \{}
+\DoxyCodeLine{00616\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(\mbox{\hyperlink{structEigen_1_1internal_1_1functor__traits}{functor\_traits<BinaryOp>::Cost}});}
+\DoxyCodeLine{00617\ \ \ \ \ \mbox{\hyperlink{StaticAssert_8h_a90c2f6a32335ec94b7f979006034e15b}{EIGEN\_INTERNAL\_CHECK\_COST\_VALUE}}(CoeffReadCost);}
+\DoxyCodeLine{00618\ \ \ \}}
+\DoxyCodeLine{00619\ \ \ }
+\DoxyCodeLine{00620\ \ \ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_a673e48ccfe672182ee821daddea4c72b}{nonZerosEstimate}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00621\ \ \ \ \ \textcolor{keywordflow}{return}\ m\_lhsImpl.nonZerosEstimate();}
+\DoxyCodeLine{00622\ \ \ \}}
+\DoxyCodeLine{00623\ }
+\DoxyCodeLine{00624\ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00625\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_ab5d8e3794d7a033fd2885752e84f2f50}{BinaryOp}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_ac3a3f68da00f55e0ea869769e8be0283}{m\_functor}};}
+\DoxyCodeLine{00626\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<LhsArg>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_a7da2a785684d32cde5368edd998bcf92}{m\_lhsImpl}};}
+\DoxyCodeLine{00627\ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1evaluator}{evaluator<RhsArg>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1sparse__conjunction__evaluator_3_01XprType_00_01IteratorBased_00_01IndexBased_01_4_a1eff754f769386b232f927ff202cce17}{m\_rhsImpl}};}
+\DoxyCodeLine{00628\ \};}
+\DoxyCodeLine{00629\ }
+\DoxyCodeLine{00630\ \}}
+\DoxyCodeLine{00631\ }
+\DoxyCodeLine{00632\ \textcolor{comment}{/***************************************************************************}}
+\DoxyCodeLine{00633\ \textcolor{comment}{*\ Implementation\ of\ SparseMatrixBase\ and\ SparseCwise\ functions/operators}}
+\DoxyCodeLine{00634\ \textcolor{comment}{***************************************************************************/}}
+\DoxyCodeLine{00635\ }
+\DoxyCodeLine{00636\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00637\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ OtherDerived>}
+\DoxyCodeLine{00638\ Derived\&\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase_a7a420da0ec7f253b9d10efc832600633}{SparseMatrixBase<Derived>::operator+=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1EigenBase}{EigenBase<OtherDerived>}}\ \&other)}
+\DoxyCodeLine{00639\ \{}
+\DoxyCodeLine{00640\ \ \ call\_assignment(derived(),\ other.\mbox{\hyperlink{structEigen_1_1EigenBase_ab4cf3e6bb046a94a46b69b857bd3dbc9}{derived}}(),\ \mbox{\hyperlink{structEigen_1_1internal_1_1add__assign__op}{internal::add\_assign\_op<Scalar,typename\ OtherDerived::Scalar>}}());}
+\DoxyCodeLine{00641\ \ \ \textcolor{keywordflow}{return}\ derived();}
+\DoxyCodeLine{00642\ \}}
+\DoxyCodeLine{00643\ }
+\DoxyCodeLine{00644\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00645\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ OtherDerived>}
+\DoxyCodeLine{00646\ Derived\&\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase_a5fc4ccbe8c2237cc802640142ee10fbd}{SparseMatrixBase<Derived>::operator-\/=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structEigen_1_1EigenBase}{EigenBase<OtherDerived>}}\ \&other)}
+\DoxyCodeLine{00647\ \{}
+\DoxyCodeLine{00648\ \ \ call\_assignment(derived(),\ other.\mbox{\hyperlink{structEigen_1_1EigenBase_ab4cf3e6bb046a94a46b69b857bd3dbc9}{derived}}(),\ \mbox{\hyperlink{structEigen_1_1internal_1_1assign__op}{internal::assign\_op<Scalar,typename\ OtherDerived::Scalar>}}());}
+\DoxyCodeLine{00649\ \ \ \textcolor{keywordflow}{return}\ derived();}
+\DoxyCodeLine{00650\ \}}
+\DoxyCodeLine{00651\ }
+\DoxyCodeLine{00652\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00653\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ OtherDerived>}
+\DoxyCodeLine{00654\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ Derived\ \&}
+\DoxyCodeLine{00655\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase_a5fc4ccbe8c2237cc802640142ee10fbd}{SparseMatrixBase<Derived>::operator-\/=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase}{SparseMatrixBase<OtherDerived>}}\ \&other)}
+\DoxyCodeLine{00656\ \{}
+\DoxyCodeLine{00657\ \ \ \textcolor{keywordflow}{return}\ derived()\ =\ derived()\ -\/\ other.\mbox{\hyperlink{classEigen_1_1SparseMatrixBase_a120cdb461652f81d4a5dd5632809350e}{derived}}();}
+\DoxyCodeLine{00658\ \}}
+\DoxyCodeLine{00659\ }
+\DoxyCodeLine{00660\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00661\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ OtherDerived>}
+\DoxyCodeLine{00662\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ Derived\ \&}
+\DoxyCodeLine{00663\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase_a7a420da0ec7f253b9d10efc832600633}{SparseMatrixBase<Derived>::operator+=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase}{SparseMatrixBase<OtherDerived>}}\&\ other)}
+\DoxyCodeLine{00664\ \{}
+\DoxyCodeLine{00665\ \ \ \textcolor{keywordflow}{return}\ derived()\ =\ derived()\ +\ other.\mbox{\hyperlink{classEigen_1_1SparseMatrixBase_a120cdb461652f81d4a5dd5632809350e}{derived}}();}
+\DoxyCodeLine{00666\ \}}
+\DoxyCodeLine{00667\ }
+\DoxyCodeLine{00668\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00669\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ OtherDerived>}
+\DoxyCodeLine{00670\ Derived\&\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase_a7a420da0ec7f253b9d10efc832600633}{SparseMatrixBase<Derived>::operator+=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1DiagonalBase}{DiagonalBase<OtherDerived>}}\&\ other)}
+\DoxyCodeLine{00671\ \{}
+\DoxyCodeLine{00672\ \ \ call\_assignment\_no\_alias(derived(),\ other.\mbox{\hyperlink{classEigen_1_1DiagonalBase_a52a0abeaa94dc3ee2478f485de9db507}{derived}}(),\ \mbox{\hyperlink{structEigen_1_1internal_1_1add__assign__op}{internal::add\_assign\_op<Scalar,typename\ OtherDerived::Scalar>}}());}
+\DoxyCodeLine{00673\ \ \ \textcolor{keywordflow}{return}\ derived();}
+\DoxyCodeLine{00674\ \}}
+\DoxyCodeLine{00675\ }
+\DoxyCodeLine{00676\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00677\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ OtherDerived>}
+\DoxyCodeLine{00678\ Derived\&\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase_a5fc4ccbe8c2237cc802640142ee10fbd}{SparseMatrixBase<Derived>::operator-\/=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1DiagonalBase}{DiagonalBase<OtherDerived>}}\&\ other)}
+\DoxyCodeLine{00679\ \{}
+\DoxyCodeLine{00680\ \ \ call\_assignment\_no\_alias(derived(),\ other.\mbox{\hyperlink{classEigen_1_1DiagonalBase_a52a0abeaa94dc3ee2478f485de9db507}{derived}}(),\ \mbox{\hyperlink{structEigen_1_1internal_1_1sub__assign__op}{internal::sub\_assign\_op<Scalar,typename\ OtherDerived::Scalar>}}());}
+\DoxyCodeLine{00681\ \ \ \textcolor{keywordflow}{return}\ derived();}
+\DoxyCodeLine{00682\ \}}
+\DoxyCodeLine{00683\ \ \ \ \ }
+\DoxyCodeLine{00684\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00685\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ OtherDerived>}
+\DoxyCodeLine{00686\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase}{SparseMatrixBase<Derived>::template}}\ CwiseProductDenseReturnType<OtherDerived>::Type}
+\DoxyCodeLine{00687\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase_aba62fc3918849bdb8629a744a3f012b1}{SparseMatrixBase<Derived>::cwiseProduct}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1MatrixBase}{MatrixBase<OtherDerived>}}\ \&other)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00688\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00689\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseProductDenseReturnType<OtherDerived>::Type}}(derived(),\ other.derived());}
+\DoxyCodeLine{00690\ \}}
+\DoxyCodeLine{00691\ }
+\DoxyCodeLine{00692\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DenseDerived,\ \textcolor{keyword}{typename}\ SparseDerived>}
+\DoxyCodeLine{00693\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<internal::scalar\_sum\_op<typename\ DenseDerived::Scalar,typename\ SparseDerived::Scalar>}},\ \textcolor{keyword}{const}\ DenseDerived,\ \textcolor{keyword}{const}\ SparseDerived>}
+\DoxyCodeLine{00694\ \mbox{\hyperlink{namespaceEigen_a054138fa4cd47163a7d8d5972044ae09}{operator+}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1MatrixBase}{MatrixBase<DenseDerived>}}\ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase}{SparseMatrixBase<SparseDerived>}}\ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})}
+\DoxyCodeLine{00695\ \{}
+\DoxyCodeLine{00696\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<internal::scalar\_sum\_op<typename\ DenseDerived::Scalar,typename\ SparseDerived::Scalar>}},\ \textcolor{keyword}{const}\ DenseDerived,\ \textcolor{keyword}{const}\ SparseDerived>(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}}.derived(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.derived());}
+\DoxyCodeLine{00697\ \}}
+\DoxyCodeLine{00698\ }
+\DoxyCodeLine{00699\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ SparseDerived,\ \textcolor{keyword}{typename}\ DenseDerived>}
+\DoxyCodeLine{00700\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{const}\ CwiseBinaryOp<internal::scalar\_sum\_op<typename\ SparseDerived::Scalar,typename\ DenseDerived::Scalar>,\ \textcolor{keyword}{const}\ SparseDerived,\ \textcolor{keyword}{const}\ DenseDerived>}
+\DoxyCodeLine{00701\ \mbox{\hyperlink{namespaceEigen_a054138fa4cd47163a7d8d5972044ae09}{operator+}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase}{SparseMatrixBase<SparseDerived>}}\ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1MatrixBase}{MatrixBase<DenseDerived>}}\ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})}
+\DoxyCodeLine{00702\ \{}
+\DoxyCodeLine{00703\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<internal::scalar\_sum\_op<typename\ SparseDerived::Scalar,typename\ DenseDerived::Scalar>}},\ \textcolor{keyword}{const}\ SparseDerived,\ \textcolor{keyword}{const}\ DenseDerived>(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}}.derived(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.derived());}
+\DoxyCodeLine{00704\ \}}
+\DoxyCodeLine{00705\ }
+\DoxyCodeLine{00706\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ DenseDerived,\ \textcolor{keyword}{typename}\ SparseDerived>}
+\DoxyCodeLine{00707\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{const}\ CwiseBinaryOp<internal::scalar\_difference\_op<typename\ DenseDerived::Scalar,typename\ SparseDerived::Scalar>,\ \textcolor{keyword}{const}\ DenseDerived,\ \textcolor{keyword}{const}\ SparseDerived>}
+\DoxyCodeLine{00708\ \mbox{\hyperlink{CommonCwiseUnaryOps_8h_a5269321b3155ed9e3636b7862a167202}{operator-\/}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1MatrixBase}{MatrixBase<DenseDerived>}}\ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase}{SparseMatrixBase<SparseDerived>}}\ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})}
+\DoxyCodeLine{00709\ \{}
+\DoxyCodeLine{00710\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<internal::scalar\_difference\_op<typename\ DenseDerived::Scalar,typename\ SparseDerived::Scalar>}},\ \textcolor{keyword}{const}\ DenseDerived,\ \textcolor{keyword}{const}\ SparseDerived>(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}}.derived(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.derived());}
+\DoxyCodeLine{00711\ \}}
+\DoxyCodeLine{00712\ }
+\DoxyCodeLine{00713\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ SparseDerived,\ \textcolor{keyword}{typename}\ DenseDerived>}
+\DoxyCodeLine{00714\ \mbox{\hyperlink{Macros_8h_af2b60117c00a6e75812de43bfe7db3b1}{EIGEN\_STRONG\_INLINE}}\ \textcolor{keyword}{const}\ CwiseBinaryOp<internal::scalar\_difference\_op<typename\ SparseDerived::Scalar,typename\ DenseDerived::Scalar>,\ \textcolor{keyword}{const}\ SparseDerived,\ \textcolor{keyword}{const}\ DenseDerived>}
+\DoxyCodeLine{00715\ \mbox{\hyperlink{CommonCwiseUnaryOps_8h_a5269321b3155ed9e3636b7862a167202}{operator-\/}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1SparseMatrixBase}{SparseMatrixBase<SparseDerived>}}\ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}},\ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1MatrixBase}{MatrixBase<DenseDerived>}}\ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}})}
+\DoxyCodeLine{00716\ \{}
+\DoxyCodeLine{00717\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1CwiseBinaryOp}{CwiseBinaryOp<internal::scalar\_difference\_op<typename\ SparseDerived::Scalar,typename\ DenseDerived::Scalar>}},\ \textcolor{keyword}{const}\ SparseDerived,\ \textcolor{keyword}{const}\ DenseDerived>(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}}.derived(),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2layout__test_8cc_ad66453096871179e6c6effe0df4b483b}{b}}.derived());}
+\DoxyCodeLine{00718\ \}}
+\DoxyCodeLine{00719\ }
+\DoxyCodeLine{00720\ \}\ \textcolor{comment}{//\ end\ namespace\ Eigen}}
+\DoxyCodeLine{00721\ }
+\DoxyCodeLine{00722\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ EIGEN\_SPARSE\_CWISE\_BINARY\_OP\_H}}
+
+\end{DoxyCode}

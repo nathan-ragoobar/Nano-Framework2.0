@@ -1,0 +1,85 @@
+\doxysection{fdjac1.\+h}
+\hypertarget{fdjac1_8h_source}{}\label{fdjac1_8h_source}\index{eigen/unsupported/Eigen/src/NonLinearOptimization/fdjac1.h@{eigen/unsupported/Eigen/src/NonLinearOptimization/fdjac1.h}}
+\mbox{\hyperlink{fdjac1_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{\ }
+\DoxyCodeLine{00002\ }
+\DoxyCodeLine{00003\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}\ \{}
+\DoxyCodeLine{00004\ }
+\DoxyCodeLine{00005\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ FunctorType,\ \textcolor{keyword}{typename}\ Scalar>}
+\DoxyCodeLine{00006\ \mbox{\hyperlink{namespaceEigen_aa06499c94936a19673e53deb516a1b76}{DenseIndex}}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a905c2bc7dcf22a3b089d7ab903d514e6}{fdjac1}}(}
+\DoxyCodeLine{00007\ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ FunctorType\ \&Functor,}
+\DoxyCodeLine{00008\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1Matrix}{Matrix<\ Scalar,\ Dynamic,\ 1\ >}}\ \ \&x,}
+\DoxyCodeLine{00009\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1Matrix}{Matrix<\ Scalar,\ Dynamic,\ 1\ >}}\ \ \&fvec,}
+\DoxyCodeLine{00010\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1Matrix}{Matrix<\ Scalar,\ Dynamic,\ Dynamic\ >}}\ \&fjac,}
+\DoxyCodeLine{00011\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_aa06499c94936a19673e53deb516a1b76}{DenseIndex}}\ ml,\ \mbox{\hyperlink{namespaceEigen_aa06499c94936a19673e53deb516a1b76}{DenseIndex}}\ mu,}
+\DoxyCodeLine{00012\ \ \ \ \ \ \ \ \ Scalar\ epsfcn)}
+\DoxyCodeLine{00013\ \{}
+\DoxyCodeLine{00014\ \ \ \ \ \textcolor{keyword}{using\ }std::sqrt;}
+\DoxyCodeLine{00015\ \ \ \ \ \textcolor{keyword}{using\ }std::abs;}
+\DoxyCodeLine{00016\ \ \ \ \ }
+\DoxyCodeLine{00017\ \ \ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{namespaceEigen_aa06499c94936a19673e53deb516a1b76}{DenseIndex}}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}};}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \ \ \ \ \textcolor{comment}{/*\ Local\ variables\ */}}
+\DoxyCodeLine{00020\ \ \ \ \ Scalar\ h;}
+\DoxyCodeLine{00021\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ j,\ k;}
+\DoxyCodeLine{00022\ \ \ \ \ Scalar\ eps,\ temp;}
+\DoxyCodeLine{00023\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ msum;}
+\DoxyCodeLine{00024\ \ \ \ \ \textcolor{keywordtype}{int}\ iflag;}
+\DoxyCodeLine{00025\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ start,\ length;}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \ \ \ \ \textcolor{comment}{/*\ Function\ Body\ */}}
+\DoxyCodeLine{00028\ \ \ \ \ \textcolor{keyword}{const}\ Scalar\ epsmch\ =\ \mbox{\hyperlink{structEigen_1_1GenericNumTraits_a3a573c69713fbb143fb49af7db463cee}{NumTraits<Scalar>::epsilon}}();}
+\DoxyCodeLine{00029\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ x.size();}
+\DoxyCodeLine{00030\ \ \ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(fvec.size()==\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00031\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1Matrix}{Matrix<\ Scalar,\ Dynamic,\ 1\ >}}\ \ wa1(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00032\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1Matrix}{Matrix<\ Scalar,\ Dynamic,\ 1\ >}}\ \ wa2(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \ \ \ \ eps\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a656b9217a2fcb6de59dc8d1eb3079cc7}{sqrt}}((std::max)(epsfcn,epsmch));}
+\DoxyCodeLine{00035\ \ \ \ \ msum\ =\ ml\ +\ mu\ +\ 1;}
+\DoxyCodeLine{00036\ \ \ \ \ \textcolor{keywordflow}{if}\ (msum\ >=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ \{}
+\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ computation\ of\ dense\ approximate\ jacobian.\ */}}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (j\ =\ 0;\ j\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};\ ++j)\ \{}
+\DoxyCodeLine{00039\ \ \ \ \ \ \ \ \ \ \ \ \ temp\ =\ x[j];}
+\DoxyCodeLine{00040\ \ \ \ \ \ \ \ \ \ \ \ \ h\ =\ eps\ *\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(temp);}
+\DoxyCodeLine{00041\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (h\ ==\ 0.)}
+\DoxyCodeLine{00042\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ h\ =\ eps;}
+\DoxyCodeLine{00043\ \ \ \ \ \ \ \ \ \ \ \ \ x[j]\ =\ temp\ +\ h;}
+\DoxyCodeLine{00044\ \ \ \ \ \ \ \ \ \ \ \ \ iflag\ =\ Functor(x,\ wa1);}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (iflag\ <\ 0)}
+\DoxyCodeLine{00046\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ iflag;}
+\DoxyCodeLine{00047\ \ \ \ \ \ \ \ \ \ \ \ \ x[j]\ =\ temp;}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ \ \ \ \ fjac.col(j)\ =\ (wa1-\/fvec)/h;}
+\DoxyCodeLine{00049\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \ \ \ \ \}\textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \ \ \textcolor{comment}{/*\ computation\ of\ banded\ approximate\ jacobian.\ */}}
+\DoxyCodeLine{00053\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (k\ =\ 0;\ k\ <\ msum;\ ++k)\ \{}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (j\ =\ k;\ (msum<0)\ ?\ (j>\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}):\ (j<\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});\ j\ +=\ msum)\ \{}
+\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ wa2[j]\ =\ x[j];}
+\DoxyCodeLine{00056\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ h\ =\ eps\ *\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(wa2[j]);}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (h\ ==\ 0.)\ h\ =\ eps;}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ x[j]\ =\ wa2[j]\ +\ h;}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ \ \ \ \ iflag\ =\ Functor(x,\ wa1);}
+\DoxyCodeLine{00061\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (iflag\ <\ 0)}
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ iflag;}
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{for}\ (j\ =\ k;\ (msum<0)\ ?\ (j>\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}):\ (j<\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});\ j\ +=\ msum)\ \{}
+\DoxyCodeLine{00064\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ x[j]\ =\ wa2[j];}
+\DoxyCodeLine{00065\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ h\ =\ eps\ *\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(wa2[j]);}
+\DoxyCodeLine{00066\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (h\ ==\ 0.)\ h\ =\ eps;}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fjac.col(j).\mbox{\hyperlink{classEigen_1_1PlainObjectBase_ac21ad5f989f320e46958b75ac8d9a1da}{setZero}}();}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ start\ =\ std::max<Index>(0,j-\/mu);}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ length\ =\ (std::min)(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}-\/1,\ j+ml)\ -\/\ start\ +\ 1;}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ fjac.col(j).segment(start,\ length)\ =\ (\ wa1.segment(start,\ length)-\/fvec.segment(start,\ length))/h;}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00072\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00073\ \ \ \ \ \}}
+\DoxyCodeLine{00074\ \ \ \ \ \textcolor{keywordflow}{return}\ 0;}
+\DoxyCodeLine{00075\ \}}
+\DoxyCodeLine{00076\ }
+\DoxyCodeLine{00077\ \}\ \textcolor{comment}{//\ end\ namespace\ internal}}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \}\ \textcolor{comment}{//\ end\ namespace\ Eigen}}
+
+\end{DoxyCode}

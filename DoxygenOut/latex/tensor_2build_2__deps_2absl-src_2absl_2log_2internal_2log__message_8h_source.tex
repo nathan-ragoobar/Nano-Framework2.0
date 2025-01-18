@@ -1,0 +1,418 @@
+\doxysection{log\+\_\+message.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2log_2internal_2log__message_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2log_2internal_2log__message_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/log/internal/log\_message.h@{tensor/build/\_deps/absl-\/src/absl/log/internal/log\_message.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2log_2internal_2log__message_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2022\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ log/internal/log\_message.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ file\ declares\ \`{}class\ absl::log\_internal::LogMessage`.\ This\ class\ more\ or}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ less\ represents\ a\ particular\ log\ message.\ LOG/CHECK\ macros\ create\ a}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ temporary\ instance\ of\ \`{}LogMessage`\ and\ then\ stream\ values\ to\ it.\ \ At\ the\ end}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ of\ the\ LOG/CHECK\ statement,\ LogMessage\ instance\ goes\ out\ of\ scope\ and}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \`{}\string~LogMessage`\ directs\ the\ message\ to\ the\ registered\ log\ sinks.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ Heap-\/allocation\ of\ \`{}LogMessage`\ is\ unsupported.\ \ Construction\ outside\ of\ a}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ \`{}LOG`\ macro\ is\ unsupported.}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#ifndef\ ABSL\_LOG\_INTERNAL\_LOG\_MESSAGE\_H\_}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_INTERNAL\_LOG\_MESSAGE\_H\_}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <ios>}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <ostream>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <streambuf>}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/errno\_saver.h"{}}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ "{}absl/base/log\_severity.h"{}}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ "{}absl/base/nullability.h"{}}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ "{}absl/log/internal/nullguard.h"{}}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ "{}absl/log/log\_entry.h"{}}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#include\ "{}absl/log/log\_sink.h"{}}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#include\ "{}absl/strings/has\_absl\_stringify.h"{}}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#include\ "{}absl/strings/string\_view.h"{}}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#include\ "{}absl/time/time.h"{}}}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00051\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00052\ \textcolor{keyword}{namespace\ }log\_internal\ \{}
+\DoxyCodeLine{00053\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_1_1log__internal_a7a2272759c909a0ac96cb46113dc86aa}{kLogMessageBufferSize}}\ =\ 15000;}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\ \{}
+\DoxyCodeLine{00056\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00057\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1log__internal_1_1LogMessage_1_1InfoTag}{InfoTag}}\ \{\};}
+\DoxyCodeLine{00058\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1log__internal_1_1LogMessage_1_1WarningTag}{WarningTag}}\ \{\};}
+\DoxyCodeLine{00059\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1log__internal_1_1LogMessage_1_1ErrorTag}{ErrorTag}}\ \{\};}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00061\ \ \ \textcolor{comment}{//\ Used\ for\ \`{}LOG`.}}
+\DoxyCodeLine{00062\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a7e05f7d383103591a082e85784bf2ccc}{LogMessage}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,\ \textcolor{keywordtype}{int}\ line,}
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23}{absl::LogSeverity}}\ severity)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00064\ \ \ \textcolor{comment}{//\ These\ constructors\ are\ slightly\ smaller/faster\ to\ call;\ the\ severity\ is}}
+\DoxyCodeLine{00065\ \ \ \textcolor{comment}{//\ curried\ into\ the\ function\ pointer.}}
+\DoxyCodeLine{00066\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a7e05f7d383103591a082e85784bf2ccc}{LogMessage}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,\ \textcolor{keywordtype}{int}\ line,}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1log__internal_1_1LogMessage_1_1InfoTag}{InfoTag}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}};}
+\DoxyCodeLine{00068\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a7e05f7d383103591a082e85784bf2ccc}{LogMessage}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,\ \textcolor{keywordtype}{int}\ line,}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1log__internal_1_1LogMessage_1_1WarningTag}{WarningTag}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}};}
+\DoxyCodeLine{00070\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a7e05f7d383103591a082e85784bf2ccc}{LogMessage}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,\ \textcolor{keywordtype}{int}\ line,}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1log__internal_1_1LogMessage_1_1ErrorTag}{ErrorTag}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}};}
+\DoxyCodeLine{00072\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a957e9c8db7c6d9145050cd7a3935bf09}{LogMessage}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00073\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_ad5bd028c7f05eac20a0c45836b1918ea}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00074\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a1725ab2e069d61db8e10881a47622164}{\string~LogMessage}}()\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ Overrides\ the\ location\ inferred\ from\ the\ callsite.\ \ The\ string\ pointed\ to}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ by\ \`{}file`\ must\ be\ valid\ until\ the\ end\ of\ the\ statement.}}
+\DoxyCodeLine{00078\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a85931da6f52dfd7b50a103e326d1eeb5}{AtLocation}}(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ file,\ \textcolor{keywordtype}{int}\ line);}
+\DoxyCodeLine{00079\ \ \ \textcolor{comment}{//\ Omits\ the\ prefix\ from\ this\ line.\ \ The\ prefix\ includes\ metadata\ about\ the}}
+\DoxyCodeLine{00080\ \ \ \textcolor{comment}{//\ logged\ data\ such\ as\ source\ code\ location\ and\ timestamp.}}
+\DoxyCodeLine{00081\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a8539fb7dbc5aabb27054ce54154dc4b3}{NoPrefix}}();}
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{//\ Sets\ the\ verbosity\ field\ of\ the\ logged\ message\ as\ if\ it\ was\ logged\ by}}
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{//\ \`{}VLOG(verbose\_level)`.\ \ Unlike\ \`{}VLOG`,\ this\ method\ does\ not\ affect}}
+\DoxyCodeLine{00084\ \ \ \textcolor{comment}{//\ evaluation\ of\ the\ statement\ when\ the\ specified\ \`{}verbose\_level`\ has\ been}}
+\DoxyCodeLine{00085\ \ \ \textcolor{comment}{//\ disabled.\ \ The\ only\ effect\ is\ on\ \`{}absl::LogSink`\ implementations\ which}}
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//\ make\ use\ of\ the\ \`{}absl::LogSink::verbosity()`\ value.\ \ The\ value}}
+\DoxyCodeLine{00087\ \ \ \textcolor{comment}{//\ \`{}absl::LogEntry::kNoVerbosityLevel`\ can\ be\ specified\ to\ mark\ the\ message}}
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ not\ verbose.}}
+\DoxyCodeLine{00089\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a92b023288334a3889c5ca5a697bc555c}{WithVerbosity}}(\textcolor{keywordtype}{int}\ verbose\_level);}
+\DoxyCodeLine{00090\ \ \ \textcolor{comment}{//\ Uses\ the\ specified\ timestamp\ instead\ of\ one\ collected\ in\ the\ constructor.}}
+\DoxyCodeLine{00091\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a59a079a647630a1d30ed751f8867f1f8}{WithTimestamp}}(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1Time}{Time}}\ timestamp);}
+\DoxyCodeLine{00092\ \ \ \textcolor{comment}{//\ Uses\ the\ specified\ thread\ ID\ instead\ of\ one\ collected\ in\ the\ constructor.}}
+\DoxyCodeLine{00093\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a25ef6ce23232e7704a89939efb07135f}{WithThreadID}}(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1LogEntry}{LogEntry}}::tid\_t\ tid);}
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//\ Copies\ all\ metadata\ (but\ no\ data)\ from\ the\ specified\ \`{}absl::LogEntry`.}}
+\DoxyCodeLine{00095\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a2c9e689fc9f5647d7a83bf58222ebdf8}{WithMetadataFrom}}(const\ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1LogEntry}{LogEntry}}\&\ entry);}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//\ Appends\ to\ the\ logged\ message\ a\ colon,\ a\ space,\ a\ textual\ description\ of}}
+\DoxyCodeLine{00097\ \ \ \textcolor{comment}{//\ the\ current\ value\ of\ \`{}errno`\ (as\ by\ strerror(3)),\ and\ the\ numerical\ value}}
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ of\ \`{}errno`.}}
+\DoxyCodeLine{00099\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_aaaaf601b6cc864ae412a7f2e87638d20}{WithPerror}}();}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ Sends\ this\ message\ to\ \`{}*sink`\ in\ addition\ to\ whatever\ other\ sinks\ it\ would}}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//\ otherwise\ have\ been\ sent\ to.}}
+\DoxyCodeLine{00102\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a2c510d03bc81990c230a5194d16fac9e}{ToSinkAlso}}(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{Nonnull}}<\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1LogSink}{LogSink}}*>\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ Sends\ this\ message\ to\ \`{}*sink`\ and\ no\ others.}}
+\DoxyCodeLine{00104\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_abec70c90e5fdb456ab47e28933d2ea67}{ToSinkOnly}}(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{Nonnull}}<\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1LogSink}{LogSink}}*>\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}});}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//\ Don't\ call\ this\ method\ from\ outside\ this\ library.}}
+\DoxyCodeLine{00107\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a2596f331051c69c264acb0dfac82ee91}{InternalStream}}()\ \{\ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};\ \}}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ By-\/value\ overloads\ for\ small,\ common\ types\ let\ us\ overlook\ common\ failures}}
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//\ to\ define\ globals\ and\ static\ data\ members\ (i.e.\ in\ a\ .cc\ file).}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ NOLINTBEGIN(runtime/int)}}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//\ NOLINTBEGIN(google-\/runtime-\/int)}}
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//\ clang-\/format\ off:\ \ The\ CUDA\ toolchain\ cannot\ handle\ these\ <<<'s}}
+\DoxyCodeLine{00114\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{operator<<}}(\textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{\ \textcolor{keywordflow}{return}\ operator<<\ <char>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});\ \}}
+\DoxyCodeLine{00115\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a0055eb31fe287817d1072ecfcb4e2f83}{operator<<}}(\textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{\ \textcolor{keywordflow}{return}\ operator<<\ <signed\ char>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});\ \}}
+\DoxyCodeLine{00116\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_ac20cf9a8ff1cd11ef3c22d77a9f00967}{operator<<}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <unsigned\ char>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00118\ \ \ \}}
+\DoxyCodeLine{00119\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a08a6b3134dd78be216bc9db8117566ff}{operator<<}}(\textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <signed\ short>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00121\ \ \ \}}
+\DoxyCodeLine{00122\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_ad2ab8711e84ad7255ff80a5915d56bad}{operator<<}}(\textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{\ \textcolor{keywordflow}{return}\ operator<<\ <signed\ int>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});\ \}}
+\DoxyCodeLine{00123\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_aef605e2e2c18188da90ddb14dcaa1df4}{operator<<}}(\textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <signed\ long>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00125\ \ \ \}}
+\DoxyCodeLine{00126\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a587207f68a4f880ae7a2fa920fdd3e5e}{operator<<}}(\textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00127\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <signed\ long\ long>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00128\ \ \ \}}
+\DoxyCodeLine{00129\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a123f6a4df9db9f63b37cf51a26e79961}{operator<<}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00130\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <unsigned\ short>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00131\ \ \ \}}
+\DoxyCodeLine{00132\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a4a9524f591fdbb707459732f9b9de7a2}{operator<<}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <unsigned\ int>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00134\ \ \ \}}
+\DoxyCodeLine{00135\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_aaaa1a40b32e841990370f12418108845}{operator<<}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <unsigned\ long>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00137\ \ \ \}}
+\DoxyCodeLine{00138\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_aadd7263ca3f3f578d15ba8fba9d388fd}{operator<<}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <unsigned\ long\ long>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00140\ \ \ \}}
+\DoxyCodeLine{00141\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a95b871eeae336706f4a7fbd7f8676320}{operator<<}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<void*>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00142\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <void*>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00143\ \ \ \}}
+\DoxyCodeLine{00144\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a87da48bd2e0c1bc7f2a17b6567db5173}{operator<<}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ void*>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordflow}{return}\ operator<<\ <const\ void*>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00146\ \ \ \}}
+\DoxyCodeLine{00147\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a2f0045c086a79fc840cf2d439dc73f2b}{operator<<}}(\textcolor{keywordtype}{float}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{\ \textcolor{keywordflow}{return}\ operator<<\ <float>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});\ \}}
+\DoxyCodeLine{00148\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_af075d71af367c3f2f0be0c71e4bbfe64}{operator<<}}(\textcolor{keywordtype}{double}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{\ \textcolor{keywordflow}{return}\ operator<<\ <double>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});\ \}}
+\DoxyCodeLine{00149\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a56ae3ea45cc61a4bb402769e72fcfaad}{operator<<}}(\textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{\ \textcolor{keywordflow}{return}\ operator<<\ <bool>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});\ \}}
+\DoxyCodeLine{00150\ \ \ \textcolor{comment}{//\ clang-\/format\ on}}
+\DoxyCodeLine{00151\ \ \ \textcolor{comment}{//\ NOLINTEND(google-\/runtime-\/int)}}
+\DoxyCodeLine{00152\ \ \ \textcolor{comment}{//\ NOLINTEND(runtime/int)}}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \ \ \textcolor{comment}{//\ These\ overloads\ are\ more\ efficient\ since\ no\ \`{}ostream`\ is\ involved.}}
+\DoxyCodeLine{00155\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_ab00bb0f3c93636032837a8fc75c8ba6e}{operator<<}}(\textcolor{keyword}{const}\ std::string\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00156\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a08a37ec4e79bb2d831044476c1d4fad2}{operator<<}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \ \ \textcolor{comment}{//\ Handle\ stream\ manipulators\ e.g.\ std::endl.}}
+\DoxyCodeLine{00159\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_aee67f4bee386f18fa6f665a4642fafbd}{operator<<}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull}}<std::ostream\&\ (*)(std::ostream\ \&\ os)>\ m);}
+\DoxyCodeLine{00160\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a33f5eeb7458ac4b268afc97333ae1119}{operator<<}}(}
+\DoxyCodeLine{00161\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull}}<std::ios\_base\&\ (*)(std::ios\_base\ \&\ os)>\ m);}
+\DoxyCodeLine{00162\ }
+\DoxyCodeLine{00163\ \ \ \textcolor{comment}{//\ Literal\ strings.\ \ This\ allows\ us\ to\ record\ C\ string\ literals\ as\ literals\ in}}
+\DoxyCodeLine{00164\ \ \ \textcolor{comment}{//\ the\ logging.proto.Value.}}
+\DoxyCodeLine{00165\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00166\ \ \ \textcolor{comment}{//\ Allow\ this\ overload\ to\ be\ inlined\ to\ prevent\ generating\ instantiations\ of}}
+\DoxyCodeLine{00167\ \ \ \textcolor{comment}{//\ this\ template\ for\ every\ value\ of\ \`{}SIZE`\ encountered\ in\ each\ source\ code}}
+\DoxyCodeLine{00168\ \ \ \textcolor{comment}{//\ file.\ That\ significantly\ increases\ linker\ input\ sizes.\ Inlining\ is\ cheap}}
+\DoxyCodeLine{00169\ \ \ \textcolor{comment}{//\ because\ the\ argument\ to\ this\ overload\ is\ almost\ always\ a\ string\ literal\ so}}
+\DoxyCodeLine{00170\ \ \ \textcolor{comment}{//\ the\ call\ to\ \`{}strlen`\ can\ be\ replaced\ at\ compile\ time.\ The\ overload\ for}}
+\DoxyCodeLine{00171\ \ \ \textcolor{comment}{//\ \`{}char[]`\ below\ should\ not\ be\ inlined.\ The\ compiler\ typically\ does\ not\ have}}
+\DoxyCodeLine{00172\ \ \ \textcolor{comment}{//\ the\ string\ at\ compile\ time\ and\ cannot\ replace\ the\ call\ to\ \`{}strlen`\ so}}
+\DoxyCodeLine{00173\ \ \ \textcolor{comment}{//\ inlining\ it\ increases\ the\ binary\ size.\ See\ the\ discussion\ on}}
+\DoxyCodeLine{00174\ \ \ \textcolor{comment}{//\ cl/107527369.}}
+\DoxyCodeLine{00175\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ SIZE>}
+\DoxyCodeLine{00176\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_ab665bf713136cba854962e7cdcf7a08b}{operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ (\&\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}})[SIZE]);}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \ \ \textcolor{comment}{//\ This\ prevents\ non-\/const\ \`{}char[]`\ arrays\ from\ looking\ like\ literals.}}
+\DoxyCodeLine{00179\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ SIZE>}
+\DoxyCodeLine{00180\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_af057bfd2bc9adf18d7002635a1a1d799}{operator<<}}(\textcolor{keywordtype}{char}\ (\&\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}})[SIZE])\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}};}
+\DoxyCodeLine{00181\ }
+\DoxyCodeLine{00182\ \ \ \textcolor{comment}{//\ Types\ that\ support\ \`{}AbslStringify()`\ are\ serialized\ that\ way.}}
+\DoxyCodeLine{00183\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<absl::HasAbslStringify<T>::value,}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}>::type\ =\ 0>}
+\DoxyCodeLine{00186\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a0597f822af96da820d8254ebd2e2d01d}{operator<<}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}};}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ \textcolor{comment}{//\ Types\ that\ don't\ support\ \`{}AbslStringify()`\ but\ do\ support\ streaming\ into\ a}}
+\DoxyCodeLine{00189\ \ \ \textcolor{comment}{//\ \`{}std::ostream\&`\ are\ serialized\ that\ way.}}
+\DoxyCodeLine{00190\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<!absl::HasAbslStringify<T>::value,}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}>::type\ =\ 0>}
+\DoxyCodeLine{00193\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a0597f822af96da820d8254ebd2e2d01d}{operator<<}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}};}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \ \ \textcolor{comment}{//\ Note:\ We\ explicitly\ do\ not\ support\ \`{}operator<<`\ for\ non-\/const\ references}}
+\DoxyCodeLine{00196\ \ \ \textcolor{comment}{//\ because\ it\ breaks\ logging\ of\ non-\/integer\ bitfield\ types\ (i.e.,\ enums).}}
+\DoxyCodeLine{00197\ }
+\DoxyCodeLine{00198\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00199\ \ \ \textcolor{comment}{//\ Call\ \`{}abort()`\ or\ similar\ to\ perform\ \`{}LOG(FATAL)`\ crash.\ \ It\ is\ assumed}}
+\DoxyCodeLine{00200\ \ \ \textcolor{comment}{//\ that\ the\ caller\ has\ already\ generated\ and\ written\ the\ trace\ as\ appropriate.}}
+\DoxyCodeLine{00201\ \ \ [[noreturn]]\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a54b636dc74184bdc7cefb096c8763182}{FailWithoutStackTrace}}();}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \ \ \textcolor{comment}{//\ Similar\ to\ \`{}FailWithoutStackTrace()`,\ but\ without\ \`{}abort()`.\ \ Terminates}}
+\DoxyCodeLine{00204\ \ \ \textcolor{comment}{//\ the\ process\ with\ an\ error\ exit\ code.}}
+\DoxyCodeLine{00205\ \ \ [[noreturn]]\ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a31334a5fce32bd6a7cacf25767ab8108}{FailQuietly}}();}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \ \ \textcolor{comment}{//\ Dispatches\ the\ completed\ \`{}absl::LogEntry`\ to\ applicable\ \`{}absl::LogSink`s.}}
+\DoxyCodeLine{00208\ \ \ \textcolor{comment}{//\ This\ might\ as\ well\ be\ inlined\ into\ \`{}\string~LogMessage`\ except\ that}}
+\DoxyCodeLine{00209\ \ \ \textcolor{comment}{//\ \`{}\string~LogMessageFatal`\ needs\ to\ call\ it\ early.}}
+\DoxyCodeLine{00210\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a60090e000904e3c6f13aa9a475fbfc2c}{Flush}}();}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \ \ \textcolor{comment}{//\ After\ this\ is\ called,\ failures\ are\ done\ as\ quiet\ as\ possible\ for\ this\ log}}
+\DoxyCodeLine{00213\ \ \ \textcolor{comment}{//\ message.}}
+\DoxyCodeLine{00214\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_aba3c8d4eb08c255bb12c952ddf197dfc}{SetFailQuietly}}();}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00217\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1log__internal_1_1LogMessage_1_1LogMessageData}{LogMessageData}};\ \ \textcolor{comment}{//\ Opaque\ type\ containing\ message\ state}}
+\DoxyCodeLine{00218\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1AsLiteralImpl}{AsLiteralImpl}};}
+\DoxyCodeLine{00219\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1StringifySink}{StringifySink}};}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00221\ \ \ \textcolor{comment}{//\ This\ streambuf\ writes\ directly\ into\ the\ structured\ logging\ buffer\ so\ that}}
+\DoxyCodeLine{00222\ \ \ \textcolor{comment}{//\ arbitrary\ types\ can\ be\ encoded\ as\ string\ data\ (using}}
+\DoxyCodeLine{00223\ \ \ \textcolor{comment}{//\ \`{}operator<<(std::ostream\ \&,\ ...)`\ without\ any\ extra\ allocation\ or\ copying.}}
+\DoxyCodeLine{00224\ \ \ \textcolor{comment}{//\ Space\ is\ reserved\ before\ the\ data\ to\ store\ the\ length\ field,\ which\ is}}
+\DoxyCodeLine{00225\ \ \ \textcolor{comment}{//\ filled\ in\ by\ \`{}\string~OstreamView`.}}
+\DoxyCodeLine{00226\ \ \ \textcolor{keyword}{class\ }OstreamView\ final\ :\ \textcolor{keyword}{public}\ std::streambuf\ \{}
+\DoxyCodeLine{00227\ \ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00228\ \ \ \ \ \textcolor{keyword}{explicit}\ OstreamView(\mbox{\hyperlink{structabsl_1_1log__internal_1_1LogMessage_1_1LogMessageData}{LogMessageData}}\&\ message\_data);}
+\DoxyCodeLine{00229\ \ \ \ \ \string~OstreamView()\ \textcolor{keyword}{override};}
+\DoxyCodeLine{00230\ \ \ \ \ OstreamView(\textcolor{keyword}{const}\ OstreamView\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00231\ \ \ \ \ OstreamView\&\ operator=(\textcolor{keyword}{const}\ OstreamView\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00232\ \ \ \ \ std::ostream\&\ stream();}
+\DoxyCodeLine{00233\ }
+\DoxyCodeLine{00234\ \ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00235\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1log__internal_1_1LogMessage_1_1LogMessageData}{LogMessageData}}\&\ data\_;}
+\DoxyCodeLine{00236\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<char>}}\ encoded\_remaining\_copy\_;}
+\DoxyCodeLine{00237\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<char>}}\ message\_start\_;}
+\DoxyCodeLine{00238\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1Span}{absl::Span<char>}}\ string\_start\_;}
+\DoxyCodeLine{00239\ \ \ \};}
+\DoxyCodeLine{00240\ }
+\DoxyCodeLine{00241\ \ \ \textcolor{keyword}{enum\ class}\ StringType\ \{}
+\DoxyCodeLine{00242\ \ \ \ \ kLiteral,}
+\DoxyCodeLine{00243\ \ \ \ \ kNotLiteral,}
+\DoxyCodeLine{00244\ \ \ \};}
+\DoxyCodeLine{00245\ \ \ \textcolor{keyword}{template}\ <StringType\ str\_type>}
+\DoxyCodeLine{00246\ \ \ \textcolor{keywordtype}{void}\ CopyToEncodedBuffer(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ str)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}};}
+\DoxyCodeLine{00247\ \ \ \textcolor{keyword}{template}\ <StringType\ str\_type>}
+\DoxyCodeLine{00248\ \ \ \textcolor{keywordtype}{void}\ CopyToEncodedBuffer(\textcolor{keywordtype}{char}\ ch,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a86cf672daa4e0ad11ad10efc894d19c8}{num}})\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}};}
+\DoxyCodeLine{00249\ }
+\DoxyCodeLine{00250\ \ \ \textcolor{comment}{//\ Returns\ \`{}true`\ if\ the\ message\ is\ fatal\ or\ enabled\ debug-\/fatal.}}
+\DoxyCodeLine{00251\ \ \ \textcolor{keywordtype}{bool}\ IsFatal()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00252\ }
+\DoxyCodeLine{00253\ \ \ \textcolor{comment}{//\ Records\ some\ tombstone-\/type\ data\ in\ anticipation\ of\ \`{}Die`.}}
+\DoxyCodeLine{00254\ \ \ \textcolor{keywordtype}{void}\ PrepareToDie();}
+\DoxyCodeLine{00255\ \ \ \textcolor{keywordtype}{void}\ Die();}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ \ \ \textcolor{keywordtype}{void}\ SendToLog();}
+\DoxyCodeLine{00258\ }
+\DoxyCodeLine{00259\ \ \ \textcolor{comment}{//\ Checks\ \`{}FLAGS\_log\_backtrace\_at`\ and\ appends\ a\ backtrace\ if\ appropriate.}}
+\DoxyCodeLine{00260\ \ \ \textcolor{keywordtype}{void}\ LogBacktraceIfNeeded();}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \ \ \textcolor{comment}{//\ This\ should\ be\ the\ first\ data\ member\ so\ that\ its\ initializer\ captures\ errno}}
+\DoxyCodeLine{00263\ \ \ \textcolor{comment}{//\ before\ any\ other\ initializers\ alter\ it\ (e.g.\ with\ calls\ to\ new)\ and\ so\ that}}
+\DoxyCodeLine{00264\ \ \ \textcolor{comment}{//\ no\ other\ destructors\ run\ afterward\ an\ alter\ it\ (e.g.\ with\ calls\ to\ delete).}}
+\DoxyCodeLine{00265\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1ErrnoSaver}{absl::base\_internal::ErrnoSaver}}\ errno\_saver\_;}
+\DoxyCodeLine{00266\ }
+\DoxyCodeLine{00267\ \ \ \textcolor{comment}{//\ We\ keep\ the\ data\ in\ a\ separate\ struct\ so\ that\ each\ instance\ of\ \`{}LogMessage`}}
+\DoxyCodeLine{00268\ \ \ \textcolor{comment}{//\ uses\ less\ stack\ space.}}
+\DoxyCodeLine{00269\ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::unique\_ptr<LogMessageData>}}>\ data\_;}
+\DoxyCodeLine{00270\ \};}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00272\ \textcolor{comment}{//\ Helper\ class\ so\ that\ \`{}AbslStringify()`\ can\ modify\ the\ LogMessage.}}
+\DoxyCodeLine{00273\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1StringifySink}{StringifySink}}\ final\ \{}
+\DoxyCodeLine{00274\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00275\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1StringifySink_ac6f9829fa4f1e6ebffc12987caab3855}{StringifySink}}(\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ message)\ :\ message\_(message)\ \{\}}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00277\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1StringifySink_a6368adce8a32b8f59fe1340f25fcc11a}{Append}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}},\ \textcolor{keywordtype}{char}\ ch)\ \{}
+\DoxyCodeLine{00278\ \ \ \ \ message\_.CopyToEncodedBuffer<LogMessage::StringType::kNotLiteral>(ch,}
+\DoxyCodeLine{00279\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}});}
+\DoxyCodeLine{00280\ \ \ \}}
+\DoxyCodeLine{00281\ }
+\DoxyCodeLine{00282\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1StringifySink_a3e00b52d7034a8b1912b24947993e9db}{Append}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00283\ \ \ \ \ message\_.CopyToEncodedBuffer<LogMessage::StringType::kNotLiteral>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00284\ \ \ \}}
+\DoxyCodeLine{00285\ }
+\DoxyCodeLine{00286\ \ \ \textcolor{comment}{//\ For\ types\ that\ implement\ \`{}AbslStringify`\ using\ \`{}absl::Format()`.}}
+\DoxyCodeLine{00287\ \ \ \textcolor{keyword}{friend}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1StringifySink_afa6fe022b6a376ba3a12b282a2106bf6}{AbslFormatFlush}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<StringifySink*>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}},}
+\DoxyCodeLine{00288\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00289\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}-\/>Append(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00290\ \ \ \}}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00293\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\&\ message\_;}
+\DoxyCodeLine{00294\ \};}
+\DoxyCodeLine{00295\ }
+\DoxyCodeLine{00296\ \textcolor{comment}{//\ Note:\ the\ following\ is\ declared\ \`{}ABSL\_ATTRIBUTE\_NOINLINE`}}
+\DoxyCodeLine{00297\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00298\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<absl::HasAbslStringify<T>::value,\ \textcolor{keywordtype}{int}>::type>}
+\DoxyCodeLine{00299\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00300\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_a55a834f18ad7b15ba0743be130bc23c1}{StringifySink}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}}(*\textcolor{keyword}{this});}
+\DoxyCodeLine{00301\ \ \ \textcolor{comment}{//\ Replace\ with\ public\ API.}}
+\DoxyCodeLine{00302\ \ \ \mbox{\hyperlink{namespaceabsl_a7e29fe892ee850c37bf78f6f02c66170}{AbslStringify}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_ace76487610cd295b9aca0218b999140b}{sink}},\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00303\ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00304\ \}}
+\DoxyCodeLine{00305\ }
+\DoxyCodeLine{00306\ \textcolor{comment}{//\ Note:\ the\ following\ is\ declared\ \`{}ABSL\_ATTRIBUTE\_NOINLINE`}}
+\DoxyCodeLine{00307\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00308\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::enable\_if<!absl::HasAbslStringify<T>::value,\ \textcolor{keywordtype}{int}>::type>}
+\DoxyCodeLine{00309\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}})\ \{}
+\DoxyCodeLine{00310\ \ \ OstreamView\ view(*data\_);}
+\DoxyCodeLine{00311\ \ \ view.stream()\ <<\ log\_internal::NullGuard<T>().Guard(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00312\ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00313\ \}}
+\DoxyCodeLine{00314\ }
+\DoxyCodeLine{00315\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ SIZE>}
+\DoxyCodeLine{00316\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\ (\&\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}})[SIZE])\ \{}
+\DoxyCodeLine{00317\ \ \ CopyToEncodedBuffer<StringType::kLiteral>(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}});}
+\DoxyCodeLine{00318\ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00319\ \}}
+\DoxyCodeLine{00320\ }
+\DoxyCodeLine{00321\ \textcolor{comment}{//\ Note:\ the\ following\ is\ declared\ \`{}ABSL\_ATTRIBUTE\_NOINLINE`}}
+\DoxyCodeLine{00322\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{int}\ SIZE>}
+\DoxyCodeLine{00323\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keywordtype}{char}\ (\&\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}})[SIZE])\ \{}
+\DoxyCodeLine{00324\ \ \ CopyToEncodedBuffer<StringType::kNotLiteral>(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}});}
+\DoxyCodeLine{00325\ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00326\ \}}
+\DoxyCodeLine{00327\ \textcolor{comment}{//\ We\ instantiate\ these\ specializations\ in\ the\ library's\ TU\ to\ save\ space\ in}}
+\DoxyCodeLine{00328\ \textcolor{comment}{//\ other\ TUs.\ \ Since\ the\ template\ is\ marked\ \`{}ABSL\_ATTRIBUTE\_NOINLINE`\ we\ will\ be}}
+\DoxyCodeLine{00329\ \textcolor{comment}{//\ emitting\ a\ function\ call\ either\ way.}}
+\DoxyCodeLine{00330\ \textcolor{comment}{//\ NOLINTBEGIN(runtime/int)}}
+\DoxyCodeLine{00331\ \textcolor{comment}{//\ NOLINTBEGIN(google-\/runtime-\/int)}}
+\DoxyCodeLine{00332\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00333\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{signed}\ \textcolor{keywordtype}{char}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00334\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{char}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00335\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{short}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00336\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{short}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00337\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{int}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00338\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00339\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{long}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00340\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00341\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00342\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\ \textcolor{keywordtype}{long}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00343\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(}
+\DoxyCodeLine{00344\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<void*>}}\ \textcolor{keyword}{const}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00345\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(}
+\DoxyCodeLine{00346\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ void*>}}\ \textcolor{keyword}{const}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00347\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00348\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00349\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ LogMessage\&\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage_afaacc79c11e89b25c37b411a857269db}{LogMessage::operator<<}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00350\ \textcolor{comment}{//\ NOLINTEND(google-\/runtime-\/int)}}
+\DoxyCodeLine{00351\ \textcolor{comment}{//\ NOLINTEND(runtime/int)}}
+\DoxyCodeLine{00352\ }
+\DoxyCodeLine{00353\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{void}\ LogMessage::CopyToEncodedBuffer<}
+\DoxyCodeLine{00354\ \ \ \ \ LogMessage::StringType::kLiteral>(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{namespacefineweb_a641a62d871754cc0f0114a0f593a4067}{str}});}
+\DoxyCodeLine{00355\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{void}\ LogMessage::CopyToEncodedBuffer<}
+\DoxyCodeLine{00356\ \ \ \ \ LogMessage::StringType::kNotLiteral>(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{namespacefineweb_a641a62d871754cc0f0114a0f593a4067}{str}});}
+\DoxyCodeLine{00357\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{void}}
+\DoxyCodeLine{00358\ LogMessage::CopyToEncodedBuffer<LogMessage::StringType::kLiteral>(\textcolor{keywordtype}{char}\ ch,}
+\DoxyCodeLine{00359\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a86cf672daa4e0ad11ad10efc894d19c8}{num}});}
+\DoxyCodeLine{00360\ \textcolor{keyword}{extern}\ \textcolor{keyword}{template}\ \textcolor{keywordtype}{void}\ LogMessage::CopyToEncodedBuffer<}
+\DoxyCodeLine{00361\ \ \ \ \ LogMessage::StringType::kNotLiteral>(\textcolor{keywordtype}{char}\ ch,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a86cf672daa4e0ad11ad10efc894d19c8}{num}});}
+\DoxyCodeLine{00362\ }
+\DoxyCodeLine{00363\ \textcolor{comment}{//\ \`{}LogMessageFatal`\ ensures\ the\ process\ will\ exit\ in\ failure\ after\ logging\ this}}
+\DoxyCodeLine{00364\ \textcolor{comment}{//\ message.}}
+\DoxyCodeLine{00365\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageFatal}{LogMessageFatal}}\ final\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\ \{}
+\DoxyCodeLine{00366\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00367\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageFatal_a270b7a05191e7d4c5d93186b244d28c4}{LogMessageFatal}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,}
+\DoxyCodeLine{00368\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ line)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00369\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageFatal_a270b7a05191e7d4c5d93186b244d28c4}{LogMessageFatal}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,\ \textcolor{keywordtype}{int}\ line,}
+\DoxyCodeLine{00370\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ failure\_msg)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00371\ \ \ [[noreturn]]\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageFatal_a4efb52606b68a949f4dd241ad1e9df1f}{\string~LogMessageFatal}}();}
+\DoxyCodeLine{00372\ \};}
+\DoxyCodeLine{00373\ }
+\DoxyCodeLine{00374\ \textcolor{comment}{//\ \`{}LogMessageDebugFatal`\ ensures\ the\ process\ will\ exit\ in\ failure\ after\ logging}}
+\DoxyCodeLine{00375\ \textcolor{comment}{//\ this\ message.\ It\ matches\ LogMessageFatal\ but\ is\ not\ [[noreturn]]\ as\ it's\ used}}
+\DoxyCodeLine{00376\ \textcolor{comment}{//\ for\ DLOG(FATAL)\ variants.}}
+\DoxyCodeLine{00377\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageDebugFatal}{LogMessageDebugFatal}}\ final\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\ \{}
+\DoxyCodeLine{00378\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00379\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageDebugFatal_a6c31735795c3ed459c77189f4b97dc07}{LogMessageDebugFatal}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,}
+\DoxyCodeLine{00380\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ line)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00381\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageDebugFatal_afa39a7a5b7204bd31929f3a9ed8bad02}{\string~LogMessageDebugFatal}}();}
+\DoxyCodeLine{00382\ \};}
+\DoxyCodeLine{00383\ }
+\DoxyCodeLine{00384\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageQuietlyDebugFatal}{LogMessageQuietlyDebugFatal}}\ final\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\ \{}
+\DoxyCodeLine{00385\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00386\ \ \ \textcolor{comment}{//\ DLOG(QFATAL)\ calls\ this\ instead\ of\ LogMessageQuietlyFatal\ to\ make\ sure\ the}}
+\DoxyCodeLine{00387\ \ \ \textcolor{comment}{//\ destructor\ is\ not\ [[noreturn]]\ even\ if\ this\ is\ always\ FATAL\ as\ this\ is\ only}}
+\DoxyCodeLine{00388\ \ \ \textcolor{comment}{//\ invoked\ when\ DLOG()\ is\ enabled.}}
+\DoxyCodeLine{00389\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageQuietlyDebugFatal_a7ce7b4396dc70dd4cf909eb828a8b933}{LogMessageQuietlyDebugFatal}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,}
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ line)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00391\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageQuietlyDebugFatal_a1828aca89e857e593864ef06bec146f1}{\string~LogMessageQuietlyDebugFatal}}();}
+\DoxyCodeLine{00392\ \};}
+\DoxyCodeLine{00393\ }
+\DoxyCodeLine{00394\ \textcolor{comment}{//\ Used\ for\ LOG(QFATAL)\ to\ make\ sure\ it's\ properly\ understood\ as\ [[noreturn]].}}
+\DoxyCodeLine{00395\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageQuietlyFatal}{LogMessageQuietlyFatal}}\ final\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessage}{LogMessage}}\ \{}
+\DoxyCodeLine{00396\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00397\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageQuietlyFatal_a63c9392e62617edb32ca0d6a8f907d1d}{LogMessageQuietlyFatal}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,}
+\DoxyCodeLine{00398\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ line)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00399\ \ \ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageQuietlyFatal_a63c9392e62617edb32ca0d6a8f907d1d}{LogMessageQuietlyFatal}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ file,\ \textcolor{keywordtype}{int}\ line,}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ failure\_msg)}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a493ad398cfa0b13d1d6e8dfca61e3d97}{ABSL\_ATTRIBUTE\_COLD}};}
+\DoxyCodeLine{00402\ \ \ [[noreturn]]\ \mbox{\hyperlink{classabsl_1_1log__internal_1_1LogMessageQuietlyFatal_ab86bcc769c88f27f9fe56056df37d224}{\string~LogMessageQuietlyFatal}}();}
+\DoxyCodeLine{00403\ \};}
+\DoxyCodeLine{00404\ }
+\DoxyCodeLine{00405\ \}\ \ \textcolor{comment}{//\ namespace\ log\_internal}}
+\DoxyCodeLine{00406\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00407\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00408\ }
+\DoxyCodeLine{00409\ \textcolor{keyword}{extern}\ \textcolor{stringliteral}{"{}C"{}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a140ea9aa23fe73f6a444ad31e224cfbe}{ABSL\_ATTRIBUTE\_WEAK}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_aeed1805e969005d6b6b50eaed3ef1f68}{ABSL\_INTERNAL\_C\_SYMBOL}}(}
+\DoxyCodeLine{00410\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2log_2internal_2log__message_8h_a91c511dfb58bc847ee872ae7c3ca7a63}{AbslInternalOnFatalLogMessage}})(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1LogEntry}{absl::LogEntry}}\&);}
+\DoxyCodeLine{00411\ }
+\DoxyCodeLine{00412\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_LOG\_INTERNAL\_LOG\_MESSAGE\_H\_}}
+
+\end{DoxyCode}

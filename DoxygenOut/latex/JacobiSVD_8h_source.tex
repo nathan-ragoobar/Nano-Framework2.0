@@ -1,0 +1,721 @@
+\doxysection{Jacobi\+SVD.\+h}
+\hypertarget{JacobiSVD_8h_source}{}\label{JacobiSVD_8h_source}\index{eigen/Eigen/src/SVD/JacobiSVD.h@{eigen/Eigen/src/SVD/JacobiSVD.h}}
+\mbox{\hyperlink{JacobiSVD_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2009-\/2010\ Benoit\ Jacob\ <jacob.benoit.1@gmail.com>}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ Copyright\ (C)\ 2013-\/2014\ Gael\ Guennebaud\ <gael.guennebaud@inria.fr>}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00010\ }
+\DoxyCodeLine{00011\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_JACOBISVD\_H}}
+\DoxyCodeLine{00012\ \textcolor{preprocessor}{\#define\ EIGEN\_JACOBISVD\_H}}
+\DoxyCodeLine{00013\ }
+\DoxyCodeLine{00014\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}\ \{\ }
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}\ \{}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ forward\ declaration\ (needed\ by\ ICC)}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ the\ empty\ body\ is\ required\ by\ MSVC}}
+\DoxyCodeLine{00019\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner,}
+\DoxyCodeLine{00020\ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ IsComplex\ =\ \mbox{\hyperlink{structEigen_1_1GenericNumTraits_aff81c773b8ccca59ecb835de1722fc89adf2f66fe13a7f838f9984a31fea52b61}{NumTraits<typename\ MatrixType::Scalar>::IsComplex}}>}
+\DoxyCodeLine{00021\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real}{svd\_precondition\_2x2\_block\_to\_be\_real}}\ \{\};}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{comment}{/***\ QR\ preconditioners\ (R-\/SVD)}}
+\DoxyCodeLine{00024\ \textcolor{comment}{\ ***}}
+\DoxyCodeLine{00025\ \textcolor{comment}{\ ***\ Their\ role\ is\ to\ reduce\ the\ problem\ of\ computing\ the\ SVD\ to\ the\ case\ of\ a\ square\ matrix.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{\ ***\ This\ approach,\ known\ as\ R-\/SVD,\ is\ an\ optimization\ for\ rectangular-\/enough\ matrices,\ and\ is\ a\ requirement\ for}}
+\DoxyCodeLine{00027\ \textcolor{comment}{\ ***\ JacobiSVD\ which\ by\ itself\ is\ only\ able\ to\ work\ on\ square\ matrices.}}
+\DoxyCodeLine{00028\ \textcolor{comment}{\ ***/}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{keyword}{enum}\ \{\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfadfa337668e3d39e7dd721825902eba87}{PreconditionIfMoreColsThanRows}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfaf43dd09c4617ed9311811a15db114b62}{PreconditionIfMoreRowsThanCols}}\ \};}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner,\ \textcolor{keywordtype}{int}\ Case>}
+\DoxyCodeLine{00033\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__should__do__anything}{qr\_preconditioner\_should\_do\_anything}}}
+\DoxyCodeLine{00034\ \{}
+\DoxyCodeLine{00035\ \ \ \textcolor{keyword}{enum}\ \{\ \mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__should__do__anything_a0e88edd7d5ab09a7e27369e452b21831af265d032f57f5a14e17b876a8e258924}{a}}\ =\ MatrixType::RowsAtCompileTime\ !=\ Dynamic\ \&\&}
+\DoxyCodeLine{00036\ \ \ \ \ \ \ \ \ \ \ \ \ \ MatrixType::ColsAtCompileTime\ !=\ Dynamic\ \&\&}
+\DoxyCodeLine{00037\ \ \ \ \ \ \ \ \ \ \ \ \ \ MatrixType::ColsAtCompileTime\ <=\ MatrixType::RowsAtCompileTime,}
+\DoxyCodeLine{00038\ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__should__do__anything_a0e88edd7d5ab09a7e27369e452b21831af495dc5a2ec09073600f910fc589aecb}{b}}\ =\ MatrixType::RowsAtCompileTime\ !=\ Dynamic\ \&\&}
+\DoxyCodeLine{00039\ \ \ \ \ \ \ \ \ \ \ \ \ \ MatrixType::ColsAtCompileTime\ !=\ Dynamic\ \&\&}
+\DoxyCodeLine{00040\ \ \ \ \ \ \ \ \ \ \ \ \ \ MatrixType::RowsAtCompileTime\ <=\ MatrixType::ColsAtCompileTime,}
+\DoxyCodeLine{00041\ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__should__do__anything_a0e88edd7d5ab09a7e27369e452b21831a4e2ea80561bf08f28cb79e8c4e4a32f4}{ret}}\ =\ !(\ (QRPreconditioner\ ==\ \mbox{\hyperlink{group__enums_gga46eba0d5c621f590b8cf1b53af31d56ea2e95bc818f975b19def01e93d240dece}{NoQRPreconditioner}})\ ||}
+\DoxyCodeLine{00042\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (Case\ ==\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfadfa337668e3d39e7dd721825902eba87}{PreconditionIfMoreColsThanRows}}\ \&\&\ bool(\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__should__do__anything_a0e88edd7d5ab09a7e27369e452b21831af265d032f57f5a14e17b876a8e258924}{a}}))\ ||}
+\DoxyCodeLine{00043\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (Case\ ==\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfaf43dd09c4617ed9311811a15db114b62}{PreconditionIfMoreRowsThanCols}}\ \&\&\ bool(\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__should__do__anything_a0e88edd7d5ab09a7e27369e452b21831af495dc5a2ec09073600f910fc589aecb}{b}}))\ )}
+\DoxyCodeLine{00044\ \ \ \};}
+\DoxyCodeLine{00045\ \};}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner,\ \textcolor{keywordtype}{int}\ Case,}
+\DoxyCodeLine{00048\ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ DoAnything\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__should__do__anything_a0e88edd7d5ab09a7e27369e452b21831a4e2ea80561bf08f28cb79e8c4e4a32f4}{qr\_preconditioner\_should\_do\_anything<MatrixType,\ QRPreconditioner,\ Case>::ret}}}
+\DoxyCodeLine{00049\ >\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{qr\_preconditioner\_impl}}\ \{\};}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner,\ \textcolor{keywordtype}{int}\ Case>}
+\DoxyCodeLine{00052\ \textcolor{keyword}{class\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{qr\_preconditioner\_impl}}<MatrixType,\ QRPreconditioner,\ Case,\ false>}
+\DoxyCodeLine{00053\ \{}
+\DoxyCodeLine{00054\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00055\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01QRPreconditioner_00_01Case_00_01false_01_4_a01b0ec87576066bf204beaadddf9a8a0}{allocate}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ QRPreconditioner>}}\&)\ \{\}}
+\DoxyCodeLine{00056\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01QRPreconditioner_00_01Case_00_01false_01_4_abeec41257bdf659db9940e51544c4073}{run}}(\mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ QRPreconditioner>}}\&,\ \textcolor{keyword}{const}\ MatrixType\&)}
+\DoxyCodeLine{00057\ \ \ \{}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00059\ \ \ \}}
+\DoxyCodeLine{00060\ \};}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{comment}{/***\ preconditioner\ using\ FullPivHouseholderQR\ ***/}}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType>}
+\DoxyCodeLine{00065\ \textcolor{keyword}{class\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{qr\_preconditioner\_impl}}<MatrixType,\ \mbox{\hyperlink{group__enums_gga46eba0d5c621f590b8cf1b53af31d56eabd745dcaff7019c5f918c68809e5ea50}{FullPivHouseholderQRPreconditioner}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfaf43dd09c4617ed9311811a15db114b62}{PreconditionIfMoreRowsThanCols}},\ true>}
+\DoxyCodeLine{00066\ \{}
+\DoxyCodeLine{00067\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00068\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::Scalar\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01FullPivHouseholderQRPreco95afd42fff7b67980b476c0c022d7baa_a849a8267dfa1906deb59399cec5e6363}{Scalar}};}
+\DoxyCodeLine{00069\ \ \ \textcolor{keyword}{enum}}
+\DoxyCodeLine{00070\ \ \ \{}
+\DoxyCodeLine{00071\ \ \ \ \ RowsAtCompileTime\ =\ MatrixType::RowsAtCompileTime,}
+\DoxyCodeLine{00072\ \ \ \ \ MaxRowsAtCompileTime\ =\ MatrixType::MaxRowsAtCompileTime}
+\DoxyCodeLine{00073\ \ \ \};}
+\DoxyCodeLine{00074\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1Matrix}{Matrix<Scalar,\ 1,\ RowsAtCompileTime,\ RowMajor,\ 1,\ MaxRowsAtCompileTime>}}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01FullPivHouseholderQRPreco95afd42fff7b67980b476c0c022d7baa_a34795c94445a5d50b2e385ccbd2cdc83}{WorkspaceType}};}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01FullPivHouseholderQRPreco95afd42fff7b67980b476c0c022d7baa_aaf51bc2637a96e8069128f3ee9eb1726}{allocate}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ FullPivHouseholderQRPreconditioner>}}\&\ svd)}
+\DoxyCodeLine{00077\ \ \ \{}
+\DoxyCodeLine{00078\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}()\ !=\ m\_qr.rows()\ ||\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}()\ !=\ m\_qr.cols())}
+\DoxyCodeLine{00079\ \ \ \ \ \{}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ m\_qr.\string~QRType();}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ ::new\ (\&m\_qr)\ \mbox{\hyperlink{classEigen_1_1FullPivHouseholderQR}{QRType}}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}(),\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}());}
+\DoxyCodeLine{00082\ \ \ \ \ \}}
+\DoxyCodeLine{00083\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ad6f49fd8f826a41109f8eb68e2f48dc4}{m\_computeFullU}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00084\ \ \ \}}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01FullPivHouseholderQRPreco95afd42fff7b67980b476c0c022d7baa_ab9e7960349091e9d4c44b9a0a31b0931}{run}}(\mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ FullPivHouseholderQRPreconditioner>}}\&\ svd,\ \textcolor{keyword}{const}\ MatrixType\&\ matrix)}
+\DoxyCodeLine{00087\ \ \ \{}
+\DoxyCodeLine{00088\ \ \ \ \ \textcolor{keywordflow}{if}(matrix.rows()\ >\ matrix.cols())}
+\DoxyCodeLine{00089\ \ \ \ \ \{}
+\DoxyCodeLine{00090\ \ \ \ \ \ \ m\_qr.compute(matrix);}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d68a51c9138c05942b97482cea88a37}{m\_workMatrix}}\ =\ m\_qr.matrixQR().block(0,0,matrix.cols(),matrix.cols()).template\ triangularView<Upper>();}
+\DoxyCodeLine{00092\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ad6f49fd8f826a41109f8eb68e2f48dc4}{m\_computeFullU}})\ m\_qr.matrixQ().evalTo(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}},\ m\_workspace);}
+\DoxyCodeLine{00093\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a5f12efcb791eb007d4a4890ac5255ac4}{computeV}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}}\ =\ m\_qr.colsPermutation();}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00095\ \ \ \ \ \}}
+\DoxyCodeLine{00096\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00097\ \ \ \}}
+\DoxyCodeLine{00098\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00099\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1FullPivHouseholderQR}{FullPivHouseholderQR<MatrixType>}}\ QRType;}
+\DoxyCodeLine{00100\ \ \ QRType\ m\_qr;}
+\DoxyCodeLine{00101\ \ \ WorkspaceType\ m\_workspace;}
+\DoxyCodeLine{00102\ \};}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType>}
+\DoxyCodeLine{00105\ \textcolor{keyword}{class\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{qr\_preconditioner\_impl}}<MatrixType,\ \mbox{\hyperlink{group__enums_gga46eba0d5c621f590b8cf1b53af31d56eabd745dcaff7019c5f918c68809e5ea50}{FullPivHouseholderQRPreconditioner}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfadfa337668e3d39e7dd721825902eba87}{PreconditionIfMoreColsThanRows}},\ true>}
+\DoxyCodeLine{00106\ \{}
+\DoxyCodeLine{00107\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00108\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::Scalar\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01FullPivHouseholderQRPreco5240defb8f2e33124df02d91497f1aae_a9611a21813a73b8bb2a993b306b12511}{Scalar}};}
+\DoxyCodeLine{00109\ \ \ \textcolor{keyword}{enum}}
+\DoxyCodeLine{00110\ \ \ \{}
+\DoxyCodeLine{00111\ \ \ \ \ RowsAtCompileTime\ =\ MatrixType::RowsAtCompileTime,}
+\DoxyCodeLine{00112\ \ \ \ \ ColsAtCompileTime\ =\ MatrixType::ColsAtCompileTime,}
+\DoxyCodeLine{00113\ \ \ \ \ MaxRowsAtCompileTime\ =\ MatrixType::MaxRowsAtCompileTime,}
+\DoxyCodeLine{00114\ \ \ \ \ MaxColsAtCompileTime\ =\ MatrixType::MaxColsAtCompileTime,}
+\DoxyCodeLine{00115\ \ \ \ \ Options\ =\ MatrixType::Options}
+\DoxyCodeLine{00116\ \ \ \};}
+\DoxyCodeLine{00117\ }
+\DoxyCodeLine{00118\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1make__proper__matrix__type}{internal::make\_proper\_matrix\_type}}<}
+\DoxyCodeLine{00119\ \ \ \ \ Scalar,\ ColsAtCompileTime,\ RowsAtCompileTime,\ Options,\ MaxColsAtCompileTime,\ MaxRowsAtCompileTime}
+\DoxyCodeLine{00120\ \ \ >::type\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01FullPivHouseholderQRPreco5240defb8f2e33124df02d91497f1aae_a90a95cd6a57a6ec60a146073005c1ece}{TransposeTypeWithSameStorageOrder}};}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01FullPivHouseholderQRPreco5240defb8f2e33124df02d91497f1aae_a42354f06b00258ab291e4d374caa5fd9}{allocate}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ FullPivHouseholderQRPreconditioner>}}\&\ svd)}
+\DoxyCodeLine{00123\ \ \ \{}
+\DoxyCodeLine{00124\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}()\ !=\ m\_qr.rows()\ ||\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}()\ !=\ m\_qr.cols())}
+\DoxyCodeLine{00125\ \ \ \ \ \{}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ m\_qr.\string~QRType();}
+\DoxyCodeLine{00127\ \ \ \ \ \ \ ::new\ (\&m\_qr)\ \mbox{\hyperlink{classEigen_1_1FullPivHouseholderQR}{QRType}}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}(),\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00128\ \ \ \ \ \}}
+\DoxyCodeLine{00129\ \ \ \ \ m\_adjoint.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}(),\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00130\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a1eec8ead08bc9cd1729ba9ba7beb6b41}{m\_computeFullV}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}());}
+\DoxyCodeLine{00131\ \ \ \}}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01FullPivHouseholderQRPreco5240defb8f2e33124df02d91497f1aae_a31e087de4ff8d6e54fb71faccbb07c63}{run}}(\mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ FullPivHouseholderQRPreconditioner>}}\&\ svd,\ \textcolor{keyword}{const}\ MatrixType\&\ matrix)}
+\DoxyCodeLine{00134\ \ \ \{}
+\DoxyCodeLine{00135\ \ \ \ \ \textcolor{keywordflow}{if}(matrix.cols()\ >\ matrix.rows())}
+\DoxyCodeLine{00136\ \ \ \ \ \{}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ m\_adjoint\ =\ matrix.adjoint();}
+\DoxyCodeLine{00138\ \ \ \ \ \ \ m\_qr.compute(m\_adjoint);}
+\DoxyCodeLine{00139\ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d68a51c9138c05942b97482cea88a37}{m\_workMatrix}}\ =\ m\_qr.matrixQR().block(0,0,matrix.rows(),matrix.rows()).template\ triangularView<Upper>().adjoint();}
+\DoxyCodeLine{00140\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a1eec8ead08bc9cd1729ba9ba7beb6b41}{m\_computeFullV}})\ m\_qr.matrixQ().evalTo(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}},\ m\_workspace);}
+\DoxyCodeLine{00141\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a705a7c2709e1624ccc19aa748a78d473}{computeU}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}}\ =\ m\_qr.colsPermutation();}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00143\ \ \ \ \ \}}
+\DoxyCodeLine{00144\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00145\ \ \ \}}
+\DoxyCodeLine{00146\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00147\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1FullPivHouseholderQR}{FullPivHouseholderQR<TransposeTypeWithSameStorageOrder>}}\ QRType;}
+\DoxyCodeLine{00148\ \ \ QRType\ m\_qr;}
+\DoxyCodeLine{00149\ \ \ TransposeTypeWithSameStorageOrder\ m\_adjoint;}
+\DoxyCodeLine{00150\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{internal::plain\_row\_type<MatrixType>::type}}\ m\_workspace;}
+\DoxyCodeLine{00151\ \};}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \textcolor{comment}{/***\ preconditioner\ using\ ColPivHouseholderQR\ ***/}}
+\DoxyCodeLine{00154\ }
+\DoxyCodeLine{00155\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType>}
+\DoxyCodeLine{00156\ \textcolor{keyword}{class\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{qr\_preconditioner\_impl}}<MatrixType,\ \mbox{\hyperlink{group__enums_gga46eba0d5c621f590b8cf1b53af31d56eabd2e2f4875c5b4b6e602a433d90c4e5e}{ColPivHouseholderQRPreconditioner}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfaf43dd09c4617ed9311811a15db114b62}{PreconditionIfMoreRowsThanCols}},\ true>}
+\DoxyCodeLine{00157\ \{}
+\DoxyCodeLine{00158\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00159\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01ColPivHouseholderQRPrecon30734e25085a65912e1047cdd638c29a_a528c2a55d53add25075f8ae1adda891a}{allocate}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ ColPivHouseholderQRPreconditioner>}}\&\ svd)}
+\DoxyCodeLine{00160\ \ \ \{}
+\DoxyCodeLine{00161\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}()\ !=\ m\_qr.rows()\ ||\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}()\ !=\ m\_qr.cols())}
+\DoxyCodeLine{00162\ \ \ \ \ \{}
+\DoxyCodeLine{00163\ \ \ \ \ \ \ m\_qr.\string~QRType();}
+\DoxyCodeLine{00164\ \ \ \ \ \ \ ::new\ (\&m\_qr)\ \mbox{\hyperlink{classEigen_1_1ColPivHouseholderQR}{QRType}}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}(),\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}());}
+\DoxyCodeLine{00165\ \ \ \ \ \}}
+\DoxyCodeLine{00166\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ad6f49fd8f826a41109f8eb68e2f48dc4}{m\_computeFullU}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00167\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a47b67c55d69ba645bb7ae32bb5466138}{m\_computeThinU}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}());}
+\DoxyCodeLine{00168\ \ \ \}}
+\DoxyCodeLine{00169\ }
+\DoxyCodeLine{00170\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01ColPivHouseholderQRPrecon30734e25085a65912e1047cdd638c29a_a901d20a4f40e2254534e8560bd8219bd}{run}}(\mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ ColPivHouseholderQRPreconditioner>}}\&\ svd,\ \textcolor{keyword}{const}\ MatrixType\&\ matrix)}
+\DoxyCodeLine{00171\ \ \ \{}
+\DoxyCodeLine{00172\ \ \ \ \ \textcolor{keywordflow}{if}(matrix.rows()\ >\ matrix.cols())}
+\DoxyCodeLine{00173\ \ \ \ \ \{}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ m\_qr.compute(matrix);}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d68a51c9138c05942b97482cea88a37}{m\_workMatrix}}\ =\ m\_qr.matrixQR().block(0,0,matrix.cols(),matrix.cols()).template\ triangularView<Upper>();}
+\DoxyCodeLine{00176\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ad6f49fd8f826a41109f8eb68e2f48dc4}{m\_computeFullU}})\ m\_qr.householderQ().evalTo(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}},\ m\_workspace);}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a47b67c55d69ba645bb7ae32bb5466138}{m\_computeThinU}})}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}}.setIdentity(matrix.rows(),\ matrix.cols());}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \ \ m\_qr.householderQ().applyThisOnTheLeft(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}},\ m\_workspace);}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00182\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a5f12efcb791eb007d4a4890ac5255ac4}{computeV}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}}\ =\ m\_qr.colsPermutation();}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00184\ \ \ \ \ \}}
+\DoxyCodeLine{00185\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00186\ \ \ \}}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00189\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1ColPivHouseholderQR}{ColPivHouseholderQR<MatrixType>}}\ QRType;}
+\DoxyCodeLine{00190\ \ \ QRType\ m\_qr;}
+\DoxyCodeLine{00191\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{internal::plain\_col\_type<MatrixType>::type}}\ m\_workspace;}
+\DoxyCodeLine{00192\ \};}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType>}
+\DoxyCodeLine{00195\ \textcolor{keyword}{class\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{qr\_preconditioner\_impl}}<MatrixType,\ \mbox{\hyperlink{group__enums_gga46eba0d5c621f590b8cf1b53af31d56eabd2e2f4875c5b4b6e602a433d90c4e5e}{ColPivHouseholderQRPreconditioner}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfadfa337668e3d39e7dd721825902eba87}{PreconditionIfMoreColsThanRows}},\ true>}
+\DoxyCodeLine{00196\ \{}
+\DoxyCodeLine{00197\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00198\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::Scalar\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01ColPivHouseholderQRPrecon251f4fd1f612672aa512f448af84eff4_a5e96b11a1ac554bc77fb450c2e873b32}{Scalar}};}
+\DoxyCodeLine{00199\ \ \ \textcolor{keyword}{enum}}
+\DoxyCodeLine{00200\ \ \ \{}
+\DoxyCodeLine{00201\ \ \ \ \ RowsAtCompileTime\ =\ MatrixType::RowsAtCompileTime,}
+\DoxyCodeLine{00202\ \ \ \ \ ColsAtCompileTime\ =\ MatrixType::ColsAtCompileTime,}
+\DoxyCodeLine{00203\ \ \ \ \ MaxRowsAtCompileTime\ =\ MatrixType::MaxRowsAtCompileTime,}
+\DoxyCodeLine{00204\ \ \ \ \ MaxColsAtCompileTime\ =\ MatrixType::MaxColsAtCompileTime,}
+\DoxyCodeLine{00205\ \ \ \ \ Options\ =\ MatrixType::Options}
+\DoxyCodeLine{00206\ \ \ \};}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1make__proper__matrix__type}{internal::make\_proper\_matrix\_type}}<}
+\DoxyCodeLine{00209\ \ \ \ \ Scalar,\ ColsAtCompileTime,\ RowsAtCompileTime,\ Options,\ MaxColsAtCompileTime,\ MaxRowsAtCompileTime}
+\DoxyCodeLine{00210\ \ \ >::type\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01ColPivHouseholderQRPrecon251f4fd1f612672aa512f448af84eff4_ada3592a4199d923870cca3b796c20b95}{TransposeTypeWithSameStorageOrder}};}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01ColPivHouseholderQRPrecon251f4fd1f612672aa512f448af84eff4_ab4cbdc0bda98095ba9bbae49ea1d550d}{allocate}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ ColPivHouseholderQRPreconditioner>}}\&\ svd)}
+\DoxyCodeLine{00213\ \ \ \{}
+\DoxyCodeLine{00214\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}()\ !=\ m\_qr.rows()\ ||\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}()\ !=\ m\_qr.cols())}
+\DoxyCodeLine{00215\ \ \ \ \ \{}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ m\_qr.\string~QRType();}
+\DoxyCodeLine{00217\ \ \ \ \ \ \ ::new\ (\&m\_qr)\ \mbox{\hyperlink{classEigen_1_1ColPivHouseholderQR}{QRType}}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}(),\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00218\ \ \ \ \ \}}
+\DoxyCodeLine{00219\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a1eec8ead08bc9cd1729ba9ba7beb6b41}{m\_computeFullV}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}());}
+\DoxyCodeLine{00220\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ac8321ff2cbf3b82f5c2638b9de6661af}{m\_computeThinV}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00221\ \ \ \ \ m\_adjoint.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}(),\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00222\ \ \ \}}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01ColPivHouseholderQRPrecon251f4fd1f612672aa512f448af84eff4_a0ab01429feb699987a2e7003327e4ba5}{run}}(\mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ ColPivHouseholderQRPreconditioner>}}\&\ svd,\ \textcolor{keyword}{const}\ MatrixType\&\ matrix)}
+\DoxyCodeLine{00225\ \ \ \{}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keywordflow}{if}(matrix.cols()\ >\ matrix.rows())}
+\DoxyCodeLine{00227\ \ \ \ \ \{}
+\DoxyCodeLine{00228\ \ \ \ \ \ \ m\_adjoint\ =\ matrix.adjoint();}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ m\_qr.compute(m\_adjoint);}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d68a51c9138c05942b97482cea88a37}{m\_workMatrix}}\ =\ m\_qr.matrixQR().block(0,0,matrix.rows(),matrix.rows()).template\ triangularView<Upper>().adjoint();}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a1eec8ead08bc9cd1729ba9ba7beb6b41}{m\_computeFullV}})\ m\_qr.householderQ().evalTo(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}},\ m\_workspace);}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ac8321ff2cbf3b82f5c2638b9de6661af}{m\_computeThinV}})}
+\DoxyCodeLine{00234\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00235\ \ \ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}}.setIdentity(matrix.cols(),\ matrix.rows());}
+\DoxyCodeLine{00236\ \ \ \ \ \ \ \ \ m\_qr.householderQ().applyThisOnTheLeft(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}},\ m\_workspace);}
+\DoxyCodeLine{00237\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00238\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a705a7c2709e1624ccc19aa748a78d473}{computeU}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}}\ =\ m\_qr.colsPermutation();}
+\DoxyCodeLine{00239\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00240\ \ \ \ \ \}}
+\DoxyCodeLine{00241\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00242\ \ \ \}}
+\DoxyCodeLine{00243\ }
+\DoxyCodeLine{00244\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00245\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1ColPivHouseholderQR}{ColPivHouseholderQR<TransposeTypeWithSameStorageOrder>}}\ QRType;}
+\DoxyCodeLine{00246\ \ \ QRType\ m\_qr;}
+\DoxyCodeLine{00247\ \ \ TransposeTypeWithSameStorageOrder\ m\_adjoint;}
+\DoxyCodeLine{00248\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{internal::plain\_row\_type<MatrixType>::type}}\ m\_workspace;}
+\DoxyCodeLine{00249\ \};}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00251\ \textcolor{comment}{/***\ preconditioner\ using\ HouseholderQR\ ***/}}
+\DoxyCodeLine{00252\ }
+\DoxyCodeLine{00253\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType>}
+\DoxyCodeLine{00254\ \textcolor{keyword}{class\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{qr\_preconditioner\_impl}}<MatrixType,\ \mbox{\hyperlink{group__enums_gga46eba0d5c621f590b8cf1b53af31d56ea9c660eb3336bf8c77ce9d081ca07cbdd}{HouseholderQRPreconditioner}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfaf43dd09c4617ed9311811a15db114b62}{PreconditionIfMoreRowsThanCols}},\ true>}
+\DoxyCodeLine{00255\ \{}
+\DoxyCodeLine{00256\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00257\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01HouseholderQRPrecondition718aa302b24ab0e80527b2ede92acb08_a6052eaee17d51283dc3251a0461f6177}{allocate}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ HouseholderQRPreconditioner>}}\&\ svd)}
+\DoxyCodeLine{00258\ \ \ \{}
+\DoxyCodeLine{00259\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}()\ !=\ m\_qr.rows()\ ||\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}()\ !=\ m\_qr.cols())}
+\DoxyCodeLine{00260\ \ \ \ \ \{}
+\DoxyCodeLine{00261\ \ \ \ \ \ \ m\_qr.\string~QRType();}
+\DoxyCodeLine{00262\ \ \ \ \ \ \ ::new\ (\&m\_qr)\ \mbox{\hyperlink{classEigen_1_1HouseholderQR}{QRType}}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}(),\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}());}
+\DoxyCodeLine{00263\ \ \ \ \ \}}
+\DoxyCodeLine{00264\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ad6f49fd8f826a41109f8eb68e2f48dc4}{m\_computeFullU}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00265\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a47b67c55d69ba645bb7ae32bb5466138}{m\_computeThinU}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}());}
+\DoxyCodeLine{00266\ \ \ \}}
+\DoxyCodeLine{00267\ }
+\DoxyCodeLine{00268\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01HouseholderQRPrecondition718aa302b24ab0e80527b2ede92acb08_a1c9bce19c400f97400e43b41a6e3255a}{run}}(\mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ HouseholderQRPreconditioner>}}\&\ svd,\ \textcolor{keyword}{const}\ MatrixType\&\ matrix)}
+\DoxyCodeLine{00269\ \ \ \{}
+\DoxyCodeLine{00270\ \ \ \ \ \textcolor{keywordflow}{if}(matrix.rows()\ >\ matrix.cols())}
+\DoxyCodeLine{00271\ \ \ \ \ \{}
+\DoxyCodeLine{00272\ \ \ \ \ \ \ m\_qr.compute(matrix);}
+\DoxyCodeLine{00273\ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d68a51c9138c05942b97482cea88a37}{m\_workMatrix}}\ =\ m\_qr.matrixQR().block(0,0,matrix.cols(),matrix.cols()).template\ triangularView<Upper>();}
+\DoxyCodeLine{00274\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ad6f49fd8f826a41109f8eb68e2f48dc4}{m\_computeFullU}})\ m\_qr.householderQ().evalTo(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}},\ m\_workspace);}
+\DoxyCodeLine{00275\ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a47b67c55d69ba645bb7ae32bb5466138}{m\_computeThinU}})}
+\DoxyCodeLine{00276\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00277\ \ \ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}}.setIdentity(matrix.rows(),\ matrix.cols());}
+\DoxyCodeLine{00278\ \ \ \ \ \ \ \ \ m\_qr.householderQ().applyThisOnTheLeft(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}},\ m\_workspace);}
+\DoxyCodeLine{00279\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00280\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a5f12efcb791eb007d4a4890ac5255ac4}{computeV}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}}.setIdentity(matrix.cols(),\ matrix.cols());}
+\DoxyCodeLine{00281\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00282\ \ \ \ \ \}}
+\DoxyCodeLine{00283\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00284\ \ \ \}}
+\DoxyCodeLine{00285\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00286\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1HouseholderQR}{HouseholderQR<MatrixType>}}\ QRType;}
+\DoxyCodeLine{00287\ \ \ QRType\ m\_qr;}
+\DoxyCodeLine{00288\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{internal::plain\_col\_type<MatrixType>::type}}\ m\_workspace;}
+\DoxyCodeLine{00289\ \};}
+\DoxyCodeLine{00290\ }
+\DoxyCodeLine{00291\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType>}
+\DoxyCodeLine{00292\ \textcolor{keyword}{class\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{qr\_preconditioner\_impl}}<MatrixType,\ \mbox{\hyperlink{group__enums_gga46eba0d5c621f590b8cf1b53af31d56ea9c660eb3336bf8c77ce9d081ca07cbdd}{HouseholderQRPreconditioner}},\ \mbox{\hyperlink{namespaceEigen_1_1internal_ace6bc190295d356e87343893e34669bfadfa337668e3d39e7dd721825902eba87}{PreconditionIfMoreColsThanRows}},\ true>}
+\DoxyCodeLine{00293\ \{}
+\DoxyCodeLine{00294\ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00295\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::Scalar\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01HouseholderQRPreconditionb06bc2032de5e2b17233ca59e5584f31_a85a5c016ba9d6ff3e3acd2b8898948a7}{Scalar}};}
+\DoxyCodeLine{00296\ \ \ \textcolor{keyword}{enum}}
+\DoxyCodeLine{00297\ \ \ \{}
+\DoxyCodeLine{00298\ \ \ \ \ RowsAtCompileTime\ =\ MatrixType::RowsAtCompileTime,}
+\DoxyCodeLine{00299\ \ \ \ \ ColsAtCompileTime\ =\ MatrixType::ColsAtCompileTime,}
+\DoxyCodeLine{00300\ \ \ \ \ MaxRowsAtCompileTime\ =\ MatrixType::MaxRowsAtCompileTime,}
+\DoxyCodeLine{00301\ \ \ \ \ MaxColsAtCompileTime\ =\ MatrixType::MaxColsAtCompileTime,}
+\DoxyCodeLine{00302\ \ \ \ \ Options\ =\ MatrixType::Options}
+\DoxyCodeLine{00303\ \ \ \};}
+\DoxyCodeLine{00304\ }
+\DoxyCodeLine{00305\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1make__proper__matrix__type}{internal::make\_proper\_matrix\_type}}<}
+\DoxyCodeLine{00306\ \ \ \ \ Scalar,\ ColsAtCompileTime,\ RowsAtCompileTime,\ Options,\ MaxColsAtCompileTime,\ MaxRowsAtCompileTime}
+\DoxyCodeLine{00307\ \ \ >::type\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01HouseholderQRPreconditionb06bc2032de5e2b17233ca59e5584f31_a532d59f67f5f66e433e9457c51f03731}{TransposeTypeWithSameStorageOrder}};}
+\DoxyCodeLine{00308\ }
+\DoxyCodeLine{00309\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01HouseholderQRPreconditionb06bc2032de5e2b17233ca59e5584f31_a8885f59d4a7ecc4b52c9b2f563913750}{allocate}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ HouseholderQRPreconditioner>}}\&\ svd)}
+\DoxyCodeLine{00310\ \ \ \{}
+\DoxyCodeLine{00311\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}()\ !=\ m\_qr.rows()\ ||\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}()\ !=\ m\_qr.cols())}
+\DoxyCodeLine{00312\ \ \ \ \ \{}
+\DoxyCodeLine{00313\ \ \ \ \ \ \ m\_qr.\string~QRType();}
+\DoxyCodeLine{00314\ \ \ \ \ \ \ ::new\ (\&m\_qr)\ \mbox{\hyperlink{classEigen_1_1HouseholderQR}{QRType}}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}(),\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00315\ \ \ \ \ \}}
+\DoxyCodeLine{00316\ \ \ \ \ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a1eec8ead08bc9cd1729ba9ba7beb6b41}{m\_computeFullV}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}());}
+\DoxyCodeLine{00317\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ac8321ff2cbf3b82f5c2638b9de6661af}{m\_computeThinV}})\ m\_workspace.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00318\ \ \ \ \ m\_adjoint.resize(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}}(),\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}}());}
+\DoxyCodeLine{00319\ \ \ \}}
+\DoxyCodeLine{00320\ }
+\DoxyCodeLine{00321\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classEigen_1_1internal_1_1qr__preconditioner__impl_3_01MatrixType_00_01HouseholderQRPreconditionb06bc2032de5e2b17233ca59e5584f31_a1518723c076752e639525450f7fc1909}{run}}(\mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ HouseholderQRPreconditioner>}}\&\ svd,\ \textcolor{keyword}{const}\ MatrixType\&\ matrix)}
+\DoxyCodeLine{00322\ \ \ \{}
+\DoxyCodeLine{00323\ \ \ \ \ \textcolor{keywordflow}{if}(matrix.cols()\ >\ matrix.rows())}
+\DoxyCodeLine{00324\ \ \ \ \ \{}
+\DoxyCodeLine{00325\ \ \ \ \ \ \ m\_adjoint\ =\ matrix.adjoint();}
+\DoxyCodeLine{00326\ \ \ \ \ \ \ m\_qr.compute(m\_adjoint);}
+\DoxyCodeLine{00327\ }
+\DoxyCodeLine{00328\ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d68a51c9138c05942b97482cea88a37}{m\_workMatrix}}\ =\ m\_qr.matrixQR().block(0,0,matrix.rows(),matrix.rows()).template\ triangularView<Upper>().adjoint();}
+\DoxyCodeLine{00329\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a1eec8ead08bc9cd1729ba9ba7beb6b41}{m\_computeFullV}})\ m\_qr.householderQ().evalTo(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}},\ m\_workspace);}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_ac8321ff2cbf3b82f5c2638b9de6661af}{m\_computeThinV}})}
+\DoxyCodeLine{00331\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00332\ \ \ \ \ \ \ \ \ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}}.setIdentity(matrix.cols(),\ matrix.rows());}
+\DoxyCodeLine{00333\ \ \ \ \ \ \ \ \ m\_qr.householderQ().applyThisOnTheLeft(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}},\ m\_workspace);}
+\DoxyCodeLine{00334\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00335\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a705a7c2709e1624ccc19aa748a78d473}{computeU}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}}.setIdentity(matrix.rows(),\ matrix.rows());}
+\DoxyCodeLine{00336\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00337\ \ \ \ \ \}}
+\DoxyCodeLine{00338\ \ \ \ \ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00339\ \ \ \}}
+\DoxyCodeLine{00340\ }
+\DoxyCodeLine{00341\ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00342\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1HouseholderQR}{HouseholderQR<TransposeTypeWithSameStorageOrder>}}\ QRType;}
+\DoxyCodeLine{00343\ \ \ QRType\ m\_qr;}
+\DoxyCodeLine{00344\ \ \ TransposeTypeWithSameStorageOrder\ m\_adjoint;}
+\DoxyCodeLine{00345\ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{internal::plain\_row\_type<MatrixType>::type}}\ m\_workspace;}
+\DoxyCodeLine{00346\ \};}
+\DoxyCodeLine{00347\ }
+\DoxyCodeLine{00348\ \textcolor{comment}{/***\ 2x2\ SVD\ implementation}}
+\DoxyCodeLine{00349\ \textcolor{comment}{\ ***}}
+\DoxyCodeLine{00350\ \textcolor{comment}{\ ***\ JacobiSVD\ consists\ in\ performing\ a\ series\ of\ 2x2\ SVD\ subproblems}}
+\DoxyCodeLine{00351\ \textcolor{comment}{\ ***/}}
+\DoxyCodeLine{00352\ }
+\DoxyCodeLine{00353\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner>}
+\DoxyCodeLine{00354\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real}{svd\_precondition\_2x2\_block\_to\_be\_real}}<MatrixType,\ QRPreconditioner,\ false>}
+\DoxyCodeLine{00355\ \{}
+\DoxyCodeLine{00356\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ QRPreconditioner>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01false_01_4_a84336fcb388cc6544a083da0563a62f5}{SVD}};}
+\DoxyCodeLine{00357\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::RealScalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01false_01_4_abf9a8655126ecb552e9341765d961c02}{RealScalar}};}
+\DoxyCodeLine{00358\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01false_01_4_afde3f70cb5d0cf4bf15c8df8a36372f9}{run}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1Matrix}{SVD::WorkMatrixType}}\&,\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{SVD}}\&,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}},\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}},\ \mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01false_01_4_abf9a8655126ecb552e9341765d961c02}{RealScalar}}\&)\ \{\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};\ \}}
+\DoxyCodeLine{00359\ \};}
+\DoxyCodeLine{00360\ }
+\DoxyCodeLine{00361\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner>}
+\DoxyCodeLine{00362\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real}{svd\_precondition\_2x2\_block\_to\_be\_real}}<MatrixType,\ QRPreconditioner,\ true>}
+\DoxyCodeLine{00363\ \{}
+\DoxyCodeLine{00364\ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ QRPreconditioner>}}\ \mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01true_01_4_a580fa7ac26803c2ecb9c955352ad2c4f}{SVD}};}
+\DoxyCodeLine{00365\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::Scalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01true_01_4_ad4fddecfd6e346e5df3522b74473349b}{Scalar}};}
+\DoxyCodeLine{00366\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::RealScalar\ \mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01true_01_4_a0758149388dc314fe8ab741aae8b755d}{RealScalar}};}
+\DoxyCodeLine{00367\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01true_01_4_a76a3369c7786e295de41c7061b9da031}{run}}(\textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1Matrix}{SVD::WorkMatrixType}}\&\ work\_matrix,\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{SVD}}\&\ svd,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ p,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ q,\ \mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01true_01_4_a0758149388dc314fe8ab741aae8b755d}{RealScalar}}\&\ maxDiagEntry)}
+\DoxyCodeLine{00368\ \ \ \{}
+\DoxyCodeLine{00369\ \ \ \ \ \textcolor{keyword}{using\ }std::sqrt;}
+\DoxyCodeLine{00370\ \ \ \ \ \textcolor{keyword}{using\ }std::abs;}
+\DoxyCodeLine{00371\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1MatrixBase_ab38e29219d7c456a2f225f3be092747b}{Scalar}}\ z;}
+\DoxyCodeLine{00372\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiRotation}{JacobiRotation<Scalar>}}\ rot;}
+\DoxyCodeLine{00373\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1MatrixBase_a3242b66dcb7b06ee87b70141a47e9fbd}{RealScalar}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a656b9217a2fcb6de59dc8d1eb3079cc7}{sqrt}}(\mbox{\hyperlink{namespaceEigen_1_1numext_ad59216129a430099e97b4c4b1e2f2984}{numext::abs2}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,p))\ +\ \mbox{\hyperlink{namespaceEigen_1_1numext_ad59216129a430099e97b4c4b1e2f2984}{numext::abs2}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,p)));}
+\DoxyCodeLine{00374\ }
+\DoxyCodeLine{00375\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1MatrixBase_a3242b66dcb7b06ee87b70141a47e9fbd}{RealScalar}}\ considerAsZero\ =\ (std::numeric\_limits<RealScalar>::min)();}
+\DoxyCodeLine{00376\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1MatrixBase_a3242b66dcb7b06ee87b70141a47e9fbd}{RealScalar}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a19a254febcf2ce797babef3a85a6076b}{precision}}\ =\ \mbox{\hyperlink{structEigen_1_1GenericNumTraits_a3a573c69713fbb143fb49af7db463cee}{NumTraits<Scalar>::epsilon}}();}
+\DoxyCodeLine{00377\ }
+\DoxyCodeLine{00378\ \ \ \ \ \textcolor{keywordflow}{if}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}==0)}
+\DoxyCodeLine{00379\ \ \ \ \ \{}
+\DoxyCodeLine{00380\ \ \ \ \ \ \ \textcolor{comment}{//\ make\ sure\ first\ column\ is\ zero}}
+\DoxyCodeLine{00381\ \ \ \ \ \ \ work\_matrix.\mbox{\hyperlink{classEigen_1_1Matrix_ad6ab241435124b11a3921df752d28daf}{coeffRef}}(p,p)\ =\ work\_matrix.\mbox{\hyperlink{classEigen_1_1Matrix_ad6ab241435124b11a3921df752d28daf}{coeffRef}}(q,p)\ =\ \mbox{\hyperlink{classEigen_1_1MatrixBase_ab38e29219d7c456a2f225f3be092747b}{Scalar}}(0);}
+\DoxyCodeLine{00382\ }
+\DoxyCodeLine{00383\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(numext::imag(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,q)))>considerAsZero)}
+\DoxyCodeLine{00384\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00385\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ work\_matrix.coeff(p,q)\ can\ be\ zero\ if\ work\_matrix.coeff(q,p)\ is\ not\ zero\ but\ small\ enough\ to\ underflow\ when\ computing\ n}}
+\DoxyCodeLine{00386\ \ \ \ \ \ \ \ \ z\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,q))\ /\ work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,q);}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \ \ work\_matrix.row(p)\ *=\ z;}
+\DoxyCodeLine{00388\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a705a7c2709e1624ccc19aa748a78d473}{computeU}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}}.col(p)\ *=\ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(z);}
+\DoxyCodeLine{00389\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(numext::imag(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,q)))>considerAsZero)}
+\DoxyCodeLine{00391\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \ \ z\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,q))\ /\ work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,q);}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \ \ work\_matrix.row(q)\ *=\ z;}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a705a7c2709e1624ccc19aa748a78d473}{computeU}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}}.col(q)\ *=\ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(z);}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00396\ \ \ \ \ \ \ \textcolor{comment}{//\ otherwise\ the\ second\ row\ is\ already\ zero,\ so\ we\ have\ nothing\ to\ do.}}
+\DoxyCodeLine{00397\ \ \ \ \ \}}
+\DoxyCodeLine{00398\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00399\ \ \ \ \ \{}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ rot.\mbox{\hyperlink{classEigen_1_1JacobiRotation_ad9df8d6842f3cc7a9ad36047ff9ed111}{c}}()\ =\ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,p))\ /\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ rot.\mbox{\hyperlink{classEigen_1_1JacobiRotation_a9262075925c606ecc793d1987ed1364a}{s}}()\ =\ work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,p)\ /\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ work\_matrix.applyOnTheLeft(p,q,rot);}
+\DoxyCodeLine{00403\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a705a7c2709e1624ccc19aa748a78d473}{computeU}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}}.applyOnTheRight(p,q,rot.\mbox{\hyperlink{classEigen_1_1JacobiRotation_aaca0173b23a021238ab2a5f0d0003dfd}{adjoint}}());}
+\DoxyCodeLine{00404\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(numext::imag(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,q)))>considerAsZero)}
+\DoxyCodeLine{00405\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00406\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bafbade9e36a3f36d3d676c1b808451dd7}{z}}\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,q))\ /\ work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,q);}
+\DoxyCodeLine{00407\ \ \ \ \ \ \ \ \ work\_matrix.col(q)\ *=\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bafbade9e36a3f36d3d676c1b808451dd7}{z}};}
+\DoxyCodeLine{00408\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a5f12efcb791eb007d4a4890ac5255ac4}{computeV}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a69cf1cfb527ff5562156c13bdca45ca5}{m\_matrixV}}.col(q)\ *=\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bafbade9e36a3f36d3d676c1b808451dd7}{z}};}
+\DoxyCodeLine{00409\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00410\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(numext::imag(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,q)))>considerAsZero)}
+\DoxyCodeLine{00411\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00412\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bafbade9e36a3f36d3d676c1b808451dd7}{z}}\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,q))\ /\ work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,q);}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \ \ work\_matrix.row(q)\ *=\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bafbade9e36a3f36d3d676c1b808451dd7}{z}};}
+\DoxyCodeLine{00414\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_a705a7c2709e1624ccc19aa748a78d473}{computeU}}())\ svd.\mbox{\hyperlink{classEigen_1_1JacobiSVD_af0e0b3833c1d49286c0fdcbc023c3bd8}{m\_matrixU}}.col(q)\ *=\ \mbox{\hyperlink{namespaceEigen_a065d353fcbff30a8e902d2900a784d45}{conj}}(z);}
+\DoxyCodeLine{00415\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00416\ \ \ \ \ \}}
+\DoxyCodeLine{00417\ }
+\DoxyCodeLine{00418\ \ \ \ \ \textcolor{comment}{//\ update\ largest\ diagonal\ entry}}
+\DoxyCodeLine{00419\ \ \ \ \ maxDiagEntry\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_a29d502349f2ec9897c808e65e0f96eb4}{numext::maxi<RealScalar>}}(maxDiagEntry,\mbox{\hyperlink{namespaceEigen_1_1numext_a29d502349f2ec9897c808e65e0f96eb4}{numext::maxi<RealScalar>}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,p)),\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,q))));}
+\DoxyCodeLine{00420\ \ \ \ \ \textcolor{comment}{//\ and\ check\ whether\ the\ 2x2\ block\ is\ already\ diagonal}}
+\DoxyCodeLine{00421\ \ \ \ \ RealScalar\ threshold\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_a29d502349f2ec9897c808e65e0f96eb4}{numext::maxi<RealScalar>}}(considerAsZero,\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a19a254febcf2ce797babef3a85a6076b}{precision}}\ *\ maxDiagEntry);}
+\DoxyCodeLine{00422\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(p,q))>threshold\ ||\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(work\_matrix.\mbox{\hyperlink{classEigen_1_1PlainObjectBase_aa5a84a35bf7dc5c42abf4a3e9fde222c}{coeff}}(q,p))\ >\ threshold;}
+\DoxyCodeLine{00423\ \ \ \}}
+\DoxyCodeLine{00424\ \};}
+\DoxyCodeLine{00425\ }
+\DoxyCodeLine{00426\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ \_MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner>\ }
+\DoxyCodeLine{00427\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits}}<\mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD}}<\_MatrixType,QRPreconditioner>\ >}
+\DoxyCodeLine{00428\ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits}}<\_MatrixType>}
+\DoxyCodeLine{00429\ \{}
+\DoxyCodeLine{00430\ \ \ \textcolor{keyword}{typedef}\ \_MatrixType\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits_3_01JacobiSVD_3_01__MatrixType_00_01QRPreconditioner_01_4_01_4_a32fa4609867b0877a0396028b7a598d6}{MatrixType}};}
+\DoxyCodeLine{00431\ \};}
+\DoxyCodeLine{00432\ }
+\DoxyCodeLine{00433\ \}\ \textcolor{comment}{//\ end\ namespace\ internal}}
+\DoxyCodeLine{00434\ }
+\DoxyCodeLine{00488\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ \_MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner>\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD}}}
+\DoxyCodeLine{00489\ \ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classEigen_1_1SVDBase}{SVDBase}}<JacobiSVD<\_MatrixType,QRPreconditioner>\ >}
+\DoxyCodeLine{00490\ \{}
+\DoxyCodeLine{00491\ \ \ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1SVDBase}{SVDBase<JacobiSVD>}}\ \mbox{\hyperlink{classEigen_1_1SVDBase}{Base}};}
+\DoxyCodeLine{00492\ \ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00493\ }
+\DoxyCodeLine{00494\ \ \ \ \ \textcolor{keyword}{typedef}\ \_MatrixType\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a1a93ffd346b56509de51128cca99ab27}{MatrixType}};}
+\DoxyCodeLine{00495\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ MatrixType::Scalar\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a2fa92d9baca149aadbcd9866357b7d99}{Scalar}};}
+\DoxyCodeLine{00496\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1GenericNumTraits_a6e9ee9306607a1a0b4f79be74dca97bb}{NumTraits<typename\ MatrixType::Scalar>::Real}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}};}
+\DoxyCodeLine{00497\ \ \ \ \ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00498\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761ace9ac05e00fc4368629e3f8e3a2cb1ef}{RowsAtCompileTime}}\ =\ MatrixType::RowsAtCompileTime,}
+\DoxyCodeLine{00499\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761aba7009bc3fa7d855e12e176af38d2270}{ColsAtCompileTime}}\ =\ MatrixType::ColsAtCompileTime,}
+\DoxyCodeLine{00500\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761ada1c34752cd977a3a2cef0c2ff573acf}{DiagSizeAtCompileTime}}\ =\ \mbox{\hyperlink{Macros_8h_a2a07ba221d47a7d636fd13678c8c75b3}{EIGEN\_SIZE\_MIN\_PREFER\_DYNAMIC}}(\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761ace9ac05e00fc4368629e3f8e3a2cb1ef}{RowsAtCompileTime}},\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761aba7009bc3fa7d855e12e176af38d2270}{ColsAtCompileTime}}),}
+\DoxyCodeLine{00501\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761a36a5817babc0f0c463525e62aa015fd5}{MaxRowsAtCompileTime}}\ =\ MatrixType::MaxRowsAtCompileTime,}
+\DoxyCodeLine{00502\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761ab1a42a23c36344b0dad9508fe820828c}{MaxColsAtCompileTime}}\ =\ MatrixType::MaxColsAtCompileTime,}
+\DoxyCodeLine{00503\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761a653bceb920ae9ca29f01380ebb0667e9}{MaxDiagSizeAtCompileTime}}\ =\ \mbox{\hyperlink{Macros_8h_af2d58514e6156c4da2d4af66fafd0b12}{EIGEN\_SIZE\_MIN\_PREFER\_FIXED}}(\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761a36a5817babc0f0c463525e62aa015fd5}{MaxRowsAtCompileTime}},\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761ab1a42a23c36344b0dad9508fe820828c}{MaxColsAtCompileTime}}),}
+\DoxyCodeLine{00504\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761ae357a5a3dd2e6bd14bd94c15de1de2be}{MatrixOptions}}\ =\ MatrixType::Options}
+\DoxyCodeLine{00505\ \ \ \ \ \};}
+\DoxyCodeLine{00506\ }
+\DoxyCodeLine{00507\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1Matrix}{Base::MatrixUType}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a830144dc5268417605625ce46dd86ffd}{MatrixUType}};}
+\DoxyCodeLine{00508\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1Matrix}{Base::MatrixVType}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_afcf2056fc1e76f2515d22ceb6c24336e}{MatrixVType}};}
+\DoxyCodeLine{00509\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{Base::SingularValuesType}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a77fef5f24093548926357e9419fd5f3f}{SingularValuesType}};}
+\DoxyCodeLine{00510\ \ \ \ \ }
+\DoxyCodeLine{00511\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{internal::plain\_row\_type<MatrixType>::type}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a38c773d167588493e292a4909c860436}{RowType}};}
+\DoxyCodeLine{00512\ \ \ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{internal::plain\_col\_type<MatrixType>::type}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab624a05fd1a236f9cc495965b44d970f}{ColType}};}
+\DoxyCodeLine{00513\ \ \ \ \ \textcolor{keyword}{typedef}\ \mbox{\hyperlink{classEigen_1_1Matrix}{Matrix}}<\mbox{\hyperlink{classEigen_1_1JacobiSVD_a2fa92d9baca149aadbcd9866357b7d99}{Scalar}},\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761ada1c34752cd977a3a2cef0c2ff573acf}{DiagSizeAtCompileTime}},\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761ada1c34752cd977a3a2cef0c2ff573acf}{DiagSizeAtCompileTime}},}
+\DoxyCodeLine{00514\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761ae357a5a3dd2e6bd14bd94c15de1de2be}{MatrixOptions}},\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761a653bceb920ae9ca29f01380ebb0667e9}{MaxDiagSizeAtCompileTime}},\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab7438423997e3cc35e7d2c681c15c761a653bceb920ae9ca29f01380ebb0667e9}{MaxDiagSizeAtCompileTime}}>}
+\DoxyCodeLine{00515\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ac4aff6537ad3e8d26315bcd7a9bbb8ef}{WorkMatrixType}};}
+\DoxyCodeLine{00516\ }
+\DoxyCodeLine{00522\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a55315ab9cd060019a5ad07be798ff3b9}{JacobiSVD}}()}
+\DoxyCodeLine{00523\ \ \ \ \ \{\}}
+\DoxyCodeLine{00524\ }
+\DoxyCodeLine{00525\ }
+\DoxyCodeLine{00532\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a5d9ea7c8f361337727260efd77ee03ac}{JacobiSVD}}(\mbox{\hyperlink{classEigen_1_1SVDBase_aec692104f937d70a5252b3e5350bfb78}{Index}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}},\ \mbox{\hyperlink{classEigen_1_1SVDBase_aec692104f937d70a5252b3e5350bfb78}{Index}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}},\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ computationOptions\ =\ 0)}
+\DoxyCodeLine{00533\ \ \ \ \ \{}
+\DoxyCodeLine{00534\ \ \ \ \ \ \ allocate(\mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}},\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}},\ computationOptions);}
+\DoxyCodeLine{00535\ \ \ \ \ \}}
+\DoxyCodeLine{00536\ }
+\DoxyCodeLine{00547\ \ \ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_abfd1dd454a6e3edec7feecd97c818a78}{JacobiSVD}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a1a93ffd346b56509de51128cca99ab27}{MatrixType}}\&\ matrix,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ computationOptions\ =\ 0)}
+\DoxyCodeLine{00548\ \ \ \ \ \{}
+\DoxyCodeLine{00549\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a5dab376cc86cf0d36674bcdad4af3f5a}{compute}}(matrix,\ computationOptions);}
+\DoxyCodeLine{00550\ \ \ \ \ \}}
+\DoxyCodeLine{00551\ }
+\DoxyCodeLine{00562\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD}}\&\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a5dab376cc86cf0d36674bcdad4af3f5a}{compute}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a1a93ffd346b56509de51128cca99ab27}{MatrixType}}\&\ matrix,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ computationOptions);}
+\DoxyCodeLine{00563\ }
+\DoxyCodeLine{00570\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD}}\&\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a408ef2580962859ff292eca69aa4b976}{compute}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a1a93ffd346b56509de51128cca99ab27}{MatrixType}}\&\ matrix)}
+\DoxyCodeLine{00571\ \ \ \ \ \{}
+\DoxyCodeLine{00572\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a5dab376cc86cf0d36674bcdad4af3f5a}{compute}}(matrix,\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a680646d2f3fa0de030cbf9b4815d6cda}{m\_computationOptions}});}
+\DoxyCodeLine{00573\ \ \ \ \ \}}
+\DoxyCodeLine{00574\ }
+\DoxyCodeLine{00575\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a705a7c2709e1624ccc19aa748a78d473}{Base::computeU}};}
+\DoxyCodeLine{00576\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a5f12efcb791eb007d4a4890ac5255ac4}{Base::computeV}};}
+\DoxyCodeLine{00577\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_ab1a0d1fcc818a876c3cb2b32887604be}{Base::rows}};}
+\DoxyCodeLine{00578\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a083d99e05949bab974bbff2966606b7f}{Base::cols}};}
+\DoxyCodeLine{00579\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a30b89e24f42f1692079eea31b361d26a}{Base::rank}};}
+\DoxyCodeLine{00580\ }
+\DoxyCodeLine{00581\ \ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00582\ \ \ \ \ \textcolor{keywordtype}{void}\ allocate(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ab1a0d1fcc818a876c3cb2b32887604be}{rows}},\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a083d99e05949bab974bbff2966606b7f}{cols}},\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ computationOptions);}
+\DoxyCodeLine{00583\ }
+\DoxyCodeLine{00584\ \ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00585\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_af0e0b3833c1d49286c0fdcbc023c3bd8}{Base::m\_matrixU}};}
+\DoxyCodeLine{00586\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a69cf1cfb527ff5562156c13bdca45ca5}{Base::m\_matrixV}};}
+\DoxyCodeLine{00587\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_ab71e31e61c33f68ff2f499ed9f30e718}{Base::m\_singularValues}};}
+\DoxyCodeLine{00588\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a447d2789c6fda585482933f9f0cd02af}{Base::m\_info}};}
+\DoxyCodeLine{00589\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a633b92f4eb9c65911b943b93bb8b341c}{Base::m\_isInitialized}};}
+\DoxyCodeLine{00590\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_af91d9b16ff9b51e22bfb9b637ef50cfb}{Base::m\_isAllocated}};}
+\DoxyCodeLine{00591\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a1dd5193fac24ae397f08cc722f3ae3ca}{Base::m\_usePrescribedThreshold}};}
+\DoxyCodeLine{00592\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_ad6f49fd8f826a41109f8eb68e2f48dc4}{Base::m\_computeFullU}};}
+\DoxyCodeLine{00593\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a47b67c55d69ba645bb7ae32bb5466138}{Base::m\_computeThinU}};}
+\DoxyCodeLine{00594\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a1eec8ead08bc9cd1729ba9ba7beb6b41}{Base::m\_computeFullV}};}
+\DoxyCodeLine{00595\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_ac8321ff2cbf3b82f5c2638b9de6661af}{Base::m\_computeThinV}};}
+\DoxyCodeLine{00596\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a680646d2f3fa0de030cbf9b4815d6cda}{Base::m\_computationOptions}};}
+\DoxyCodeLine{00597\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_aa41b395662650f2e10652f76365877c4}{Base::m\_nonzeroSingularValues}};}
+\DoxyCodeLine{00598\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a9c7ac2fc2666e3d34143c726a6462f1f}{Base::m\_rows}};}
+\DoxyCodeLine{00599\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a65e1a36d7d3d90ad143fa6a6494695c9}{Base::m\_cols}};}
+\DoxyCodeLine{00600\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_a6eca3829eb56684ca01c291c6630c8d8}{Base::m\_diagSize}};}
+\DoxyCodeLine{00601\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classEigen_1_1SVDBase_abbc1cfb200cc681ca18bdb1892597e62}{Base::m\_prescribedThreshold}};}
+\DoxyCodeLine{00602\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1Matrix}{WorkMatrixType}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d68a51c9138c05942b97482cea88a37}{m\_workMatrix}};}
+\DoxyCodeLine{00603\ }
+\DoxyCodeLine{00604\ \ \ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ \_\_MatrixType,\ \textcolor{keywordtype}{int}\ \_QRPreconditioner,\ \textcolor{keywordtype}{bool}\ \_IsComplex>}
+\DoxyCodeLine{00605\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real}{internal::svd\_precondition\_2x2\_block\_to\_be\_real}};}
+\DoxyCodeLine{00606\ \ \ \ \ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ \_\_MatrixType,\ \textcolor{keywordtype}{int}\ \_QRPreconditioner,\ \textcolor{keywordtype}{int}\ \_Case,\ \textcolor{keywordtype}{bool}\ \_DoAnything>}
+\DoxyCodeLine{00607\ \ \ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{internal::qr\_preconditioner\_impl}};}
+\DoxyCodeLine{00608\ }
+\DoxyCodeLine{00609\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{internal::qr\_preconditioner\_impl<MatrixType,\ QRPreconditioner,\ internal::PreconditionIfMoreColsThanRows>}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a496e62e1757d99dfb394c14be25bffb2}{m\_qr\_precond\_morecols}};}
+\DoxyCodeLine{00610\ \ \ \ \ \mbox{\hyperlink{structEigen_1_1internal_1_1qr__preconditioner__impl}{internal::qr\_preconditioner\_impl<MatrixType,\ QRPreconditioner,\ internal::PreconditionIfMoreRowsThanCols>}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_ac0a41538ddc23f75c34175755813b041}{m\_qr\_precond\_morerows}};}
+\DoxyCodeLine{00611\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a1a93ffd346b56509de51128cca99ab27}{MatrixType}}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a0b861908151379c8f9002f6d56e69107}{m\_scaledMatrix}};}
+\DoxyCodeLine{00612\ \};}
+\DoxyCodeLine{00613\ }
+\DoxyCodeLine{00614\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner>}
+\DoxyCodeLine{00615\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<MatrixType,\ QRPreconditioner>::allocate}}(\mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Eigen::Index}}\ rows,\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Eigen::Index}}\ cols,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ computationOptions)}
+\DoxyCodeLine{00616\ \{}
+\DoxyCodeLine{00617\ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(rows\ >=\ 0\ \&\&\ cols\ >=\ 0);}
+\DoxyCodeLine{00618\ }
+\DoxyCodeLine{00619\ \ \ \textcolor{keywordflow}{if}\ (m\_isAllocated\ \&\&}
+\DoxyCodeLine{00620\ \ \ \ \ \ \ rows\ ==\ m\_rows\ \&\&}
+\DoxyCodeLine{00621\ \ \ \ \ \ \ cols\ ==\ m\_cols\ \&\&}
+\DoxyCodeLine{00622\ \ \ \ \ \ \ computationOptions\ ==\ m\_computationOptions)}
+\DoxyCodeLine{00623\ \ \ \{}
+\DoxyCodeLine{00624\ \ \ \ \ \textcolor{keywordflow}{return};}
+\DoxyCodeLine{00625\ \ \ \}}
+\DoxyCodeLine{00626\ }
+\DoxyCodeLine{00627\ \ \ m\_rows\ =\ rows;}
+\DoxyCodeLine{00628\ \ \ m\_cols\ =\ cols;}
+\DoxyCodeLine{00629\ \ \ m\_info\ =\ \mbox{\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea671a2aeb0f527802806a441d58a80fcf}{Success}};}
+\DoxyCodeLine{00630\ \ \ m\_isInitialized\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00631\ \ \ m\_isAllocated\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00632\ \ \ m\_computationOptions\ =\ computationOptions;}
+\DoxyCodeLine{00633\ \ \ m\_computeFullU\ =\ (computationOptions\ \&\ \mbox{\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a9fa9302d510cee20c26311154937e23f}{ComputeFullU}})\ !=\ 0;}
+\DoxyCodeLine{00634\ \ \ m\_computeThinU\ =\ (computationOptions\ \&\ \mbox{\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9aa7fb4e98834788d0b1b0f2b8467d2527}{ComputeThinU}})\ !=\ 0;}
+\DoxyCodeLine{00635\ \ \ m\_computeFullV\ =\ (computationOptions\ \&\ \mbox{\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a36581f7c662f7def31efd500c284f930}{ComputeFullV}})\ !=\ 0;}
+\DoxyCodeLine{00636\ \ \ m\_computeThinV\ =\ (computationOptions\ \&\ \mbox{\hyperlink{group__enums_ggae3e239fb70022eb8747994cf5d68b4a9a540036417bfecf2e791a70948c227f47}{ComputeThinV}})\ !=\ 0;}
+\DoxyCodeLine{00637\ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(!(m\_computeFullU\ \&\&\ m\_computeThinU)\ \&\&\ \textcolor{stringliteral}{"{}JacobiSVD:\ you\ can't\ ask\ for\ both\ full\ and\ thin\ U"{}});}
+\DoxyCodeLine{00638\ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(!(m\_computeFullV\ \&\&\ m\_computeThinV)\ \&\&\ \textcolor{stringliteral}{"{}JacobiSVD:\ you\ can't\ ask\ for\ both\ full\ and\ thin\ V"{}});}
+\DoxyCodeLine{00639\ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(\mbox{\hyperlink{Macros_8h_ae309c2778566c4bd7c2801a61f8b7c6c}{EIGEN\_IMPLIES}}(m\_computeThinU\ ||\ m\_computeThinV,\ MatrixType::ColsAtCompileTime==Dynamic)\ \&\&}
+\DoxyCodeLine{00640\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}JacobiSVD:\ thin\ U\ and\ V\ are\ only\ available\ when\ your\ matrix\ has\ a\ dynamic\ number\ of\ columns."{}});}
+\DoxyCodeLine{00641\ \ \ \textcolor{keywordflow}{if}\ (QRPreconditioner\ ==\ \mbox{\hyperlink{group__enums_gga46eba0d5c621f590b8cf1b53af31d56eabd745dcaff7019c5f918c68809e5ea50}{FullPivHouseholderQRPreconditioner}})}
+\DoxyCodeLine{00642\ \ \ \{}
+\DoxyCodeLine{00643\ \ \ \ \ \ \ \mbox{\hyperlink{Macros_8h_acaa7ba89800cfe18d5fd6eed620aea9c}{eigen\_assert}}(!(m\_computeThinU\ ||\ m\_computeThinV)\ \&\&}
+\DoxyCodeLine{00644\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}JacobiSVD:\ can't\ compute\ thin\ U\ or\ thin\ V\ with\ the\ FullPivHouseholderQR\ preconditioner.\ "{}}}
+\DoxyCodeLine{00645\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Use\ the\ ColPivHouseholderQR\ preconditioner\ instead."{}});}
+\DoxyCodeLine{00646\ \ \ \}}
+\DoxyCodeLine{00647\ \ \ m\_diagSize\ =\ (std::min)(m\_rows,\ m\_cols);}
+\DoxyCodeLine{00648\ \ \ m\_singularValues.resize(m\_diagSize);}
+\DoxyCodeLine{00649\ \ \ \textcolor{keywordflow}{if}(RowsAtCompileTime==Dynamic)}
+\DoxyCodeLine{00650\ \ \ \ \ m\_matrixU.resize(m\_rows,\ m\_computeFullU\ ?\ m\_rows}
+\DoxyCodeLine{00651\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ m\_computeThinU\ ?\ m\_diagSize}
+\DoxyCodeLine{00652\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 0);}
+\DoxyCodeLine{00653\ \ \ \textcolor{keywordflow}{if}(ColsAtCompileTime==Dynamic)}
+\DoxyCodeLine{00654\ \ \ \ \ m\_matrixV.resize(m\_cols,\ m\_computeFullV\ ?\ m\_cols}
+\DoxyCodeLine{00655\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ m\_computeThinV\ ?\ m\_diagSize}
+\DoxyCodeLine{00656\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 0);}
+\DoxyCodeLine{00657\ \ \ m\_workMatrix.resize(m\_diagSize,\ m\_diagSize);}
+\DoxyCodeLine{00658\ \ \ }
+\DoxyCodeLine{00659\ \ \ \textcolor{keywordflow}{if}(m\_cols>m\_rows)\ \ \ m\_qr\_precond\_morecols.allocate(*\textcolor{keyword}{this});}
+\DoxyCodeLine{00660\ \ \ \textcolor{keywordflow}{if}(m\_rows>m\_cols)\ \ \ m\_qr\_precond\_morerows.allocate(*\textcolor{keyword}{this});}
+\DoxyCodeLine{00661\ \ \ \textcolor{keywordflow}{if}(m\_rows!=m\_cols)\ \ m\_scaledMatrix.resize(rows,cols);}
+\DoxyCodeLine{00662\ \}}
+\DoxyCodeLine{00663\ }
+\DoxyCodeLine{00664\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keywordtype}{int}\ QRPreconditioner>}
+\DoxyCodeLine{00665\ JacobiSVD<MatrixType,\ QRPreconditioner>\&}
+\DoxyCodeLine{00666\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a5dab376cc86cf0d36674bcdad4af3f5a}{JacobiSVD<MatrixType,\ QRPreconditioner>::compute}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a1a93ffd346b56509de51128cca99ab27}{MatrixType}}\&\ matrix,\ \textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ computationOptions)}
+\DoxyCodeLine{00667\ \{}
+\DoxyCodeLine{00668\ \ \ \textcolor{keyword}{using\ }std::abs;}
+\DoxyCodeLine{00669\ \ \ allocate(matrix.rows(),\ matrix.cols(),\ computationOptions);}
+\DoxyCodeLine{00670\ }
+\DoxyCodeLine{00671\ \ \ \textcolor{comment}{//\ currently\ we\ stop\ when\ we\ reach\ precision\ 2*epsilon\ as\ the\ last\ bit\ of\ precision\ can\ require\ an\ unreasonable\ number\ of\ iterations,}}
+\DoxyCodeLine{00672\ \ \ \textcolor{comment}{//\ only\ worsening\ the\ precision\ of\ U\ and\ V\ as\ we\ accumulate\ more\ rotations}}
+\DoxyCodeLine{00673\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a19a254febcf2ce797babef3a85a6076b}{precision}}\ =\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}(2)\ *\ \mbox{\hyperlink{structEigen_1_1GenericNumTraits_a3a573c69713fbb143fb49af7db463cee}{NumTraits<Scalar>::epsilon}}();}
+\DoxyCodeLine{00674\ }
+\DoxyCodeLine{00675\ \ \ \textcolor{comment}{//\ limit\ for\ denormal\ numbers\ to\ be\ considered\ zero\ in\ order\ to\ avoid\ infinite\ loops\ (see\ bug\ 286)}}
+\DoxyCodeLine{00676\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}\ considerAsZero\ =\ (std::numeric\_limits<RealScalar>::min)();}
+\DoxyCodeLine{00677\ }
+\DoxyCodeLine{00678\ \ \ \textcolor{comment}{//\ Scaling\ factor\ to\ reduce\ over/under-\/flows}}
+\DoxyCodeLine{00679\ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}\ scale\ =\ matrix.cwiseAbs().template\ maxCoeff<PropagateNaN>();}
+\DoxyCodeLine{00680\ \ \ \textcolor{keywordflow}{if}\ (!(\mbox{\hyperlink{namespaceEigen_1_1numext_a2453ca8f9a4be71354074d0f9bf734c8}{numext::isfinite}})(scale))\ \{}
+\DoxyCodeLine{00681\ \ \ \ \ m\_isInitialized\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00682\ \ \ \ \ m\_info\ =\ \mbox{\hyperlink{group__enums_gga85fad7b87587764e5cf6b513a9e0ee5ea580b2a3cafe585691e789f768fb729bf}{InvalidInput}};}
+\DoxyCodeLine{00683\ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00684\ \ \ \}}
+\DoxyCodeLine{00685\ \ \ \textcolor{keywordflow}{if}(scale==\mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}(0))\ scale\ =\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}(1);}
+\DoxyCodeLine{00686\ \ \ }
+\DoxyCodeLine{00687\ \textcolor{comment}{\ \ /***\ step\ 1.\ The\ R-\/SVD\ step:\ we\ use\ a\ QR\ decomposition\ to\ reduce\ to\ the\ case\ of\ a\ square\ matrix\ */}}
+\DoxyCodeLine{00688\ }
+\DoxyCodeLine{00689\ \ \ \textcolor{keywordflow}{if}(m\_rows!=m\_cols)}
+\DoxyCodeLine{00690\ \ \ \{}
+\DoxyCodeLine{00691\ \ \ \ \ m\_scaledMatrix\ =\ matrix\ /\ scale;}
+\DoxyCodeLine{00692\ \ \ \ \ m\_qr\_precond\_morecols.run(*\textcolor{keyword}{this},\ m\_scaledMatrix);}
+\DoxyCodeLine{00693\ \ \ \ \ m\_qr\_precond\_morerows.run(*\textcolor{keyword}{this},\ m\_scaledMatrix);}
+\DoxyCodeLine{00694\ \ \ \}}
+\DoxyCodeLine{00695\ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00696\ \ \ \{}
+\DoxyCodeLine{00697\ \ \ \ \ m\_workMatrix\ =\ matrix.block(0,0,m\_diagSize,m\_diagSize)\ /\ scale;}
+\DoxyCodeLine{00698\ \ \ \ \ \textcolor{keywordflow}{if}(m\_computeFullU)\ m\_matrixU.setIdentity(m\_rows,m\_rows);}
+\DoxyCodeLine{00699\ \ \ \ \ \textcolor{keywordflow}{if}(m\_computeThinU)\ m\_matrixU.setIdentity(m\_rows,m\_diagSize);}
+\DoxyCodeLine{00700\ \ \ \ \ \textcolor{keywordflow}{if}(m\_computeFullV)\ m\_matrixV.setIdentity(m\_cols,m\_cols);}
+\DoxyCodeLine{00701\ \ \ \ \ \textcolor{keywordflow}{if}(m\_computeThinV)\ m\_matrixV.setIdentity(m\_cols,\ m\_diagSize);}
+\DoxyCodeLine{00702\ \ \ \}}
+\DoxyCodeLine{00703\ }
+\DoxyCodeLine{00704\ \textcolor{comment}{\ \ /***\ step\ 2.\ The\ main\ Jacobi\ SVD\ iteration.\ ***/}}
+\DoxyCodeLine{00705\ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}\ maxDiagEntry\ =\ m\_workMatrix.cwiseAbs().diagonal().maxCoeff();}
+\DoxyCodeLine{00706\ }
+\DoxyCodeLine{00707\ \ \ \textcolor{keywordtype}{bool}\ finished\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00708\ \ \ \textcolor{keywordflow}{while}(!finished)}
+\DoxyCodeLine{00709\ \ \ \{}
+\DoxyCodeLine{00710\ \ \ \ \ finished\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00711\ }
+\DoxyCodeLine{00712\ \ \ \ \ \textcolor{comment}{//\ do\ a\ sweep:\ for\ all\ index\ pairs\ (p,q),\ perform\ SVD\ of\ the\ corresponding\ 2x2\ sub-\/matrix}}
+\DoxyCodeLine{00713\ }
+\DoxyCodeLine{00714\ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{classEigen_1_1SVDBase_aec692104f937d70a5252b3e5350bfb78}{Index}}\ p\ =\ 1;\ p\ <\ m\_diagSize;\ ++p)}
+\DoxyCodeLine{00715\ \ \ \ \ \{}
+\DoxyCodeLine{00716\ \ \ \ \ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{classEigen_1_1SVDBase_aec692104f937d70a5252b3e5350bfb78}{Index}}\ q\ =\ 0;\ q\ <\ p;\ ++q)}
+\DoxyCodeLine{00717\ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00718\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ if\ this\ 2x2\ sub-\/matrix\ is\ not\ diagonal\ already...}}
+\DoxyCodeLine{00719\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ notice\ that\ this\ comparison\ will\ evaluate\ to\ false\ if\ any\ NaN\ is\ involved,\ ensuring\ that\ NaN's\ don't}}
+\DoxyCodeLine{00720\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ keep\ us\ iterating\ forever.\ Similarly,\ small\ denormal\ numbers\ are\ considered\ zero.}}
+\DoxyCodeLine{00721\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}\ threshold\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_a29d502349f2ec9897c808e65e0f96eb4}{numext::maxi<RealScalar>}}(considerAsZero,\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a19a254febcf2ce797babef3a85a6076b}{precision}}\ *\ maxDiagEntry);}
+\DoxyCodeLine{00722\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(m\_workMatrix.coeff(p,q))>threshold\ ||\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(m\_workMatrix.coeff(q,p))\ >\ threshold)}
+\DoxyCodeLine{00723\ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00724\ \ \ \ \ \ \ \ \ \ \ finished\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00725\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ perform\ SVD\ decomposition\ of\ 2x2\ sub-\/matrix\ corresponding\ to\ indices\ p,q\ to\ make\ it\ diagonal}}
+\DoxyCodeLine{00726\ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ the\ complex\ to\ real\ operation\ returns\ true\ if\ the\ updated\ 2x2\ block\ is\ not\ already\ diagonal}}
+\DoxyCodeLine{00727\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(\mbox{\hyperlink{structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real}{internal::svd\_precondition\_2x2\_block\_to\_be\_real<MatrixType,\ QRPreconditioner>::run}}(m\_workMatrix,\ *\textcolor{keyword}{this},\ p,\ q,\ maxDiagEntry))}
+\DoxyCodeLine{00728\ \ \ \ \ \ \ \ \ \ \ \{}
+\DoxyCodeLine{00729\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiRotation}{JacobiRotation<RealScalar>}}\ j\_left,\ j\_right;}
+\DoxyCodeLine{00730\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a6c2651dd28bd9227267e66aaca20330e}{internal::real\_2x2\_jacobi\_svd}}(m\_workMatrix,\ p,\ q,\ \&j\_left,\ \&j\_right);}
+\DoxyCodeLine{00731\ }
+\DoxyCodeLine{00732\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ accumulate\ resulting\ Jacobi\ rotations}}
+\DoxyCodeLine{00733\ \ \ \ \ \ \ \ \ \ \ \ \ m\_workMatrix.applyOnTheLeft(p,q,j\_left);}
+\DoxyCodeLine{00734\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(computeU())\ m\_matrixU.applyOnTheRight(p,q,j\_left.\mbox{\hyperlink{classEigen_1_1JacobiRotation_a3ad513485f7426761ab80fc845f9946e}{transpose}}());}
+\DoxyCodeLine{00735\ }
+\DoxyCodeLine{00736\ \ \ \ \ \ \ \ \ \ \ \ \ m\_workMatrix.applyOnTheRight(p,q,j\_right);}
+\DoxyCodeLine{00737\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{if}(computeV())\ m\_matrixV.applyOnTheRight(p,q,j\_right);}
+\DoxyCodeLine{00738\ }
+\DoxyCodeLine{00739\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ keep\ track\ of\ the\ largest\ diagonal\ coefficient}}
+\DoxyCodeLine{00740\ \ \ \ \ \ \ \ \ \ \ \ \ maxDiagEntry\ =\ \mbox{\hyperlink{namespaceEigen_1_1numext_a29d502349f2ec9897c808e65e0f96eb4}{numext::maxi<RealScalar>}}(maxDiagEntry,\mbox{\hyperlink{namespaceEigen_1_1numext_a29d502349f2ec9897c808e65e0f96eb4}{numext::maxi<RealScalar>}}(\mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(m\_workMatrix.coeff(p,p)),\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(m\_workMatrix.coeff(q,q))));}
+\DoxyCodeLine{00741\ \ \ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00742\ \ \ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00743\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00744\ \ \ \ \ \}}
+\DoxyCodeLine{00745\ \ \ \}}
+\DoxyCodeLine{00746\ }
+\DoxyCodeLine{00747\ \textcolor{comment}{\ \ /***\ step\ 3.\ The\ work\ matrix\ is\ now\ diagonal,\ so\ ensure\ it's\ positive\ so\ its\ diagonal\ entries\ are\ the\ singular\ values\ ***/}}
+\DoxyCodeLine{00748\ }
+\DoxyCodeLine{00749\ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{classEigen_1_1SVDBase_aec692104f937d70a5252b3e5350bfb78}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ m\_diagSize;\ ++\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})}
+\DoxyCodeLine{00750\ \ \ \{}
+\DoxyCodeLine{00751\ \ \ \ \ \textcolor{comment}{//\ For\ a\ complex\ matrix,\ some\ diagonal\ coefficients\ might\ note\ have\ been}}
+\DoxyCodeLine{00752\ \ \ \ \ \textcolor{comment}{//\ treated\ by\ svd\_precondition\_2x2\_block\_to\_be\_real,\ and\ the\ imaginary\ part}}
+\DoxyCodeLine{00753\ \ \ \ \ \textcolor{comment}{//\ of\ some\ diagonal\ entry\ might\ not\ be\ null.}}
+\DoxyCodeLine{00754\ \ \ \ \ \textcolor{keywordflow}{if}(\mbox{\hyperlink{structEigen_1_1NumTraits}{NumTraits<Scalar>::IsComplex}}\ \&\&\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(numext::imag(m\_workMatrix.coeff(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})))>considerAsZero)}
+\DoxyCodeLine{00755\ \ \ \ \ \{}
+\DoxyCodeLine{00756\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}}\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(m\_workMatrix.coeff(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{00757\ \ \ \ \ \ \ m\_singularValues.coeffRef(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}});}
+\DoxyCodeLine{00758\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(computeU())\ m\_matrixU.col(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ *=\ m\_workMatrix.coeff(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})/\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}};}
+\DoxyCodeLine{00759\ \ \ \ \ \}}
+\DoxyCodeLine{00760\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00761\ \ \ \ \ \{}
+\DoxyCodeLine{00762\ \ \ \ \ \ \ \textcolor{comment}{//\ m\_workMatrix.coeff(i,i)\ is\ already\ real,\ no\ difficulty:}}
+\DoxyCodeLine{00763\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}}\ =\ numext::real(m\_workMatrix.coeff(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}},\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{00764\ \ \ \ \ \ \ m\_singularValues.coeffRef(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ =\ \mbox{\hyperlink{ArrayCwiseUnaryOps_8h_a35560f7dbf19244fda7e463d14157c43}{abs}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}});}
+\DoxyCodeLine{00765\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(computeU()\ \&\&\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_aa4c2a5552e9bc49b1816ff532f558c74}{a}}<\mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}(0)))\ m\_matrixU.col(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\ =\ -\/m\_matrixU.col(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}});}
+\DoxyCodeLine{00766\ \ \ \ \ \}}
+\DoxyCodeLine{00767\ \ \ \}}
+\DoxyCodeLine{00768\ \ \ }
+\DoxyCodeLine{00769\ \ \ m\_singularValues\ *=\ scale;}
+\DoxyCodeLine{00770\ }
+\DoxyCodeLine{00771\ \textcolor{comment}{\ \ /***\ step\ 4.\ Sort\ singular\ values\ in\ descending\ order\ and\ compute\ the\ number\ of\ nonzero\ singular\ values\ ***/}}
+\DoxyCodeLine{00772\ }
+\DoxyCodeLine{00773\ \ \ m\_nonzeroSingularValues\ =\ m\_diagSize;}
+\DoxyCodeLine{00774\ \ \ \textcolor{keywordflow}{for}(\mbox{\hyperlink{classEigen_1_1SVDBase_aec692104f937d70a5252b3e5350bfb78}{Index}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ =\ 0;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ m\_diagSize;\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}++)}
+\DoxyCodeLine{00775\ \ \ \{}
+\DoxyCodeLine{00776\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1SVDBase_aec692104f937d70a5252b3e5350bfb78}{Index}}\ pos;}
+\DoxyCodeLine{00777\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}\ maxRemainingSingularValue\ =\ m\_singularValues.tail(m\_diagSize-\/\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}).maxCoeff(\&pos);}
+\DoxyCodeLine{00778\ \ \ \ \ \textcolor{keywordflow}{if}(maxRemainingSingularValue\ ==\ \mbox{\hyperlink{classEigen_1_1JacobiSVD_a4d9a04c1a7991f584741b388e46b1a44}{RealScalar}}(0))}
+\DoxyCodeLine{00779\ \ \ \ \ \{}
+\DoxyCodeLine{00780\ \ \ \ \ \ \ m\_nonzeroSingularValues\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}};}
+\DoxyCodeLine{00781\ \ \ \ \ \ \ \textcolor{keywordflow}{break};}
+\DoxyCodeLine{00782\ \ \ \ \ \}}
+\DoxyCodeLine{00783\ \ \ \ \ \textcolor{keywordflow}{if}(pos)}
+\DoxyCodeLine{00784\ \ \ \ \ \{}
+\DoxyCodeLine{00785\ \ \ \ \ \ \ pos\ +=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}};}
+\DoxyCodeLine{00786\ \ \ \ \ \ \ std::swap(m\_singularValues.coeffRef(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}),\ m\_singularValues.coeffRef(pos));}
+\DoxyCodeLine{00787\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(computeU())\ m\_matrixU.col(pos).swap(m\_matrixU.col(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{00788\ \ \ \ \ \ \ \textcolor{keywordflow}{if}(computeV())\ m\_matrixV.col(pos).swap(m\_matrixV.col(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{00789\ \ \ \ \ \}}
+\DoxyCodeLine{00790\ \ \ \}}
+\DoxyCodeLine{00791\ }
+\DoxyCodeLine{00792\ \ \ m\_isInitialized\ =\ \textcolor{keyword}{true};}
+\DoxyCodeLine{00793\ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00794\ \}}
+\DoxyCodeLine{00795\ }
+\DoxyCodeLine{00803\ \textcolor{keyword}{template}<\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00804\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<typename\ MatrixBase<Derived>::PlainObject}}>}
+\DoxyCodeLine{00805\ \mbox{\hyperlink{classEigen_1_1MatrixBase_a5745dca9c54390633b434e54a1d1eedd}{MatrixBase<Derived>::jacobiSvd}}(\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{int}\ computationOptions)\textcolor{keyword}{\ const}}
+\DoxyCodeLine{00806\ \textcolor{keyword}{}\{}
+\DoxyCodeLine{00807\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classEigen_1_1JacobiSVD}{JacobiSVD<PlainObject>}}(*\textcolor{keyword}{this},\ computationOptions);}
+\DoxyCodeLine{00808\ \}}
+\DoxyCodeLine{00809\ }
+\DoxyCodeLine{00810\ \}\ \textcolor{comment}{//\ end\ namespace\ Eigen}}
+\DoxyCodeLine{00811\ }
+\DoxyCodeLine{00812\ \textcolor{preprocessor}{\#endif\ }\textcolor{comment}{//\ EIGEN\_JACOBISVD\_H}}
+
+\end{DoxyCode}

@@ -1,0 +1,371 @@
+\doxysection{log.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2log_2log_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2log_2log_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/log/log.h@{tensor/build/\_deps/absl-\/src/absl/log/log.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2log_2log_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2022\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ log/log.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ header\ declares\ a\ family\ of\ LOG\ macros.}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ Basic\ invocation\ looks\ like\ this:}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \ \ LOG(INFO)\ <<\ "{}Found\ "{}\ <<\ num\_cookies\ <<\ "{}\ cookies"{};}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ Most\ \`{}LOG`\ macros\ take\ a\ severity\ level\ argument.\ \ The\ severity\ levels\ are}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ \`{}INFO`,\ \`{}WARNING`,\ \`{}ERROR`,\ and\ \`{}FATAL`.\ \ They\ are\ defined}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ in\ absl/base/log\_severity.h.}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ *\ The\ \`{}FATAL`\ severity\ level\ terminates\ the\ program\ with\ a\ stack\ trace\ after}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ \ \ logging\ its\ message.\ \ Error\ handlers\ registered\ with\ \`{}RunOnFailure`}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ \ \ (process\_state.h)\ are\ run,\ but\ exit\ handlers\ registered\ with\ \`{}atexit(3)`}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ \ \ are\ not.}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ *\ The\ \`{}QFATAL`\ pseudo-\/severity\ level\ is\ equivalent\ to\ \`{}FATAL`\ but\ triggers}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ \ \ quieter\ termination\ messages,\ e.g.\ without\ a\ full\ stack\ trace,\ and\ skips}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ \ \ running\ registered\ error\ handlers.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ *\ The\ \`{}DFATAL`\ pseudo-\/severity\ level\ is\ defined\ as\ \`{}FATAL`\ in\ debug\ mode\ and}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ \ \ as\ \`{}ERROR`\ otherwise.}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ Some\ preprocessor\ shenanigans\ are\ used\ to\ ensure\ that\ e.g.\ \`{}LOG(INFO)`\ has}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ the\ same\ meaning\ even\ if\ a\ local\ symbol\ or\ preprocessor\ macro\ named\ \`{}INFO`\ is}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ defined.\ \ To\ specify\ a\ severity\ level\ using\ an\ expression\ instead\ of\ a}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ literal,\ use\ \`{}LEVEL(expr)`.}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ LOG(LEVEL(stale\ ?\ absl::LogSeverity::kWarning\ :\ absl::LogSeverity::kInfo))}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \ \ \ \ \ \ <<\ "{}Cookies\ are\ "{}\ <<\ days\ <<\ "{}\ days\ old"{};}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \`{}LOG`\ macros\ evaluate\ to\ an\ unterminated\ statement.\ \ The\ value\ at\ the\ end\ of}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ the\ statement\ supports\ some\ chainable\ methods:}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ \ \ *\ .AtLocation(absl::string\_view\ file,\ int\ line)}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ \ \ \ \ .AtLocation(absl::SourceLocation\ loc)}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ \ \ \ \ Overrides\ the\ location\ inferred\ from\ the\ callsite.\ \ The\ string\ pointed\ to}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ \ \ \ \ by\ \`{}file`\ must\ be\ valid\ until\ the\ end\ of\ the\ statement.}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ \ \ *\ .NoPrefix()}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ \ \ \ \ Omits\ the\ prefix\ from\ this\ line.\ \ The\ prefix\ includes\ metadata\ about\ the}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ \ \ \ \ logged\ data\ such\ as\ source\ code\ location\ and\ timestamp.}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ \ \ *\ .WithVerbosity(int\ verbose\_level)}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ \ \ \ \ Sets\ the\ verbosity\ field\ of\ the\ logged\ message\ as\ if\ it\ was\ logged\ by}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ \ \ \ \ \`{}VLOG(verbose\_level)`.\ \ Unlike\ \`{}VLOG`,\ this\ method\ does\ not\ affect}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ \ \ \ \ evaluation\ of\ the\ statement\ when\ the\ specified\ \`{}verbose\_level`\ has\ been}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ \ \ \ \ disabled.\ \ The\ only\ effect\ is\ on\ \`{}LogSink`\ implementations\ which\ make\ use}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ \ \ \ \ of\ the\ \`{}absl::LogSink::verbosity()`\ value.\ \ The\ value}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ \ \ \ \ \`{}absl::LogEntry::kNoVerbosityLevel`\ can\ be\ specified\ to\ mark\ the\ message}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ \ \ \ \ not\ verbose.}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ \ \ *\ .WithTimestamp(absl::Time\ timestamp)}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ \ \ \ \ Uses\ the\ specified\ timestamp\ instead\ of\ one\ collected\ at\ the\ time\ of}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ \ \ \ \ execution.}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ \ \ *\ .WithThreadID(absl::LogEntry::tid\_t\ tid)}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ \ \ \ \ Uses\ the\ specified\ thread\ ID\ instead\ of\ one\ collected\ at\ the\ time\ of}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ \ \ \ \ execution.}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \ \ *\ .WithMetadataFrom(const\ absl::LogEntry\ \&entry)}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ \ \ \ Copies\ all\ metadata\ (but\ no\ data)\ from\ the\ specified\ \`{}absl::LogEntry`.}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ \ \ \ \ This\ can\ be\ used\ to\ change\ the\ severity\ of\ a\ message,\ but\ it\ has\ some}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ \ \ \ limitations:}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ \ \ \ \ *\ \`{}ABSL\_MIN\_LOG\_LEVEL`\ is\ evaluated\ against\ the\ severity\ passed\ into}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ \ \ \ \ \ \ \`{}LOG`\ (or\ the\ implicit\ \`{}FATAL`\ level\ of\ \`{}CHECK`).}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ \ \ \ \ *\ \`{}LOG(FATAL)`\ and\ \`{}CHECK`\ terminate\ the\ process\ unconditionally,\ even\ if}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ \ \ \ \ \ \ the\ severity\ is\ changed\ later.}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ \ \ \ \ \`{}.WithMetadataFrom(entry)`\ should\ almost\ always\ be\ used\ in\ combination}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ \ \ \ \ with\ \`{}LOG(LEVEL(entry.log\_severity()))`.}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ \ \ *\ .WithPerror()}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ \ \ \ \ Appends\ to\ the\ logged\ message\ a\ colon,\ a\ space,\ a\ textual\ description\ of}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ \ \ \ \ the\ current\ value\ of\ \`{}errno`\ (as\ by\ \`{}strerror(3)`),\ and\ the\ numerical}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ \ \ \ \ value\ of\ \`{}errno`.}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ \ \ *\ .ToSinkAlso(absl::LogSink*\ sink)}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ \ \ \ \ Sends\ this\ message\ to\ \`{}*sink`\ in\ addition\ to\ whatever\ other\ sinks\ it}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ \ \ \ \ would\ otherwise\ have\ been\ sent\ to.\ \ \`{}sink`\ must\ not\ be\ null.}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ \ \ *\ .ToSinkOnly(absl::LogSink*\ sink)}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ \ \ \ \ Sends\ this\ message\ to\ \`{}*sink`\ and\ no\ others.\ \ \`{}sink`\ must\ not\ be\ null.}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ No\ interfaces\ in\ this\ header\ are\ async-\/signal-\/safe;\ their\ use\ in\ signal}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ handlers\ is\ unsupported\ and\ may\ deadlock\ your\ program\ or\ eat\ your\ lunch.}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ Many\ logging\ statements\ are\ inherently\ conditional.\ \ For\ example,}}
+\DoxyCodeLine{00094\ \textcolor{comment}{//\ \`{}LOG\_IF(INFO,\ !foo)`\ does\ nothing\ if\ \`{}foo`\ is\ true.\ \ Even\ seemingly}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ unconditional\ statements\ like\ \`{}LOG(INFO)`\ might\ be\ disabled\ at}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//\ compile-\/time\ to\ minimize\ binary\ size\ or\ for\ security\ reasons.}}
+\DoxyCodeLine{00097\ \textcolor{comment}{//}}
+\DoxyCodeLine{00098\ \textcolor{comment}{//\ *\ Except\ for\ the\ condition\ in\ a\ \`{}CHECK`\ or\ \`{}QCHECK`\ statement,\ programs\ must}}
+\DoxyCodeLine{00099\ \textcolor{comment}{//\ \ \ not\ rely\ on\ evaluation\ of\ expressions\ anywhere\ in\ logging\ statements\ for}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ \ \ correctness.\ \ For\ example,\ this\ is\ ok:}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ \ \ \ \ CHECK((fp\ =\ fopen("{}config.ini"{},\ "{}r"{}))\ !=\ nullptr);}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ \ \ But\ this\ is\ probably\ not\ ok:}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ \ \ \ \ LOG(INFO)\ <<\ "{}Server\ status:\ "{}\ <<\ StartServerAndReturnStatusString();}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//}}
+\DoxyCodeLine{00108\ \textcolor{comment}{//\ \ \ The\ example\ below\ is\ bad\ too;\ the\ \`{}i++`\ in\ the\ \`{}LOG\_IF`\ condition\ might}}
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ \ \ not\ be\ evaluated,\ resulting\ in\ an\ infinite\ loop:}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ \ \ \ \ for\ (int\ i\ =\ 0;\ i\ <\ 1000000;)}}
+\DoxyCodeLine{00112\ \textcolor{comment}{//\ \ \ \ \ \ \ LOG\_IF(INFO,\ i++\ \%\ 1000\ ==\ 0)\ <<\ "{}Still\ working..."{};}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ *\ Except\ where\ otherwise\ noted,\ conditions\ which\ cause\ a\ statement\ not\ to\ log}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ \ \ also\ cause\ expressions\ not\ to\ be\ evaluated.\ \ Programs\ may\ rely\ on\ this\ for}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ \ \ performance\ reasons,\ e.g.\ by\ streaming\ the\ result\ of\ an\ expensive\ function}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ \ \ call\ into\ a\ \`{}DLOG`\ or\ \`{}LOG\_EVERY\_N`\ statement.}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ *\ Care\ has\ been\ taken\ to\ ensure\ that\ expressions\ are\ parsed\ by\ the\ compiler}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ \ \ even\ if\ they\ are\ never\ evaluated.\ \ This\ means\ that\ syntax\ errors\ will\ be}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ \ \ caught\ and\ variables\ will\ be\ considered\ used\ for\ the\ purposes\ of}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ \ \ unused-\/variable\ diagnostics.\ \ For\ example,\ this\ statement\ won't\ compile}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ \ \ even\ if\ \`{}INFO`-\/level\ logging\ has\ been\ compiled\ out:}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ \ \ \ \ int\ number\_of\_cakes\ =\ 40;}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ \ \ \ \ LOG(INFO)\ <<\ "{}Number\ of\ cakes:\ "{}\ <<\ number\_of\_cake;\ \ //\ Note\ the\ typo!}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ \ \ Similarly,\ this\ won't\ produce\ unused-\/variable\ compiler\ diagnostics\ even}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ \ \ if\ \`{}INFO`-\/level\ logging\ is\ compiled\ out:}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ \ \ \ \ \{}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//\ \ \ \ \ \ \ char\ fox\_line1[]\ =\ "{}Hatee-\/hatee-\/hatee-\/ho!"{};}}
+\DoxyCodeLine{00132\ \textcolor{comment}{//\ \ \ \ \ \ \ LOG\_IF(ERROR,\ false)\ <<\ "{}The\ fox\ says\ "{}\ <<\ fox\_line1;}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ \ \ \ \ \ \ char\ fox\_line2[]\ =\ "{}A-\/oo-\/oo-\/oo-\/ooo!"{};}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ \ \ \ \ \ \ LOG(INFO)\ <<\ "{}The\ fox\ also\ says\ "{}\ <<\ fox\_line2;}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ \ \ This\ error-\/checking\ is\ not\ perfect;\ for\ example,\ symbols\ that\ have\ been}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ \ \ declared\ but\ not\ defined\ may\ not\ produce\ link\ errors\ if\ used\ in\ logging}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ \ \ statements\ that\ compile\ away.}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ Expressions\ streamed\ into\ these\ macros\ are\ formatted\ using\ \`{}operator<<`\ just}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//\ as\ they\ would\ be\ if\ streamed\ into\ a\ \`{}std::ostream`,\ however\ it\ should\ be}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ noted\ that\ their\ actual\ type\ is\ unspecified.}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//\ To\ implement\ a\ custom\ formatting\ operator\ for\ a\ type\ you\ own,\ there\ are\ two}}
+\DoxyCodeLine{00146\ \textcolor{comment}{//\ options:\ \`{}AbslStringify()`\ or\ \`{}std::ostream\&\ operator<<(std::ostream\&,\ ...)`.}}
+\DoxyCodeLine{00147\ \textcolor{comment}{//\ It\ is\ recommended\ that\ users\ make\ their\ types\ loggable\ through}}
+\DoxyCodeLine{00148\ \textcolor{comment}{//\ \`{}AbslStringify()`\ as\ it\ is\ a\ universal\ stringification\ extension\ that\ also}}
+\DoxyCodeLine{00149\ \textcolor{comment}{//\ enables\ \`{}absl::StrFormat`\ and\ \`{}absl::StrCat`\ support.\ If\ both}}
+\DoxyCodeLine{00150\ \textcolor{comment}{//\ \`{}AbslStringify()`\ and\ \`{}std::ostream\&\ operator<<(std::ostream\&,\ ...)`\ are}}
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ defined,\ \`{}AbslStringify()`\ will\ be\ used.}}
+\DoxyCodeLine{00152\ \textcolor{comment}{//}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ To\ use\ the\ \`{}AbslStringify()`\ API,\ define\ a\ friend\ function\ template\ in\ your}}
+\DoxyCodeLine{00154\ \textcolor{comment}{//\ type's\ namespace\ with\ the\ following\ signature:}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ \ \ template\ <typename\ Sink>}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//\ \ \ void\ AbslStringify(Sink\&\ sink,\ const\ UserDefinedType\&\ value);}}
+\DoxyCodeLine{00158\ \textcolor{comment}{//}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ \`{}Sink`\ has\ the\ same\ interface\ as\ \`{}absl::FormatSink`,\ but\ without}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ \`{}PutPaddedString()`.}}
+\DoxyCodeLine{00161\ \textcolor{comment}{//}}
+\DoxyCodeLine{00162\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00163\ \textcolor{comment}{//}}
+\DoxyCodeLine{00164\ \textcolor{comment}{//\ \ \ struct\ Point\ \{}}
+\DoxyCodeLine{00165\ \textcolor{comment}{//\ \ \ \ \ template\ <typename\ Sink>}}
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ \ \ \ \ friend\ void\ AbslStringify(Sink\&\ sink,\ const\ Point\&\ p)\ \{}}
+\DoxyCodeLine{00167\ \textcolor{comment}{//\ \ \ \ \ \ \ absl::Format(\&sink,\ "{}(\%v,\ \%v)"{},\ p.x,\ p.y);}}
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ \ \ \ \ \}}}
+\DoxyCodeLine{00169\ \textcolor{comment}{//}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ \ \ \ \ int\ x;}}
+\DoxyCodeLine{00171\ \textcolor{comment}{//\ \ \ \ \ int\ y;}}
+\DoxyCodeLine{00172\ \textcolor{comment}{//\ \ \ \};}}
+\DoxyCodeLine{00173\ \textcolor{comment}{//}}
+\DoxyCodeLine{00174\ \textcolor{comment}{//\ To\ use\ \`{}std::ostream\&\ operator<<(std::ostream\&,\ ...)`,\ define}}
+\DoxyCodeLine{00175\ \textcolor{comment}{//\ \`{}std::ostream\&\ operator<<(std::ostream\&,\ ...)`\ in\ your\ type's\ namespace\ (for}}
+\DoxyCodeLine{00176\ \textcolor{comment}{//\ ADL)\ just\ as\ you\ would\ to\ stream\ it\ to\ \`{}std::cout`.}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//}}
+\DoxyCodeLine{00178\ \textcolor{comment}{//\ Currently\ \`{}AbslStringify()`\ ignores\ output\ manipulators\ but\ this\ is\ not}}
+\DoxyCodeLine{00179\ \textcolor{comment}{//\ guaranteed\ behavior\ and\ may\ be\ subject\ to\ change\ in\ the\ future.\ If\ you\ would}}
+\DoxyCodeLine{00180\ \textcolor{comment}{//\ like\ guaranteed\ behavior\ regarding\ output\ manipulators,\ please\ use}}
+\DoxyCodeLine{00181\ \textcolor{comment}{//\ \`{}std::ostream\&\ operator<<(std::ostream\&,\ ...)`\ to\ make\ custom\ types\ loggable}}
+\DoxyCodeLine{00182\ \textcolor{comment}{//\ instead.}}
+\DoxyCodeLine{00183\ \textcolor{comment}{//}}
+\DoxyCodeLine{00184\ \textcolor{comment}{//\ Those\ macros\ that\ support\ streaming\ honor\ output\ manipulators\ and\ \`{}fmtflag`}}
+\DoxyCodeLine{00185\ \textcolor{comment}{//\ changes\ that\ output\ data\ (e.g.\ \`{}std::ends`)\ or\ control\ formatting\ of\ data}}
+\DoxyCodeLine{00186\ \textcolor{comment}{//\ (e.g.\ \`{}std::hex`\ and\ \`{}std::fixed`),\ however\ flushing\ such\ a\ stream\ is}}
+\DoxyCodeLine{00187\ \textcolor{comment}{//\ ignored.\ \ The\ message\ produced\ by\ a\ log\ statement\ is\ sent\ to\ registered}}
+\DoxyCodeLine{00188\ \textcolor{comment}{//\ \`{}absl::LogSink`\ instances\ at\ the\ end\ of\ the\ statement;\ those\ sinks\ are}}
+\DoxyCodeLine{00189\ \textcolor{comment}{//\ responsible\ for\ their\ own\ flushing\ (e.g.\ to\ disk)\ semantics.}}
+\DoxyCodeLine{00190\ \textcolor{comment}{//}}
+\DoxyCodeLine{00191\ \textcolor{comment}{//\ Flag\ settings\ are\ not\ carried\ over\ from\ one\ \`{}LOG`\ statement\ to\ the\ next;\ this}}
+\DoxyCodeLine{00192\ \textcolor{comment}{//\ is\ a\ bit\ different\ than\ e.g.\ \`{}std::cout`:}}
+\DoxyCodeLine{00193\ \textcolor{comment}{//}}
+\DoxyCodeLine{00194\ \textcolor{comment}{//\ \ \ LOG(INFO)\ <<\ std::hex\ <<\ 0xdeadbeef;\ \ //\ logs\ "{}0xdeadbeef"{}}}
+\DoxyCodeLine{00195\ \textcolor{comment}{//\ \ \ LOG(INFO)\ <<\ 0xdeadbeef;\ \ \ \ \ \ \ \ \ \ \ \ \ \ //\ logs\ "{}3735928559"{}}}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \textcolor{preprocessor}{\#ifndef\ ABSL\_LOG\_LOG\_H\_}}
+\DoxyCodeLine{00198\ \textcolor{preprocessor}{\#define\ ABSL\_LOG\_LOG\_H\_}}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \textcolor{preprocessor}{\#include\ "{}absl/log/internal/log\_impl.h"{}}}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \textcolor{comment}{//\ LOG()}}
+\DoxyCodeLine{00203\ \textcolor{comment}{//}}
+\DoxyCodeLine{00204\ \textcolor{comment}{//\ \`{}LOG`\ takes\ a\ single\ argument\ which\ is\ a\ severity\ level.\ \ Data\ streamed\ in}}
+\DoxyCodeLine{00205\ \textcolor{comment}{//\ comprise\ the\ logged\ message.}}
+\DoxyCodeLine{00206\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00207\ \textcolor{comment}{//}}
+\DoxyCodeLine{00208\ \textcolor{comment}{//\ \ \ LOG(INFO)\ <<\ "{}Found\ "{}\ <<\ num\_cookies\ <<\ "{}\ cookies"{};}}
+\DoxyCodeLine{00209\ \textcolor{preprocessor}{\#define\ LOG(severity)\ ABSL\_LOG\_INTERNAL\_LOG\_IMPL(\_\#\#severity)}}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \textcolor{comment}{//\ PLOG()}}
+\DoxyCodeLine{00212\ \textcolor{comment}{//}}
+\DoxyCodeLine{00213\ \textcolor{comment}{//\ \`{}PLOG`\ behaves\ like\ \`{}LOG`\ except\ that\ a\ description\ of\ the\ current\ state\ of}}
+\DoxyCodeLine{00214\ \textcolor{comment}{//\ \`{}errno`\ is\ appended\ to\ the\ streamed\ message.}}
+\DoxyCodeLine{00215\ \textcolor{preprocessor}{\#define\ PLOG(severity)\ ABSL\_LOG\_INTERNAL\_PLOG\_IMPL(\_\#\#severity)}}
+\DoxyCodeLine{00216\ }
+\DoxyCodeLine{00217\ \textcolor{comment}{//\ DLOG()}}
+\DoxyCodeLine{00218\ \textcolor{comment}{//}}
+\DoxyCodeLine{00219\ \textcolor{comment}{//\ \`{}DLOG`\ behaves\ like\ \`{}LOG`\ in\ debug\ mode\ (i.e.\ \`{}\#ifndef\ NDEBUG`).\ \ Otherwise}}
+\DoxyCodeLine{00220\ \textcolor{comment}{//\ it\ compiles\ away\ and\ does\ nothing.\ \ Note\ that\ \`{}DLOG(FATAL)`\ does\ not}}
+\DoxyCodeLine{00221\ \textcolor{comment}{//\ terminate\ the\ program\ if\ \`{}NDEBUG`\ is\ defined.}}
+\DoxyCodeLine{00222\ \textcolor{preprocessor}{\#define\ DLOG(severity)\ ABSL\_LOG\_INTERNAL\_DLOG\_IMPL(\_\#\#severity)}}
+\DoxyCodeLine{00223\ }
+\DoxyCodeLine{00224\ \textcolor{comment}{//\ \`{}VLOG`\ uses\ numeric\ levels\ to\ provide\ verbose\ logging\ that\ can\ configured\ at}}
+\DoxyCodeLine{00225\ \textcolor{comment}{//\ runtime,\ including\ at\ a\ per-\/module\ level.\ \ \`{}VLOG`\ statements\ are\ logged\ at}}
+\DoxyCodeLine{00226\ \textcolor{comment}{//\ \`{}INFO`\ severity\ if\ they\ are\ logged\ at\ all;\ the\ numeric\ levels\ are\ on\ a}}
+\DoxyCodeLine{00227\ \textcolor{comment}{//\ different\ scale\ than\ the\ proper\ severity\ levels.\ \ Positive\ levels\ are}}
+\DoxyCodeLine{00228\ \textcolor{comment}{//\ disabled\ by\ default.\ \ Negative\ levels\ should\ not\ be\ used.}}
+\DoxyCodeLine{00229\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00230\ \textcolor{comment}{//}}
+\DoxyCodeLine{00231\ \textcolor{comment}{//\ \ \ VLOG(1)\ <<\ "{}I\ print\ when\ you\ run\ the\ program\ with\ -\/-\/v=1\ or\ higher"{};}}
+\DoxyCodeLine{00232\ \textcolor{comment}{//\ \ \ VLOG(2)\ <<\ "{}I\ print\ when\ you\ run\ the\ program\ with\ -\/-\/v=2\ or\ higher"{};}}
+\DoxyCodeLine{00233\ \textcolor{comment}{//}}
+\DoxyCodeLine{00234\ \textcolor{comment}{//\ See\ vlog\_is\_on.h\ for\ further\ documentation,\ including\ the\ usage\ of\ the}}
+\DoxyCodeLine{00235\ \textcolor{comment}{//\ -\/-\/vmodule\ flag\ to\ log\ at\ different\ levels\ in\ different\ source\ files.}}
+\DoxyCodeLine{00236\ \textcolor{comment}{//}}
+\DoxyCodeLine{00237\ \textcolor{comment}{//\ \`{}VLOG`\ does\ not\ produce\ any\ output\ when\ verbose\ logging\ is\ not\ enabled.}}
+\DoxyCodeLine{00238\ \textcolor{comment}{//\ However,\ simply\ testing\ whether\ verbose\ logging\ is\ enabled\ can\ be\ expensive.}}
+\DoxyCodeLine{00239\ \textcolor{comment}{//\ If\ you\ don't\ intend\ to\ enable\ verbose\ logging\ in\ non-\/debug\ builds,\ consider}}
+\DoxyCodeLine{00240\ \textcolor{comment}{//\ using\ \`{}DVLOG`\ instead.}}
+\DoxyCodeLine{00241\ \textcolor{preprocessor}{\#define\ VLOG(severity)\ ABSL\_LOG\_INTERNAL\_VLOG\_IMPL(severity)}}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \textcolor{comment}{//\ \`{}DVLOG`\ behaves\ like\ \`{}VLOG`\ in\ debug\ mode\ (i.e.\ \`{}\#ifndef\ NDEBUG`).}}
+\DoxyCodeLine{00244\ \textcolor{comment}{//\ Otherwise,\ it\ compiles\ away\ and\ does\ nothing.}}
+\DoxyCodeLine{00245\ \textcolor{preprocessor}{\#define\ DVLOG(severity)\ ABSL\_LOG\_INTERNAL\_DVLOG\_IMPL(severity)}}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \textcolor{comment}{//\ \`{}LOG\_IF`\ and\ friends\ add\ a\ second\ argument\ which\ specifies\ a\ condition.\ \ If}}
+\DoxyCodeLine{00248\ \textcolor{comment}{//\ the\ condition\ is\ false,\ nothing\ is\ logged.}}
+\DoxyCodeLine{00249\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00250\ \textcolor{comment}{//}}
+\DoxyCodeLine{00251\ \textcolor{comment}{//\ \ \ LOG\_IF(INFO,\ num\_cookies\ >\ 10)\ <<\ "{}Got\ lots\ of\ cookies"{};}}
+\DoxyCodeLine{00252\ \textcolor{comment}{//}}
+\DoxyCodeLine{00253\ \textcolor{comment}{//\ There\ is\ no\ \`{}VLOG\_IF`\ because\ the\ order\ of\ evaluation\ of\ the\ arguments\ is}}
+\DoxyCodeLine{00254\ \textcolor{comment}{//\ ambiguous\ and\ the\ alternate\ spelling\ with\ an\ \`{}if`-\/statement\ is\ trivial.}}
+\DoxyCodeLine{00255\ \textcolor{preprocessor}{\#define\ LOG\_IF(severity,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00256\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_LOG\_IF\_IMPL(\_\#\#severity,\ condition)}}
+\DoxyCodeLine{00257\ \textcolor{preprocessor}{\#define\ PLOG\_IF(severity,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00258\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_IMPL(\_\#\#severity,\ condition)}}
+\DoxyCodeLine{00259\ \textcolor{preprocessor}{\#define\ DLOG\_IF(severity,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00260\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_IMPL(\_\#\#severity,\ condition)}}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \textcolor{comment}{//\ LOG\_EVERY\_N}}
+\DoxyCodeLine{00263\ \textcolor{comment}{//}}
+\DoxyCodeLine{00264\ \textcolor{comment}{//\ An\ instance\ of\ \`{}LOG\_EVERY\_N`\ increments\ a\ hidden\ zero-\/initialized\ counter}}
+\DoxyCodeLine{00265\ \textcolor{comment}{//\ every\ time\ execution\ passes\ through\ it\ and\ logs\ the\ specified\ message\ when}}
+\DoxyCodeLine{00266\ \textcolor{comment}{//\ the\ counter's\ value\ is\ a\ multiple\ of\ \`{}n`,\ doing\ nothing\ otherwise.\ \ Each}}
+\DoxyCodeLine{00267\ \textcolor{comment}{//\ instance\ has\ its\ own\ counter.\ \ The\ counter's\ value\ can\ be\ logged\ by\ streaming}}
+\DoxyCodeLine{00268\ \textcolor{comment}{//\ the\ symbol\ \`{}COUNTER`.\ \ \`{}LOG\_EVERY\_N`\ is\ thread-\/safe.}}
+\DoxyCodeLine{00269\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00270\ \textcolor{comment}{//}}
+\DoxyCodeLine{00271\ \textcolor{comment}{//\ \ \ LOG\_EVERY\_N(WARNING,\ 1000)\ <<\ "{}Got\ a\ packet\ with\ a\ bad\ CRC\ ("{}\ <<\ COUNTER}}
+\DoxyCodeLine{00272\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ <<\ "{}\ total)"{};}}
+\DoxyCodeLine{00273\ \textcolor{preprocessor}{\#define\ LOG\_EVERY\_N(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00274\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_LOG\_EVERY\_N\_IMPL(\_\#\#severity,\ n)}}
+\DoxyCodeLine{00275\ }
+\DoxyCodeLine{00276\ \textcolor{comment}{//\ LOG\_FIRST\_N}}
+\DoxyCodeLine{00277\ \textcolor{comment}{//}}
+\DoxyCodeLine{00278\ \textcolor{comment}{//\ \`{}LOG\_FIRST\_N`\ behaves\ like\ \`{}LOG\_EVERY\_N`\ except\ that\ the\ specified\ message\ is}}
+\DoxyCodeLine{00279\ \textcolor{comment}{//\ logged\ when\ the\ counter's\ value\ is\ less\ than\ \`{}n`.\ \ \`{}LOG\_FIRST\_N`\ is}}
+\DoxyCodeLine{00280\ \textcolor{comment}{//\ thread-\/safe.}}
+\DoxyCodeLine{00281\ \textcolor{preprocessor}{\#define\ LOG\_FIRST\_N(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00282\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_LOG\_FIRST\_N\_IMPL(\_\#\#severity,\ n)}}
+\DoxyCodeLine{00283\ }
+\DoxyCodeLine{00284\ \textcolor{comment}{//\ LOG\_EVERY\_POW\_2}}
+\DoxyCodeLine{00285\ \textcolor{comment}{//}}
+\DoxyCodeLine{00286\ \textcolor{comment}{//\ \`{}LOG\_EVERY\_POW\_2`\ behaves\ like\ \`{}LOG\_EVERY\_N`\ except\ that\ the\ specified}}
+\DoxyCodeLine{00287\ \textcolor{comment}{//\ message\ is\ logged\ when\ the\ counter's\ value\ is\ a\ power\ of\ 2.}}
+\DoxyCodeLine{00288\ \textcolor{comment}{//\ \`{}LOG\_EVERY\_POW\_2`\ is\ thread-\/safe.}}
+\DoxyCodeLine{00289\ \textcolor{preprocessor}{\#define\ LOG\_EVERY\_POW\_2(severity)\ \(\backslash\)}}
+\DoxyCodeLine{00290\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_LOG\_EVERY\_POW\_2\_IMPL(\_\#\#severity)}}
+\DoxyCodeLine{00291\ }
+\DoxyCodeLine{00292\ \textcolor{comment}{//\ LOG\_EVERY\_N\_SEC}}
+\DoxyCodeLine{00293\ \textcolor{comment}{//}}
+\DoxyCodeLine{00294\ \textcolor{comment}{//\ An\ instance\ of\ \`{}LOG\_EVERY\_N\_SEC`\ uses\ a\ hidden\ state\ variable\ to\ log\ the}}
+\DoxyCodeLine{00295\ \textcolor{comment}{//\ specified\ message\ at\ most\ once\ every\ \`{}n\_seconds`.\ \ A\ hidden\ counter\ of}}
+\DoxyCodeLine{00296\ \textcolor{comment}{//\ executions\ (whether\ a\ message\ is\ logged\ or\ not)\ is\ also\ maintained\ and\ can\ be}}
+\DoxyCodeLine{00297\ \textcolor{comment}{//\ logged\ by\ streaming\ the\ symbol\ \`{}COUNTER`.\ \ \`{}LOG\_EVERY\_N\_SEC`\ is\ thread-\/safe.}}
+\DoxyCodeLine{00298\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00299\ \textcolor{comment}{//}}
+\DoxyCodeLine{00300\ \textcolor{comment}{//\ \ \ LOG\_EVERY\_N\_SEC(INFO,\ 2.5)\ <<\ "{}Got\ "{}\ <<\ COUNTER\ <<\ "{}\ cookies\ so\ far"{};}}
+\DoxyCodeLine{00301\ \textcolor{preprocessor}{\#define\ LOG\_EVERY\_N\_SEC(severity,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00302\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_LOG\_EVERY\_N\_SEC\_IMPL(\_\#\#severity,\ n\_seconds)}}
+\DoxyCodeLine{00303\ }
+\DoxyCodeLine{00304\ \textcolor{preprocessor}{\#define\ PLOG\_EVERY\_N(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00305\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_PLOG\_EVERY\_N\_IMPL(\_\#\#severity,\ n)}}
+\DoxyCodeLine{00306\ \textcolor{preprocessor}{\#define\ PLOG\_FIRST\_N(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00307\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_PLOG\_FIRST\_N\_IMPL(\_\#\#severity,\ n)}}
+\DoxyCodeLine{00308\ \textcolor{preprocessor}{\#define\ PLOG\_EVERY\_POW\_2(severity)\ \(\backslash\)}}
+\DoxyCodeLine{00309\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_PLOG\_EVERY\_POW\_2\_IMPL(\_\#\#severity)}}
+\DoxyCodeLine{00310\ \textcolor{preprocessor}{\#define\ PLOG\_EVERY\_N\_SEC(severity,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00311\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_PLOG\_EVERY\_N\_SEC\_IMPL(\_\#\#severity,\ n\_seconds)}}
+\DoxyCodeLine{00312\ }
+\DoxyCodeLine{00313\ \textcolor{preprocessor}{\#define\ DLOG\_EVERY\_N(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00314\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_DLOG\_EVERY\_N\_IMPL(\_\#\#severity,\ n)}}
+\DoxyCodeLine{00315\ \textcolor{preprocessor}{\#define\ DLOG\_FIRST\_N(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00316\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_DLOG\_FIRST\_N\_IMPL(\_\#\#severity,\ n)}}
+\DoxyCodeLine{00317\ \textcolor{preprocessor}{\#define\ DLOG\_EVERY\_POW\_2(severity)\ \(\backslash\)}}
+\DoxyCodeLine{00318\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_DLOG\_EVERY\_POW\_2\_IMPL(\_\#\#severity)}}
+\DoxyCodeLine{00319\ \textcolor{preprocessor}{\#define\ DLOG\_EVERY\_N\_SEC(severity,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00320\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_DLOG\_EVERY\_N\_SEC\_IMPL(\_\#\#severity,\ n\_seconds)}}
+\DoxyCodeLine{00321\ }
+\DoxyCodeLine{00322\ \textcolor{preprocessor}{\#define\ VLOG\_EVERY\_N(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00323\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_VLOG\_EVERY\_N\_IMPL(severity,\ n)}}
+\DoxyCodeLine{00324\ \textcolor{preprocessor}{\#define\ VLOG\_FIRST\_N(severity,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00325\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_VLOG\_FIRST\_N\_IMPL(severity,\ n)}}
+\DoxyCodeLine{00326\ \textcolor{preprocessor}{\#define\ VLOG\_EVERY\_POW\_2(severity)\ \(\backslash\)}}
+\DoxyCodeLine{00327\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_VLOG\_EVERY\_POW\_2\_IMPL(severity)}}
+\DoxyCodeLine{00328\ \textcolor{preprocessor}{\#define\ VLOG\_EVERY\_N\_SEC(severity,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00329\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_VLOG\_EVERY\_N\_SEC\_IMPL(severity,\ n\_seconds)}}
+\DoxyCodeLine{00330\ }
+\DoxyCodeLine{00331\ \textcolor{comment}{//\ \`{}LOG\_IF\_EVERY\_N`\ and\ friends\ behave\ as\ the\ corresponding\ \`{}LOG\_EVERY\_N`}}
+\DoxyCodeLine{00332\ \textcolor{comment}{//\ but\ neither\ increment\ a\ counter\ nor\ log\ a\ message\ if\ condition\ is\ false\ (as}}
+\DoxyCodeLine{00333\ \textcolor{comment}{//\ \`{}LOG\_IF`).}}
+\DoxyCodeLine{00334\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00335\ \textcolor{comment}{//}}
+\DoxyCodeLine{00336\ \textcolor{comment}{//\ \ \ LOG\_IF\_EVERY\_N(INFO,\ (size\ >\ 1024),\ 10)\ <<\ "{}Got\ the\ "{}\ <<\ COUNTER}}
+\DoxyCodeLine{00337\ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ <<\ "{}th\ big\ cookie"{};}}
+\DoxyCodeLine{00338\ \textcolor{preprocessor}{\#define\ LOG\_IF\_EVERY\_N(severity,\ condition,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00339\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_LOG\_IF\_EVERY\_N\_IMPL(\_\#\#severity,\ condition,\ n)}}
+\DoxyCodeLine{00340\ \textcolor{preprocessor}{\#define\ LOG\_IF\_FIRST\_N(severity,\ condition,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00341\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_LOG\_IF\_FIRST\_N\_IMPL(\_\#\#severity,\ condition,\ n)}}
+\DoxyCodeLine{00342\ \textcolor{preprocessor}{\#define\ LOG\_IF\_EVERY\_POW\_2(severity,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00343\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_LOG\_IF\_EVERY\_POW\_2\_IMPL(\_\#\#severity,\ condition)}}
+\DoxyCodeLine{00344\ \textcolor{preprocessor}{\#define\ LOG\_IF\_EVERY\_N\_SEC(severity,\ condition,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00345\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_LOG\_IF\_EVERY\_N\_SEC\_IMPL(\_\#\#severity,\ condition,\ n\_seconds)}}
+\DoxyCodeLine{00346\ }
+\DoxyCodeLine{00347\ \textcolor{preprocessor}{\#define\ PLOG\_IF\_EVERY\_N(severity,\ condition,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00348\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_EVERY\_N\_IMPL(\_\#\#severity,\ condition,\ n)}}
+\DoxyCodeLine{00349\ \textcolor{preprocessor}{\#define\ PLOG\_IF\_FIRST\_N(severity,\ condition,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00350\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_FIRST\_N\_IMPL(\_\#\#severity,\ condition,\ n)}}
+\DoxyCodeLine{00351\ \textcolor{preprocessor}{\#define\ PLOG\_IF\_EVERY\_POW\_2(severity,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00352\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_EVERY\_POW\_2\_IMPL(\_\#\#severity,\ condition)}}
+\DoxyCodeLine{00353\ \textcolor{preprocessor}{\#define\ PLOG\_IF\_EVERY\_N\_SEC(severity,\ condition,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00354\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_PLOG\_IF\_EVERY\_N\_SEC\_IMPL(\_\#\#severity,\ condition,\ n\_seconds)}}
+\DoxyCodeLine{00355\ }
+\DoxyCodeLine{00356\ \textcolor{preprocessor}{\#define\ DLOG\_IF\_EVERY\_N(severity,\ condition,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00357\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_EVERY\_N\_IMPL(\_\#\#severity,\ condition,\ n)}}
+\DoxyCodeLine{00358\ \textcolor{preprocessor}{\#define\ DLOG\_IF\_FIRST\_N(severity,\ condition,\ n)\ \(\backslash\)}}
+\DoxyCodeLine{00359\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_FIRST\_N\_IMPL(\_\#\#severity,\ condition,\ n)}}
+\DoxyCodeLine{00360\ \textcolor{preprocessor}{\#define\ DLOG\_IF\_EVERY\_POW\_2(severity,\ condition)\ \(\backslash\)}}
+\DoxyCodeLine{00361\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_EVERY\_POW\_2\_IMPL(\_\#\#severity,\ condition)}}
+\DoxyCodeLine{00362\ \textcolor{preprocessor}{\#define\ DLOG\_IF\_EVERY\_N\_SEC(severity,\ condition,\ n\_seconds)\ \(\backslash\)}}
+\DoxyCodeLine{00363\ \textcolor{preprocessor}{\ \ ABSL\_LOG\_INTERNAL\_DLOG\_IF\_EVERY\_N\_SEC\_IMPL(\_\#\#severity,\ condition,\ n\_seconds)}}
+\DoxyCodeLine{00364\ }
+\DoxyCodeLine{00365\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_LOG\_LOG\_H\_}}
+
+\end{DoxyCode}

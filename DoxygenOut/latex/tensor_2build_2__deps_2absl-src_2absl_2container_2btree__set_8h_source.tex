@@ -1,0 +1,830 @@
+\doxysection{btree\+\_\+set.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2container_2btree__set_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2container_2btree__set_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/container/btree\_set.h@{tensor/build/\_deps/absl-\/src/absl/container/btree\_set.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2container_2btree__set_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ btree\_set.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ header\ file\ defines\ B-\/tree\ sets:\ sorted\ associative\ containers\ of}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ values.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ \ \ \ \ *\ \`{}absl::btree\_set<>`}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \ \ \ \ *\ \`{}absl::btree\_multiset<>`}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ These\ B-\/tree\ types\ are\ similar\ to\ the\ corresponding\ types\ in\ the\ STL}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ (`std::set`\ and\ \`{}std::multiset`)\ and\ generally\ conform\ to\ the\ STL\ interfaces}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ of\ those\ types.\ However,\ because\ they\ are\ implemented\ using\ B-\/trees,\ they}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ are\ more\ efficient\ in\ most\ situations.}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ Unlike\ \`{}std::set`\ and\ \`{}std::multiset`,\ which\ are\ commonly\ implemented\ using}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ red-\/black\ tree\ nodes,\ B-\/tree\ sets\ use\ more\ generic\ B-\/tree\ nodes\ able\ to\ hold}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ multiple\ values\ per\ node.\ Holding\ multiple\ values\ per\ node\ often\ makes}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ B-\/tree\ sets\ perform\ better\ than\ their\ \`{}std::set`\ counterparts,\ because}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ multiple\ entries\ can\ be\ checked\ within\ the\ same\ cache\ hit.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ However,\ these\ types\ should\ not\ be\ considered\ drop-\/in\ replacements\ for}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ \`{}std::set`\ and\ \`{}std::multiset`\ as\ there\ are\ some\ API\ differences,\ which\ are}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ noted\ in\ this\ header\ file.\ The\ most\ consequential\ differences\ with\ respect\ to}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ migrating\ to\ b-\/tree\ from\ the\ STL\ types\ are\ listed\ in\ the\ next\ paragraph.}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ Other\ API\ differences\ are\ minor.}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ Importantly,\ insertions\ and\ deletions\ may\ invalidate\ outstanding\ iterators,}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ pointers,\ and\ references\ to\ elements.\ Such\ invalidations\ are\ typically\ only}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ an\ issue\ if\ insertion\ and\ deletion\ operations\ are\ interleaved\ with\ the\ use\ of}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ more\ than\ one\ iterator,\ pointer,\ or\ reference\ simultaneously.\ For\ this}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ reason,\ \`{}insert()`,\ \`{}erase()`,\ and\ \`{}extract\_and\_get\_next()`\ return\ a\ valid}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ iterator\ at\ the\ current\ position.}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ Another\ API\ difference\ is\ that\ btree\ iterators\ can\ be\ subtracted,\ and\ this}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ is\ faster\ than\ using\ std::distance.}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ B-\/tree\ sets\ are\ not\ exception-\/safe.}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CONTAINER\_BTREE\_SET\_H\_}}
+\DoxyCodeLine{00055\ \textcolor{preprocessor}{\#define\ ABSL\_CONTAINER\_BTREE\_SET\_H\_}}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#include\ "{}absl/container/internal/btree.h"{}}\ \ \textcolor{comment}{//\ IWYU\ pragma:\ export}}
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#include\ "{}absl/container/internal/btree\_container.h"{}}\ \ \textcolor{comment}{//\ IWYU\ pragma:\ export}}
+\DoxyCodeLine{00060\ }
+\DoxyCodeLine{00061\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00062\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Key>}
+\DoxyCodeLine{00067\ \textcolor{keyword}{struct\ }set\_slot\_policy;}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Key,\ \textcolor{keyword}{typename}\ Compare,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_1_1flags__internal_a9508d47890c353f9855dd9aa24e239ad}{Alloc}},\ \textcolor{keywordtype}{int}\ TargetNodeSize,}
+\DoxyCodeLine{00070\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ IsMulti>}
+\DoxyCodeLine{00071\ \textcolor{keyword}{struct\ }set\_params;}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ absl::btree\_set<>}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ An\ \`{}absl::btree\_set<K>`\ is\ an\ ordered\ associative\ container\ of\ unique\ key}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ values\ designed\ to\ be\ a\ more\ efficient\ replacement\ for\ \`{}std::set`\ (in\ most}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ cases).}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ Keys\ are\ sorted\ using\ an\ (optional)\ comparison\ function,\ which\ defaults\ to}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ \`{}std::less<K>`.}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ An\ \`{}absl::btree\_set<K>`\ uses\ a\ default\ allocator\ of\ \`{}std::allocator<K>`\ to}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ allocate\ (and\ deallocate)\ nodes,\ and\ construct\ and\ destruct\ values\ within}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ those\ nodes.\ You\ may\ instead\ specify\ a\ custom\ allocator\ \`{}A`\ (which\ in\ turn}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ requires\ specifying\ a\ custom\ comparator\ \`{}C`)\ as\ in}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ \`{}absl::btree\_set<K,\ C,\ A>`.}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//}}
+\DoxyCodeLine{00090\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Key,\ \textcolor{keyword}{typename}\ Compare\ =\ std::less<Key>,}
+\DoxyCodeLine{00091\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ Alloc\ =\ std::allocator<Key>>}
+\DoxyCodeLine{00092\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a72d568665616f062d78cb0cee3a3ad49}{ABSL\_ATTRIBUTE\_OWNER}}\ \mbox{\hyperlink{classabsl_1_1btree__set}{btree\_set}}}
+\DoxyCodeLine{00093\ \ \ \ \ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1btree__set__container}{container\_internal::btree\_set\_container}}<}
+\DoxyCodeLine{00094\ \ \ \ \ \ \ \ \ \ \ container\_internal::btree<container\_internal::set\_params<}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Key,\ Compare,\ Alloc,\ \textcolor{comment}{/*TargetNodeSize=*/}256,}
+\DoxyCodeLine{00096\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*IsMulti=*/}false>>>\ \{}
+\DoxyCodeLine{00097\ \ \ \textcolor{keyword}{using\ }Base\ =\ \textcolor{keyword}{typename}\ btree\_set::btree\_set\_container;}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00100\ \ \ \textcolor{comment}{//\ Constructors\ and\ Assignment\ Operators}}
+\DoxyCodeLine{00101\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00102\ \ \ \textcolor{comment}{//\ A\ \`{}btree\_set`\ supports\ the\ same\ overload\ set\ as\ \`{}std::set`}}
+\DoxyCodeLine{00103\ \ \ \textcolor{comment}{//\ for\ construction\ and\ assignment:}}
+\DoxyCodeLine{00104\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00105\ \ \ \textcolor{comment}{//\ *\ Default\ constructor}}
+\DoxyCodeLine{00106\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00107\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_set<std::string>\ set1;}}
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00109\ \ \ \textcolor{comment}{//\ *\ Initializer\ List\ constructor}}
+\DoxyCodeLine{00110\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_set<std::string>\ set2\ =}}
+\DoxyCodeLine{00112\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \{\{"{}huey"{}\},\ \{"{}dewey"{}\},\ \{"{}louie"{}\},\};}}
+\DoxyCodeLine{00113\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00114\ \ \ \textcolor{comment}{//\ *\ Copy\ constructor}}
+\DoxyCodeLine{00115\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00116\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_set<std::string>\ set3(set2);}}
+\DoxyCodeLine{00117\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00118\ \ \ \textcolor{comment}{//\ *\ Copy\ assignment\ operator}}
+\DoxyCodeLine{00119\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00120\ \ \ \textcolor{comment}{//\ \ absl::btree\_set<std::string>\ set4;}}
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//\ \ set4\ =\ set3;}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//\ *\ Move\ constructor}}
+\DoxyCodeLine{00124\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00125\ \ \ \textcolor{comment}{//\ \ \ //\ Move\ is\ guaranteed\ efficient}}
+\DoxyCodeLine{00126\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_set<std::string>\ set5(std::move(set4));}}
+\DoxyCodeLine{00127\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00128\ \ \ \textcolor{comment}{//\ *\ Move\ assignment\ operator}}
+\DoxyCodeLine{00129\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00130\ \ \ \textcolor{comment}{//\ \ \ //\ May\ be\ efficient\ if\ allocators\ are\ compatible}}
+\DoxyCodeLine{00131\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_set<std::string>\ set6;}}
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ \ \ set6\ =\ std::move(set5);}}
+\DoxyCodeLine{00133\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00134\ \ \ \textcolor{comment}{//\ *\ Range\ constructor}}
+\DoxyCodeLine{00135\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00136\ \ \ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ \{"{}a"{},\ "{}b"{}\};}}
+\DoxyCodeLine{00137\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_set<std::string>\ set7(v.begin(),\ v.end());}}
+\DoxyCodeLine{00138\ \ \ \mbox{\hyperlink{classabsl_1_1btree__set_a3ca8f02c2b26d9fa91171c4b40b04c03}{btree\_set}}()\ \{\}}
+\DoxyCodeLine{00139\ \ \ \textcolor{keyword}{using\ }Base::Base;}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \ \ \textcolor{comment}{//\ btree\_set::begin()}}
+\DoxyCodeLine{00142\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00143\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ to\ the\ beginning\ of\ the\ \`{}btree\_set`.}}
+\DoxyCodeLine{00144\ \ \ \textcolor{keyword}{using\ }Base::begin;}
+\DoxyCodeLine{00145\ }
+\DoxyCodeLine{00146\ \ \ \textcolor{comment}{//\ btree\_set::cbegin()}}
+\DoxyCodeLine{00147\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00148\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ to\ the\ beginning\ of\ the\ \`{}btree\_set`.}}
+\DoxyCodeLine{00149\ \ \ \textcolor{keyword}{using\ }Base::cbegin;}
+\DoxyCodeLine{00150\ }
+\DoxyCodeLine{00151\ \ \ \textcolor{comment}{//\ btree\_set::end()}}
+\DoxyCodeLine{00152\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00153\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ to\ the\ end\ of\ the\ \`{}btree\_set`.}}
+\DoxyCodeLine{00154\ \ \ \textcolor{keyword}{using\ }Base::end;}
+\DoxyCodeLine{00155\ }
+\DoxyCodeLine{00156\ \ \ \textcolor{comment}{//\ btree\_set::cend()}}
+\DoxyCodeLine{00157\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00158\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ to\ the\ end\ of\ the\ \`{}btree\_set`.}}
+\DoxyCodeLine{00159\ \ \ \textcolor{keyword}{using\ }Base::cend;}
+\DoxyCodeLine{00160\ }
+\DoxyCodeLine{00161\ \ \ \textcolor{comment}{//\ btree\_set::empty()}}
+\DoxyCodeLine{00162\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00163\ \ \ \textcolor{comment}{//\ Returns\ whether\ or\ not\ the\ \`{}btree\_set`\ is\ empty.}}
+\DoxyCodeLine{00164\ \ \ \textcolor{keyword}{using\ }Base::empty;}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \ \ \textcolor{comment}{//\ btree\_set::max\_size()}}
+\DoxyCodeLine{00167\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00168\ \ \ \textcolor{comment}{//\ Returns\ the\ largest\ theoretical\ possible\ number\ of\ elements\ within\ a}}
+\DoxyCodeLine{00169\ \ \ \textcolor{comment}{//\ \`{}btree\_set`\ under\ current\ memory\ constraints.\ This\ value\ can\ be\ thought}}
+\DoxyCodeLine{00170\ \ \ \textcolor{comment}{//\ of\ as\ the\ largest\ value\ of\ \`{}std::distance(begin(),\ end())`\ for\ a}}
+\DoxyCodeLine{00171\ \ \ \textcolor{comment}{//\ \`{}btree\_set<Key>`.}}
+\DoxyCodeLine{00172\ \ \ \textcolor{keyword}{using\ }Base::max\_size;}
+\DoxyCodeLine{00173\ }
+\DoxyCodeLine{00174\ \ \ \textcolor{comment}{//\ btree\_set::size()}}
+\DoxyCodeLine{00175\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00176\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ elements\ currently\ within\ the\ \`{}btree\_set`.}}
+\DoxyCodeLine{00177\ \ \ \textcolor{keyword}{using\ }Base::size;}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \ \ \textcolor{comment}{//\ btree\_set::clear()}}
+\DoxyCodeLine{00180\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00181\ \ \ \textcolor{comment}{//\ Removes\ all\ elements\ from\ the\ \`{}btree\_set`.\ Invalidates\ any\ references,}}
+\DoxyCodeLine{00182\ \ \ \textcolor{comment}{//\ pointers,\ or\ iterators\ referring\ to\ contained\ elements.}}
+\DoxyCodeLine{00183\ \ \ \textcolor{keyword}{using\ }Base::clear;}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \ \ \textcolor{comment}{//\ btree\_set::erase()}}
+\DoxyCodeLine{00186\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00187\ \ \ \textcolor{comment}{//\ Erases\ elements\ within\ the\ \`{}btree\_set`.\ Overloads\ are\ listed\ below.}}
+\DoxyCodeLine{00188\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00189\ \ \ \textcolor{comment}{//\ iterator\ erase(iterator\ position):}}
+\DoxyCodeLine{00190\ \ \ \textcolor{comment}{//\ iterator\ erase(const\_iterator\ position):}}
+\DoxyCodeLine{00191\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00192\ \ \ \textcolor{comment}{//\ \ \ Erases\ the\ element\ at\ \`{}position`\ of\ the\ \`{}btree\_set`,\ returning}}
+\DoxyCodeLine{00193\ \ \ \textcolor{comment}{//\ \ \ the\ iterator\ pointing\ to\ the\ element\ after\ the\ one\ that\ was\ erased}}
+\DoxyCodeLine{00194\ \ \ \textcolor{comment}{//\ \ \ (or\ end()\ if\ none\ exists).}}
+\DoxyCodeLine{00195\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00196\ \ \ \textcolor{comment}{//\ iterator\ erase(const\_iterator\ first,\ const\_iterator\ last):}}
+\DoxyCodeLine{00197\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00198\ \ \ \textcolor{comment}{//\ \ \ Erases\ the\ elements\ in\ the\ open\ interval\ [`first`,\ \`{}last`),\ returning}}
+\DoxyCodeLine{00199\ \ \ \textcolor{comment}{//\ \ \ the\ iterator\ pointing\ to\ the\ element\ after\ the\ interval\ that\ was\ erased}}
+\DoxyCodeLine{00200\ \ \ \textcolor{comment}{//\ \ \ (or\ end()\ if\ none\ exists).}}
+\DoxyCodeLine{00201\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00202\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ size\_type\ erase(const\ K\&\ key):}}
+\DoxyCodeLine{00203\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00204\ \ \ \textcolor{comment}{//\ \ \ Erases\ the\ element\ with\ the\ matching\ key,\ if\ it\ exists,\ returning\ the}}
+\DoxyCodeLine{00205\ \ \ \textcolor{comment}{//\ \ \ number\ of\ elements\ erased\ (0\ or\ 1).}}
+\DoxyCodeLine{00206\ \ \ \textcolor{keyword}{using\ }Base::erase;}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \ \ \textcolor{comment}{//\ btree\_set::insert()}}
+\DoxyCodeLine{00209\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00210\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ into\ the\ \`{}btree\_set`,}}
+\DoxyCodeLine{00211\ \ \ \textcolor{comment}{//\ returning\ an\ iterator\ pointing\ to\ the\ newly\ inserted\ element,\ provided\ that}}
+\DoxyCodeLine{00212\ \ \ \textcolor{comment}{//\ an\ element\ with\ the\ given\ key\ does\ not\ already\ exist.\ If\ an\ insertion}}
+\DoxyCodeLine{00213\ \ \ \textcolor{comment}{//\ occurs,\ any\ references,\ pointers,\ or\ iterators\ are\ invalidated.}}
+\DoxyCodeLine{00214\ \ \ \textcolor{comment}{//\ Overloads\ are\ listed\ below.}}
+\DoxyCodeLine{00215\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00216\ \ \ \textcolor{comment}{//\ std::pair<iterator,bool>\ insert(const\ value\_type\&\ value):}}
+\DoxyCodeLine{00217\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00218\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ value\ into\ the\ \`{}btree\_set`.\ Returns\ a\ pair\ consisting\ of\ an}}
+\DoxyCodeLine{00219\ \ \ \textcolor{comment}{//\ \ \ iterator\ to\ the\ inserted\ element\ (or\ to\ the\ element\ that\ prevented\ the}}
+\DoxyCodeLine{00220\ \ \ \textcolor{comment}{//\ \ \ insertion)\ and\ a\ bool\ denoting\ whether\ the\ insertion\ took\ place.}}
+\DoxyCodeLine{00221\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00222\ \ \ \textcolor{comment}{//\ std::pair<iterator,bool>\ insert(value\_type\&\&\ value):}}
+\DoxyCodeLine{00223\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00224\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ moveable\ value\ into\ the\ \`{}btree\_set`.\ Returns\ a\ pair}}
+\DoxyCodeLine{00225\ \ \ \textcolor{comment}{//\ \ \ consisting\ of\ an\ iterator\ to\ the\ inserted\ element\ (or\ to\ the\ element\ that}}
+\DoxyCodeLine{00226\ \ \ \textcolor{comment}{//\ \ \ prevented\ the\ insertion)\ and\ a\ bool\ denoting\ whether\ the\ insertion\ took}}
+\DoxyCodeLine{00227\ \ \ \textcolor{comment}{//\ \ \ place.}}
+\DoxyCodeLine{00228\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00229\ \ \ \textcolor{comment}{//\ iterator\ insert(const\_iterator\ hint,\ const\ value\_type\&\ value):}}
+\DoxyCodeLine{00230\ \ \ \textcolor{comment}{//\ iterator\ insert(const\_iterator\ hint,\ value\_type\&\&\ value):}}
+\DoxyCodeLine{00231\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00232\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ value,\ using\ the\ position\ of\ \`{}hint`\ as\ a\ non-\/binding\ suggestion}}
+\DoxyCodeLine{00233\ \ \ \textcolor{comment}{//\ \ \ for\ where\ to\ begin\ the\ insertion\ search.\ Returns\ an\ iterator\ to\ the}}
+\DoxyCodeLine{00234\ \ \ \textcolor{comment}{//\ \ \ inserted\ element,\ or\ to\ the\ existing\ element\ that\ prevented\ the}}
+\DoxyCodeLine{00235\ \ \ \textcolor{comment}{//\ \ \ insertion.}}
+\DoxyCodeLine{00236\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00237\ \ \ \textcolor{comment}{//\ void\ insert(InputIterator\ first,\ InputIterator\ last):}}
+\DoxyCodeLine{00238\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00239\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ range\ of\ values\ [`first`,\ \`{}last`).}}
+\DoxyCodeLine{00240\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00241\ \ \ \textcolor{comment}{//\ void\ insert(std::initializer\_list<init\_type>\ ilist):}}
+\DoxyCodeLine{00242\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00243\ \ \ \textcolor{comment}{//\ \ \ Inserts\ the\ elements\ within\ the\ initializer\ list\ \`{}ilist`.}}
+\DoxyCodeLine{00244\ \ \ \textcolor{keyword}{using\ }Base::insert;}
+\DoxyCodeLine{00245\ }
+\DoxyCodeLine{00246\ \ \ \textcolor{comment}{//\ btree\_set::emplace()}}
+\DoxyCodeLine{00247\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00248\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ by\ constructing\ it\ in-\/place}}
+\DoxyCodeLine{00249\ \ \ \textcolor{comment}{//\ within\ the\ \`{}btree\_set`,\ provided\ that\ no\ element\ with\ the\ given\ key}}
+\DoxyCodeLine{00250\ \ \ \textcolor{comment}{//\ already\ exists.}}
+\DoxyCodeLine{00251\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00252\ \ \ \textcolor{comment}{//\ The\ element\ may\ be\ constructed\ even\ if\ there\ already\ is\ an\ element\ with\ the}}
+\DoxyCodeLine{00253\ \ \ \textcolor{comment}{//\ key\ in\ the\ container,\ in\ which\ case\ the\ newly\ constructed\ element\ will\ be}}
+\DoxyCodeLine{00254\ \ \ \textcolor{comment}{//\ destroyed\ immediately.}}
+\DoxyCodeLine{00255\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00256\ \ \ \textcolor{comment}{//\ If\ an\ insertion\ occurs,\ any\ references,\ pointers,\ or\ iterators\ are}}
+\DoxyCodeLine{00257\ \ \ \textcolor{comment}{//\ invalidated.}}
+\DoxyCodeLine{00258\ \ \ \textcolor{keyword}{using\ }Base::emplace;}
+\DoxyCodeLine{00259\ }
+\DoxyCodeLine{00260\ \ \ \textcolor{comment}{//\ btree\_set::emplace\_hint()}}
+\DoxyCodeLine{00261\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00262\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ by\ constructing\ it\ in-\/place}}
+\DoxyCodeLine{00263\ \ \ \textcolor{comment}{//\ within\ the\ \`{}btree\_set`,\ using\ the\ position\ of\ \`{}hint`\ as\ a\ non-\/binding}}
+\DoxyCodeLine{00264\ \ \ \textcolor{comment}{//\ suggestion\ for\ where\ to\ begin\ the\ insertion\ search,\ and\ only\ inserts}}
+\DoxyCodeLine{00265\ \ \ \textcolor{comment}{//\ provided\ that\ no\ element\ with\ the\ given\ key\ already\ exists.}}
+\DoxyCodeLine{00266\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00267\ \ \ \textcolor{comment}{//\ The\ element\ may\ be\ constructed\ even\ if\ there\ already\ is\ an\ element\ with\ the}}
+\DoxyCodeLine{00268\ \ \ \textcolor{comment}{//\ key\ in\ the\ container,\ in\ which\ case\ the\ newly\ constructed\ element\ will\ be}}
+\DoxyCodeLine{00269\ \ \ \textcolor{comment}{//\ destroyed\ immediately.}}
+\DoxyCodeLine{00270\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00271\ \ \ \textcolor{comment}{//\ If\ an\ insertion\ occurs,\ any\ references,\ pointers,\ or\ iterators\ are}}
+\DoxyCodeLine{00272\ \ \ \textcolor{comment}{//\ invalidated.}}
+\DoxyCodeLine{00273\ \ \ \textcolor{keyword}{using\ }Base::emplace\_hint;}
+\DoxyCodeLine{00274\ }
+\DoxyCodeLine{00275\ \ \ \textcolor{comment}{//\ btree\_set::extract()}}
+\DoxyCodeLine{00276\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00277\ \ \ \textcolor{comment}{//\ Extracts\ the\ indicated\ element,\ erasing\ it\ in\ the\ process,\ and\ returns\ it}}
+\DoxyCodeLine{00278\ \ \ \textcolor{comment}{//\ as\ a\ C++17-\/compatible\ node\ handle.\ Any\ references,\ pointers,\ or\ iterators}}
+\DoxyCodeLine{00279\ \ \ \textcolor{comment}{//\ are\ invalidated.\ Overloads\ are\ listed\ below.}}
+\DoxyCodeLine{00280\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00281\ \ \ \textcolor{comment}{//\ node\_type\ extract(const\_iterator\ position):}}
+\DoxyCodeLine{00282\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00283\ \ \ \textcolor{comment}{//\ \ \ Extracts\ the\ element\ at\ the\ indicated\ position\ and\ returns\ a\ node\ handle}}
+\DoxyCodeLine{00284\ \ \ \textcolor{comment}{//\ \ \ owning\ that\ extracted\ data.}}
+\DoxyCodeLine{00285\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00286\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ node\_type\ extract(const\ K\&\ k):}}
+\DoxyCodeLine{00287\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00288\ \ \ \textcolor{comment}{//\ \ \ Extracts\ the\ element\ with\ the\ key\ matching\ the\ passed\ key\ value\ and}}
+\DoxyCodeLine{00289\ \ \ \textcolor{comment}{//\ \ \ returns\ a\ node\ handle\ owning\ that\ extracted\ data.\ If\ the\ \`{}btree\_set`}}
+\DoxyCodeLine{00290\ \ \ \textcolor{comment}{//\ \ \ does\ not\ contain\ an\ element\ with\ a\ matching\ key,\ this\ function\ returns\ an}}
+\DoxyCodeLine{00291\ \ \ \textcolor{comment}{//\ \ \ empty\ node\ handle.}}
+\DoxyCodeLine{00292\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00293\ \ \ \textcolor{comment}{//\ NOTE:\ In\ this\ context,\ \`{}node\_type`\ refers\ to\ the\ C++17\ concept\ of\ a}}
+\DoxyCodeLine{00294\ \ \ \textcolor{comment}{//\ move-\/only\ type\ that\ owns\ and\ provides\ access\ to\ the\ elements\ in\ associative}}
+\DoxyCodeLine{00295\ \ \ \textcolor{comment}{//\ containers\ (https://en.cppreference.com/w/cpp/container/node\_handle).}}
+\DoxyCodeLine{00296\ \ \ \textcolor{comment}{//\ It\ does\ NOT\ refer\ to\ the\ data\ layout\ of\ the\ underlying\ btree.}}
+\DoxyCodeLine{00297\ \ \ \textcolor{keyword}{using\ }Base::extract;}
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00299\ \ \ \textcolor{comment}{//\ btree\_set::extract\_and\_get\_next()}}
+\DoxyCodeLine{00300\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00301\ \ \ \textcolor{comment}{//\ Extracts\ the\ indicated\ element,\ erasing\ it\ in\ the\ process,\ and\ returns\ it}}
+\DoxyCodeLine{00302\ \ \ \textcolor{comment}{//\ as\ a\ C++17-\/compatible\ node\ handle\ along\ with\ an\ iterator\ to\ the\ next}}
+\DoxyCodeLine{00303\ \ \ \textcolor{comment}{//\ element.}}
+\DoxyCodeLine{00304\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00305\ \ \ \textcolor{comment}{//\ extract\_and\_get\_next\_return\_type\ extract\_and\_get\_next(}}
+\DoxyCodeLine{00306\ \ \ \textcolor{comment}{//\ \ \ \ \ const\_iterator\ position):}}
+\DoxyCodeLine{00307\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00308\ \ \ \textcolor{comment}{//\ \ \ Extracts\ the\ element\ at\ the\ indicated\ position,\ returns\ a\ struct}}
+\DoxyCodeLine{00309\ \ \ \textcolor{comment}{//\ \ \ containing\ a\ member\ named\ \`{}node`:\ a\ node\ handle\ owning\ that\ extracted}}
+\DoxyCodeLine{00310\ \ \ \textcolor{comment}{//\ \ \ data\ and\ a\ member\ named\ \`{}next`:\ an\ iterator\ pointing\ to\ the\ next\ element}}
+\DoxyCodeLine{00311\ \ \ \textcolor{comment}{//\ \ \ in\ the\ btree.}}
+\DoxyCodeLine{00312\ \ \ \textcolor{keyword}{using\ }Base::extract\_and\_get\_next;}
+\DoxyCodeLine{00313\ }
+\DoxyCodeLine{00314\ \ \ \textcolor{comment}{//\ btree\_set::merge()}}
+\DoxyCodeLine{00315\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00316\ \ \ \textcolor{comment}{//\ Extracts\ elements\ from\ a\ given\ \`{}source`\ btree\_set\ into\ this}}
+\DoxyCodeLine{00317\ \ \ \textcolor{comment}{//\ \`{}btree\_set`.\ If\ the\ destination\ \`{}btree\_set`\ already\ contains\ an}}
+\DoxyCodeLine{00318\ \ \ \textcolor{comment}{//\ element\ with\ an\ equivalent\ key,\ that\ element\ is\ not\ extracted.}}
+\DoxyCodeLine{00319\ \ \ \textcolor{keyword}{using\ }Base::merge;}
+\DoxyCodeLine{00320\ }
+\DoxyCodeLine{00321\ \ \ \textcolor{comment}{//\ btree\_set::swap(btree\_set\&\ other)}}
+\DoxyCodeLine{00322\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00323\ \ \ \textcolor{comment}{//\ Exchanges\ the\ contents\ of\ this\ \`{}btree\_set`\ with\ those\ of\ the\ \`{}other`}}
+\DoxyCodeLine{00324\ \ \ \textcolor{comment}{//\ btree\_set,\ avoiding\ invocation\ of\ any\ move,\ copy,\ or\ swap\ operations\ on}}
+\DoxyCodeLine{00325\ \ \ \textcolor{comment}{//\ individual\ elements.}}
+\DoxyCodeLine{00326\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00327\ \ \ \textcolor{comment}{//\ All\ iterators\ and\ references\ on\ the\ \`{}btree\_set`\ remain\ valid,\ excepting}}
+\DoxyCodeLine{00328\ \ \ \textcolor{comment}{//\ for\ the\ past-\/the-\/end\ iterator,\ which\ is\ invalidated.}}
+\DoxyCodeLine{00329\ \ \ \textcolor{keyword}{using\ }Base::swap;}
+\DoxyCodeLine{00330\ }
+\DoxyCodeLine{00331\ \ \ \textcolor{comment}{//\ btree\_set::contains()}}
+\DoxyCodeLine{00332\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00333\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ bool\ contains(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00334\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00335\ \ \ \textcolor{comment}{//\ Determines\ whether\ an\ element\ comparing\ equal\ to\ the\ given\ \`{}key`\ exists}}
+\DoxyCodeLine{00336\ \ \ \textcolor{comment}{//\ within\ the\ \`{}btree\_set`,\ returning\ \`{}true`\ if\ so\ or\ \`{}false`\ otherwise.}}
+\DoxyCodeLine{00337\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00338\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00339\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00340\ \ \ \textcolor{keyword}{using\ }Base::contains;}
+\DoxyCodeLine{00341\ }
+\DoxyCodeLine{00342\ \ \ \textcolor{comment}{//\ btree\_set::count()}}
+\DoxyCodeLine{00343\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00344\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ size\_type\ count(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00345\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00346\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ elements\ comparing\ equal\ to\ the\ given\ \`{}key`\ within}}
+\DoxyCodeLine{00347\ \ \ \textcolor{comment}{//\ the\ \`{}btree\_set`.\ Note\ that\ this\ function\ will\ return\ either\ \`{}1`\ or\ \`{}0`}}
+\DoxyCodeLine{00348\ \ \ \textcolor{comment}{//\ since\ duplicate\ elements\ are\ not\ allowed\ within\ a\ \`{}btree\_set`.}}
+\DoxyCodeLine{00349\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00350\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00351\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00352\ \ \ \textcolor{keyword}{using\ }Base::count;}
+\DoxyCodeLine{00353\ }
+\DoxyCodeLine{00354\ \ \ \textcolor{comment}{//\ btree\_set::equal\_range()}}
+\DoxyCodeLine{00355\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00356\ \ \ \textcolor{comment}{//\ Returns\ a\ closed\ range\ [first,\ last],\ defined\ by\ a\ \`{}std::pair`\ of\ two}}
+\DoxyCodeLine{00357\ \ \ \textcolor{comment}{//\ iterators,\ containing\ all\ elements\ with\ the\ passed\ key\ in\ the}}
+\DoxyCodeLine{00358\ \ \ \textcolor{comment}{//\ \`{}btree\_set`.}}
+\DoxyCodeLine{00359\ \ \ \textcolor{keyword}{using\ }Base::equal\_range;}
+\DoxyCodeLine{00360\ }
+\DoxyCodeLine{00361\ \ \ \textcolor{comment}{//\ btree\_set::find()}}
+\DoxyCodeLine{00362\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00363\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ iterator\ find(const\ K\&\ key):}}
+\DoxyCodeLine{00364\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ const\_iterator\ find(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00365\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00366\ \ \ \textcolor{comment}{//\ Finds\ an\ element\ with\ the\ passed\ \`{}key`\ within\ the\ \`{}btree\_set`.}}
+\DoxyCodeLine{00367\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00368\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00369\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00370\ \ \ \textcolor{keyword}{using\ }Base::find;}
+\DoxyCodeLine{00371\ }
+\DoxyCodeLine{00372\ \ \ \textcolor{comment}{//\ btree\_set::lower\_bound()}}
+\DoxyCodeLine{00373\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00374\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ iterator\ lower\_bound(const\ K\&\ key):}}
+\DoxyCodeLine{00375\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ const\_iterator\ lower\_bound(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00376\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00377\ \ \ \textcolor{comment}{//\ Finds\ the\ first\ element\ that\ is\ not\ less\ than\ \`{}key`\ within\ the\ \`{}btree\_set`.}}
+\DoxyCodeLine{00378\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00379\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00380\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00381\ \ \ \textcolor{keyword}{using\ }Base::lower\_bound;}
+\DoxyCodeLine{00382\ }
+\DoxyCodeLine{00383\ \ \ \textcolor{comment}{//\ btree\_set::upper\_bound()}}
+\DoxyCodeLine{00384\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00385\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ iterator\ upper\_bound(const\ K\&\ key):}}
+\DoxyCodeLine{00386\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ const\_iterator\ upper\_bound(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00387\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00388\ \ \ \textcolor{comment}{//\ Finds\ the\ first\ element\ that\ is\ greater\ than\ \`{}key`\ within\ the\ \`{}btree\_set`.}}
+\DoxyCodeLine{00389\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00390\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00391\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00392\ \ \ \textcolor{keyword}{using\ }Base::upper\_bound;}
+\DoxyCodeLine{00393\ }
+\DoxyCodeLine{00394\ \ \ \textcolor{comment}{//\ btree\_set::get\_allocator()}}
+\DoxyCodeLine{00395\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00396\ \ \ \textcolor{comment}{//\ Returns\ the\ allocator\ function\ associated\ with\ this\ \`{}btree\_set`.}}
+\DoxyCodeLine{00397\ \ \ \textcolor{keyword}{using\ }Base::get\_allocator;}
+\DoxyCodeLine{00398\ }
+\DoxyCodeLine{00399\ \ \ \textcolor{comment}{//\ btree\_set::key\_comp();}}
+\DoxyCodeLine{00400\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00401\ \ \ \textcolor{comment}{//\ Returns\ the\ key\ comparator\ associated\ with\ this\ \`{}btree\_set`.}}
+\DoxyCodeLine{00402\ \ \ \textcolor{keyword}{using\ }Base::key\_comp;}
+\DoxyCodeLine{00403\ }
+\DoxyCodeLine{00404\ \ \ \textcolor{comment}{//\ btree\_set::value\_comp();}}
+\DoxyCodeLine{00405\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00406\ \ \ \textcolor{comment}{//\ Returns\ the\ value\ comparator\ associated\ with\ this\ \`{}btree\_set`.\ The\ keys\ to}}
+\DoxyCodeLine{00407\ \ \ \textcolor{comment}{//\ sort\ the\ elements\ are\ the\ values\ themselves,\ therefore\ \`{}value\_comp`\ and\ its}}
+\DoxyCodeLine{00408\ \ \ \textcolor{comment}{//\ sibling\ member\ function\ \`{}key\_comp`\ are\ equivalent.}}
+\DoxyCodeLine{00409\ \ \ \textcolor{keyword}{using\ }Base::value\_comp;}
+\DoxyCodeLine{00410\ \};}
+\DoxyCodeLine{00411\ }
+\DoxyCodeLine{00412\ \textcolor{comment}{//\ absl::swap(absl::btree\_set<>,\ absl::btree\_set<>)}}
+\DoxyCodeLine{00413\ \textcolor{comment}{//}}
+\DoxyCodeLine{00414\ \textcolor{comment}{//\ Swaps\ the\ contents\ of\ two\ \`{}absl::btree\_set`\ containers.}}
+\DoxyCodeLine{00415\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ K,\ \textcolor{keyword}{typename}\ C,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00416\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_a6d0e7d492f9cf75a00239615f076e456}{swap}}(btree\_set<K,\ C,\ A>\ \&\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ btree\_set<K,\ C,\ A>\ \&y)\ \{}
+\DoxyCodeLine{00417\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.swap(y);}
+\DoxyCodeLine{00418\ \}}
+\DoxyCodeLine{00419\ }
+\DoxyCodeLine{00420\ \textcolor{comment}{//\ absl::erase\_if(absl::btree\_set<>,\ Pred)}}
+\DoxyCodeLine{00421\ \textcolor{comment}{//}}
+\DoxyCodeLine{00422\ \textcolor{comment}{//\ Erases\ all\ elements\ that\ satisfy\ the\ predicate\ pred\ from\ the\ container.}}
+\DoxyCodeLine{00423\ \textcolor{comment}{//\ Returns\ the\ number\ of\ erased\ elements.}}
+\DoxyCodeLine{00424\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ K,\ \textcolor{keyword}{typename}\ C,\ \textcolor{keyword}{typename}\ A,\ \textcolor{keyword}{typename}\ Pred>}
+\DoxyCodeLine{00425\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1btree__container_a4ae1d93e9bdac617ab0b48f820ca9347}{btree\_set<K,\ C,\ A>::size\_type}}\ \mbox{\hyperlink{namespaceabsl_a8f80d7d5468e89aa076e56759cbea9cb}{erase\_if}}(btree\_set<K,\ C,\ A>\ \&set,}
+\DoxyCodeLine{00426\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Pred\ pred)\ \{}
+\DoxyCodeLine{00427\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1btree__access_a8e16146a3f2ab2ba43ddd4e3c973a2b0}{container\_internal::btree\_access::erase\_if}}(set,\ std::move(pred));}
+\DoxyCodeLine{00428\ \}}
+\DoxyCodeLine{00429\ }
+\DoxyCodeLine{00430\ \textcolor{comment}{//\ absl::btree\_multiset<>}}
+\DoxyCodeLine{00431\ \textcolor{comment}{//}}
+\DoxyCodeLine{00432\ \textcolor{comment}{//\ An\ \`{}absl::btree\_multiset<K>`\ is\ an\ ordered\ associative\ container\ of}}
+\DoxyCodeLine{00433\ \textcolor{comment}{//\ keys\ and\ associated\ values\ designed\ to\ be\ a\ more\ efficient\ replacement}}
+\DoxyCodeLine{00434\ \textcolor{comment}{//\ for\ \`{}std::multiset`\ (in\ most\ cases).\ Unlike\ \`{}absl::btree\_set`,\ a\ B-\/tree}}
+\DoxyCodeLine{00435\ \textcolor{comment}{//\ multiset\ allows\ equivalent\ elements.}}
+\DoxyCodeLine{00436\ \textcolor{comment}{//}}
+\DoxyCodeLine{00437\ \textcolor{comment}{//\ Keys\ are\ sorted\ using\ an\ (optional)\ comparison\ function,\ which\ defaults\ to}}
+\DoxyCodeLine{00438\ \textcolor{comment}{//\ \`{}std::less<K>`.}}
+\DoxyCodeLine{00439\ \textcolor{comment}{//}}
+\DoxyCodeLine{00440\ \textcolor{comment}{//\ An\ \`{}absl::btree\_multiset<K>`\ uses\ a\ default\ allocator\ of\ \`{}std::allocator<K>`}}
+\DoxyCodeLine{00441\ \textcolor{comment}{//\ to\ allocate\ (and\ deallocate)\ nodes,\ and\ construct\ and\ destruct\ values\ within}}
+\DoxyCodeLine{00442\ \textcolor{comment}{//\ those\ nodes.\ You\ may\ instead\ specify\ a\ custom\ allocator\ \`{}A`\ (which\ in\ turn}}
+\DoxyCodeLine{00443\ \textcolor{comment}{//\ requires\ specifying\ a\ custom\ comparator\ \`{}C`)\ as\ in}}
+\DoxyCodeLine{00444\ \textcolor{comment}{//\ \`{}absl::btree\_multiset<K,\ C,\ A>`.}}
+\DoxyCodeLine{00445\ \textcolor{comment}{//}}
+\DoxyCodeLine{00446\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Key,\ \textcolor{keyword}{typename}\ Compare\ =\ std::less<Key>,}
+\DoxyCodeLine{00447\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ Alloc\ =\ std::allocator<Key>>}
+\DoxyCodeLine{00448\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a72d568665616f062d78cb0cee3a3ad49}{ABSL\_ATTRIBUTE\_OWNER}}\ \mbox{\hyperlink{classabsl_1_1btree__multiset}{btree\_multiset}}}
+\DoxyCodeLine{00449\ \ \ \ \ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1btree__multiset__container}{container\_internal::btree\_multiset\_container}}<}
+\DoxyCodeLine{00450\ \ \ \ \ \ \ \ \ \ \ container\_internal::btree<container\_internal::set\_params<}
+\DoxyCodeLine{00451\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Key,\ Compare,\ Alloc,\ \textcolor{comment}{/*TargetNodeSize=*/}256,}
+\DoxyCodeLine{00452\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*IsMulti=*/}true>>>\ \{}
+\DoxyCodeLine{00453\ \ \ \textcolor{keyword}{using\ }Base\ =\ \textcolor{keyword}{typename}\ btree\_multiset::btree\_multiset\_container;}
+\DoxyCodeLine{00454\ }
+\DoxyCodeLine{00455\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00456\ \ \ \textcolor{comment}{//\ Constructors\ and\ Assignment\ Operators}}
+\DoxyCodeLine{00457\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00458\ \ \ \textcolor{comment}{//\ A\ \`{}btree\_multiset`\ supports\ the\ same\ overload\ set\ as\ \`{}std::set`}}
+\DoxyCodeLine{00459\ \ \ \textcolor{comment}{//\ for\ construction\ and\ assignment:}}
+\DoxyCodeLine{00460\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00461\ \ \ \textcolor{comment}{//\ *\ Default\ constructor}}
+\DoxyCodeLine{00462\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00463\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_multiset<std::string>\ set1;}}
+\DoxyCodeLine{00464\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00465\ \ \ \textcolor{comment}{//\ *\ Initializer\ List\ constructor}}
+\DoxyCodeLine{00466\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00467\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_multiset<std::string>\ set2\ =}}
+\DoxyCodeLine{00468\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \{\{"{}huey"{}\},\ \{"{}dewey"{}\},\ \{"{}louie"{}\},\};}}
+\DoxyCodeLine{00469\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00470\ \ \ \textcolor{comment}{//\ *\ Copy\ constructor}}
+\DoxyCodeLine{00471\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00472\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_multiset<std::string>\ set3(set2);}}
+\DoxyCodeLine{00473\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00474\ \ \ \textcolor{comment}{//\ *\ Copy\ assignment\ operator}}
+\DoxyCodeLine{00475\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00476\ \ \ \textcolor{comment}{//\ \ absl::btree\_multiset<std::string>\ set4;}}
+\DoxyCodeLine{00477\ \ \ \textcolor{comment}{//\ \ set4\ =\ set3;}}
+\DoxyCodeLine{00478\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00479\ \ \ \textcolor{comment}{//\ *\ Move\ constructor}}
+\DoxyCodeLine{00480\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00481\ \ \ \textcolor{comment}{//\ \ \ //\ Move\ is\ guaranteed\ efficient}}
+\DoxyCodeLine{00482\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_multiset<std::string>\ set5(std::move(set4));}}
+\DoxyCodeLine{00483\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00484\ \ \ \textcolor{comment}{//\ *\ Move\ assignment\ operator}}
+\DoxyCodeLine{00485\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00486\ \ \ \textcolor{comment}{//\ \ \ //\ May\ be\ efficient\ if\ allocators\ are\ compatible}}
+\DoxyCodeLine{00487\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_multiset<std::string>\ set6;}}
+\DoxyCodeLine{00488\ \ \ \textcolor{comment}{//\ \ \ set6\ =\ std::move(set5);}}
+\DoxyCodeLine{00489\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00490\ \ \ \textcolor{comment}{//\ *\ Range\ constructor}}
+\DoxyCodeLine{00491\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00492\ \ \ \textcolor{comment}{//\ \ \ std::vector<std::string>\ v\ =\ \{"{}a"{},\ "{}b"{}\};}}
+\DoxyCodeLine{00493\ \ \ \textcolor{comment}{//\ \ \ absl::btree\_multiset<std::string>\ set7(v.begin(),\ v.end());}}
+\DoxyCodeLine{00494\ \ \ \mbox{\hyperlink{classabsl_1_1btree__multiset_a7ffbb57f3a4aa7682f182a99b0b0b9a4}{btree\_multiset}}()\ \{\}}
+\DoxyCodeLine{00495\ \ \ \textcolor{keyword}{using\ }Base::Base;}
+\DoxyCodeLine{00496\ }
+\DoxyCodeLine{00497\ \ \ \textcolor{comment}{//\ btree\_multiset::begin()}}
+\DoxyCodeLine{00498\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00499\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ to\ the\ beginning\ of\ the\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00500\ \ \ \textcolor{keyword}{using\ }Base::begin;}
+\DoxyCodeLine{00501\ }
+\DoxyCodeLine{00502\ \ \ \textcolor{comment}{//\ btree\_multiset::cbegin()}}
+\DoxyCodeLine{00503\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00504\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ to\ the\ beginning\ of\ the\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00505\ \ \ \textcolor{keyword}{using\ }Base::cbegin;}
+\DoxyCodeLine{00506\ }
+\DoxyCodeLine{00507\ \ \ \textcolor{comment}{//\ btree\_multiset::end()}}
+\DoxyCodeLine{00508\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00509\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ to\ the\ end\ of\ the\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00510\ \ \ \textcolor{keyword}{using\ }Base::end;}
+\DoxyCodeLine{00511\ }
+\DoxyCodeLine{00512\ \ \ \textcolor{comment}{//\ btree\_multiset::cend()}}
+\DoxyCodeLine{00513\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00514\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ to\ the\ end\ of\ the\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00515\ \ \ \textcolor{keyword}{using\ }Base::cend;}
+\DoxyCodeLine{00516\ }
+\DoxyCodeLine{00517\ \ \ \textcolor{comment}{//\ btree\_multiset::empty()}}
+\DoxyCodeLine{00518\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00519\ \ \ \textcolor{comment}{//\ Returns\ whether\ or\ not\ the\ \`{}btree\_multiset`\ is\ empty.}}
+\DoxyCodeLine{00520\ \ \ \textcolor{keyword}{using\ }Base::empty;}
+\DoxyCodeLine{00521\ }
+\DoxyCodeLine{00522\ \ \ \textcolor{comment}{//\ btree\_multiset::max\_size()}}
+\DoxyCodeLine{00523\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00524\ \ \ \textcolor{comment}{//\ Returns\ the\ largest\ theoretical\ possible\ number\ of\ elements\ within\ a}}
+\DoxyCodeLine{00525\ \ \ \textcolor{comment}{//\ \`{}btree\_multiset`\ under\ current\ memory\ constraints.\ This\ value\ can\ be}}
+\DoxyCodeLine{00526\ \ \ \textcolor{comment}{//\ thought\ of\ as\ the\ largest\ value\ of\ \`{}std::distance(begin(),\ end())`\ for\ a}}
+\DoxyCodeLine{00527\ \ \ \textcolor{comment}{//\ \`{}btree\_multiset<Key>`.}}
+\DoxyCodeLine{00528\ \ \ \textcolor{keyword}{using\ }Base::max\_size;}
+\DoxyCodeLine{00529\ }
+\DoxyCodeLine{00530\ \ \ \textcolor{comment}{//\ btree\_multiset::size()}}
+\DoxyCodeLine{00531\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00532\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ elements\ currently\ within\ the\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00533\ \ \ \textcolor{keyword}{using\ }Base::size;}
+\DoxyCodeLine{00534\ }
+\DoxyCodeLine{00535\ \ \ \textcolor{comment}{//\ btree\_multiset::clear()}}
+\DoxyCodeLine{00536\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00537\ \ \ \textcolor{comment}{//\ Removes\ all\ elements\ from\ the\ \`{}btree\_multiset`.\ Invalidates\ any\ references,}}
+\DoxyCodeLine{00538\ \ \ \textcolor{comment}{//\ pointers,\ or\ iterators\ referring\ to\ contained\ elements.}}
+\DoxyCodeLine{00539\ \ \ \textcolor{keyword}{using\ }Base::clear;}
+\DoxyCodeLine{00540\ }
+\DoxyCodeLine{00541\ \ \ \textcolor{comment}{//\ btree\_multiset::erase()}}
+\DoxyCodeLine{00542\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00543\ \ \ \textcolor{comment}{//\ Erases\ elements\ within\ the\ \`{}btree\_multiset`.\ Overloads\ are\ listed\ below.}}
+\DoxyCodeLine{00544\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00545\ \ \ \textcolor{comment}{//\ iterator\ erase(iterator\ position):}}
+\DoxyCodeLine{00546\ \ \ \textcolor{comment}{//\ iterator\ erase(const\_iterator\ position):}}
+\DoxyCodeLine{00547\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00548\ \ \ \textcolor{comment}{//\ \ \ Erases\ the\ element\ at\ \`{}position`\ of\ the\ \`{}btree\_multiset`,\ returning}}
+\DoxyCodeLine{00549\ \ \ \textcolor{comment}{//\ \ \ the\ iterator\ pointing\ to\ the\ element\ after\ the\ one\ that\ was\ erased}}
+\DoxyCodeLine{00550\ \ \ \textcolor{comment}{//\ \ \ (or\ end()\ if\ none\ exists).}}
+\DoxyCodeLine{00551\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00552\ \ \ \textcolor{comment}{//\ iterator\ erase(const\_iterator\ first,\ const\_iterator\ last):}}
+\DoxyCodeLine{00553\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00554\ \ \ \textcolor{comment}{//\ \ \ Erases\ the\ elements\ in\ the\ open\ interval\ [`first`,\ \`{}last`),\ returning}}
+\DoxyCodeLine{00555\ \ \ \textcolor{comment}{//\ \ \ the\ iterator\ pointing\ to\ the\ element\ after\ the\ interval\ that\ was\ erased}}
+\DoxyCodeLine{00556\ \ \ \textcolor{comment}{//\ \ \ (or\ end()\ if\ none\ exists).}}
+\DoxyCodeLine{00557\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00558\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ size\_type\ erase(const\ K\&\ key):}}
+\DoxyCodeLine{00559\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00560\ \ \ \textcolor{comment}{//\ \ \ Erases\ the\ elements\ matching\ the\ key,\ if\ any\ exist,\ returning\ the}}
+\DoxyCodeLine{00561\ \ \ \textcolor{comment}{//\ \ \ number\ of\ elements\ erased.}}
+\DoxyCodeLine{00562\ \ \ \textcolor{keyword}{using\ }Base::erase;}
+\DoxyCodeLine{00563\ }
+\DoxyCodeLine{00564\ \ \ \textcolor{comment}{//\ btree\_multiset::insert()}}
+\DoxyCodeLine{00565\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00566\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ into\ the\ \`{}btree\_multiset`,}}
+\DoxyCodeLine{00567\ \ \ \textcolor{comment}{//\ returning\ an\ iterator\ pointing\ to\ the\ newly\ inserted\ element.}}
+\DoxyCodeLine{00568\ \ \ \textcolor{comment}{//\ Any\ references,\ pointers,\ or\ iterators\ are\ invalidated.\ \ Overloads\ are}}
+\DoxyCodeLine{00569\ \ \ \textcolor{comment}{//\ listed\ below.}}
+\DoxyCodeLine{00570\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00571\ \ \ \textcolor{comment}{//\ iterator\ insert(const\ value\_type\&\ value):}}
+\DoxyCodeLine{00572\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00573\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ value\ into\ the\ \`{}btree\_multiset`,\ returning\ an\ iterator\ to\ the}}
+\DoxyCodeLine{00574\ \ \ \textcolor{comment}{//\ \ \ inserted\ element.}}
+\DoxyCodeLine{00575\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00576\ \ \ \textcolor{comment}{//\ iterator\ insert(value\_type\&\&\ value):}}
+\DoxyCodeLine{00577\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00578\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ moveable\ value\ into\ the\ \`{}btree\_multiset`,\ returning\ an\ iterator}}
+\DoxyCodeLine{00579\ \ \ \textcolor{comment}{//\ \ \ to\ the\ inserted\ element.}}
+\DoxyCodeLine{00580\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00581\ \ \ \textcolor{comment}{//\ iterator\ insert(const\_iterator\ hint,\ const\ value\_type\&\ value):}}
+\DoxyCodeLine{00582\ \ \ \textcolor{comment}{//\ iterator\ insert(const\_iterator\ hint,\ value\_type\&\&\ value):}}
+\DoxyCodeLine{00583\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00584\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ value,\ using\ the\ position\ of\ \`{}hint`\ as\ a\ non-\/binding\ suggestion}}
+\DoxyCodeLine{00585\ \ \ \textcolor{comment}{//\ \ \ for\ where\ to\ begin\ the\ insertion\ search.\ Returns\ an\ iterator\ to\ the}}
+\DoxyCodeLine{00586\ \ \ \textcolor{comment}{//\ \ \ inserted\ element.}}
+\DoxyCodeLine{00587\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00588\ \ \ \textcolor{comment}{//\ void\ insert(InputIterator\ first,\ InputIterator\ last):}}
+\DoxyCodeLine{00589\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00590\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ range\ of\ values\ [`first`,\ \`{}last`).}}
+\DoxyCodeLine{00591\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00592\ \ \ \textcolor{comment}{//\ void\ insert(std::initializer\_list<init\_type>\ ilist):}}
+\DoxyCodeLine{00593\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00594\ \ \ \textcolor{comment}{//\ \ \ Inserts\ the\ elements\ within\ the\ initializer\ list\ \`{}ilist`.}}
+\DoxyCodeLine{00595\ \ \ \textcolor{keyword}{using\ }Base::insert;}
+\DoxyCodeLine{00596\ }
+\DoxyCodeLine{00597\ \ \ \textcolor{comment}{//\ btree\_multiset::emplace()}}
+\DoxyCodeLine{00598\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00599\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ by\ constructing\ it\ in-\/place}}
+\DoxyCodeLine{00600\ \ \ \textcolor{comment}{//\ within\ the\ \`{}btree\_multiset`.\ Any\ references,\ pointers,\ or\ iterators\ are}}
+\DoxyCodeLine{00601\ \ \ \textcolor{comment}{//\ invalidated.}}
+\DoxyCodeLine{00602\ \ \ \textcolor{keyword}{using\ }Base::emplace;}
+\DoxyCodeLine{00603\ }
+\DoxyCodeLine{00604\ \ \ \textcolor{comment}{//\ btree\_multiset::emplace\_hint()}}
+\DoxyCodeLine{00605\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00606\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ by\ constructing\ it\ in-\/place}}
+\DoxyCodeLine{00607\ \ \ \textcolor{comment}{//\ within\ the\ \`{}btree\_multiset`,\ using\ the\ position\ of\ \`{}hint`\ as\ a\ non-\/binding}}
+\DoxyCodeLine{00608\ \ \ \textcolor{comment}{//\ suggestion\ for\ where\ to\ begin\ the\ insertion\ search.}}
+\DoxyCodeLine{00609\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00610\ \ \ \textcolor{comment}{//\ Any\ references,\ pointers,\ or\ iterators\ are\ invalidated.}}
+\DoxyCodeLine{00611\ \ \ \textcolor{keyword}{using\ }Base::emplace\_hint;}
+\DoxyCodeLine{00612\ }
+\DoxyCodeLine{00613\ \ \ \textcolor{comment}{//\ btree\_multiset::extract()}}
+\DoxyCodeLine{00614\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00615\ \ \ \textcolor{comment}{//\ Extracts\ the\ indicated\ element,\ erasing\ it\ in\ the\ process,\ and\ returns\ it}}
+\DoxyCodeLine{00616\ \ \ \textcolor{comment}{//\ as\ a\ C++17-\/compatible\ node\ handle.\ Overloads\ are\ listed\ below.}}
+\DoxyCodeLine{00617\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00618\ \ \ \textcolor{comment}{//\ node\_type\ extract(const\_iterator\ position):}}
+\DoxyCodeLine{00619\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00620\ \ \ \textcolor{comment}{//\ \ \ Extracts\ the\ element\ at\ the\ indicated\ position\ and\ returns\ a\ node\ handle}}
+\DoxyCodeLine{00621\ \ \ \textcolor{comment}{//\ \ \ owning\ that\ extracted\ data.}}
+\DoxyCodeLine{00622\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00623\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ node\_type\ extract(const\ K\&\ k):}}
+\DoxyCodeLine{00624\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00625\ \ \ \textcolor{comment}{//\ \ \ Extracts\ the\ element\ with\ the\ key\ matching\ the\ passed\ key\ value\ and}}
+\DoxyCodeLine{00626\ \ \ \textcolor{comment}{//\ \ \ returns\ a\ node\ handle\ owning\ that\ extracted\ data.\ If\ the\ \`{}btree\_multiset`}}
+\DoxyCodeLine{00627\ \ \ \textcolor{comment}{//\ \ \ does\ not\ contain\ an\ element\ with\ a\ matching\ key,\ this\ function\ returns\ an}}
+\DoxyCodeLine{00628\ \ \ \textcolor{comment}{//\ \ \ empty\ node\ handle.}}
+\DoxyCodeLine{00629\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00630\ \ \ \textcolor{comment}{//\ NOTE:\ In\ this\ context,\ \`{}node\_type`\ refers\ to\ the\ C++17\ concept\ of\ a}}
+\DoxyCodeLine{00631\ \ \ \textcolor{comment}{//\ move-\/only\ type\ that\ owns\ and\ provides\ access\ to\ the\ elements\ in\ associative}}
+\DoxyCodeLine{00632\ \ \ \textcolor{comment}{//\ containers\ (https://en.cppreference.com/w/cpp/container/node\_handle).}}
+\DoxyCodeLine{00633\ \ \ \textcolor{comment}{//\ It\ does\ NOT\ refer\ to\ the\ data\ layout\ of\ the\ underlying\ btree.}}
+\DoxyCodeLine{00634\ \ \ \textcolor{keyword}{using\ }Base::extract;}
+\DoxyCodeLine{00635\ }
+\DoxyCodeLine{00636\ \ \ \textcolor{comment}{//\ btree\_multiset::extract\_and\_get\_next()}}
+\DoxyCodeLine{00637\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00638\ \ \ \textcolor{comment}{//\ Extracts\ the\ indicated\ element,\ erasing\ it\ in\ the\ process,\ and\ returns\ it}}
+\DoxyCodeLine{00639\ \ \ \textcolor{comment}{//\ as\ a\ C++17-\/compatible\ node\ handle\ along\ with\ an\ iterator\ to\ the\ next}}
+\DoxyCodeLine{00640\ \ \ \textcolor{comment}{//\ element.}}
+\DoxyCodeLine{00641\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00642\ \ \ \textcolor{comment}{//\ extract\_and\_get\_next\_return\_type\ extract\_and\_get\_next(}}
+\DoxyCodeLine{00643\ \ \ \textcolor{comment}{//\ \ \ \ \ const\_iterator\ position):}}
+\DoxyCodeLine{00644\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00645\ \ \ \textcolor{comment}{//\ \ \ Extracts\ the\ element\ at\ the\ indicated\ position,\ returns\ a\ struct}}
+\DoxyCodeLine{00646\ \ \ \textcolor{comment}{//\ \ \ containing\ a\ member\ named\ \`{}node`:\ a\ node\ handle\ owning\ that\ extracted}}
+\DoxyCodeLine{00647\ \ \ \textcolor{comment}{//\ \ \ data\ and\ a\ member\ named\ \`{}next`:\ an\ iterator\ pointing\ to\ the\ next\ element}}
+\DoxyCodeLine{00648\ \ \ \textcolor{comment}{//\ \ \ in\ the\ btree.}}
+\DoxyCodeLine{00649\ \ \ \textcolor{keyword}{using\ }Base::extract\_and\_get\_next;}
+\DoxyCodeLine{00650\ }
+\DoxyCodeLine{00651\ \ \ \textcolor{comment}{//\ btree\_multiset::merge()}}
+\DoxyCodeLine{00652\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00653\ \ \ \textcolor{comment}{//\ Extracts\ all\ elements\ from\ a\ given\ \`{}source`\ btree\_multiset\ into\ this}}
+\DoxyCodeLine{00654\ \ \ \textcolor{comment}{//\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00655\ \ \ \textcolor{keyword}{using\ }Base::merge;}
+\DoxyCodeLine{00656\ }
+\DoxyCodeLine{00657\ \ \ \textcolor{comment}{//\ btree\_multiset::swap(btree\_multiset\&\ other)}}
+\DoxyCodeLine{00658\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00659\ \ \ \textcolor{comment}{//\ Exchanges\ the\ contents\ of\ this\ \`{}btree\_multiset`\ with\ those\ of\ the\ \`{}other`}}
+\DoxyCodeLine{00660\ \ \ \textcolor{comment}{//\ btree\_multiset,\ avoiding\ invocation\ of\ any\ move,\ copy,\ or\ swap\ operations}}
+\DoxyCodeLine{00661\ \ \ \textcolor{comment}{//\ on\ individual\ elements.}}
+\DoxyCodeLine{00662\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00663\ \ \ \textcolor{comment}{//\ All\ iterators\ and\ references\ on\ the\ \`{}btree\_multiset`\ remain\ valid,}}
+\DoxyCodeLine{00664\ \ \ \textcolor{comment}{//\ excepting\ for\ the\ past-\/the-\/end\ iterator,\ which\ is\ invalidated.}}
+\DoxyCodeLine{00665\ \ \ \textcolor{keyword}{using\ }Base::swap;}
+\DoxyCodeLine{00666\ }
+\DoxyCodeLine{00667\ \ \ \textcolor{comment}{//\ btree\_multiset::contains()}}
+\DoxyCodeLine{00668\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00669\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ bool\ contains(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00670\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00671\ \ \ \textcolor{comment}{//\ Determines\ whether\ an\ element\ comparing\ equal\ to\ the\ given\ \`{}key`\ exists}}
+\DoxyCodeLine{00672\ \ \ \textcolor{comment}{//\ within\ the\ \`{}btree\_multiset`,\ returning\ \`{}true`\ if\ so\ or\ \`{}false`\ otherwise.}}
+\DoxyCodeLine{00673\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00674\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00675\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00676\ \ \ \textcolor{keyword}{using\ }Base::contains;}
+\DoxyCodeLine{00677\ }
+\DoxyCodeLine{00678\ \ \ \textcolor{comment}{//\ btree\_multiset::count()}}
+\DoxyCodeLine{00679\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00680\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ size\_type\ count(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00681\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00682\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ elements\ comparing\ equal\ to\ the\ given\ \`{}key`\ within}}
+\DoxyCodeLine{00683\ \ \ \textcolor{comment}{//\ the\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00684\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00685\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00686\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00687\ \ \ \textcolor{keyword}{using\ }Base::count;}
+\DoxyCodeLine{00688\ }
+\DoxyCodeLine{00689\ \ \ \textcolor{comment}{//\ btree\_multiset::equal\_range()}}
+\DoxyCodeLine{00690\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00691\ \ \ \textcolor{comment}{//\ Returns\ a\ closed\ range\ [first,\ last],\ defined\ by\ a\ \`{}std::pair`\ of\ two}}
+\DoxyCodeLine{00692\ \ \ \textcolor{comment}{//\ iterators,\ containing\ all\ elements\ with\ the\ passed\ key\ in\ the}}
+\DoxyCodeLine{00693\ \ \ \textcolor{comment}{//\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00694\ \ \ \textcolor{keyword}{using\ }Base::equal\_range;}
+\DoxyCodeLine{00695\ }
+\DoxyCodeLine{00696\ \ \ \textcolor{comment}{//\ btree\_multiset::find()}}
+\DoxyCodeLine{00697\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00698\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ iterator\ find(const\ K\&\ key):}}
+\DoxyCodeLine{00699\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ const\_iterator\ find(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00700\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00701\ \ \ \textcolor{comment}{//\ Finds\ an\ element\ with\ the\ passed\ \`{}key`\ within\ the\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00702\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00703\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00704\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00705\ \ \ \textcolor{keyword}{using\ }Base::find;}
+\DoxyCodeLine{00706\ }
+\DoxyCodeLine{00707\ \ \ \textcolor{comment}{//\ btree\_multiset::lower\_bound()}}
+\DoxyCodeLine{00708\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00709\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ iterator\ lower\_bound(const\ K\&\ key):}}
+\DoxyCodeLine{00710\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ const\_iterator\ lower\_bound(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00711\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00712\ \ \ \textcolor{comment}{//\ Finds\ the\ first\ element\ that\ is\ not\ less\ than\ \`{}key`\ within\ the}}
+\DoxyCodeLine{00713\ \ \ \textcolor{comment}{//\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00714\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00715\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00716\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00717\ \ \ \textcolor{keyword}{using\ }Base::lower\_bound;}
+\DoxyCodeLine{00718\ }
+\DoxyCodeLine{00719\ \ \ \textcolor{comment}{//\ btree\_multiset::upper\_bound()}}
+\DoxyCodeLine{00720\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00721\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ iterator\ upper\_bound(const\ K\&\ key):}}
+\DoxyCodeLine{00722\ \ \ \textcolor{comment}{//\ template\ <typename\ K>\ const\_iterator\ upper\_bound(const\ K\&\ key)\ const:}}
+\DoxyCodeLine{00723\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00724\ \ \ \textcolor{comment}{//\ Finds\ the\ first\ element\ that\ is\ greater\ than\ \`{}key`\ within\ the}}
+\DoxyCodeLine{00725\ \ \ \textcolor{comment}{//\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00726\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00727\ \ \ \textcolor{comment}{//\ Supports\ heterogeneous\ lookup,\ provided\ that\ the\ set\ has\ a\ compatible}}
+\DoxyCodeLine{00728\ \ \ \textcolor{comment}{//\ heterogeneous\ comparator.}}
+\DoxyCodeLine{00729\ \ \ \textcolor{keyword}{using\ }Base::upper\_bound;}
+\DoxyCodeLine{00730\ }
+\DoxyCodeLine{00731\ \ \ \textcolor{comment}{//\ btree\_multiset::get\_allocator()}}
+\DoxyCodeLine{00732\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00733\ \ \ \textcolor{comment}{//\ Returns\ the\ allocator\ function\ associated\ with\ this\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00734\ \ \ \textcolor{keyword}{using\ }Base::get\_allocator;}
+\DoxyCodeLine{00735\ }
+\DoxyCodeLine{00736\ \ \ \textcolor{comment}{//\ btree\_multiset::key\_comp();}}
+\DoxyCodeLine{00737\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00738\ \ \ \textcolor{comment}{//\ Returns\ the\ key\ comparator\ associated\ with\ this\ \`{}btree\_multiset`.}}
+\DoxyCodeLine{00739\ \ \ \textcolor{keyword}{using\ }Base::key\_comp;}
+\DoxyCodeLine{00740\ }
+\DoxyCodeLine{00741\ \ \ \textcolor{comment}{//\ btree\_multiset::value\_comp();}}
+\DoxyCodeLine{00742\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00743\ \ \ \textcolor{comment}{//\ Returns\ the\ value\ comparator\ associated\ with\ this\ \`{}btree\_multiset`.\ The}}
+\DoxyCodeLine{00744\ \ \ \textcolor{comment}{//\ keys\ to\ sort\ the\ elements\ are\ the\ values\ themselves,\ therefore\ \`{}value\_comp`}}
+\DoxyCodeLine{00745\ \ \ \textcolor{comment}{//\ and\ its\ sibling\ member\ function\ \`{}key\_comp`\ are\ equivalent.}}
+\DoxyCodeLine{00746\ \ \ \textcolor{keyword}{using\ }Base::value\_comp;}
+\DoxyCodeLine{00747\ \};}
+\DoxyCodeLine{00748\ }
+\DoxyCodeLine{00749\ \textcolor{comment}{//\ absl::swap(absl::btree\_multiset<>,\ absl::btree\_multiset<>)}}
+\DoxyCodeLine{00750\ \textcolor{comment}{//}}
+\DoxyCodeLine{00751\ \textcolor{comment}{//\ Swaps\ the\ contents\ of\ two\ \`{}absl::btree\_multiset`\ containers.}}
+\DoxyCodeLine{00752\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ K,\ \textcolor{keyword}{typename}\ C,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00753\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_a6d0e7d492f9cf75a00239615f076e456}{swap}}(btree\_multiset<K,\ C,\ A>\ \&\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ btree\_multiset<K,\ C,\ A>\ \&y)\ \{}
+\DoxyCodeLine{00754\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.swap(y);}
+\DoxyCodeLine{00755\ \}}
+\DoxyCodeLine{00756\ }
+\DoxyCodeLine{00757\ \textcolor{comment}{//\ absl::erase\_if(absl::btree\_multiset<>,\ Pred)}}
+\DoxyCodeLine{00758\ \textcolor{comment}{//}}
+\DoxyCodeLine{00759\ \textcolor{comment}{//\ Erases\ all\ elements\ that\ satisfy\ the\ predicate\ pred\ from\ the\ container.}}
+\DoxyCodeLine{00760\ \textcolor{comment}{//\ Returns\ the\ number\ of\ erased\ elements.}}
+\DoxyCodeLine{00761\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ K,\ \textcolor{keyword}{typename}\ C,\ \textcolor{keyword}{typename}\ A,\ \textcolor{keyword}{typename}\ Pred>}
+\DoxyCodeLine{00762\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1btree__container_a4ae1d93e9bdac617ab0b48f820ca9347}{btree\_multiset<K,\ C,\ A>::size\_type}}\ \mbox{\hyperlink{namespaceabsl_a8f80d7d5468e89aa076e56759cbea9cb}{erase\_if}}(}
+\DoxyCodeLine{00763\ \ \ \ btree\_multiset<K,\ C,\ A>\ \&\ set,\ Pred\ pred)\ \{}
+\DoxyCodeLine{00764\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1btree__access_a8e16146a3f2ab2ba43ddd4e3c973a2b0}{container\_internal::btree\_access::erase\_if}}(set,\ std::move(pred));}
+\DoxyCodeLine{00765\ \}}
+\DoxyCodeLine{00766\ }
+\DoxyCodeLine{00767\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00768\ }
+\DoxyCodeLine{00769\ \textcolor{comment}{//\ This\ type\ implements\ the\ necessary\ functions\ from\ the}}
+\DoxyCodeLine{00770\ \textcolor{comment}{//\ absl::container\_internal::slot\_type\ interface\ for\ btree\_(multi)set.}}
+\DoxyCodeLine{00771\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Key>}
+\DoxyCodeLine{00772\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy}{set\_slot\_policy}}\ \{}
+\DoxyCodeLine{00773\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a21a1f3fd74caee19b51ba9a8dab02072}{slot\_type}}\ =\ Key;}
+\DoxyCodeLine{00774\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a0644cb177bf98198a3dc7438795674f9}{value\_type}}\ =\ Key;}
+\DoxyCodeLine{00775\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_aa76ed746dc017d0fbdfd3a0a05611e5c}{mutable\_value\_type}}\ =\ Key;}
+\DoxyCodeLine{00776\ }
+\DoxyCodeLine{00777\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a0644cb177bf98198a3dc7438795674f9}{value\_type}}\ \&\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_ab5bd202baee7f945f868956b68de188d}{element}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a21a1f3fd74caee19b51ba9a8dab02072}{slot\_type}}\ *slot)\ \{\ \textcolor{keywordflow}{return}\ *slot;\ \}}
+\DoxyCodeLine{00778\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a0644cb177bf98198a3dc7438795674f9}{value\_type}}\ \&\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a6968e3f5ad34a0c3c833c25024e00dca}{element}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a21a1f3fd74caee19b51ba9a8dab02072}{slot\_type}}\ *slot)\ \{\ \textcolor{keywordflow}{return}\ *slot;\ \}}
+\DoxyCodeLine{00779\ }
+\DoxyCodeLine{00780\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1Alloc}{Alloc}},\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00781\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a5439749b91a6491a8c71e9cd31e86668}{construct}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1Alloc}{Alloc}}\ *\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a21a1f3fd74caee19b51ba9a8dab02072}{slot\_type}}\ *slot,\ Args\ \&\&...args)\ \{}
+\DoxyCodeLine{00782\ \ \ \ \ absl::allocator\_traits<Alloc>::construct(*\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ slot,}
+\DoxyCodeLine{00783\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Args>(args)...);}
+\DoxyCodeLine{00784\ \ \ \}}
+\DoxyCodeLine{00785\ }
+\DoxyCodeLine{00786\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Alloc>}
+\DoxyCodeLine{00787\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a6c29618f9ee77443ab3671b2b9cb550f}{construct}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1Alloc}{Alloc}}\ *\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a21a1f3fd74caee19b51ba9a8dab02072}{slot\_type}}\ *slot,\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a21a1f3fd74caee19b51ba9a8dab02072}{slot\_type}}\ *other)\ \{}
+\DoxyCodeLine{00788\ \ \ \ \ absl::allocator\_traits<Alloc>::construct(*\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ slot,\ std::move(*other));}
+\DoxyCodeLine{00789\ \ \ \}}
+\DoxyCodeLine{00790\ }
+\DoxyCodeLine{00791\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Alloc>}
+\DoxyCodeLine{00792\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_aa0503bffb1800e5940f44ec78c4e7b68}{construct}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1Alloc}{Alloc}}\ *\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a21a1f3fd74caee19b51ba9a8dab02072}{slot\_type}}\ *slot,\ \textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a21a1f3fd74caee19b51ba9a8dab02072}{slot\_type}}\ *other)\ \{}
+\DoxyCodeLine{00793\ \ \ \ \ absl::allocator\_traits<Alloc>::construct(*\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ slot,\ *other);}
+\DoxyCodeLine{00794\ \ \ \}}
+\DoxyCodeLine{00795\ }
+\DoxyCodeLine{00796\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Alloc>}
+\DoxyCodeLine{00797\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a0bb605eb374a063bea9ba7ed86711dad}{destroy}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1Alloc}{Alloc}}\ *\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__slot__policy_a21a1f3fd74caee19b51ba9a8dab02072}{slot\_type}}\ *slot)\ \{}
+\DoxyCodeLine{00798\ \ \ \ \ absl::allocator\_traits<Alloc>::destroy(*\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ slot);}
+\DoxyCodeLine{00799\ \ \ \}}
+\DoxyCodeLine{00800\ \};}
+\DoxyCodeLine{00801\ }
+\DoxyCodeLine{00802\ \textcolor{comment}{//\ A\ parameters\ structure\ for\ holding\ the\ type\ parameters\ for\ a\ btree\_set.}}
+\DoxyCodeLine{00803\ \textcolor{comment}{//\ Compare\ and\ Alloc\ should\ be\ nothrow\ copy-\/constructible.}}
+\DoxyCodeLine{00804\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Key,\ \textcolor{keyword}{typename}\ Compare,\ \textcolor{keyword}{typename}\ Alloc,\ \textcolor{keywordtype}{int}\ TargetNodeSize,}
+\DoxyCodeLine{00805\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ IsMulti>}
+\DoxyCodeLine{00806\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__params}{set\_params}}\ :\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1common__params}{common\_params}}<Key,\ Compare,\ Alloc,\ TargetNodeSize,\ IsMulti,}
+\DoxyCodeLine{00807\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{/*IsMap=*/}false,\ set\_slot\_policy<Key>>\ \{}
+\DoxyCodeLine{00808\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__params_afff31bda1cae027399e1788bc3812c11}{value\_type}}\ =\ Key;}
+\DoxyCodeLine{00809\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__params_a4ddda1d83f4765433ec3c269e61e2226}{slot\_type}}\ =\ \textcolor{keyword}{typename}\ set\_params::common\_params::slot\_type;}
+\DoxyCodeLine{00810\ }
+\DoxyCodeLine{00811\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ V>}
+\DoxyCodeLine{00812\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ V\ \&\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__params_a14e7e219058d6d7dbf944aabfde11717}{key}}(\textcolor{keyword}{const}\ V\ \&\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}})\ \{}
+\DoxyCodeLine{00813\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}};}
+\DoxyCodeLine{00814\ \ \ \}}
+\DoxyCodeLine{00815\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ Key\ \&\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__params_af101e55ed3c7b9a325adb7441adf41c8}{key}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1set__params_a4ddda1d83f4765433ec3c269e61e2226}{slot\_type}}\ *slot)\ \{\ \textcolor{keywordflow}{return}\ *slot;\ \}}
+\DoxyCodeLine{00816\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ Key\ \&\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__params_a06e62e65cb1c881ec68cc5dcf49085bc}{key}}(\mbox{\hyperlink{structabsl_1_1container__internal_1_1set__params_a4ddda1d83f4765433ec3c269e61e2226}{slot\_type}}\ *slot)\ \{\ \textcolor{keywordflow}{return}\ *slot;\ \}}
+\DoxyCodeLine{00817\ \};}
+\DoxyCodeLine{00818\ }
+\DoxyCodeLine{00819\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00820\ }
+\DoxyCodeLine{00821\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00822\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00823\ }
+\DoxyCodeLine{00824\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CONTAINER\_BTREE\_SET\_H\_}}
+
+\end{DoxyCode}

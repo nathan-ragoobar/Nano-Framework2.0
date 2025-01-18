@@ -1,0 +1,113 @@
+\doxysection{blocking\+\_\+counter.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2synchronization_2blocking__counter_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2synchronization_2blocking__counter_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/synchronization/blocking\_counter.h@{tensor/build/\_deps/absl-\/src/absl/synchronization/blocking\_counter.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2synchronization_2blocking__counter_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ blocking\_counter.h}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00019\ }
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#ifndef\ ABSL\_SYNCHRONIZATION\_BLOCKING\_COUNTER\_H\_}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#define\ ABSL\_SYNCHRONIZATION\_BLOCKING\_COUNTER\_H\_}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/tracing.h"{}}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ "{}absl/base/thread\_annotations.h"{}}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ "{}absl/synchronization/mutex.h"{}}}
+\DoxyCodeLine{00028\ }
+\DoxyCodeLine{00029\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00030\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ BlockingCounter}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ This\ class\ allows\ a\ thread\ to\ block\ for\ a\ pre-\/specified\ number\ of\ actions.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ \`{}BlockingCounter`\ maintains\ a\ single\ non-\/negative\ abstract\ integer\ "{}count"{}}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ with\ an\ initial\ value\ \`{}initial\_count`.\ A\ thread\ can\ then\ call\ \`{}Wait()`\ on}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ this\ blocking\ counter\ to\ block\ until\ the\ specified\ number\ of\ events\ occur;}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ worker\ threads\ then\ call\ 'DecrementCount()`\ on\ the\ counter\ upon\ completion\ of}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ their\ work.\ Once\ the\ counter's\ internal\ "{}count"{}\ reaches\ zero,\ the\ blocked}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ thread\ unblocks.}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ A\ \`{}BlockingCounter`\ requires\ the\ following:}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ \ \ \ \ -\/\ its\ \`{}initial\_count`\ is\ non-\/negative.}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ \ \ \ \ -\/\ the\ number\ of\ calls\ to\ \`{}DecrementCount()`\ on\ it\ is\ at\ most}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ \ \ \ \ \ \ \`{}initial\_count`.}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ \ \ \ \ -\/\ \`{}Wait()`\ is\ called\ at\ most\ once\ on\ it.}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//\ Given\ the\ above\ requirements,\ a\ \`{}BlockingCounter`\ provides\ the\ following}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ guarantees:}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ \ \ \ \ -\/\ Once\ its\ internal\ "{}count"{}\ reaches\ zero,\ no\ legal\ action\ on\ the\ object}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ \ \ \ \ \ \ can\ further\ change\ the\ value\ of\ "{}count"{}.}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ \ \ \ \ -\/\ When\ \`{}Wait()`\ returns,\ it\ is\ legal\ to\ destroy\ the\ \`{}BlockingCounter`.}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ \ \ \ \ -\/\ When\ \`{}Wait()`\ returns,\ the\ number\ of\ calls\ to\ \`{}DecrementCount()`\ on}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ \ \ \ \ \ \ this\ blocking\ counter\ exactly\ equals\ \`{}initial\_count`.}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ \ \ \ \ BlockingCounter\ bcount(N);\ \ \ \ \ \ \ \ \ //\ there\ are\ N\ items\ of\ work}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ \ \ \ \ ...\ Allow\ worker\ threads\ to\ start.}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ \ \ \ \ ...\ On\ completing\ each\ work\ item,\ workers\ do:}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ \ \ \ \ ...\ bcount.DecrementCount();\ \ \ \ \ \ //\ an\ item\ of\ work\ has\ been\ completed}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ \ \ \ \ bcount.Wait();\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ //\ wait\ for\ all\ work\ to\ be\ complete}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//}}
+\DoxyCodeLine{00064\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1BlockingCounter}{BlockingCounter}}\ \{}
+\DoxyCodeLine{00065\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00066\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1BlockingCounter_a5ee04fb11b915d65e8e8d5a8a4d66e15}{BlockingCounter}}(\textcolor{keywordtype}{int}\ initial\_count);}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \ \ \mbox{\hyperlink{classabsl_1_1BlockingCounter_a9a5aa295f20bfb55110a825c08340ab6}{BlockingCounter}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1BlockingCounter}{BlockingCounter}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00069\ \ \ \mbox{\hyperlink{classabsl_1_1BlockingCounter}{BlockingCounter}}\&\ \mbox{\hyperlink{classabsl_1_1BlockingCounter_adcef6888c3f30c0cb2cf51790baf8cd8}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1BlockingCounter}{BlockingCounter}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00070\ }
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ BlockingCounter::DecrementCount()}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ Decrements\ the\ counter's\ "{}count"{}\ by\ one,\ and\ return\ "{}count\ ==\ 0"{}.\ This}}
+\DoxyCodeLine{00074\ \ \ \textcolor{comment}{//\ function\ requires\ that\ "{}count\ !=\ 0"{}\ when\ it\ is\ called.}}
+\DoxyCodeLine{00075\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ Memory\ ordering:\ For\ any\ threads\ X\ and\ Y,\ any\ action\ taken\ by\ X}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//\ before\ it\ calls\ \`{}DecrementCount()`\ is\ visible\ to\ thread\ Y\ after}}
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ Y's\ call\ to\ \`{}DecrementCount()`,\ provided\ Y's\ call\ returns\ \`{}true`.}}
+\DoxyCodeLine{00079\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1BlockingCounter_a6805c43d9b347b6dfd606906e7b7104a}{DecrementCount}}();}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \ \ \textcolor{comment}{//\ BlockingCounter::Wait()}}
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{//\ Blocks\ until\ the\ counter\ reaches\ zero.\ This\ function\ may\ be\ called\ at\ most}}
+\DoxyCodeLine{00084\ \ \ \textcolor{comment}{//\ once.\ On\ return,\ \`{}DecrementCount()`\ will\ have\ been\ called\ "{}initial\_count"{}}}
+\DoxyCodeLine{00085\ \ \ \textcolor{comment}{//\ times\ and\ the\ blocking\ counter\ may\ be\ destroyed.}}
+\DoxyCodeLine{00086\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00087\ \ \ \textcolor{comment}{//\ Memory\ ordering:\ For\ any\ threads\ X\ and\ Y,\ any\ action\ taken\ by\ X}}
+\DoxyCodeLine{00088\ \ \ \textcolor{comment}{//\ before\ X\ calls\ \`{}DecrementCount()`\ is\ visible\ to\ Y\ after\ Y\ returns}}
+\DoxyCodeLine{00089\ \ \ \textcolor{comment}{//\ from\ \`{}Wait()`.}}
+\DoxyCodeLine{00090\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1BlockingCounter_a7750e82e84476b5bd9fa93fd0843dc21}{Wait}}();}
+\DoxyCodeLine{00091\ }
+\DoxyCodeLine{00092\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00093\ \ \ \textcolor{comment}{//\ Convenience\ helper\ to\ reduce\ verbosity\ at\ call\ sites.}}
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a5e2816c6dc790859b06deb3c830381a7}{base\_internal::ObjectKind}}\ TraceObjectKind()\ \{}
+\DoxyCodeLine{00095\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a5e2816c6dc790859b06deb3c830381a7ac367698f51907bc276ae407ecee7da1f}{base\_internal::ObjectKind::kBlockingCounter}};}
+\DoxyCodeLine{00096\ \ \ \}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \ \ \mbox{\hyperlink{classabsl_1_1Mutex}{Mutex}}\ lock\_;}
+\DoxyCodeLine{00099\ \ \ std::atomic<int>\ count\_;}
+\DoxyCodeLine{00100\ \ \ \textcolor{keywordtype}{int}\ num\_waiting\_\ \mbox{\hyperlink{namespaceabsl_aeded9ba309a6d56e3d4016f8e566abcc}{ABSL\_GUARDED\_BY}}(lock\_);}
+\DoxyCodeLine{00101\ \ \ \textcolor{keywordtype}{bool}\ done\_\ \mbox{\hyperlink{namespaceabsl_aeded9ba309a6d56e3d4016f8e566abcc}{ABSL\_GUARDED\_BY}}(lock\_);}
+\DoxyCodeLine{00102\ \};}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00105\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_SYNCHRONIZATION\_BLOCKING\_COUNTER\_H\_}}
+
+\end{DoxyCode}

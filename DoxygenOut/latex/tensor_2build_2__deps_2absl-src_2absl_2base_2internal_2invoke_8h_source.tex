@@ -1,0 +1,247 @@
+\doxysection{invoke.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2invoke_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2invoke_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/base/internal/invoke.h@{tensor/build/\_deps/absl-\/src/absl/base/internal/invoke.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2invoke_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ absl::base\_internal::invoke(f,\ args...)\ is\ an\ implementation\ of}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ INVOKE(f,\ args...)\ from\ section\ [func.require]\ of\ the\ C++\ standard.}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ When\ compiled\ as\ C++17\ and\ later\ versions,\ it\ is\ implemented\ as\ an\ alias\ of}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ std::invoke.}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ [func.require]}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ Define\ INVOKE\ (f,\ t1,\ t2,\ ...,\ tN)\ as\ follows:}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ 1.\ (t1.*f)(t2,\ ...,\ tN)\ when\ f\ is\ a\ pointer\ to\ a\ member\ function\ of\ a\ class\ T}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \ \ \ and\ t1\ is\ an\ object\ of\ type\ T\ or\ a\ reference\ to\ an\ object\ of\ type\ T\ or\ a}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ \ \ \ reference\ to\ an\ object\ of\ a\ type\ derived\ from\ T;}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ 2.\ ((*t1).*f)(t2,\ ...,\ tN)\ when\ f\ is\ a\ pointer\ to\ a\ member\ function\ of\ a}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ \ \ \ class\ T\ and\ t1\ is\ not\ one\ of\ the\ types\ described\ in\ the\ previous\ item;}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ 3.\ t1.*f\ when\ N\ ==\ 1\ and\ f\ is\ a\ pointer\ to\ member\ data\ of\ a\ class\ T\ and\ t1\ is}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ \ \ \ an\ object\ of\ type\ T\ or\ a\ reference\ to\ an\ object\ of\ type\ T\ or\ a\ reference}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ \ \ \ to\ an\ object\ of\ a\ type\ derived\ from\ T;}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ 4.\ (*t1).*f\ when\ N\ ==\ 1\ and\ f\ is\ a\ pointer\ to\ member\ data\ of\ a\ class\ T\ and\ t1}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ \ \ \ is\ not\ one\ of\ the\ types\ described\ in\ the\ previous\ item;}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ 5.\ f(t1,\ t2,\ ...,\ tN)\ in\ all\ other\ cases.}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ The\ implementation\ is\ SFINAE-\/friendly:\ substitution\ failure\ within\ invoke()}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ isn't\ an\ error.}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_INVOKE\_H\_}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_INVOKE\_H\_}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00041\ }
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_CPLUSPLUS\_LANG\ >=\ 201703L}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00047\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00048\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{keyword}{using\ }std::invoke;}
+\DoxyCodeLine{00051\ \textcolor{keyword}{using\ }std::invoke\_result\_t;}
+\DoxyCodeLine{00052\ \textcolor{keyword}{using\ }std::is\_invocable\_r;}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00055\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00056\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00057\ }
+\DoxyCodeLine{00058\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ ABSL\_INTERNAL\_CPLUSPLUS\_LANG\ >=\ 201703L}}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ The\ following\ code\ is\ internal\ implementation\ detail.\ \ See\ the\ comment\ at\ the}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ top\ of\ this\ file\ for\ the\ API\ documentation.}}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00070\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00071\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00072\ }
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ The\ five\ classes\ below\ each\ implement\ one\ of\ the\ clauses\ from\ the\ definition}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ of\ INVOKE.\ The\ inner\ class\ template\ Accept<F,\ Args...>\ checks\ whether\ the}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ clause\ is\ applicable;\ static\ function\ template\ Invoke(f,\ args...)\ does\ the}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ invocation.}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ By\ separating\ the\ clause\ selection\ logic\ from\ invocation\ we\ make\ sure\ that}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ Invoke()\ does\ exactly\ what\ the\ standard\ says.}}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Derived>}
+\DoxyCodeLine{00082\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1StrippedAccept}{StrippedAccept}}\ \{}
+\DoxyCodeLine{00083\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00084\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1StrippedAccept_1_1Accept}{Accept}}\ :\ Derived::template\ AcceptImpl<typename\ std::remove\_cv<}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ typename\ std::remove\_reference<Args>::type>::type...>\ \{\};}
+\DoxyCodeLine{00086\ \};}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ (t1.*f)(t2,\ ...,\ tN)\ when\ f\ is\ a\ pointer\ to\ a\ member\ function\ of\ a\ class\ T}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ and\ t1\ is\ an\ object\ of\ type\ T\ or\ a\ reference\ to\ an\ object\ of\ type\ T\ or\ a}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ reference\ to\ an\ object\ of\ a\ type\ derived\ from\ T.}}
+\DoxyCodeLine{00091\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndRef}{MemFunAndRef}}\ :\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1StrippedAccept}{StrippedAccept}}<MemFunAndRef>\ \{}
+\DoxyCodeLine{00092\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00093\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndRef_1_1AcceptImpl}{AcceptImpl}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ MemFunType,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ \textcolor{keyword}{typename}\ Obj,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00096\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndRef_1_1AcceptImpl}{AcceptImpl}}<MemFunType\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}::*,\ Obj,\ Args...>}
+\DoxyCodeLine{00097\ \ \ \ \ \ \ :\ std::integral\_constant<bool,\ std::is\_base\_of<C,\ Obj>::value\ \&\&}
+\DoxyCodeLine{00098\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::is\_function<MemFunType>::value>\ \{}
+\DoxyCodeLine{00099\ \ \ \};}
+\DoxyCodeLine{00100\ }
+\DoxyCodeLine{00101\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ MemFun,\ \textcolor{keyword}{typename}\ Obj,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00102\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{decltype}((std::declval<Obj>().*}
+\DoxyCodeLine{00103\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<MemFun>())(std::declval<Args>()...))}
+\DoxyCodeLine{00104\ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndRef_a90fe8294b8d67919ce594cec86204487}{Invoke}}(MemFun\&\&\ mem\_fun,\ Obj\&\&\ obj,\ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ Ignore\ bogus\ GCC\ warnings\ on\ this\ line.}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ See\ https://gcc.gnu.org/bugzilla/show\_bug.cgi?id=101436\ for\ similar\ example.}}
+\DoxyCodeLine{00107\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_HAVE\_MIN\_GNUC\_VERSION(11,\ 0)}}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ push}}
+\DoxyCodeLine{00109\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ ignored\ "{}-\/Warray-\/bounds"{}}}
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ ignored\ "{}-\/Wmaybe-\/uninitialized"{}}}
+\DoxyCodeLine{00111\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{keywordflow}{return}\ (std::forward<Obj>(obj).*}
+\DoxyCodeLine{00113\ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<MemFun>(mem\_fun))(std::forward<Args>(args)...);}
+\DoxyCodeLine{00114\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_HAVE\_MIN\_GNUC\_VERSION(11,\ 0)}}
+\DoxyCodeLine{00115\ \textcolor{preprocessor}{\#pragma\ GCC\ diagnostic\ pop}}
+\DoxyCodeLine{00116\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00117\ \ \ \}}
+\DoxyCodeLine{00118\ \};}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ ((*t1).*f)(t2,\ ...,\ tN)\ when\ f\ is\ a\ pointer\ to\ a\ member\ function\ of\ a}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//\ class\ T\ and\ t1\ is\ not\ one\ of\ the\ types\ described\ in\ the\ previous\ item.}}
+\DoxyCodeLine{00122\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndPtr}{MemFunAndPtr}}\ :\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1StrippedAccept}{StrippedAccept}}<MemFunAndPtr>\ \{}
+\DoxyCodeLine{00123\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00124\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndPtr_1_1AcceptImpl}{AcceptImpl}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ MemFunType,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ \textcolor{keyword}{typename}\ Ptr,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00127\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndPtr_1_1AcceptImpl}{AcceptImpl}}<MemFunType\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}::*,\ Ptr,\ Args...>}
+\DoxyCodeLine{00128\ \ \ \ \ \ \ :\ std::integral\_constant<bool,\ !std::is\_base\_of<C,\ Ptr>::value\ \&\&}
+\DoxyCodeLine{00129\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::is\_function<MemFunType>::value>\ \{}
+\DoxyCodeLine{00130\ \ \ \};}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ MemFun,\ \textcolor{keyword}{typename}\ Ptr,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00133\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{decltype}(((*std::declval<Ptr>()).*}
+\DoxyCodeLine{00134\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::declval<MemFun>())(std::declval<Args>()...))}
+\DoxyCodeLine{00135\ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndPtr_adaf2c5ef299b6f8a23fb00afb108948b}{Invoke}}(MemFun\&\&\ mem\_fun,\ Ptr\&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}},\ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{keywordflow}{return}\ ((*std::forward<Ptr>(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})).*}
+\DoxyCodeLine{00137\ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<MemFun>(mem\_fun))(std::forward<Args>(args)...);}
+\DoxyCodeLine{00138\ \ \ \}}
+\DoxyCodeLine{00139\ \};}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ t1.*f\ when\ N\ ==\ 1\ and\ f\ is\ a\ pointer\ to\ member\ data\ of\ a\ class\ T\ and\ t1\ is}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//\ an\ object\ of\ type\ T\ or\ a\ reference\ to\ an\ object\ of\ type\ T\ or\ a\ reference}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ to\ an\ object\ of\ a\ type\ derived\ from\ T.}}
+\DoxyCodeLine{00144\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndRef}{DataMemAndRef}}\ :\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1StrippedAccept}{StrippedAccept}}<DataMemAndRef>\ \{}
+\DoxyCodeLine{00145\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00146\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndRef_1_1AcceptImpl}{AcceptImpl}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ R,\ \textcolor{keyword}{typename}\ C,\ \textcolor{keyword}{typename}\ Obj>}
+\DoxyCodeLine{00149\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndRef_1_1AcceptImpl}{AcceptImpl}}<R\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}::*,\ Obj>}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ :\ std::integral\_constant<bool,\ std::is\_base\_of<C,\ Obj>::value\ \&\&}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !absl::is\_function<R>::value>\ \{\};}
+\DoxyCodeLine{00152\ }
+\DoxyCodeLine{00153\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ DataMem,\ \textcolor{keyword}{typename}\ Ref>}
+\DoxyCodeLine{00154\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{decltype}(std::declval<Ref>().*std::declval<DataMem>())\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndRef_a1fbda157a6b15ec2c4cb85945163c6f7}{Invoke}}(}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ DataMem\&\&\ data\_mem,\ Ref\&\&\ ref)\ \{}
+\DoxyCodeLine{00156\ \ \ \ \ \textcolor{keywordflow}{return}\ std::forward<Ref>(ref).*std::forward<DataMem>(data\_mem);}
+\DoxyCodeLine{00157\ \ \ \}}
+\DoxyCodeLine{00158\ \};}
+\DoxyCodeLine{00159\ }
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ (*t1).*f\ when\ N\ ==\ 1\ and\ f\ is\ a\ pointer\ to\ member\ data\ of\ a\ class\ T\ and\ t1}}
+\DoxyCodeLine{00161\ \textcolor{comment}{//\ is\ not\ one\ of\ the\ types\ described\ in\ the\ previous\ item.}}
+\DoxyCodeLine{00162\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndPtr}{DataMemAndPtr}}\ :\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1StrippedAccept}{StrippedAccept}}<DataMemAndPtr>\ \{}
+\DoxyCodeLine{00163\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00164\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndPtr_1_1AcceptImpl}{AcceptImpl}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00165\ }
+\DoxyCodeLine{00166\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ R,\ \textcolor{keyword}{typename}\ C,\ \textcolor{keyword}{typename}\ Ptr>}
+\DoxyCodeLine{00167\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndPtr_1_1AcceptImpl}{AcceptImpl}}<R\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}::*,\ Ptr>}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ :\ std::integral\_constant<bool,\ !std::is\_base\_of<C,\ Ptr>::value\ \&\&}
+\DoxyCodeLine{00169\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !absl::is\_function<R>::value>\ \{\};}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ DataMem,\ \textcolor{keyword}{typename}\ Ptr>}
+\DoxyCodeLine{00172\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{decltype}((*std::declval<Ptr>()).*std::declval<DataMem>())\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndPtr_a14f568929907639eecd683a076a80801}{Invoke}}(}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ DataMem\&\&\ data\_mem,\ Ptr\&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})\ \{}
+\DoxyCodeLine{00174\ \ \ \ \ \textcolor{keywordflow}{return}\ (*std::forward<Ptr>(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_a935adc2e417a61d7eb6f04efb18ba031}{ptr}})).*std::forward<DataMem>(data\_mem);}
+\DoxyCodeLine{00175\ \ \ \}}
+\DoxyCodeLine{00176\ \};}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \textcolor{comment}{//\ f(t1,\ t2,\ ...,\ tN)\ in\ all\ other\ cases.}}
+\DoxyCodeLine{00179\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1Callable}{Callable}}\ \{}
+\DoxyCodeLine{00180\ \ \ \textcolor{comment}{//\ Callable\ doesn't\ have\ Accept\ because\ it's\ the\ last\ clause\ that\ gets\ picked}}
+\DoxyCodeLine{00181\ \ \ \textcolor{comment}{//\ when\ none\ of\ the\ previous\ clauses\ are\ applicable.}}
+\DoxyCodeLine{00182\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00183\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{decltype}(std::declval<F>()(std::declval<Args>()...))\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1Callable_ad2f3ef5f1d8be5fbec0d13fd177178a3}{Invoke}}(}
+\DoxyCodeLine{00184\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}}\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00185\ \ \ \ \ \textcolor{keywordflow}{return}\ std::forward<F>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})(std::forward<Args>(args)...);}
+\DoxyCodeLine{00186\ \ \ \}}
+\DoxyCodeLine{00187\ \};}
+\DoxyCodeLine{00188\ }
+\DoxyCodeLine{00189\ \textcolor{comment}{//\ Resolves\ to\ the\ first\ matching\ clause.}}
+\DoxyCodeLine{00190\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00191\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1Invoker}{Invoker}}\ \{}
+\DoxyCodeLine{00192\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ std::conditional<}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ MemFunAndRef::Accept<Args...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndRef}{MemFunAndRef}},}
+\DoxyCodeLine{00194\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::conditional<}
+\DoxyCodeLine{00195\ \ \ \ \ \ \ \ \ \ \ MemFunAndPtr::Accept<Args...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1MemFunAndPtr}{MemFunAndPtr}},}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::conditional<}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ DataMemAndRef::Accept<Args...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndRef}{DataMemAndRef}},}
+\DoxyCodeLine{00198\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ std::conditional<DataMemAndPtr::Accept<Args...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1base__internal_1_1DataMemAndPtr}{DataMemAndPtr}},\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1Callable}{Callable}}>\mbox{\hyperlink{structabsl_1_1base__internal_1_1Invoker_aaac365d50818fd31cd123e7b962edcda}{::type}}>\mbox{\hyperlink{structabsl_1_1base__internal_1_1Invoker_aaac365d50818fd31cd123e7b962edcda}{::type}}>::}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \ \ \ \ type>\mbox{\hyperlink{structabsl_1_1base__internal_1_1Invoker_aaac365d50818fd31cd123e7b962edcda}{::type}}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1Invoker_aaac365d50818fd31cd123e7b962edcda}{type}};}
+\DoxyCodeLine{00201\ \};}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \textcolor{comment}{//\ The\ result\ type\ of\ Invoke<F,\ Args...>.}}
+\DoxyCodeLine{00204\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00205\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1base__internal_ae8a91ffcdbdd7c0e7a1f9b3773bbb6f5}{invoke\_result\_t}}\ =\ \textcolor{keyword}{decltype}(\mbox{\hyperlink{structabsl_1_1base__internal_1_1Invoker}{Invoker<F,\ Args...>::type::Invoke}}(}
+\DoxyCodeLine{00206\ \ \ \ \ std::declval<F>(),\ std::declval<Args>()...));}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \textcolor{comment}{//\ Invoke(f,\ args...)\ is\ an\ implementation\ of\ INVOKE(f,\ args...)\ from\ section}}
+\DoxyCodeLine{00209\ \textcolor{comment}{//\ [func.require]\ of\ the\ C++\ standard.}}
+\DoxyCodeLine{00210\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00211\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_ae8a91ffcdbdd7c0e7a1f9b3773bbb6f5}{invoke\_result\_t}}<\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ Args...>\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a4e159c18e37d8511af4cfc169e0cc8a3}{invoke}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}}\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00212\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1Invoker}{Invoker<F,\ Args...>::type::Invoke}}(std::forward<F>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}),}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Args>(args)...);}
+\DoxyCodeLine{00214\ \}}
+\DoxyCodeLine{00215\ }
+\DoxyCodeLine{00216\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ AlwaysVoid,\ \textcolor{keyword}{typename},\ \textcolor{keyword}{typename},\ \textcolor{keyword}{typename}...>}
+\DoxyCodeLine{00217\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1IsInvocableRImpl}{IsInvocableRImpl}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ R,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00220\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1IsInvocableRImpl}{IsInvocableRImpl}}<}
+\DoxyCodeLine{00221\ \ \ \ \ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}<absl::base\_internal::invoke\_result\_t<F,\ Args...>\ >,\ R,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},}
+\DoxyCodeLine{00222\ \ \ \ \ Args...>}
+\DoxyCodeLine{00223\ \ \ \ \ :\ std::integral\_constant<}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ \ \ \ \ bool,}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ \ \ \ \ std::is\_convertible<absl::base\_internal::invoke\_result\_t<F,\ Args...>,}
+\DoxyCodeLine{00226\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ R>::value\ ||}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_void<R>::value>\ \{\};}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \textcolor{comment}{//\ Type\ trait\ whose\ member\ \`{}value`\ is\ true\ if\ invoking\ \`{}F`\ with\ \`{}Args`\ is\ valid,}}
+\DoxyCodeLine{00230\ \textcolor{comment}{//\ and\ either\ the\ return\ type\ is\ convertible\ to\ \`{}R`,\ or\ \`{}R`\ is\ void.}}
+\DoxyCodeLine{00231\ \textcolor{comment}{//\ C++11-\/compatible\ version\ of\ \`{}std::is\_invocable\_r`.}}
+\DoxyCodeLine{00232\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ R,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00233\ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1base__internal_1_1IsInvocableRImpl}{is\_invocable\_r}}\ =\ \mbox{\hyperlink{structabsl_1_1base__internal_1_1IsInvocableRImpl}{IsInvocableRImpl}}<void,\ R,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ Args...>;}
+\DoxyCodeLine{00234\ }
+\DoxyCodeLine{00235\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00236\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00237\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_INTERNAL\_CPLUSPLUS\_LANG\ >=\ 201703L}}
+\DoxyCodeLine{00240\ }
+\DoxyCodeLine{00241\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_INVOKE\_H\_}}
+
+\end{DoxyCode}

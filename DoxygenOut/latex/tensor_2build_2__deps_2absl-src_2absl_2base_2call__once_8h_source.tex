@@ -1,0 +1,231 @@
+\doxysection{call\+\_\+once.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2base_2call__once_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2base_2call__once_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/base/call\_once.h@{tensor/build/\_deps/absl-\/src/absl/base/call\_once.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2base_2call__once_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ call\_once.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ This\ header\ file\ provides\ an\ Abseil\ version\ of\ \`{}std::call\_once`\ for\ invoking}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ a\ given\ function\ at\ most\ once,\ across\ all\ threads.\ This\ Abseil\ version\ is}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ faster\ than\ the\ C++11\ version\ and\ incorporates\ the\ C++17\ argument-\/passing}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ fix,\ so\ that\ (for\ example)\ non-\/const\ references\ may\ be\ passed\ to\ the\ invoked}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ function.}}
+\DoxyCodeLine{00024\ }
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_CALL\_ONCE\_H\_}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_CALL\_ONCE\_H\_}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/invoke.h"{}}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/low\_level\_scheduling.h"{}}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/raw\_logging.h"{}}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/scheduling\_mode.h"{}}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/spinlock\_wait.h"{}}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ "{}absl/base/nullability.h"{}}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ "{}absl/base/port.h"{}}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00045\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{keyword}{class\ }once\_flag;}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00050\ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::atomic<uint32\_t>}}*>\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a94a323f7d7d0651e4b30d47da8e5aacc}{ControlWord}}(}
+\DoxyCodeLine{00051\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<absl::once\_flag*>}}\ flag);}
+\DoxyCodeLine{00052\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ call\_once()}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ For\ all\ invocations\ using\ a\ given\ \`{}once\_flag`,\ invokes\ a\ given\ \`{}fn`\ exactly}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ once\ across\ all\ threads.\ The\ first\ call\ to\ \`{}call\_once()`\ with\ a\ particular}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ \`{}once\_flag`\ argument\ (that\ does\ not\ throw\ an\ exception)\ will\ run\ the}}
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ specified\ function\ with\ the\ provided\ \`{}args`;\ other\ calls\ with\ the\ same}}
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ \`{}once\_flag`\ argument\ will\ not\ run\ the\ function,\ but\ will\ wait}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ for\ the\ provided\ function\ to\ finish\ running\ (if\ it\ is\ still\ running).}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ This\ mechanism\ provides\ a\ safe,\ simple,\ and\ fast\ mechanism\ for\ one-\/time}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ initialization\ in\ a\ multi-\/threaded\ process.}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ class\ MyInitClass\ \{}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ \ public:}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ \ ...}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ \ mutable\ absl::once\_flag\ once\_;}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ MyInitClass*\ init()\ const\ \{}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ \ \ \ absl::call\_once(once\_,\ \&MyInitClass::Init,\ this);}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ \ \ \ return\ ptr\_;}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ \ \}}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//}}
+\DoxyCodeLine{00078\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Callable,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00079\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_a83668f8913b468fae6d04c6da2a6b9bd}{call\_once}}(\mbox{\hyperlink{classabsl_1_1once__flag}{absl::once\_flag}}\&\ flag,\ Callable\&\&\ fn,\ Args\&\&...\ args);}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ once\_flag}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ Objects\ of\ this\ type\ are\ used\ to\ distinguish\ calls\ to\ \`{}call\_once()`\ and}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//\ ensure\ the\ provided\ function\ is\ only\ invoked\ once\ across\ all\ threads.\ This}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ type\ is\ not\ copyable\ or\ movable.\ However,\ it\ has\ a\ \`{}constexpr`}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ constructor,\ and\ is\ safe\ to\ use\ as\ a\ namespace-\/scoped\ global\ variable.}}
+\DoxyCodeLine{00087\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1once__flag}{once\_flag}}\ \{}
+\DoxyCodeLine{00088\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00089\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1once__flag_a1233ea847feecb614d905ed8d4f0dd00}{once\_flag}}()\ :\ control\_(0)\ \{\}}
+\DoxyCodeLine{00090\ \ \ \mbox{\hyperlink{classabsl_1_1once__flag_a9fa0124233c970ebcc25dde0f615298a}{once\_flag}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1once__flag}{once\_flag}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00091\ \ \ \mbox{\hyperlink{classabsl_1_1once__flag}{once\_flag}}\&\ \mbox{\hyperlink{classabsl_1_1once__flag_a8ab730e2729939c5c2a7240f18ce8e54}{operator=}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1once__flag}{once\_flag}}\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00094\ \ \ \textcolor{keyword}{friend}\ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::atomic<uint32\_t>}}*>\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a94a323f7d7d0651e4b30d47da8e5aacc}{base\_internal::ControlWord}}(}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<once\_flag*>}}\ flag);}
+\DoxyCodeLine{00096\ \ \ std::atomic<uint32\_t>\ control\_;}
+\DoxyCodeLine{00097\ \};}
+\DoxyCodeLine{00098\ }
+\DoxyCodeLine{00099\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ End\ of\ public\ interfaces.}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//\ Implementation\ details\ follow.}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00103\ }
+\DoxyCodeLine{00104\ \textcolor{keyword}{namespace\ }base\_internal\ \{}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ Like\ call\_once,\ but\ uses\ KERNEL\_ONLY\ scheduling.\ Intended\ to\ be\ used\ to}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//\ initialize\ entities\ used\ by\ the\ scheduler\ implementation.}}
+\DoxyCodeLine{00108\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Callable,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00109\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a0bf472c67815f7a2f8dd36affca55337}{LowLevelCallOnce}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<absl::once\_flag*>}}\ flag,\ Callable\&\&\ fn,}
+\DoxyCodeLine{00110\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Args\&\&...\ args);}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \textcolor{comment}{//\ Disables\ scheduling\ while\ on\ stack\ when\ scheduling\ mode\ is\ non-\/cooperative.}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ No\ effect\ for\ cooperative\ scheduling\ modes.}}
+\DoxyCodeLine{00114\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingHelper}{SchedulingHelper}}\ \{}
+\DoxyCodeLine{00115\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00116\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingHelper_ac6ffb2a8b749e3f4a6dde8d7d85aab85}{SchedulingHelper}}(\mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{base\_internal::SchedulingMode}}\ mode)\ :\ mode\_(mode)\ \{}
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{keywordflow}{if}\ (mode\_\ ==\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893a566665fa6383422fbdb19641853f1744}{base\_internal::SCHEDULE\_KERNEL\_ONLY}})\ \{}
+\DoxyCodeLine{00118\ \ \ \ \ \ \ guard\_result\_\ =\ base\_internal::SchedulingGuard::DisableRescheduling();}
+\DoxyCodeLine{00119\ \ \ \ \ \}}
+\DoxyCodeLine{00120\ \ \ \}}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \ \ \mbox{\hyperlink{classabsl_1_1base__internal_1_1SchedulingHelper_a4ddd30760e1db69f1167372c5e5a7443}{\string~SchedulingHelper}}()\ \{}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{keywordflow}{if}\ (mode\_\ ==\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893a566665fa6383422fbdb19641853f1744}{base\_internal::SCHEDULE\_KERNEL\_ONLY}})\ \{}
+\DoxyCodeLine{00124\ \ \ \ \ \ \ base\_internal::SchedulingGuard::EnableRescheduling(guard\_result\_);}
+\DoxyCodeLine{00125\ \ \ \ \ \}}
+\DoxyCodeLine{00126\ \ \ \}}
+\DoxyCodeLine{00127\ }
+\DoxyCodeLine{00128\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00129\ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{base\_internal::SchedulingMode}}\ mode\_;}
+\DoxyCodeLine{00130\ \ \ \textcolor{keywordtype}{bool}\ guard\_result\_\ =\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00131\ \};}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ Bit\ patterns\ for\ call\_once\ state\ machine\ values.\ \ Internal\ implementation}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ detail,\ not\ for\ use\ by\ clients.}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ The\ bit\ patterns\ are\ arbitrarily\ chosen\ from\ unlikely\ values,\ to\ aid\ in}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ debugging.\ \ However,\ kOnceInit\ must\ be\ 0,\ so\ that\ a\ zero-\/initialized}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ once\_flag\ will\ be\ valid\ for\ immediate\ use.}}
+\DoxyCodeLine{00139\ \textcolor{keyword}{enum}\ \{}
+\DoxyCodeLine{00140\ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a250c1d71aa98511679cb6c271f041121}{kOnceInit}}\ =\ 0,}
+\DoxyCodeLine{00141\ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a0e8560fbcd6c69a15ff2692a978ce33d}{kOnceRunning}}\ =\ 0x65C2937B,}
+\DoxyCodeLine{00142\ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a47c8bb5314d4b966cb1371f9bbb887a9}{kOnceWaiter}}\ =\ 0x05A308D2,}
+\DoxyCodeLine{00143\ \ \ \textcolor{comment}{//\ A\ very\ small\ constant\ is\ chosen\ for\ kOnceDone\ so\ that\ it\ fit\ in\ a\ single}}
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//\ compare\ with\ immediate\ instruction\ for\ most\ common\ ISAs.\ \ This\ is\ verified}}
+\DoxyCodeLine{00145\ \ \ \textcolor{comment}{//\ for\ x86,\ POWER\ and\ ARM.}}
+\DoxyCodeLine{00146\ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a28b3f6c9ec3bb97dc037f72bd635a817}{kOnceDone}}\ =\ 221,\ \ \ \ \textcolor{comment}{//\ Random\ Number}}
+\DoxyCodeLine{00147\ \};}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Callable,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00150\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a19738c548cdc06f68852082b4ea2c802}{ABSL\_ATTRIBUTE\_NOINLINE}}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a6cd69626a8b7c9b65390a9d1a0d78a25}{CallOnceImpl}}(}
+\DoxyCodeLine{00151\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull}}<std::atomic<uint32\_t>*>\ control,}
+\DoxyCodeLine{00152\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893}{base\_internal::SchedulingMode}}\ scheduling\_mode,\ Callable\&\&\ fn,}
+\DoxyCodeLine{00153\ \ \ \ \ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00154\ \textcolor{preprocessor}{\#ifndef\ NDEBUG}}
+\DoxyCodeLine{00155\ \ \ \{}
+\DoxyCodeLine{00156\ \ \ \ \ uint32\_t\ old\_control\ =\ control-\/>load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00157\ \ \ \ \ \textcolor{keywordflow}{if}\ (old\_control\ !=\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a250c1d71aa98511679cb6c271f041121}{kOnceInit}}\ \&\&}
+\DoxyCodeLine{00158\ \ \ \ \ \ \ \ \ old\_control\ !=\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a0e8560fbcd6c69a15ff2692a978ce33d}{kOnceRunning}}\ \&\&}
+\DoxyCodeLine{00159\ \ \ \ \ \ \ \ \ old\_control\ !=\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a47c8bb5314d4b966cb1371f9bbb887a9}{kOnceWaiter}}\ \&\&}
+\DoxyCodeLine{00160\ \ \ \ \ \ \ \ \ old\_control\ !=\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a28b3f6c9ec3bb97dc037f72bd635a817}{kOnceDone}})\ \{}
+\DoxyCodeLine{00161\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2raw__logging_8h_a08c96681b0c47d4a8242c96b6db6fd99}{ABSL\_RAW\_LOG}}(FATAL,\ \textcolor{stringliteral}{"{}Unexpected\ value\ for\ control\ word:\ 0x\%lx"{}},}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{unsigned}\ \textcolor{keywordtype}{long}\textcolor{keyword}{>}(old\_control));\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00163\ \ \ \ \ \}}
+\DoxyCodeLine{00164\ \ \ \}}
+\DoxyCodeLine{00165\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ NDEBUG}}
+\DoxyCodeLine{00166\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ base\_internal::SpinLockWaitTransition\ trans[]\ =\ \{}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ \{\mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a250c1d71aa98511679cb6c271f041121}{kOnceInit}},\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a0e8560fbcd6c69a15ff2692a978ce33d}{kOnceRunning}},\ \textcolor{keyword}{true}\},}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ \{\mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a0e8560fbcd6c69a15ff2692a978ce33d}{kOnceRunning}},\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a47c8bb5314d4b966cb1371f9bbb887a9}{kOnceWaiter}},\ \textcolor{keyword}{false}\},}
+\DoxyCodeLine{00169\ \ \ \ \ \ \ \{\mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a28b3f6c9ec3bb97dc037f72bd635a817}{kOnceDone}},\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a28b3f6c9ec3bb97dc037f72bd635a817}{kOnceDone}},\ \textcolor{keyword}{true}\}\};}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \ \ \textcolor{comment}{//\ Must\ do\ this\ before\ potentially\ modifying\ control\ word's\ state.}}
+\DoxyCodeLine{00172\ \ \ base\_internal::SchedulingHelper\ maybe\_disable\_scheduling(scheduling\_mode);}
+\DoxyCodeLine{00173\ \ \ \textcolor{comment}{//\ Short\ circuit\ the\ simplest\ case\ to\ avoid\ procedure\ call\ overhead.}}
+\DoxyCodeLine{00174\ \ \ \textcolor{comment}{//\ The\ base\_internal::SpinLockWait()\ call\ returns\ either\ kOnceInit\ or}}
+\DoxyCodeLine{00175\ \ \ \textcolor{comment}{//\ kOnceDone.\ If\ it\ returns\ kOnceDone,\ it\ must\ have\ loaded\ the\ control\ word}}
+\DoxyCodeLine{00176\ \ \ \textcolor{comment}{//\ with\ std::memory\_order\_acquire\ and\ seen\ a\ value\ of\ kOnceDone.}}
+\DoxyCodeLine{00177\ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ old\_control\ =\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a250c1d71aa98511679cb6c271f041121}{kOnceInit}};}
+\DoxyCodeLine{00178\ \ \ \textcolor{keywordflow}{if}\ (control-\/>compare\_exchange\_strong(old\_control,\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a0e8560fbcd6c69a15ff2692a978ce33d}{kOnceRunning}},}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::memory\_order\_relaxed)\ ||}
+\DoxyCodeLine{00180\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a3bbc8f55826a12fa68770a4f781f2bb0}{base\_internal::SpinLockWait}}(control,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a0464079c6108d22fbcc93c4e1129b3ab}{ABSL\_ARRAYSIZE}}(trans),\ trans,}
+\DoxyCodeLine{00181\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ scheduling\_mode)\ ==\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a250c1d71aa98511679cb6c271f041121}{kOnceInit}})\ \{}
+\DoxyCodeLine{00182\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a4e159c18e37d8511af4cfc169e0cc8a3}{base\_internal::invoke}}(std::forward<Callable>(fn),}
+\DoxyCodeLine{00183\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Args>(args)...);}
+\DoxyCodeLine{00184\ \ \ \ \ old\_control\ =}
+\DoxyCodeLine{00185\ \ \ \ \ \ \ \ \ control-\/>exchange(\mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a28b3f6c9ec3bb97dc037f72bd635a817}{base\_internal::kOnceDone}},\ std::memory\_order\_release);}
+\DoxyCodeLine{00186\ \ \ \ \ \textcolor{keywordflow}{if}\ (old\_control\ ==\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a47c8bb5314d4b966cb1371f9bbb887a9}{base\_internal::kOnceWaiter}})\ \{}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a0fa12d4815dc0c9414cadb619e0d6a6b}{base\_internal::SpinLockWake}}(control,\ \textcolor{keyword}{true});}
+\DoxyCodeLine{00188\ \ \ \ \ \}}
+\DoxyCodeLine{00189\ \ \ \}\ \ \textcolor{comment}{//\ else\ *control\ is\ already\ kOnceDone}}
+\DoxyCodeLine{00190\ \}}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<std::atomic<uint32\_t>}}*>\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a94a323f7d7d0651e4b30d47da8e5aacc}{ControlWord}}(}
+\DoxyCodeLine{00193\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<once\_flag*>}}\ flag)\ \{}
+\DoxyCodeLine{00194\ \ \ \textcolor{keywordflow}{return}\ \&flag-\/>control\_;}
+\DoxyCodeLine{00195\ \}}
+\DoxyCodeLine{00196\ }
+\DoxyCodeLine{00197\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Callable,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00198\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a0bf472c67815f7a2f8dd36affca55337}{LowLevelCallOnce}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<absl::once\_flag*>}}\ flag,\ Callable\&\&\ fn,}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00200\ \ \ std::atomic<uint32\_t>*\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a5063758a36bbeb3751124acb5bd9dbcc}{once}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a94a323f7d7d0651e4b30d47da8e5aacc}{base\_internal::ControlWord}}(flag);}
+\DoxyCodeLine{00201\ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a5063758a36bbeb3751124acb5bd9dbcc}{once}}-\/>load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00202\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ !=\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a28b3f6c9ec3bb97dc037f72bd635a817}{base\_internal::kOnceDone}}))\ \{}
+\DoxyCodeLine{00203\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a6cd69626a8b7c9b65390a9d1a0d78a25}{base\_internal::CallOnceImpl}}(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a5063758a36bbeb3751124acb5bd9dbcc}{once}},\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893a566665fa6383422fbdb19641853f1744}{base\_internal::SCHEDULE\_KERNEL\_ONLY}},}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Callable>(fn),}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Args>(args)...);}
+\DoxyCodeLine{00206\ \ \ \}}
+\DoxyCodeLine{00207\ \}}
+\DoxyCodeLine{00208\ }
+\DoxyCodeLine{00209\ \}\ \ \textcolor{comment}{//\ namespace\ base\_internal}}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Callable,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00212\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_a83668f8913b468fae6d04c6da2a6b9bd}{call\_once}}(\mbox{\hyperlink{classabsl_1_1once__flag}{absl::once\_flag}}\&\ flag,\ Callable\&\&\ fn,\ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00213\ \ \ std::atomic<uint32\_t>*\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a5063758a36bbeb3751124acb5bd9dbcc}{once}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a94a323f7d7d0651e4b30d47da8e5aacc}{base\_internal::ControlWord}}(\&flag);}
+\DoxyCodeLine{00214\ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_a1fe47e4c63c51696c544a7f24f33b05c}{uint32\_t}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a5063758a36bbeb3751124acb5bd9dbcc}{once}}-\/>load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00215\ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ !=\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a35252759049ede4418f82c07b2b97c61a28b3f6c9ec3bb97dc037f72bd635a817}{base\_internal::kOnceDone}}))\ \{}
+\DoxyCodeLine{00216\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a6cd69626a8b7c9b65390a9d1a0d78a25}{base\_internal::CallOnceImpl}}(}
+\DoxyCodeLine{00217\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a5063758a36bbeb3751124acb5bd9dbcc}{once}},\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a746ad7d33e62844a08edcf87c1f84893a1d46524f108a87ae426d3da4e533ccf5}{base\_internal::SCHEDULE\_COOPERATIVE\_AND\_KERNEL}},}
+\DoxyCodeLine{00218\ \ \ \ \ \ \ \ \ std::forward<Callable>(fn),\ std::forward<Args>(args)...);}
+\DoxyCodeLine{00219\ \ \ \}}
+\DoxyCodeLine{00220\ \}}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00223\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00224\ }
+\DoxyCodeLine{00225\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_CALL\_ONCE\_H\_}}
+
+\end{DoxyCode}

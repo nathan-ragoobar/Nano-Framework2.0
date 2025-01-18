@@ -1,0 +1,357 @@
+\doxysection{Inverse\+Size4.\+h}
+\hypertarget{InverseSize4_8h_source}{}\label{InverseSize4_8h_source}\index{eigen/Eigen/src/LU/arch/InverseSize4.h@{eigen/Eigen/src/LU/arch/InverseSize4.h}}
+\mbox{\hyperlink{InverseSize4_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ This\ file\ is\ part\ of\ Eigen,\ a\ lightweight\ C++\ template\ library}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ for\ linear\ algebra.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Copyright\ (C)\ 2001\ Intel\ Corporation}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ Copyright\ (C)\ 2010\ Gael\ Guennebaud\ <gael.guennebaud@inria.fr>}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ Copyright\ (C)\ 2009\ Benoit\ Jacob\ <jacob.benoit.1@gmail.com>}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ This\ Source\ Code\ Form\ is\ subject\ to\ the\ terms\ of\ the\ Mozilla}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Public\ License\ v.\ 2.0.\ If\ a\ copy\ of\ the\ MPL\ was\ not\ distributed}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ with\ this\ file,\ You\ can\ obtain\ one\ at\ http://mozilla.org/MPL/2.0/.}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ The\ algorithm\ below\ is\ a\ reimplementation\ of\ former\ \(\backslash\)src\(\backslash\)LU\(\backslash\)Inverse\_SSE.h\ using\ PacketMath.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ inv(M)\ =\ M\#/|M|,\ where\ inv(M),\ M\#\ and\ |M|\ denote\ the\ inverse\ of\ M,}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ adjugate\ of\ M\ and\ determinant\ of\ M\ respectively.\ M\#\ is\ computed\ block-\/wise}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ using\ specific\ formulae.\ For\ proof,\ see:}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ https://lxjk.github.io/2017/09/03/Fast-\/4x4-\/Matrix-\/Inverse-\/with-\/SSE-\/SIMD-\/Explained.html}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ Variable\ names\ are\ adopted\ from\ \(\backslash\)src\(\backslash\)LU\(\backslash\)Inverse\_SSE.h.}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ The\ SSE\ code\ for\ the\ 4x4\ float\ and\ double\ matrix\ inverse\ in\ former\ (deprecated)\ \(\backslash\)src\(\backslash\)LU\(\backslash\)Inverse\_SSE.h}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ comes\ from\ the\ following\ Intel's\ library:}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ http://software.intel.com/en-\/us/articles/optimized-\/matrix-\/library-\/for-\/use-\/with-\/the-\/intel-\/pentiumr-\/4-\/processors-\/sse2-\/instructions/}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ Here\ is\ the\ respective\ copyright\ and\ license\ statement:}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ \ \ Copyright\ (c)\ 2001\ Intel\ Corporation.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ Permition\ is\ granted\ to\ use,\ copy,\ distribute\ and\ prepare\ derivative\ works}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ of\ this\ library\ for\ any\ purpose\ and\ without\ fee,\ provided,\ that\ the\ above}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ copyright\ notice\ and\ this\ statement\ appear\ in\ all\ copies.}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ Intel\ makes\ no\ representations\ about\ the\ suitability\ of\ this\ software\ for}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ any\ purpose,\ and\ specifically\ disclaims\ all\ warranties.}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ See\ LEGAL.TXT\ for\ all\ the\ legal\ information.}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ TODO:\ Unify\ implementations\ of\ different\ data\ types\ (i.e.\ float\ and\ double).}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#ifndef\ EIGEN\_INVERSE\_SIZE\_4\_H}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#define\ EIGEN\_INVERSE\_SIZE\_4\_H}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceEigen}{Eigen}}}
+\DoxyCodeLine{00039\ \{}
+\DoxyCodeLine{00040\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceinternal}{internal}}}
+\DoxyCodeLine{00041\ \{}
+\DoxyCodeLine{00042\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keyword}{typename}\ ResultType>}
+\DoxyCodeLine{00043\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1compute__inverse__size4}{compute\_inverse\_size4}}<Architecture::Target,\ float,\ MatrixType,\ ResultType>}
+\DoxyCodeLine{00044\ \{}
+\DoxyCodeLine{00045\ \ \ \textcolor{keyword}{enum}}
+\DoxyCodeLine{00046\ \ \ \{}
+\DoxyCodeLine{00047\ \ \ \ \ MatrixAlignment\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<MatrixType>::Alignment}},}
+\DoxyCodeLine{00048\ \ \ \ \ ResultAlignment\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<ResultType>::Alignment}},}
+\DoxyCodeLine{00049\ \ \ \ \ StorageOrdersMatch\ =\ (MatrixType::Flags\ \&\ \mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}})\ ==\ (ResultType::Flags\ \&\ \mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}})}
+\DoxyCodeLine{00050\ \ \ \};}
+\DoxyCodeLine{00051\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1conditional}{conditional}}<(MatrixType::Flags\ \&\ \mbox{\hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit}}),\ MatrixType\ \textcolor{keyword}{const}\ \&,\ \textcolor{keyword}{typename}\ MatrixType::PlainObject>::type\ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{ActualMatrixType}};}
+\DoxyCodeLine{00052\ }
+\DoxyCodeLine{00053\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1compute__inverse__size4_3_01Architecture_1_1Target_00_01float_00_01MatrixType_00_01ResultType_01_4_acbda45520e463190ed3437d77d512d20}{run}}(\textcolor{keyword}{const}\ MatrixType\ \&mat,\ ResultType\ \&result)}
+\DoxyCodeLine{00054\ \ \ \{}
+\DoxyCodeLine{00055\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{ActualMatrixType}}\ matrix(mat);}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ =\ matrix.\mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorReadOnly_a9be5f49eeb9fb048cc4f036588a41fc5}{data}}();}
+\DoxyCodeLine{00058\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ stride\ =\ matrix.innerStride();}
+\DoxyCodeLine{00059\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ \_L1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet4f,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}});}
+\DoxyCodeLine{00060\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ \_L2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet4f,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*4);}
+\DoxyCodeLine{00061\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ \_L3\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet4f,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*8);}
+\DoxyCodeLine{00062\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ \_L4\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet4f,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*12);}
+\DoxyCodeLine{00063\ }
+\DoxyCodeLine{00064\ \ \ \ \ \textcolor{comment}{//\ Four\ 2x2\ sub-\/matrices\ of\ the\ input\ matrix}}
+\DoxyCodeLine{00065\ \ \ \ \ \textcolor{comment}{//\ input\ =\ [[A,\ B],}}
+\DoxyCodeLine{00066\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ [C,\ D]]}}
+\DoxyCodeLine{00067\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2fast__type__id__test_8cc_a1ea955b94ea8dc35e689055712257459}{A}},\ B,\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ D;}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \ \ \ \ \textcolor{keywordflow}{if}\ (!StorageOrdersMatch)}
+\DoxyCodeLine{00070\ \ \ \ \ \{}
+\DoxyCodeLine{00071\ \ \ \ \ \ \ A\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_abbd6194cecde7d0270d458ba51d9e0d1}{vec4f\_unpacklo}}(\_L1,\ \_L2);}
+\DoxyCodeLine{00072\ \ \ \ \ \ \ B\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_abbd6194cecde7d0270d458ba51d9e0d1}{vec4f\_unpacklo}}(\_L3,\ \_L4);}
+\DoxyCodeLine{00073\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_aae36e787fb124e1d21c64c540b01c1df}{vec4f\_unpackhi}}(\_L1,\ \_L2);}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ D\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_aae36e787fb124e1d21c64c540b01c1df}{vec4f\_unpackhi}}(\_L3,\ \_L4);}
+\DoxyCodeLine{00075\ \ \ \ \ \}}
+\DoxyCodeLine{00076\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00077\ \ \ \ \ \{}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ A\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a16bce418b43efceb54fdc46497f1cd39}{vec4f\_movelh}}(\_L1,\ \_L2);}
+\DoxyCodeLine{00079\ \ \ \ \ \ \ B\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a4444bf2176f00d680dd47f3fd2d93c2c}{vec4f\_movehl}}(\_L2,\ \_L1);}
+\DoxyCodeLine{00080\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a16bce418b43efceb54fdc46497f1cd39}{vec4f\_movelh}}(\_L3,\ \_L4);}
+\DoxyCodeLine{00081\ \ \ \ \ \ \ D\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a4444bf2176f00d680dd47f3fd2d93c2c}{vec4f\_movehl}}(\_L4,\ \_L3);}
+\DoxyCodeLine{00082\ \ \ \ \ \}}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ AB,\ DC;}
+\DoxyCodeLine{00085\ }
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{comment}{//\ AB\ =\ A\#\ *\ B,\ where\ A\#\ denotes\ the\ adjugate\ of\ A,\ and\ *\ denotes\ matrix\ product.}}
+\DoxyCodeLine{00087\ \ \ \ \ AB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(A,\ A,\ 3,\ 3,\ 0,\ 0),\ B);}
+\DoxyCodeLine{00088\ \ \ \ \ AB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(AB,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(A,\ A,\ 1,\ 1,\ 2,\ 2),\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(B,\ B,\ 2,\ 3,\ 0,\ 1)));}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{comment}{//\ DC\ =\ D\#*C}}
+\DoxyCodeLine{00091\ \ \ \ \ DC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(D,\ D,\ 3,\ 3,\ 0,\ 0),\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00092\ \ \ \ \ DC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(DC,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(D,\ D,\ 1,\ 1,\ 2,\ 2),\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ 2,\ 3,\ 0,\ 1)));}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \ \ \ \ \textcolor{comment}{//\ determinants\ of\ the\ sub-\/matrices}}
+\DoxyCodeLine{00095\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ dA,\ dB,\ dC,\ dD;}
+\DoxyCodeLine{00096\ }
+\DoxyCodeLine{00097\ \ \ \ \ dA\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(A,\ A,\ 3,\ 3,\ 1,\ 1),\ A);}
+\DoxyCodeLine{00098\ \ \ \ \ dA\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(dA,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a4444bf2176f00d680dd47f3fd2d93c2c}{vec4f\_movehl}}(dA,\ dA));}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \ \ \ \ dB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(B,\ B,\ 3,\ 3,\ 1,\ 1),\ B);}
+\DoxyCodeLine{00101\ \ \ \ \ dB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(dB,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a4444bf2176f00d680dd47f3fd2d93c2c}{vec4f\_movehl}}(dB,\ dB));}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \ \ \ \ dC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ 3,\ 3,\ 1,\ 1),\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}});}
+\DoxyCodeLine{00104\ \ \ \ \ dC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(dC,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a4444bf2176f00d680dd47f3fd2d93c2c}{vec4f\_movehl}}(dC,\ dC));}
+\DoxyCodeLine{00105\ }
+\DoxyCodeLine{00106\ \ \ \ \ dD\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(D,\ D,\ 3,\ 3,\ 1,\ 1),\ D);}
+\DoxyCodeLine{00107\ \ \ \ \ dD\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(dD,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a4444bf2176f00d680dd47f3fd2d93c2c}{vec4f\_movehl}}(dD,\ dD));}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ d,\ d1,\ d2;}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \ \ \ \ d\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(DC,\ DC,\ 0,\ 2,\ 1,\ 3),\ AB);}
+\DoxyCodeLine{00112\ \ \ \ \ d\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(d,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a4444bf2176f00d680dd47f3fd2d93c2c}{vec4f\_movehl}}(d,\ d));}
+\DoxyCodeLine{00113\ \ \ \ \ d\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(d,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(d,\ d,\ 1,\ 0,\ 0,\ 0));}
+\DoxyCodeLine{00114\ \ \ \ \ d1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(dA,\ dD);}
+\DoxyCodeLine{00115\ \ \ \ \ d2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(dB,\ dC);}
+\DoxyCodeLine{00116\ }
+\DoxyCodeLine{00117\ \ \ \ \ \textcolor{comment}{//\ determinant\ of\ the\ input\ matrix,\ det\ =\ |A||D|\ +\ |B||C|\ -\/\ trace(A\#*B*D\#*C)}}
+\DoxyCodeLine{00118\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ det\ =\ \mbox{\hyperlink{NEON_2PacketMath_8h_a20b4290b14c83139f2ded75e1b86cb0d}{vec4f\_duplane}}(\mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(d1,\ d2),\ d),\ 0);}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{comment}{//\ reciprocal\ of\ the\ determinant\ of\ the\ input\ matrix,\ rd\ =\ 1/det}}
+\DoxyCodeLine{00121\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ rd\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a462e918f3381d435028a0decd5485844}{pdiv}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a923941269228f9ceaf233636da958609}{pset1<Packet4f>}}(1.0f),\ det);}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{comment}{//\ Four\ sub-\/matrices\ of\ the\ inverse}}
+\DoxyCodeLine{00124\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ iA,\ iB,\ iC,\ iD;}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \ \ \ \ \textcolor{comment}{//\ iD\ =\ D*|A|\ -\/\ C*A\#*B}}
+\DoxyCodeLine{00127\ \ \ \ \ iD\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ 0,\ 0,\ 2,\ 2),\ \mbox{\hyperlink{namespaceEigen_1_1internal_a16bce418b43efceb54fdc46497f1cd39}{vec4f\_movelh}}(AB,\ AB));}
+\DoxyCodeLine{00128\ \ \ \ \ iD\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(iD,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ 1,\ 1,\ 3,\ 3),\ \mbox{\hyperlink{namespaceEigen_1_1internal_a4444bf2176f00d680dd47f3fd2d93c2c}{vec4f\_movehl}}(AB,\ AB)));}
+\DoxyCodeLine{00129\ \ \ \ \ iD\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(D,\ \mbox{\hyperlink{NEON_2PacketMath_8h_a20b4290b14c83139f2ded75e1b86cb0d}{vec4f\_duplane}}(dA,\ 0)),\ iD);}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \ \ \ \ \textcolor{comment}{//\ iA\ =\ A*|D|\ -\/\ B*D\#*C}}
+\DoxyCodeLine{00132\ \ \ \ \ iA\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(B,\ B,\ 0,\ 0,\ 2,\ 2),\ \mbox{\hyperlink{namespaceEigen_1_1internal_a16bce418b43efceb54fdc46497f1cd39}{vec4f\_movelh}}(DC,\ DC));}
+\DoxyCodeLine{00133\ \ \ \ \ iA\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(iA,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(B,\ B,\ 1,\ 1,\ 3,\ 3),\ \mbox{\hyperlink{namespaceEigen_1_1internal_a4444bf2176f00d680dd47f3fd2d93c2c}{vec4f\_movehl}}(DC,\ DC)));}
+\DoxyCodeLine{00134\ \ \ \ \ iA\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(A,\ \mbox{\hyperlink{NEON_2PacketMath_8h_a20b4290b14c83139f2ded75e1b86cb0d}{vec4f\_duplane}}(dD,\ 0)),\ iA);}
+\DoxyCodeLine{00135\ }
+\DoxyCodeLine{00136\ \ \ \ \ \textcolor{comment}{//\ iB\ =\ C*|B|\ -\/\ D\ *\ (A\#B)\#\ =\ C*|B|\ -\/\ D*B\#*A}}
+\DoxyCodeLine{00137\ \ \ \ \ iB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(D,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(AB,\ AB,\ 3,\ 0,\ 3,\ 0));}
+\DoxyCodeLine{00138\ \ \ \ \ iB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(iB,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(D,\ D,\ 1,\ 0,\ 3,\ 2),\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(AB,\ AB,\ 2,\ 1,\ 2,\ 1)));}
+\DoxyCodeLine{00139\ \ \ \ \ iB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}},\ \mbox{\hyperlink{NEON_2PacketMath_8h_a20b4290b14c83139f2ded75e1b86cb0d}{vec4f\_duplane}}(dB,\ 0)),\ iB);}
+\DoxyCodeLine{00140\ }
+\DoxyCodeLine{00141\ \ \ \ \ \textcolor{comment}{//\ iC\ =\ B*|C|\ -\/\ A\ *\ (D\#C)\#\ =\ B*|C|\ -\/\ A*C\#*D}}
+\DoxyCodeLine{00142\ \ \ \ \ iC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(A,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(DC,\ DC,\ 3,\ 0,\ 3,\ 0));}
+\DoxyCodeLine{00143\ \ \ \ \ iC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(iC,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(A,\ A,\ 1,\ 0,\ 3,\ 2),\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(DC,\ DC,\ 2,\ 1,\ 2,\ 1)));}
+\DoxyCodeLine{00144\ \ \ \ \ iC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(B,\ \mbox{\hyperlink{NEON_2PacketMath_8h_a20b4290b14c83139f2ded75e1b86cb0d}{vec4f\_duplane}}(dC,\ 0)),\ iC);}
+\DoxyCodeLine{00145\ }
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{float}\ sign\_mask[4]\ =\ \{0.0f,\ \mbox{\hyperlink{namespaceEigen_1_1numext_aab7215442e6104d49d9c001a8dcd8caf}{numext::bit\_cast<float>}}(0x80000000u),\ \mbox{\hyperlink{namespaceEigen_1_1numext_aab7215442e6104d49d9c001a8dcd8caf}{numext::bit\_cast<float>}}(0x80000000u),\ 0.0f\};}
+\DoxyCodeLine{00147\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1internal_ae26c66dd0a5e5fe89ede57fe7005e2f7}{Packet4f}}\ p4f\_sign\_PNNP\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_ac7c8e9806e423b61bb6ec916769bd133}{ploadu<Packet4f>}}(sign\_mask);}
+\DoxyCodeLine{00148\ \ \ \ \ rd\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_ac252137f3564aba62dbc45ce804c9167}{pxor}}(rd,\ p4f\_sign\_PNNP);}
+\DoxyCodeLine{00149\ \ \ \ \ iA\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(iA,\ rd);}
+\DoxyCodeLine{00150\ \ \ \ \ iB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(iB,\ rd);}
+\DoxyCodeLine{00151\ \ \ \ \ iC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(iC,\ rd);}
+\DoxyCodeLine{00152\ \ \ \ \ iD\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(iD,\ rd);}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ res\_stride\ =\ result.outerStride();}
+\DoxyCodeLine{00155\ \ \ \ \ \textcolor{keywordtype}{float}\ *res\ =\ result.data();}
+\DoxyCodeLine{00156\ }
+\DoxyCodeLine{00157\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<float,\ Packet4f,\ ResultAlignment>}}(res\ +\ 0,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(iA,\ iB,\ 3,\ 1,\ 3,\ 1));}
+\DoxyCodeLine{00158\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<float,\ Packet4f,\ ResultAlignment>}}(res\ +\ res\_stride,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(iA,\ iB,\ 2,\ 0,\ 2,\ 0));}
+\DoxyCodeLine{00159\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<float,\ Packet4f,\ ResultAlignment>}}(res\ +\ 2\ *\ res\_stride,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(iC,\ iD,\ 3,\ 1,\ 3,\ 1));}
+\DoxyCodeLine{00160\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<float,\ Packet4f,\ ResultAlignment>}}(res\ +\ 3\ *\ res\_stride,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a1ec65d254d25d48c68fbd7fadb9cd5b3}{vec4f\_swizzle2}}(iC,\ iD,\ 2,\ 0,\ 2,\ 0));}
+\DoxyCodeLine{00161\ \ \ \}}
+\DoxyCodeLine{00162\ \};}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \textcolor{preprocessor}{\#if\ !(defined\ EIGEN\_VECTORIZE\_NEON\ \&\&\ !(EIGEN\_ARCH\_ARM64\ \&\&\ !EIGEN\_APPLE\_DOUBLE\_NEON\_BUG))}}
+\DoxyCodeLine{00165\ \textcolor{comment}{//\ same\ algorithm\ as\ above,\ except\ that\ each\ operand\ is\ split\ into}}
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ halves\ for\ two\ registers\ to\ hold.}}
+\DoxyCodeLine{00167\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ MatrixType,\ \textcolor{keyword}{typename}\ ResultType>}
+\DoxyCodeLine{00168\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structEigen_1_1internal_1_1compute__inverse__size4}{compute\_inverse\_size4}}<Architecture::Target,\ double,\ MatrixType,\ ResultType>}
+\DoxyCodeLine{00169\ \{}
+\DoxyCodeLine{00170\ \ \ \textcolor{keyword}{enum}}
+\DoxyCodeLine{00171\ \ \ \{}
+\DoxyCodeLine{00172\ \ \ \ \ MatrixAlignment\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<MatrixType>::Alignment}},}
+\DoxyCodeLine{00173\ \ \ \ \ ResultAlignment\ =\ \mbox{\hyperlink{structEigen_1_1internal_1_1traits}{traits<ResultType>::Alignment}},}
+\DoxyCodeLine{00174\ \ \ \ \ StorageOrdersMatch\ =\ (MatrixType::Flags\ \&\ \mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}})\ ==\ (ResultType::Flags\ \&\ \mbox{\hyperlink{group__flags_gae4f56c2a60bbe4bd2e44c5b19cbe8762}{RowMajorBit}})}
+\DoxyCodeLine{00175\ \ \ \};}
+\DoxyCodeLine{00176\ \ \ \textcolor{keyword}{typedef}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structEigen_1_1internal_1_1conditional}{conditional}}<(MatrixType::Flags\ \&\ \mbox{\hyperlink{group__flags_ga4b983a15d57cd55806df618ac544d09e}{LinearAccessBit}}),}
+\DoxyCodeLine{00177\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ MatrixType\ \textcolor{keyword}{const}\ \&,}
+\DoxyCodeLine{00178\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ MatrixType::PlainObject>::type}
+\DoxyCodeLine{00179\ \ \ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{ActualMatrixType}};}
+\DoxyCodeLine{00180\ }
+\DoxyCodeLine{00181\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structEigen_1_1internal_1_1compute__inverse__size4_3_01Architecture_1_1Target_00_01double_00_01MatrixType_00_01ResultType_01_4_a10dead9864726b0c10cf1089d375d64f}{run}}(\textcolor{keyword}{const}\ MatrixType\ \&mat,\ ResultType\ \&result)}
+\DoxyCodeLine{00182\ \ \ \{}
+\DoxyCodeLine{00183\ \ \ \ \ \mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorWritable}{ActualMatrixType}}\ matrix(mat);}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \ \ \ \ \textcolor{comment}{//\ Four\ 2x2\ sub-\/matrices\ of\ the\ input\ matrix,\ each\ is\ further\ divided\ into\ upper\ and\ lower}}
+\DoxyCodeLine{00186\ \ \ \ \ \textcolor{comment}{//\ row\ e.g.\ A1,\ upper\ row\ of\ A,\ A2,\ lower\ row\ of\ A}}
+\DoxyCodeLine{00187\ \ \ \ \ \textcolor{comment}{//\ input\ =\ [[A,\ B],\ \ =\ \ [[[A1,\ [B1,}}
+\DoxyCodeLine{00188\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ [C,\ D]]\ \ \ \ \ \ \ \ A2],\ B2]],}}
+\DoxyCodeLine{00189\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ [[C1,\ [D1,}}
+\DoxyCodeLine{00190\ \ \ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ C2],\ D2]]]}}
+\DoxyCodeLine{00191\ }
+\DoxyCodeLine{00192\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ A1,\ A2,\ B1,\ B2,\ C1,\ C2,\ D1,\ D2;}
+\DoxyCodeLine{00193\ }
+\DoxyCodeLine{00194\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ =\ matrix.\mbox{\hyperlink{classEigen_1_1internal_1_1TensorLazyEvaluatorReadOnly_a9be5f49eeb9fb048cc4f036588a41fc5}{data}}();}
+\DoxyCodeLine{00195\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ stride\ =\ matrix.innerStride();}
+\DoxyCodeLine{00196\ \ \ \ \ \textcolor{keywordflow}{if}\ (StorageOrdersMatch)}
+\DoxyCodeLine{00197\ \ \ \ \ \{}
+\DoxyCodeLine{00198\ \ \ \ \ \ \ A1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*0);}
+\DoxyCodeLine{00199\ \ \ \ \ \ \ B1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*2);}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ A2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*4);}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ B2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*6);}
+\DoxyCodeLine{00202\ \ \ \ \ \ \ C1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*8);}
+\DoxyCodeLine{00203\ \ \ \ \ \ \ D1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*10);}
+\DoxyCodeLine{00204\ \ \ \ \ \ \ C2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*12);}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ D2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*14);}
+\DoxyCodeLine{00206\ \ \ \ \ \}}
+\DoxyCodeLine{00207\ \ \ \ \ \textcolor{keywordflow}{else}}
+\DoxyCodeLine{00208\ \ \ \ \ \{}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ temp;}
+\DoxyCodeLine{00210\ \ \ \ \ \ \ A1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*0);}
+\DoxyCodeLine{00211\ \ \ \ \ \ \ C1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*2);}
+\DoxyCodeLine{00212\ \ \ \ \ \ \ A2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*4);}
+\DoxyCodeLine{00213\ \ \ \ \ \ \ C2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*6);}
+\DoxyCodeLine{00214\ \ \ \ \ \ \ temp\ =\ A1;}
+\DoxyCodeLine{00215\ \ \ \ \ \ \ A1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_ac2c230f363d230c30e5c93c900c89e47}{vec2d\_unpacklo}}(A1,\ A2);}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ A2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a2dcafe5532af7a9a6cfc4b9bb6c8b334}{vec2d\_unpackhi}}(temp,\ A2);}
+\DoxyCodeLine{00217\ }
+\DoxyCodeLine{00218\ \ \ \ \ \ \ temp\ =\ C1;}
+\DoxyCodeLine{00219\ \ \ \ \ \ \ C1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_ac2c230f363d230c30e5c93c900c89e47}{vec2d\_unpacklo}}(C1,\ C2);}
+\DoxyCodeLine{00220\ \ \ \ \ \ \ C2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a2dcafe5532af7a9a6cfc4b9bb6c8b334}{vec2d\_unpackhi}}(temp,\ C2);}
+\DoxyCodeLine{00221\ }
+\DoxyCodeLine{00222\ \ \ \ \ \ \ B1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*8);}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ D1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*10);}
+\DoxyCodeLine{00224\ \ \ \ \ \ \ B2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*12);}
+\DoxyCodeLine{00225\ \ \ \ \ \ \ D2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a100dabe02b9d7dafb1a39d7d4dbbdd4a}{ploadt<Packet2d,MatrixAlignment>}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}\ +\ stride*14);}
+\DoxyCodeLine{00226\ }
+\DoxyCodeLine{00227\ \ \ \ \ \ \ temp\ =\ B1;}
+\DoxyCodeLine{00228\ \ \ \ \ \ \ B1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_ac2c230f363d230c30e5c93c900c89e47}{vec2d\_unpacklo}}(B1,\ B2);}
+\DoxyCodeLine{00229\ \ \ \ \ \ \ B2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a2dcafe5532af7a9a6cfc4b9bb6c8b334}{vec2d\_unpackhi}}(temp,\ B2);}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \ \ \ \ \ \ temp\ =\ D1;}
+\DoxyCodeLine{00232\ \ \ \ \ \ \ D1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_ac2c230f363d230c30e5c93c900c89e47}{vec2d\_unpacklo}}(D1,\ D2);}
+\DoxyCodeLine{00233\ \ \ \ \ \ \ D2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a2dcafe5532af7a9a6cfc4b9bb6c8b334}{vec2d\_unpackhi}}(temp,\ D2);}
+\DoxyCodeLine{00234\ \ \ \ \ \}}
+\DoxyCodeLine{00235\ }
+\DoxyCodeLine{00236\ \ \ \ \ \textcolor{comment}{//\ determinants\ of\ the\ sub-\/matrices}}
+\DoxyCodeLine{00237\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ dA,\ dB,\ dC,\ dD;}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \ \ \ \ dA\ =\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(A2,\ A2,\ 1);}
+\DoxyCodeLine{00240\ \ \ \ \ dA\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(A1,\ dA);}
+\DoxyCodeLine{00241\ \ \ \ \ dA\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(dA,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(dA,\ 1));}
+\DoxyCodeLine{00242\ }
+\DoxyCodeLine{00243\ \ \ \ \ dB\ =\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(B2,\ B2,\ 1);}
+\DoxyCodeLine{00244\ \ \ \ \ dB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(B1,\ dB);}
+\DoxyCodeLine{00245\ \ \ \ \ dB\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(dB,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(dB,\ 1));}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \ \ \ \ dC\ =\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(C2,\ C2,\ 1);}
+\DoxyCodeLine{00248\ \ \ \ \ dC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(C1,\ dC);}
+\DoxyCodeLine{00249\ \ \ \ \ dC\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(dC,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(dC,\ 1));}
+\DoxyCodeLine{00250\ }
+\DoxyCodeLine{00251\ \ \ \ \ dD\ =\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(D2,\ D2,\ 1);}
+\DoxyCodeLine{00252\ \ \ \ \ dD\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(D1,\ dD);}
+\DoxyCodeLine{00253\ \ \ \ \ dD\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(dD,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(dD,\ 1));}
+\DoxyCodeLine{00254\ }
+\DoxyCodeLine{00255\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ DC1,\ DC2,\ AB1,\ AB2;}
+\DoxyCodeLine{00256\ }
+\DoxyCodeLine{00257\ \ \ \ \ \textcolor{comment}{//\ AB\ =\ A\#\ *\ B,\ where\ A\#\ denotes\ the\ adjugate\ of\ A,\ and\ *\ denotes\ matrix\ product.}}
+\DoxyCodeLine{00258\ \ \ \ \ AB1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(B1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(A2,\ 1));}
+\DoxyCodeLine{00259\ \ \ \ \ AB2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(B2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(A1,\ 0));}
+\DoxyCodeLine{00260\ \ \ \ \ AB1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(AB1,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(B2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(A1,\ 1)));}
+\DoxyCodeLine{00261\ \ \ \ \ AB2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(AB2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(B1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(A2,\ 0)));}
+\DoxyCodeLine{00262\ }
+\DoxyCodeLine{00263\ \ \ \ \ \textcolor{comment}{//\ DC\ =\ D\#*C}}
+\DoxyCodeLine{00264\ \ \ \ \ DC1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(C1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(D2,\ 1));}
+\DoxyCodeLine{00265\ \ \ \ \ DC2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(C2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(D1,\ 0));}
+\DoxyCodeLine{00266\ \ \ \ \ DC1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(DC1,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(C2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(D1,\ 1)));}
+\DoxyCodeLine{00267\ \ \ \ \ DC2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(DC2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(C1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(D2,\ 0)));}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00269\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ d1,\ d2;}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \ \ \ \ \textcolor{comment}{//\ determinant\ of\ the\ input\ matrix,\ det\ =\ |A||D|\ +\ |B||C|\ -\/\ trace(A\#*B*D\#*C)}}
+\DoxyCodeLine{00272\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ det;}
+\DoxyCodeLine{00273\ }
+\DoxyCodeLine{00274\ \ \ \ \ \textcolor{comment}{//\ reciprocal\ of\ the\ determinant\ of\ the\ input\ matrix,\ rd\ =\ 1/det}}
+\DoxyCodeLine{00275\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ rd;}
+\DoxyCodeLine{00276\ }
+\DoxyCodeLine{00277\ \ \ \ \ d1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(AB1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(DC1,\ DC2,\ 0));}
+\DoxyCodeLine{00278\ \ \ \ \ d2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(AB2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(DC1,\ DC2,\ 3));}
+\DoxyCodeLine{00279\ \ \ \ \ rd\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(d1,\ d2);}
+\DoxyCodeLine{00280\ \ \ \ \ rd\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(rd,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(rd,\ 1));}
+\DoxyCodeLine{00281\ }
+\DoxyCodeLine{00282\ \ \ \ \ d1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(dA,\ dD);}
+\DoxyCodeLine{00283\ \ \ \ \ d2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(dB,\ dC);}
+\DoxyCodeLine{00284\ }
+\DoxyCodeLine{00285\ \ \ \ \ det\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(d1,\ d2);}
+\DoxyCodeLine{00286\ \ \ \ \ det\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(det,\ rd);}
+\DoxyCodeLine{00287\ \ \ \ \ det\ =\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(det,\ 0);}
+\DoxyCodeLine{00288\ \ \ \ \ rd\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a462e918f3381d435028a0decd5485844}{pdiv}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a6024368181b050eb03ef7eea98f084ea}{pset1<Packet2d>}}(1.0),\ det);}
+\DoxyCodeLine{00289\ }
+\DoxyCodeLine{00290\ \ \ \ \ \textcolor{comment}{//\ rows\ of\ four\ sub-\/matrices\ of\ the\ inverse}}
+\DoxyCodeLine{00291\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ iA1,\ iA2,\ iB1,\ iB2,\ iC1,\ iC2,\ iD1,\ iD2;}
+\DoxyCodeLine{00292\ }
+\DoxyCodeLine{00293\ \ \ \ \ \textcolor{comment}{//\ iD\ =\ D*|A|\ -\/\ C*A\#*B}}
+\DoxyCodeLine{00294\ \ \ \ \ iD1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(AB1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(C1,\ 0));}
+\DoxyCodeLine{00295\ \ \ \ \ iD2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(AB1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(C2,\ 0));}
+\DoxyCodeLine{00296\ \ \ \ \ iD1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(iD1,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(AB2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(C1,\ 1)));}
+\DoxyCodeLine{00297\ \ \ \ \ iD2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(iD2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(AB2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(C2,\ 1)));}
+\DoxyCodeLine{00298\ \ \ \ \ dA\ =\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(dA,\ 0);}
+\DoxyCodeLine{00299\ \ \ \ \ iD1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(D1,\ dA),\ iD1);}
+\DoxyCodeLine{00300\ \ \ \ \ iD2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(D2,\ dA),\ iD2);}
+\DoxyCodeLine{00301\ }
+\DoxyCodeLine{00302\ \ \ \ \ \textcolor{comment}{//\ iA\ =\ A*|D|\ -\/\ B*D\#*C}}
+\DoxyCodeLine{00303\ \ \ \ \ iA1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(DC1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(B1,\ 0));}
+\DoxyCodeLine{00304\ \ \ \ \ iA2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(DC1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(B2,\ 0));}
+\DoxyCodeLine{00305\ \ \ \ \ iA1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(iA1,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(DC2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(B1,\ 1)));}
+\DoxyCodeLine{00306\ \ \ \ \ iA2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a0f50f3baa0dcc73cd1c0baa06e5c8c13}{padd}}(iA2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(DC2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(B2,\ 1)));}
+\DoxyCodeLine{00307\ \ \ \ \ dD\ =\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(dD,\ 0);}
+\DoxyCodeLine{00308\ \ \ \ \ iA1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(A1,\ dD),\ iA1);}
+\DoxyCodeLine{00309\ \ \ \ \ iA2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(A2,\ dD),\ iA2);}
+\DoxyCodeLine{00310\ }
+\DoxyCodeLine{00311\ \ \ \ \ \textcolor{comment}{//\ iB\ =\ C*|B|\ -\/\ D\ *\ (A\#B)\#\ =\ C*|B|\ -\/\ D*B\#*A}}
+\DoxyCodeLine{00312\ \ \ \ \ iB1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(D1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(AB2,\ AB1,\ 1));}
+\DoxyCodeLine{00313\ \ \ \ \ iB2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(D2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(AB2,\ AB1,\ 1));}
+\DoxyCodeLine{00314\ \ \ \ \ iB1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(iB1,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(D1,\ D1,\ 1),\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(AB2,\ AB1,\ 2)));}
+\DoxyCodeLine{00315\ \ \ \ \ iB2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(iB2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(D2,\ D2,\ 1),\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(AB2,\ AB1,\ 2)));}
+\DoxyCodeLine{00316\ \ \ \ \ dB\ =\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(dB,\ 0);}
+\DoxyCodeLine{00317\ \ \ \ \ iB1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(C1,\ dB),\ iB1);}
+\DoxyCodeLine{00318\ \ \ \ \ iB2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(C2,\ dB),\ iB2);}
+\DoxyCodeLine{00319\ }
+\DoxyCodeLine{00320\ \ \ \ \ \textcolor{comment}{//\ iC\ =\ B*|C|\ -\/\ A\ *\ (D\#C)\#\ =\ B*|C|\ -\/\ A*C\#*D}}
+\DoxyCodeLine{00321\ \ \ \ \ iC1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(A1,\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(DC2,\ DC1,\ 1));}
+\DoxyCodeLine{00322\ \ \ \ \ iC2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(A2,\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(DC2,\ DC1,\ 1));}
+\DoxyCodeLine{00323\ \ \ \ \ iC1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(iC1,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(A1,\ A1,\ 1),\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(DC2,\ DC1,\ 2)));}
+\DoxyCodeLine{00324\ \ \ \ \ iC2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(iC2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(A2,\ A2,\ 1),\ \mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(DC2,\ DC1,\ 2)));}
+\DoxyCodeLine{00325\ \ \ \ \ dC\ =\ \mbox{\hyperlink{SSE_2PacketMath_8h_a82105f8a0e30fae094a3f12d6a0c5b40}{vec2d\_duplane}}(dC,\ 0);}
+\DoxyCodeLine{00326\ \ \ \ \ iC1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(B1,\ dC),\ iC1);}
+\DoxyCodeLine{00327\ \ \ \ \ iC2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_acfb1e7fe49c73d1885dea028b1745e6a}{psub}}(\mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(B2,\ dC),\ iC2);}
+\DoxyCodeLine{00328\ }
+\DoxyCodeLine{00329\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ sign\_mask1[2]\ =\ \{0.0,\ \mbox{\hyperlink{namespaceEigen_1_1numext_aab7215442e6104d49d9c001a8dcd8caf}{numext::bit\_cast<double>}}(0x8000000000000000ull)\};}
+\DoxyCodeLine{00330\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{double}\ sign\_mask2[2]\ =\ \{\mbox{\hyperlink{namespaceEigen_1_1numext_aab7215442e6104d49d9c001a8dcd8caf}{numext::bit\_cast<double>}}(0x8000000000000000ull),\ 0.0\};}
+\DoxyCodeLine{00331\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ sign\_PN\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_aad2aa0e94b436c07af15649aa08c5b10}{ploadu<Packet2d>}}(sign\_mask1);}
+\DoxyCodeLine{00332\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a071504a8c370c69609dc68dbf8d4d9f7}{Packet2d}}\ sign\_NP\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_aad2aa0e94b436c07af15649aa08c5b10}{ploadu<Packet2d>}}(sign\_mask2);}
+\DoxyCodeLine{00333\ \ \ \ \ d1\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_ac252137f3564aba62dbc45ce804c9167}{pxor}}(rd,\ sign\_PN);}
+\DoxyCodeLine{00334\ \ \ \ \ d2\ =\ \mbox{\hyperlink{namespaceEigen_1_1internal_ac252137f3564aba62dbc45ce804c9167}{pxor}}(rd,\ sign\_NP);}
+\DoxyCodeLine{00335\ }
+\DoxyCodeLine{00336\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_a62e77e0933482dafde8fe197d9a2cfde}{Index}}\ res\_stride\ =\ result.outerStride();}
+\DoxyCodeLine{00337\ \ \ \ \ \textcolor{keywordtype}{double}\ *res\ =\ result.data();}
+\DoxyCodeLine{00338\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<double,\ Packet2d,\ ResultAlignment>}}(res\ +\ 0,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(iA2,\ iA1,\ 3),\ d1));}
+\DoxyCodeLine{00339\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<double,\ Packet2d,\ ResultAlignment>}}(res\ +\ res\_stride,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(iA2,\ iA1,\ 0),\ d2));}
+\DoxyCodeLine{00340\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<double,\ Packet2d,\ ResultAlignment>}}(res\ +\ 2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(iB2,\ iB1,\ 3),\ d1));}
+\DoxyCodeLine{00341\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<double,\ Packet2d,\ ResultAlignment>}}(res\ +\ res\_stride\ +\ 2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(iB2,\ iB1,\ 0),\ d2));}
+\DoxyCodeLine{00342\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<double,\ Packet2d,\ ResultAlignment>}}(res\ +\ 2\ *\ res\_stride,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(iC2,\ iC1,\ 3),\ d1));}
+\DoxyCodeLine{00343\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<double,\ Packet2d,\ ResultAlignment>}}(res\ +\ 3\ *\ res\_stride,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(iC2,\ iC1,\ 0),\ d2));}
+\DoxyCodeLine{00344\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<double,\ Packet2d,\ ResultAlignment>}}(res\ +\ 2\ *\ res\_stride\ +\ 2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(iD2,\ iD1,\ 3),\ d1));}
+\DoxyCodeLine{00345\ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1internal_a439bc5687f9f543ee3fabf7babed57f9}{pstoret<double,\ Packet2d,\ ResultAlignment>}}(res\ +\ 3\ *\ res\_stride\ +\ 2,\ \mbox{\hyperlink{namespaceEigen_1_1internal_a776f5f4b514ecaed2a98db928b8f745f}{pmul}}(\mbox{\hyperlink{SSE_2PacketMath_8h_aa7ad27c50bafd0959091663d5a475586}{vec2d\_swizzle2}}(iD2,\ iD1,\ 0),\ d2));}
+\DoxyCodeLine{00346\ \ \ \}}
+\DoxyCodeLine{00347\ \};}
+\DoxyCodeLine{00348\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00349\ \}\ \textcolor{comment}{//\ namespace\ internal}}
+\DoxyCodeLine{00350\ \}\ \textcolor{comment}{//\ namespace\ Eigen}}
+\DoxyCodeLine{00351\ \textcolor{preprocessor}{\#endif}}
+
+\end{DoxyCode}

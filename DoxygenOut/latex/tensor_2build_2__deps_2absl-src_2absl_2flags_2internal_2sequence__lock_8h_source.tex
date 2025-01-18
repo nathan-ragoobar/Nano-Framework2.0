@@ -1,0 +1,193 @@
+\doxysection{sequence\+\_\+lock.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2flags_2internal_2sequence__lock_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2flags_2internal_2sequence__lock_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/flags/internal/sequence\_lock.h@{tensor/build/\_deps/absl-\/src/absl/flags/internal/sequence\_lock.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2flags_2internal_2sequence__lock_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2020\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ }
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#ifndef\ ABSL\_FLAGS\_INTERNAL\_SEQUENCE\_LOCK\_H\_}}
+\DoxyCodeLine{00017\ \textcolor{preprocessor}{\#define\ ABSL\_FLAGS\_INTERNAL\_SEQUENCE\_LOCK\_H\_}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <stddef.h>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <stdint.h>}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ <cstring>}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00029\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00030\ \textcolor{keyword}{namespace\ }flags\_internal\ \{}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ Align\ 'x'\ up\ to\ the\ nearest\ 'align'\ bytes.}}
+\DoxyCodeLine{00033\ \textcolor{keyword}{inline}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1flags__internal_a124eec910596509ed2b398a00a4082fc}{AlignUp}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ \textcolor{keywordtype}{size\_t}\ align)\ \{}
+\DoxyCodeLine{00034\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1time__internal_1_1cctz_1_1detail_a5452c0ee9119ae747404cca045283e79}{align}}\ *\ ((\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}\ +\ \mbox{\hyperlink{namespaceabsl_1_1time__internal_1_1cctz_1_1detail_a5452c0ee9119ae747404cca045283e79}{align}}\ -\/\ 1)\ /\ \mbox{\hyperlink{namespaceabsl_1_1time__internal_1_1cctz_1_1detail_a5452c0ee9119ae747404cca045283e79}{align}});}
+\DoxyCodeLine{00035\ \}}
+\DoxyCodeLine{00036\ }
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ A\ SequenceLock\ implements\ lock-\/free\ reads.\ A\ sequence\ counter\ is\ incremented}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ before\ and\ after\ each\ write,\ and\ readers\ access\ the\ counter\ before\ and\ after}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ accessing\ the\ protected\ data.\ If\ the\ counter\ is\ verified\ to\ not\ change\ during}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ the\ access,\ and\ the\ sequence\ counter\ value\ was\ even,\ then\ the\ reader\ knows}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ that\ the\ read\ was\ race-\/free\ and\ valid.\ Otherwise,\ the\ reader\ must\ fall\ back}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ to\ a\ Mutex-\/based\ code\ path.}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//}}
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ This\ particular\ SequenceLock\ starts\ in\ an\ "{}uninitialized"{}\ state\ in\ which}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ TryRead()\ returns\ false.\ It\ must\ be\ enabled\ by\ calling\ MarkInitialized().}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ This\ serves\ as\ a\ marker\ that\ the\ associated\ flag\ value\ has\ not\ yet\ been}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ initialized\ and\ a\ slow\ path\ needs\ to\ be\ taken.}}
+\DoxyCodeLine{00048\ \textcolor{comment}{//}}
+\DoxyCodeLine{00049\ \textcolor{comment}{//\ The\ memory\ reads\ and\ writes\ protected\ by\ this\ lock\ must\ use\ the\ provided}}
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ \`{}TryRead()`\ and\ \`{}Write()`\ functions.\ These\ functions\ behave\ similarly\ to}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ \`{}memcpy()`,\ with\ one\ oddity:\ the\ protected\ data\ must\ be\ an\ array\ of}}
+\DoxyCodeLine{00052\ \textcolor{comment}{//\ \`{}std::atomic<uint64>`.\ This\ is\ to\ comply\ with\ the\ C++\ standard,\ which}}
+\DoxyCodeLine{00053\ \textcolor{comment}{//\ considers\ data\ races\ on\ non-\/atomic\ objects\ to\ be\ undefined\ behavior.\ See\ "{}Can}}
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ Seqlocks\ Get\ Along\ With\ Programming\ Language\ Memory\ Models?"{}[1]\ by\ Hans\ J.}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ Boehm\ for\ more\ details.}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ [1]\ https://www.hpl.hp.com/techreports/2012/HPL-\/2012-\/68.pdf}}
+\DoxyCodeLine{00058\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1flags__internal_1_1SequenceLock}{SequenceLock}}\ \{}
+\DoxyCodeLine{00059\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00060\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1flags__internal_1_1SequenceLock_ad2d514bd2c962142faa1d04728405635}{SequenceLock}}()\ :\ lock\_(kUninitialized)\ \{\}}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \ \ \textcolor{comment}{//\ Mark\ that\ this\ lock\ is\ ready\ for\ use.}}
+\DoxyCodeLine{00063\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1flags__internal_1_1SequenceLock_ad61a9cdd6814646576d52bf6178382f9}{MarkInitialized}}()\ \{}
+\DoxyCodeLine{00064\ \ \ \ \ assert(lock\_.load(std::memory\_order\_relaxed)\ ==\ kUninitialized);}
+\DoxyCodeLine{00065\ \ \ \ \ lock\_.store(0,\ std::memory\_order\_release);}
+\DoxyCodeLine{00066\ \ \ \}}
+\DoxyCodeLine{00067\ }
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//\ Copy\ "{}size"{}\ bytes\ of\ data\ from\ "{}src"{}\ to\ "{}dst"{},\ protected\ as\ a\ read-\/side}}
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ critical\ section\ of\ the\ sequence\ lock.}}
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ Unlike\ traditional\ sequence\ lock\ implementations\ which\ loop\ until\ getting\ a}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ clean\ read,\ this\ implementation\ returns\ false\ in\ the\ case\ of\ concurrent}}
+\DoxyCodeLine{00073\ \ \ \textcolor{comment}{//\ calls\ to\ \`{}Write`.\ In\ such\ a\ case,\ the\ caller\ should\ fall\ back\ to\ a}}
+\DoxyCodeLine{00074\ \ \ \textcolor{comment}{//\ locking-\/based\ slow\ path.}}
+\DoxyCodeLine{00075\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00076\ \ \ \textcolor{comment}{//\ Returns\ false\ if\ the\ sequence\ lock\ was\ not\ yet\ marked\ as\ initialized.}}
+\DoxyCodeLine{00077\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00078\ \ \ \textcolor{comment}{//\ NOTE:\ If\ this\ returns\ false,\ "{}dst"{}\ may\ be\ overwritten\ with\ undefined}}
+\DoxyCodeLine{00079\ \ \ \textcolor{comment}{//\ (potentially\ uninitialized)\ data.}}
+\DoxyCodeLine{00080\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1flags__internal_1_1SequenceLock_adbec3498a773c8b6ceb2659b10005c55}{TryRead}}(\textcolor{keywordtype}{void}*\ dst,\ \textcolor{keyword}{const}\ std::atomic<uint64\_t>*\ src,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00081\ \ \ \ \ \textcolor{comment}{//\ Acquire\ barrier\ ensures\ that\ no\ loads\ done\ by\ f()\ are\ reordered}}
+\DoxyCodeLine{00082\ \ \ \ \ \textcolor{comment}{//\ above\ the\ first\ load\ of\ the\ sequence\ counter.}}
+\DoxyCodeLine{00083\ \ \ \ \ int64\_t\ seq\_before\ =\ lock\_.load(std::memory\_order\_acquire);}
+\DoxyCodeLine{00084\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(seq\_before\ \&\ 1)\ ==\ 1)\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{00085\ \ \ \ \ RelaxedCopyFromAtomic(dst,\ src,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00086\ \ \ \ \ \textcolor{comment}{//\ Another\ acquire\ fence\ ensures\ that\ the\ load\ of\ 'lock\_'\ below\ is}}
+\DoxyCodeLine{00087\ \ \ \ \ \textcolor{comment}{//\ strictly\ ordered\ after\ the\ RelaxedCopyToAtomic\ call\ above.}}
+\DoxyCodeLine{00088\ \ \ \ \ std::atomic\_thread\_fence(std::memory\_order\_acquire);}
+\DoxyCodeLine{00089\ \ \ \ \ int64\_t\ seq\_after\ =\ lock\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00090\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_ae4445fb0c40ea7cc8e1c30647069d1a5}{ABSL\_PREDICT\_TRUE}}(seq\_before\ ==\ seq\_after);}
+\DoxyCodeLine{00091\ \ \ \}}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \ \ \textcolor{comment}{//\ Copy\ "{}size"{}\ bytes\ from\ "{}src"{}\ to\ "{}dst"{}\ as\ a\ write-\/side\ critical\ section}}
+\DoxyCodeLine{00094\ \ \ \textcolor{comment}{//\ of\ the\ sequence\ lock.\ Any\ concurrent\ readers\ will\ be\ forced\ to\ retry}}
+\DoxyCodeLine{00095\ \ \ \textcolor{comment}{//\ until\ they\ get\ a\ read\ that\ does\ not\ conflict\ with\ this\ write.}}
+\DoxyCodeLine{00096\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00097\ \ \ \textcolor{comment}{//\ This\ call\ must\ be\ externally\ synchronized\ against\ other\ calls\ to\ Write,}}
+\DoxyCodeLine{00098\ \ \ \textcolor{comment}{//\ but\ may\ proceed\ concurrently\ with\ reads.}}
+\DoxyCodeLine{00099\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1flags__internal_1_1SequenceLock_a11117a3e9afe9c223b271e4702056051}{Write}}(std::atomic<uint64\_t>*\ dst,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ src,\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00100\ \ \ \ \ \textcolor{comment}{//\ We\ can\ use\ relaxed\ instructions\ to\ increment\ the\ counter\ since\ we}}
+\DoxyCodeLine{00101\ \ \ \ \ \textcolor{comment}{//\ are\ extenally\ synchronized.\ The\ std::atomic\_thread\_fence\ below}}
+\DoxyCodeLine{00102\ \ \ \ \ \textcolor{comment}{//\ ensures\ that\ the\ counter\ updates\ don't\ get\ interleaved\ with\ the}}
+\DoxyCodeLine{00103\ \ \ \ \ \textcolor{comment}{//\ copy\ to\ the\ data.}}
+\DoxyCodeLine{00104\ \ \ \ \ int64\_t\ orig\_seq\ =\ lock\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00105\ \ \ \ \ assert((orig\_seq\ \&\ 1)\ ==\ 0);\ \ \textcolor{comment}{//\ Must\ be\ initially\ unlocked.}}
+\DoxyCodeLine{00106\ \ \ \ \ lock\_.store(orig\_seq\ +\ 1,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \ \ \ \ \textcolor{comment}{//\ We\ put\ a\ release\ fence\ between\ update\ to\ lock\_\ and\ writes\ to\ shared\ data.}}
+\DoxyCodeLine{00109\ \ \ \ \ \textcolor{comment}{//\ Thus\ all\ stores\ to\ shared\ data\ are\ effectively\ release\ operations\ and}}
+\DoxyCodeLine{00110\ \ \ \ \ \textcolor{comment}{//\ update\ to\ lock\_\ above\ cannot\ be\ re-\/ordered\ past\ any\ of\ them.\ Note\ that}}
+\DoxyCodeLine{00111\ \ \ \ \ \textcolor{comment}{//\ this\ barrier\ is\ not\ for\ the\ fetch\_add\ above.\ \ A\ release\ barrier\ for\ the}}
+\DoxyCodeLine{00112\ \ \ \ \ \textcolor{comment}{//\ fetch\_add\ would\ be\ before\ it,\ not\ after.}}
+\DoxyCodeLine{00113\ \ \ \ \ std::atomic\_thread\_fence(std::memory\_order\_release);}
+\DoxyCodeLine{00114\ \ \ \ \ RelaxedCopyToAtomic(dst,\ src,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00115\ \ \ \ \ \textcolor{comment}{//\ "{}Release"{}\ semantics\ ensure\ that\ none\ of\ the\ writes\ done\ by}}
+\DoxyCodeLine{00116\ \ \ \ \ \textcolor{comment}{//\ RelaxedCopyToAtomic()\ can\ be\ reordered\ after\ the\ following\ modification.}}
+\DoxyCodeLine{00117\ \ \ \ \ lock\_.store(orig\_seq\ +\ 2,\ std::memory\_order\_release);}
+\DoxyCodeLine{00118\ \ \ \}}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \ \ \textcolor{comment}{//\ Return\ the\ number\ of\ times\ that\ Write()\ has\ been\ called.}}
+\DoxyCodeLine{00121\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00122\ \ \ \textcolor{comment}{//\ REQUIRES:\ This\ must\ be\ externally\ synchronized\ against\ concurrent\ calls\ to}}
+\DoxyCodeLine{00123\ \ \ \textcolor{comment}{//\ \`{}Write()`\ or\ \`{}IncrementModificationCount()`.}}
+\DoxyCodeLine{00124\ \ \ \textcolor{comment}{//\ REQUIRES:\ \`{}MarkInitialized()`\ must\ have\ been\ previously\ called.}}
+\DoxyCodeLine{00125\ \ \ int64\_t\ \mbox{\hyperlink{classabsl_1_1flags__internal_1_1SequenceLock_af2bc43661af21d2bc619e6dc3b8cbc89}{ModificationCount}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00126\ \ \ \ \ int64\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ =\ lock\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00127\ \ \ \ \ assert(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ !=\ kUninitialized\ \&\&\ (\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ \&\ 1)\ ==\ 0);}
+\DoxyCodeLine{00128\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ /\ 2;}
+\DoxyCodeLine{00129\ \ \ \}}
+\DoxyCodeLine{00130\ }
+\DoxyCodeLine{00131\ \ \ \textcolor{comment}{//\ REQUIRES:\ This\ must\ be\ externally\ synchronized\ against\ concurrent\ calls\ to}}
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ \`{}Write()`\ or\ \`{}ModificationCount()`.}}
+\DoxyCodeLine{00133\ \ \ \textcolor{comment}{//\ REQUIRES:\ \`{}MarkInitialized()`\ must\ have\ been\ previously\ called.}}
+\DoxyCodeLine{00134\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1flags__internal_1_1SequenceLock_a694f7619a2aed7ffc5d2fcd78a4f115b}{IncrementModificationCount}}()\ \{}
+\DoxyCodeLine{00135\ \ \ \ \ int64\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ =\ lock\_.load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00136\ \ \ \ \ assert(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ !=\ kUninitialized);}
+\DoxyCodeLine{00137\ \ \ \ \ lock\_.store(\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_aa0ccb5ee6d882ee3605ff47745c6467b}{val}}\ +\ 2,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00138\ \ \ \}}
+\DoxyCodeLine{00139\ }
+\DoxyCodeLine{00140\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00141\ \ \ \textcolor{comment}{//\ Perform\ the\ equivalent\ of\ "{}memcpy(dst,\ src,\ size)"{},\ but\ using\ relaxed}}
+\DoxyCodeLine{00142\ \ \ \textcolor{comment}{//\ atomics.}}
+\DoxyCodeLine{00143\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ RelaxedCopyFromAtomic(\textcolor{keywordtype}{void}*\ dst,\ \textcolor{keyword}{const}\ std::atomic<uint64\_t>*\ src,}
+\DoxyCodeLine{00144\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00145\ \ \ \ \ \textcolor{keywordtype}{char}*\ dst\_byte\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(dst);}
+\DoxyCodeLine{00146\ \ \ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ >=\ \textcolor{keyword}{sizeof}(uint64\_t))\ \{}
+\DoxyCodeLine{00147\ \ \ \ \ \ \ uint64\_t\ word\ =\ src-\/>load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00148\ \ \ \ \ \ \ std::memcpy(dst\_byte,\ \&word,\ \textcolor{keyword}{sizeof}(word));}
+\DoxyCodeLine{00149\ \ \ \ \ \ \ dst\_byte\ +=\ \textcolor{keyword}{sizeof}(word);}
+\DoxyCodeLine{00150\ \ \ \ \ \ \ src++;}
+\DoxyCodeLine{00151\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ -\/=\ \textcolor{keyword}{sizeof}(word);}
+\DoxyCodeLine{00152\ \ \ \ \ \}}
+\DoxyCodeLine{00153\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ >\ 0)\ \{}
+\DoxyCodeLine{00154\ \ \ \ \ \ \ uint64\_t\ word\ =\ src-\/>load(std::memory\_order\_relaxed);}
+\DoxyCodeLine{00155\ \ \ \ \ \ \ std::memcpy(dst\_byte,\ \&word,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00156\ \ \ \ \ \}}
+\DoxyCodeLine{00157\ \ \ \}}
+\DoxyCodeLine{00158\ }
+\DoxyCodeLine{00159\ \ \ \textcolor{comment}{//\ Perform\ the\ equivalent\ of\ "{}memcpy(dst,\ src,\ size)"{},\ but\ using\ relaxed}}
+\DoxyCodeLine{00160\ \ \ \textcolor{comment}{//\ atomics.}}
+\DoxyCodeLine{00161\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ RelaxedCopyToAtomic(std::atomic<uint64\_t>*\ dst,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ src,}
+\DoxyCodeLine{00162\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00163\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ src\_byte\ =\ \textcolor{keyword}{static\_cast<}\textcolor{keyword}{const\ }\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(src);}
+\DoxyCodeLine{00164\ \ \ \ \ \textcolor{keywordflow}{while}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ >=\ \textcolor{keyword}{sizeof}(uint64\_t))\ \{}
+\DoxyCodeLine{00165\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ word;}
+\DoxyCodeLine{00166\ \ \ \ \ \ \ std::memcpy(\&word,\ src\_byte,\ \textcolor{keyword}{sizeof}(word));}
+\DoxyCodeLine{00167\ \ \ \ \ \ \ dst-\/>store(word,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00168\ \ \ \ \ \ \ src\_byte\ +=\ \textcolor{keyword}{sizeof}(word);}
+\DoxyCodeLine{00169\ \ \ \ \ \ \ dst++;}
+\DoxyCodeLine{00170\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ -\/=\ \textcolor{keyword}{sizeof}(word);}
+\DoxyCodeLine{00171\ \ \ \ \ \}}
+\DoxyCodeLine{00172\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ >\ 0)\ \{}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceEigen_1_1numext_a0259c31cd34e096be5056e9d88ae0500}{uint64\_t}}\ word\ =\ 0;}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ std::memcpy(\&word,\ src\_byte,\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00175\ \ \ \ \ \ \ dst-\/>store(word,\ std::memory\_order\_relaxed);}
+\DoxyCodeLine{00176\ \ \ \ \ \}}
+\DoxyCodeLine{00177\ \ \ \}}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a518baced025fde474407c95f9a84d6e1}{int64\_t}}\ kUninitialized\ =\ -\/1;}
+\DoxyCodeLine{00180\ \ \ std::atomic<int64\_t>\ lock\_;}
+\DoxyCodeLine{00181\ \};}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \}\ \ \textcolor{comment}{//\ namespace\ flags\_internal}}
+\DoxyCodeLine{00184\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00185\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00186\ }
+\DoxyCodeLine{00187\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_FLAGS\_INTERNAL\_SEQUENCE\_LOCK\_H\_}}
+
+\end{DoxyCode}

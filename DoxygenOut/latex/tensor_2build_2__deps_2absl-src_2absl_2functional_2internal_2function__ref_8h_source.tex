@@ -1,0 +1,122 @@
+\doxysection{function\+\_\+ref.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2functional_2internal_2function__ref_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2functional_2internal_2function__ref_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/functional/internal/function\_ref.h@{tensor/build/\_deps/absl-\/src/absl/functional/internal/function\_ref.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2functional_2internal_2function__ref_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2019\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_FUNCTIONAL\_INTERNAL\_FUNCTION\_REF\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_FUNCTIONAL\_INTERNAL\_FUNCTION\_REF\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <functional>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/invoke.h"{}}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/functional/any\_invocable.h"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00025\ }
+\DoxyCodeLine{00026\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00027\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00028\ \textcolor{keyword}{namespace\ }functional\_internal\ \{}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ Like\ a\ void*\ that\ can\ handle\ function\ pointers\ as\ well.\ The\ standard\ does\ not}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ allow\ function\ pointers\ to\ round-\/trip\ through\ void*,\ but\ void(*)()\ is\ fine.}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ Note:\ It's\ important\ that\ this\ class\ remains\ trivial\ and\ is\ the\ same\ size\ as}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ a\ pointer,\ since\ this\ allows\ the\ compiler\ to\ perform\ tail-\/call\ optimizations}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ when\ the\ underlying\ function\ is\ a\ callable\ object\ with\ a\ matching\ signature.}}
+\DoxyCodeLine{00036\ \textcolor{keyword}{union\ }\mbox{\hyperlink{unionabsl_1_1functional__internal_1_1VoidPtr}{VoidPtr}}\ \{}
+\DoxyCodeLine{00037\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{void}*\ \mbox{\hyperlink{unionabsl_1_1functional__internal_1_1VoidPtr_a76cf60100a24ea17a1a8289ce4b6ec4b}{obj}};}
+\DoxyCodeLine{00038\ \ \ void\ (*\mbox{\hyperlink{unionabsl_1_1functional__internal_1_1VoidPtr_afb1139d0635b96169d7145d752602cf9}{fun}})();}
+\DoxyCodeLine{00039\ \};}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ Chooses\ the\ best\ type\ for\ passing\ T\ as\ an\ argument.}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ Attempt\ to\ be\ close\ to\ SystemV\ AMD64\ ABI.\ Objects\ with\ trivial\ copy\ ctor\ are}}
+\DoxyCodeLine{00043\ \textcolor{comment}{//\ passed\ by\ value.}}
+\DoxyCodeLine{00044\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T,}
+\DoxyCodeLine{00045\ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{bool}\ IsLValueReference\ =\ std::is\_lvalue\_reference<T>::value>}
+\DoxyCodeLine{00046\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1functional__internal_1_1PassByValue}{PassByValue}}\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00047\ }
+\DoxyCodeLine{00048\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{00049\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1functional__internal_1_1PassByValue}{PassByValue}}<T,\ \textcolor{comment}{/*IsLValueReference=*/}false>}
+\DoxyCodeLine{00050\ \ \ \ \ :\ std::integral\_constant<bool,}
+\DoxyCodeLine{00051\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::is\_trivially\_copy\_constructible<T>::value\ \&\&}
+\DoxyCodeLine{00052\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::is\_trivially\_copy\_assignable<}
+\DoxyCodeLine{00053\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ typename\ std::remove\_cv<T>::type>::value\ \&\&}
+\DoxyCodeLine{00054\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_trivially\_destructible<T>::value\ \&\&}
+\DoxyCodeLine{00055\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ sizeof(T)\ <=\ 2\ *\ sizeof(void*)>\ \{\};}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ template\ <typename\ T>}
+\DoxyCodeLine{00058\ struct\ ForwardT\ :\ std::conditional<PassByValue<T>::value,\ T,\ T\&\&>\ \{\};}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \textcolor{comment}{//\ An\ Invoker\ takes\ a\ pointer\ to\ the\ type-\/erased\ invokable\ object,\ followed\ by}}
+\DoxyCodeLine{00061\ \textcolor{comment}{//\ the\ arguments\ that\ the\ invokable\ object\ expects.}}
+\DoxyCodeLine{00062\ \textcolor{comment}{//}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ Note:\ The\ order\ of\ arguments\ here\ is\ an\ optimization,\ since\ member\ functions}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ have\ an\ implicit\ "{}this"{}\ pointer\ as\ their\ first\ argument,\ putting\ VoidPtr}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ first\ allows\ the\ compiler\ to\ perform\ tail-\/call\ optimization\ in\ many\ cases.}}
+\DoxyCodeLine{00066\ template\ <typename\ R,\ typename...\ Args>}
+\DoxyCodeLine{00067\ using\ Invoker\ =\ R\ (*)(VoidPtr,\ typename\ ForwardT<Args>::type...);}
+\DoxyCodeLine{00068\ }
+\DoxyCodeLine{00069\ \textcolor{comment}{//}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ InvokeObject\ and\ InvokeFunction\ provide\ static\ "{}Invoke"{}\ functions\ that\ can\ be}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ used\ as\ Invokers\ for\ objects\ or\ functions\ respectively.}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ static\_cast<R>\ handles\ the\ case\ the\ return\ type\ is\ void.}}
+\DoxyCodeLine{00074\ template\ <typename\ Obj,\ typename\ R,\ typename...\ Args>}
+\DoxyCodeLine{00075\ R\ InvokeObject(VoidPtr\ ptr,\ typename\ ForwardT<Args>::type...\ args)\ \{}
+\DoxyCodeLine{00076\ \ \ auto\ o\ =\ static\_cast<const\ Obj*>(ptr.obj);}
+\DoxyCodeLine{00077\ \ \ return\ static\_cast<R>(}
+\DoxyCodeLine{00078\ \ \ \ \ \ \ absl::base\_internal::invoke(*o,\ std::forward<Args>(args)...));}
+\DoxyCodeLine{00079\ \}}
+\DoxyCodeLine{00080\ }
+\DoxyCodeLine{00081\ template\ <typename\ Fun,\ typename\ R,\ typename...\ Args>}
+\DoxyCodeLine{00082\ R\ InvokeFunction(VoidPtr\ ptr,\ typename\ ForwardT<Args>::type...\ args)\ \{}
+\DoxyCodeLine{00083\ \ \ auto\ f\ =\ reinterpret\_cast<Fun>(ptr.fun);}
+\DoxyCodeLine{00084\ \ \ return\ static\_cast<R>(}
+\DoxyCodeLine{00085\ \ \ \ \ \ \ absl::base\_internal::invoke(f,\ std::forward<Args>(args)...));}
+\DoxyCodeLine{00086\ \}}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ template\ <typename\ Sig>}
+\DoxyCodeLine{00089\ void\ AssertNonNull(const\ std::function<Sig>\&\ f)\ \{}
+\DoxyCodeLine{00090\ \ \ assert(f\ !=\ nullptr);}
+\DoxyCodeLine{00091\ \ \ (void)f;}
+\DoxyCodeLine{00092\ \}}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ template\ <typename\ Sig>}
+\DoxyCodeLine{00095\ void\ AssertNonNull(const\ AnyInvocable<Sig>\&\ f)\ \{}
+\DoxyCodeLine{00096\ \ \ assert(f\ !=\ nullptr);}
+\DoxyCodeLine{00097\ \ \ (void)f;}
+\DoxyCodeLine{00098\ \}}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ template\ <typename\ F>}
+\DoxyCodeLine{00101\ void\ AssertNonNull(const\ F\&)\ \{\}}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ template\ <typename\ F,\ typename\ C>}
+\DoxyCodeLine{00104\ void\ AssertNonNull(F\ C::*f)\ \{}
+\DoxyCodeLine{00105\ \ \ assert(f\ !=\ nullptr);}
+\DoxyCodeLine{00106\ \ \ (void)f;}
+\DoxyCodeLine{00107\ \}}
+\DoxyCodeLine{00108\ }
+\DoxyCodeLine{00109\ template\ <bool\ C>}
+\DoxyCodeLine{00110\ using\ EnableIf\ =\ typename\ ::std::enable\_if<C,\ int>::type;}
+\DoxyCodeLine{00111\ }
+\DoxyCodeLine{00112\ \}\ \ \textcolor{comment}{//\ namespace\ functional\_internal}}
+\DoxyCodeLine{00113\ ABSL\_NAMESPACE\_END}
+\DoxyCodeLine{00114\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00115\ }
+\DoxyCodeLine{00116\ \#endif\ \ \textcolor{comment}{//\ ABSL\_FUNCTIONAL\_INTERNAL\_FUNCTION\_REF\_H\_}}
+
+\end{DoxyCode}

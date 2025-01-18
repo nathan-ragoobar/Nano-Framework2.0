@@ -1,0 +1,688 @@
+\doxysection{node\+\_\+hash\+\_\+map.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2container_2node__hash__map_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2container_2node__hash__map_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/container/node\_hash\_map.h@{tensor/build/\_deps/absl-\/src/absl/container/node\_hash\_map.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2container_2node__hash__map_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ File:\ node\_hash\_map.h}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ An\ \`{}absl::node\_hash\_map<K,\ V>`\ is\ an\ unordered\ associative\ container\ of}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ unique\ keys\ and\ associated\ values\ designed\ to\ be\ a\ more\ efficient\ replacement}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ for\ \`{}std::unordered\_map`.\ Like\ \`{}unordered\_map`,\ search,\ insertion,\ and}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ deletion\ of\ map\ elements\ can\ be\ done\ as\ an\ \`{}O(1)`\ operation.\ However,}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ \`{}node\_hash\_map`\ (and\ other\ unordered\ associative\ containers\ known\ as\ the}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ collection\ of\ Abseil\ "{}Swiss\ tables"{})\ contain\ other\ optimizations\ that\ result}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ in\ both\ memory\ and\ computation\ advantages.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ In\ most\ cases,\ your\ default\ choice\ for\ a\ hash\ map\ should\ be\ a\ map\ of\ type}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ \`{}flat\_hash\_map`.\ However,\ if\ you\ need\ pointer\ stability\ and\ cannot\ store}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ a\ \`{}flat\_hash\_map`\ with\ \`{}unique\_ptr`\ elements,\ a\ \`{}node\_hash\_map`\ may\ be\ a}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ valid\ alternative.\ As\ well,\ if\ you\ are\ migrating\ your\ code\ from\ using}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ \`{}std::unordered\_map`,\ a\ \`{}node\_hash\_map`\ provides\ a\ more\ straightforward}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ migration,\ because\ it\ guarantees\ pointer\ stability.\ Consider\ migrating\ to}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ \`{}node\_hash\_map`\ and\ perhaps\ converting\ to\ a\ more\ efficient\ \`{}flat\_hash\_map`}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ upon\ further\ review.}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ \`{}node\_hash\_map`\ is\ not\ exception-\/safe.}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CONTAINER\_NODE\_HASH\_MAP\_H\_}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#define\ ABSL\_CONTAINER\_NODE\_HASH\_MAP\_H\_}}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\#include\ "{}absl/algorithm/container.h"{}}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\#include\ "{}absl/container/hash\_container\_defaults.h"{}}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#include\ "{}absl/container/internal/container\_memory.h"{}}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\#include\ "{}absl/container/internal/node\_slot\_policy.h"{}}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\#include\ "{}absl/container/internal/raw\_hash\_map.h"{}}\ \ \textcolor{comment}{//\ IWYU\ pragma:\ export}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\#include\ "{}absl/memory/memory.h"{}}}
+\DoxyCodeLine{00053\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00056\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00057\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00058\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Key,\ \textcolor{keyword}{class}\ Value>}
+\DoxyCodeLine{00059\ \textcolor{keyword}{class\ }NodeHashMapPolicy;}
+\DoxyCodeLine{00060\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00061\ }
+\DoxyCodeLine{00062\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ absl::node\_hash\_map}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//}}
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ An\ \`{}absl::node\_hash\_map<K,\ V>`\ is\ an\ unordered\ associative\ container\ which}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ has\ been\ optimized\ for\ both\ speed\ and\ memory\ footprint\ in\ most\ common\ use}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ cases.\ Its\ interface\ is\ similar\ to\ that\ of\ \`{}std::unordered\_map<K,\ V>`\ with}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ the\ following\ notable\ differences:}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ *\ Supports\ heterogeneous\ lookup,\ through\ \`{}find()`,\ \`{}operator[]()`\ and}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ \ \ \`{}insert()`,\ provided\ that\ the\ map\ is\ provided\ a\ compatible\ heterogeneous}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ \ \ hashing\ function\ and\ equality\ operator.\ See\ below\ for\ details.}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ *\ Contains\ a\ \`{}capacity()`\ member\ function\ indicating\ the\ number\ of\ element}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ \ \ slots\ (open,\ deleted,\ and\ empty)\ within\ the\ hash\ map.}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ *\ Returns\ \`{}void`\ from\ the\ \`{}erase(iterator)`\ overload.}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ By\ default,\ \`{}node\_hash\_map`\ uses\ the\ \`{}absl::Hash`\ hashing\ framework.}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ All\ fundamental\ and\ Abseil\ types\ that\ support\ the\ \`{}absl::Hash`\ framework\ have}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ a\ compatible\ equality\ operator\ for\ comparing\ insertions\ into\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ If\ your\ type\ is\ not\ yet\ supported\ by\ the\ \`{}absl::Hash`\ framework,\ see}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ absl/hash/hash.h\ for\ information\ on\ extending\ Abseil\ hashing\ to\ user-\/defined}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ types.}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ Using\ \`{}absl::node\_hash\_map`\ at\ interface\ boundaries\ in\ dynamically\ loaded}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//\ libraries\ (e.g.\ .dll,\ .so)\ is\ unsupported\ due\ to\ way\ \`{}absl::Hash`\ values\ may}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ be\ randomized\ across\ dynamically\ loaded\ libraries.}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ To\ achieve\ heterogeneous\ lookup\ for\ custom\ types\ either\ \`{}Hash`\ and\ \`{}Eq`\ type}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ parameters\ can\ be\ used\ or\ \`{}T`\ should\ have\ public\ inner\ types}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ \`{}absl\_container\_hash`\ and\ (optionally)\ \`{}absl\_container\_eq`.\ In\ either\ case,}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//\ \`{}typename\ Hash::is\_transparent`\ and\ \`{}typename\ Eq::is\_transparent`\ should\ be}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ well-\/formed.\ Both\ types\ are\ basically\ functors:}}
+\DoxyCodeLine{00094\ \textcolor{comment}{//\ *\ \`{}Hash`\ should\ support\ \`{}size\_t\ operator()(U\ val)\ const`\ that\ returns\ a\ hash}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//\ for\ the\ given\ \`{}val`.}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//\ *\ \`{}Eq`\ should\ support\ \`{}bool\ operator()(U\ lhs,\ V\ rhs)\ const`\ that\ returns\ true}}
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ if\ \`{}lhs`\ is\ equal\ to\ \`{}rhs`.}}
+\DoxyCodeLine{00098\ \textcolor{comment}{//}}
+\DoxyCodeLine{00099\ \textcolor{comment}{//\ In\ most\ cases\ \`{}T`\ needs\ only\ to\ provide\ the\ \`{}absl\_container\_hash`.\ In\ this}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//\ case\ \`{}std::equal\_to<void>`\ will\ be\ used\ instead\ of\ \`{}eq`\ part.}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ Example:}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ \ \ //\ Create\ a\ node\ hash\ map\ of\ three\ strings\ (that\ map\ to\ strings)}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ \ \ absl::node\_hash\_map<std::string,\ std::string>\ ducks\ =}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ \ \ \ \ \{\{"{}a"{},\ "{}huey"{}\},\ \{"{}b"{},\ "{}dewey"{}\},\ \{"{}c"{},\ "{}louie"{}\}\};}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//}}
+\DoxyCodeLine{00108\ \textcolor{comment}{//\ \ //\ Insert\ a\ new\ element\ into\ the\ node\ hash\ map}}
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ \ ducks.insert(\{"{}d"{},\ "{}donald"{}\}\};}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ \ //\ Force\ a\ rehash\ of\ the\ node\ hash\ map}}
+\DoxyCodeLine{00112\ \textcolor{comment}{//\ \ ducks.rehash(0);}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ \ //\ Find\ the\ element\ with\ the\ key\ "{}b"{}}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ \ std::string\ search\_key\ =\ "{}b"{};}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//\ \ auto\ result\ =\ ducks.find(search\_key);}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ \ if\ (result\ !=\ ducks.end())\ \{}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ \ \ \ std::cout\ <<\ "{}Result:\ "{}\ <<\ result-\/>second\ <<\ std::endl;}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ \ \}}}
+\DoxyCodeLine{00120\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Key,\ \textcolor{keyword}{class}\ Value,\ \textcolor{keyword}{class}\ Hash\ =\ DefaultHashContainerHash<Key>,}
+\DoxyCodeLine{00121\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{class}\ Eq\ =\ DefaultHashContainerEq<Key>,}
+\DoxyCodeLine{00122\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{class}\ Alloc\ =\ std::allocator<std::pair<const\ Key,\ Value>>>}
+\DoxyCodeLine{00123\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a72d568665616f062d78cb0cee3a3ad49}{ABSL\_ATTRIBUTE\_OWNER}}\ \mbox{\hyperlink{classabsl_1_1node__hash__map}{node\_hash\_map}}}
+\DoxyCodeLine{00124\ \ \ \ \ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1raw__hash__map}{absl::container\_internal::raw\_hash\_map}}<}
+\DoxyCodeLine{00125\ \ \ \ \ \ \ \ \ \ \ absl::container\_internal::NodeHashMapPolicy<Key,\ Value>,\ Hash,\ Eq,}
+\DoxyCodeLine{00126\ \ \ \ \ \ \ \ \ \ \ Alloc>\ \{}
+\DoxyCodeLine{00127\ \ \ \textcolor{keyword}{using\ }Base\ =\ \textcolor{keyword}{typename}\ node\_hash\_map::raw\_hash\_map;}
+\DoxyCodeLine{00128\ }
+\DoxyCodeLine{00129\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00130\ \ \ \textcolor{comment}{//\ Constructors\ and\ Assignment\ Operators}}
+\DoxyCodeLine{00131\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00132\ \ \ \textcolor{comment}{//\ A\ node\_hash\_map\ supports\ the\ same\ overload\ set\ as\ \`{}std::unordered\_map`}}
+\DoxyCodeLine{00133\ \ \ \textcolor{comment}{//\ for\ construction\ and\ assignment:}}
+\DoxyCodeLine{00134\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00135\ \ \ \textcolor{comment}{//\ *\ \ Default\ constructor}}
+\DoxyCodeLine{00136\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00137\ \ \ \textcolor{comment}{//\ \ \ \ //\ No\ allocation\ for\ the\ table's\ elements\ is\ made.}}
+\DoxyCodeLine{00138\ \ \ \textcolor{comment}{//\ \ \ \ absl::node\_hash\_map<int,\ std::string>\ map1;}}
+\DoxyCodeLine{00139\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00140\ \ \ \textcolor{comment}{//\ *\ Initializer\ List\ constructor}}
+\DoxyCodeLine{00141\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00142\ \ \ \textcolor{comment}{//\ \ \ absl::node\_hash\_map<int,\ std::string>\ map2\ =}}
+\DoxyCodeLine{00143\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \{\{1,\ "{}huey"{}\},\ \{2,\ "{}dewey"{}\},\ \{3,\ "{}louie"{}\},\};}}
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00145\ \ \ \textcolor{comment}{//\ *\ Copy\ constructor}}
+\DoxyCodeLine{00146\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00147\ \ \ \textcolor{comment}{//\ \ \ absl::node\_hash\_map<int,\ std::string>\ map3(map2);}}
+\DoxyCodeLine{00148\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00149\ \ \ \textcolor{comment}{//\ *\ Copy\ assignment\ operator}}
+\DoxyCodeLine{00150\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00151\ \ \ \textcolor{comment}{//\ \ //\ Hash\ functor\ and\ Comparator\ are\ copied\ as\ well}}
+\DoxyCodeLine{00152\ \ \ \textcolor{comment}{//\ \ absl::node\_hash\_map<int,\ std::string>\ map4;}}
+\DoxyCodeLine{00153\ \ \ \textcolor{comment}{//\ \ map4\ =\ map3;}}
+\DoxyCodeLine{00154\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00155\ \ \ \textcolor{comment}{//\ *\ Move\ constructor}}
+\DoxyCodeLine{00156\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00157\ \ \ \textcolor{comment}{//\ \ \ //\ Move\ is\ guaranteed\ efficient}}
+\DoxyCodeLine{00158\ \ \ \textcolor{comment}{//\ \ \ absl::node\_hash\_map<int,\ std::string>\ map5(std::move(map4));}}
+\DoxyCodeLine{00159\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00160\ \ \ \textcolor{comment}{//\ *\ Move\ assignment\ operator}}
+\DoxyCodeLine{00161\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00162\ \ \ \textcolor{comment}{//\ \ \ //\ May\ be\ efficient\ if\ allocators\ are\ compatible}}
+\DoxyCodeLine{00163\ \ \ \textcolor{comment}{//\ \ \ absl::node\_hash\_map<int,\ std::string>\ map6;}}
+\DoxyCodeLine{00164\ \ \ \textcolor{comment}{//\ \ \ map6\ =\ std::move(map5);}}
+\DoxyCodeLine{00165\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00166\ \ \ \textcolor{comment}{//\ *\ Range\ constructor}}
+\DoxyCodeLine{00167\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00168\ \ \ \textcolor{comment}{//\ \ \ std::vector<std::pair<int,\ std::string>>\ v\ =\ \{\{1,\ "{}a"{}\},\ \{2,\ "{}b"{}\}\};}}
+\DoxyCodeLine{00169\ \ \ \textcolor{comment}{//\ \ \ absl::node\_hash\_map<int,\ std::string>\ map7(v.begin(),\ v.end());}}
+\DoxyCodeLine{00170\ \ \ \mbox{\hyperlink{classabsl_1_1node__hash__map_a140cfd393867eca7a0968afa0e1558fd}{node\_hash\_map}}()\ \{\}}
+\DoxyCodeLine{00171\ \ \ \textcolor{keyword}{using\ }Base::Base;}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00173\ \ \ \textcolor{comment}{//\ node\_hash\_map::begin()}}
+\DoxyCodeLine{00174\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00175\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ to\ the\ beginning\ of\ the\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00176\ \ \ \textcolor{keyword}{using\ }Base::begin;}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \ \ \textcolor{comment}{//\ node\_hash\_map::cbegin()}}
+\DoxyCodeLine{00179\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00180\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ to\ the\ beginning\ of\ the\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00181\ \ \ \textcolor{keyword}{using\ }Base::cbegin;}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \ \ \textcolor{comment}{//\ node\_hash\_map::cend()}}
+\DoxyCodeLine{00184\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00185\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ to\ the\ end\ of\ the\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00186\ \ \ \textcolor{keyword}{using\ }Base::cend;}
+\DoxyCodeLine{00187\ }
+\DoxyCodeLine{00188\ \ \ \textcolor{comment}{//\ node\_hash\_map::end()}}
+\DoxyCodeLine{00189\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00190\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ to\ the\ end\ of\ the\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00191\ \ \ \textcolor{keyword}{using\ }Base::end;}
+\DoxyCodeLine{00192\ }
+\DoxyCodeLine{00193\ \ \ \textcolor{comment}{//\ node\_hash\_map::capacity()}}
+\DoxyCodeLine{00194\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00195\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ element\ slots\ (assigned,\ deleted,\ and\ empty)}}
+\DoxyCodeLine{00196\ \ \ \textcolor{comment}{//\ available\ within\ the\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00197\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00198\ \ \ \textcolor{comment}{//\ NOTE:\ this\ member\ function\ is\ particular\ to\ \`{}absl::node\_hash\_map`\ and\ is}}
+\DoxyCodeLine{00199\ \ \ \textcolor{comment}{//\ not\ provided\ in\ the\ \`{}std::unordered\_map`\ API.}}
+\DoxyCodeLine{00200\ \ \ \textcolor{keyword}{using\ }Base::capacity;}
+\DoxyCodeLine{00201\ }
+\DoxyCodeLine{00202\ \ \ \textcolor{comment}{//\ node\_hash\_map::empty()}}
+\DoxyCodeLine{00203\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00204\ \ \ \textcolor{comment}{//\ Returns\ whether\ or\ not\ the\ \`{}node\_hash\_map`\ is\ empty.}}
+\DoxyCodeLine{00205\ \ \ \textcolor{keyword}{using\ }Base::empty;}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \ \ \textcolor{comment}{//\ node\_hash\_map::max\_size()}}
+\DoxyCodeLine{00208\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00209\ \ \ \textcolor{comment}{//\ Returns\ the\ largest\ theoretical\ possible\ number\ of\ elements\ within\ a}}
+\DoxyCodeLine{00210\ \ \ \textcolor{comment}{//\ \`{}node\_hash\_map`\ under\ current\ memory\ constraints.\ This\ value\ can\ be\ thought}}
+\DoxyCodeLine{00211\ \ \ \textcolor{comment}{//\ of\ as\ the\ largest\ value\ of\ \`{}std::distance(begin(),\ end())`\ for\ a}}
+\DoxyCodeLine{00212\ \ \ \textcolor{comment}{//\ \`{}node\_hash\_map<K,\ V>`.}}
+\DoxyCodeLine{00213\ \ \ \textcolor{keyword}{using\ }Base::max\_size;}
+\DoxyCodeLine{00214\ }
+\DoxyCodeLine{00215\ \ \ \textcolor{comment}{//\ node\_hash\_map::size()}}
+\DoxyCodeLine{00216\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00217\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ elements\ currently\ within\ the\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00218\ \ \ \textcolor{keyword}{using\ }Base::size;}
+\DoxyCodeLine{00219\ }
+\DoxyCodeLine{00220\ \ \ \textcolor{comment}{//\ node\_hash\_map::clear()}}
+\DoxyCodeLine{00221\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00222\ \ \ \textcolor{comment}{//\ Removes\ all\ elements\ from\ the\ \`{}node\_hash\_map`.\ Invalidates\ any\ references,}}
+\DoxyCodeLine{00223\ \ \ \textcolor{comment}{//\ pointers,\ or\ iterators\ referring\ to\ contained\ elements.}}
+\DoxyCodeLine{00224\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00225\ \ \ \textcolor{comment}{//\ NOTE:\ this\ operation\ may\ shrink\ the\ underlying\ buffer.\ To\ avoid\ shrinking}}
+\DoxyCodeLine{00226\ \ \ \textcolor{comment}{//\ the\ underlying\ buffer\ call\ \`{}erase(begin(),\ end())`.}}
+\DoxyCodeLine{00227\ \ \ \textcolor{keyword}{using\ }Base::clear;}
+\DoxyCodeLine{00228\ }
+\DoxyCodeLine{00229\ \ \ \textcolor{comment}{//\ node\_hash\_map::erase()}}
+\DoxyCodeLine{00230\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00231\ \ \ \textcolor{comment}{//\ Erases\ elements\ within\ the\ \`{}node\_hash\_map`.\ Erasing\ does\ not\ trigger\ a}}
+\DoxyCodeLine{00232\ \ \ \textcolor{comment}{//\ rehash.\ Overloads\ are\ listed\ below.}}
+\DoxyCodeLine{00233\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00234\ \ \ \textcolor{comment}{//\ void\ erase(const\_iterator\ pos):}}
+\DoxyCodeLine{00235\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00236\ \ \ \textcolor{comment}{//\ \ \ Erases\ the\ element\ at\ \`{}position`\ of\ the\ \`{}node\_hash\_map`,\ returning}}
+\DoxyCodeLine{00237\ \ \ \textcolor{comment}{//\ \ \ \`{}void`.}}
+\DoxyCodeLine{00238\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00239\ \ \ \textcolor{comment}{//\ \ \ NOTE:\ Returning\ \`{}void`\ in\ this\ case\ is\ different\ than\ that\ of\ STL}}
+\DoxyCodeLine{00240\ \ \ \textcolor{comment}{//\ \ \ containers\ in\ general\ and\ \`{}std::unordered\_map`\ in\ particular\ (which}}
+\DoxyCodeLine{00241\ \ \ \textcolor{comment}{//\ \ \ return\ an\ iterator\ to\ the\ element\ following\ the\ erased\ element).\ If\ that}}
+\DoxyCodeLine{00242\ \ \ \textcolor{comment}{//\ \ \ iterator\ is\ needed,\ simply\ post\ increment\ the\ iterator:}}
+\DoxyCodeLine{00243\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00244\ \ \ \textcolor{comment}{//\ \ \ \ \ map.erase(it++);}}
+\DoxyCodeLine{00245\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00246\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00247\ \ \ \textcolor{comment}{//\ iterator\ erase(const\_iterator\ first,\ const\_iterator\ last):}}
+\DoxyCodeLine{00248\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00249\ \ \ \textcolor{comment}{//\ \ \ Erases\ the\ elements\ in\ the\ open\ interval\ [`first`,\ \`{}last`),\ returning\ an}}
+\DoxyCodeLine{00250\ \ \ \textcolor{comment}{//\ \ \ iterator\ pointing\ to\ \`{}last`.\ The\ special\ case\ of\ calling}}
+\DoxyCodeLine{00251\ \ \ \textcolor{comment}{//\ \ \ \`{}erase(begin(),\ end())`\ resets\ the\ reserved\ growth\ such\ that\ if}}
+\DoxyCodeLine{00252\ \ \ \textcolor{comment}{//\ \ \ \`{}reserve(N)`\ has\ previously\ been\ called\ and\ there\ has\ been\ no\ intervening}}
+\DoxyCodeLine{00253\ \ \ \textcolor{comment}{//\ \ \ call\ to\ \`{}clear()`,\ then\ after\ calling\ \`{}erase(begin(),\ end())`,\ it\ is\ safe}}
+\DoxyCodeLine{00254\ \ \ \textcolor{comment}{//\ \ \ to\ assume\ that\ inserting\ N\ elements\ will\ not\ cause\ a\ rehash.}}
+\DoxyCodeLine{00255\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00256\ \ \ \textcolor{comment}{//\ size\_type\ erase(const\ key\_type\&\ key):}}
+\DoxyCodeLine{00257\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00258\ \ \ \textcolor{comment}{//\ \ \ Erases\ the\ element\ with\ the\ matching\ key,\ if\ it\ exists,\ returning\ the}}
+\DoxyCodeLine{00259\ \ \ \textcolor{comment}{//\ \ \ number\ of\ elements\ erased\ (0\ or\ 1).}}
+\DoxyCodeLine{00260\ \ \ \textcolor{keyword}{using\ }Base::erase;}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \ \ \textcolor{comment}{//\ node\_hash\_map::insert()}}
+\DoxyCodeLine{00263\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00264\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ into\ the\ \`{}node\_hash\_map`,}}
+\DoxyCodeLine{00265\ \ \ \textcolor{comment}{//\ returning\ an\ iterator\ pointing\ to\ the\ newly\ inserted\ element,\ provided\ that}}
+\DoxyCodeLine{00266\ \ \ \textcolor{comment}{//\ an\ element\ with\ the\ given\ key\ does\ not\ already\ exist.\ If\ rehashing\ occurs}}
+\DoxyCodeLine{00267\ \ \ \textcolor{comment}{//\ due\ to\ the\ insertion,\ all\ iterators\ are\ invalidated.\ Overloads\ are\ listed}}
+\DoxyCodeLine{00268\ \ \ \textcolor{comment}{//\ below.}}
+\DoxyCodeLine{00269\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00270\ \ \ \textcolor{comment}{//\ std::pair<iterator,bool>\ insert(const\ init\_type\&\ value):}}
+\DoxyCodeLine{00271\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00272\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ value\ into\ the\ \`{}node\_hash\_map`.\ Returns\ a\ pair\ consisting\ of\ an}}
+\DoxyCodeLine{00273\ \ \ \textcolor{comment}{//\ \ \ iterator\ to\ the\ inserted\ element\ (or\ to\ the\ element\ that\ prevented\ the}}
+\DoxyCodeLine{00274\ \ \ \textcolor{comment}{//\ \ \ insertion)\ and\ a\ \`{}bool`\ denoting\ whether\ the\ insertion\ took\ place.}}
+\DoxyCodeLine{00275\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00276\ \ \ \textcolor{comment}{//\ std::pair<iterator,bool>\ insert(T\&\&\ value):}}
+\DoxyCodeLine{00277\ \ \ \textcolor{comment}{//\ std::pair<iterator,bool>\ insert(init\_type\&\&\ value):}}
+\DoxyCodeLine{00278\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00279\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ moveable\ value\ into\ the\ \`{}node\_hash\_map`.\ Returns\ a\ \`{}std::pair`}}
+\DoxyCodeLine{00280\ \ \ \textcolor{comment}{//\ \ \ consisting\ of\ an\ iterator\ to\ the\ inserted\ element\ (or\ to\ the\ element\ that}}
+\DoxyCodeLine{00281\ \ \ \textcolor{comment}{//\ \ \ prevented\ the\ insertion)\ and\ a\ \`{}bool`\ denoting\ whether\ the\ insertion\ took}}
+\DoxyCodeLine{00282\ \ \ \textcolor{comment}{//\ \ \ place.}}
+\DoxyCodeLine{00283\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00284\ \ \ \textcolor{comment}{//\ iterator\ insert(const\_iterator\ hint,\ const\ init\_type\&\ value):}}
+\DoxyCodeLine{00285\ \ \ \textcolor{comment}{//\ iterator\ insert(const\_iterator\ hint,\ T\&\&\ value):}}
+\DoxyCodeLine{00286\ \ \ \textcolor{comment}{//\ iterator\ insert(const\_iterator\ hint,\ init\_type\&\&\ value);}}
+\DoxyCodeLine{00287\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00288\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ value,\ using\ the\ position\ of\ \`{}hint`\ as\ a\ non-\/binding\ suggestion}}
+\DoxyCodeLine{00289\ \ \ \textcolor{comment}{//\ \ \ for\ where\ to\ begin\ the\ insertion\ search.\ Returns\ an\ iterator\ to\ the}}
+\DoxyCodeLine{00290\ \ \ \textcolor{comment}{//\ \ \ inserted\ element,\ or\ to\ the\ existing\ element\ that\ prevented\ the}}
+\DoxyCodeLine{00291\ \ \ \textcolor{comment}{//\ \ \ insertion.}}
+\DoxyCodeLine{00292\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00293\ \ \ \textcolor{comment}{//\ void\ insert(InputIterator\ first,\ InputIterator\ last):}}
+\DoxyCodeLine{00294\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00295\ \ \ \textcolor{comment}{//\ \ \ Inserts\ a\ range\ of\ values\ [`first`,\ \`{}last`).}}
+\DoxyCodeLine{00296\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00297\ \ \ \textcolor{comment}{//\ \ \ NOTE:\ Although\ the\ STL\ does\ not\ specify\ which\ element\ may\ be\ inserted\ if}}
+\DoxyCodeLine{00298\ \ \ \textcolor{comment}{//\ \ \ multiple\ keys\ compare\ equivalently,\ for\ \`{}node\_hash\_map`\ we\ guarantee\ the}}
+\DoxyCodeLine{00299\ \ \ \textcolor{comment}{//\ \ \ first\ match\ is\ inserted.}}
+\DoxyCodeLine{00300\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00301\ \ \ \textcolor{comment}{//\ void\ insert(std::initializer\_list<init\_type>\ ilist):}}
+\DoxyCodeLine{00302\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00303\ \ \ \textcolor{comment}{//\ \ \ Inserts\ the\ elements\ within\ the\ initializer\ list\ \`{}ilist`.}}
+\DoxyCodeLine{00304\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00305\ \ \ \textcolor{comment}{//\ \ \ NOTE:\ Although\ the\ STL\ does\ not\ specify\ which\ element\ may\ be\ inserted\ if}}
+\DoxyCodeLine{00306\ \ \ \textcolor{comment}{//\ \ \ multiple\ keys\ compare\ equivalently\ within\ the\ initializer\ list,\ for}}
+\DoxyCodeLine{00307\ \ \ \textcolor{comment}{//\ \ \ \`{}node\_hash\_map`\ we\ guarantee\ the\ first\ match\ is\ inserted.}}
+\DoxyCodeLine{00308\ \ \ \textcolor{keyword}{using\ }Base::insert;}
+\DoxyCodeLine{00309\ }
+\DoxyCodeLine{00310\ \ \ \textcolor{comment}{//\ node\_hash\_map::insert\_or\_assign()}}
+\DoxyCodeLine{00311\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00312\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ into\ the\ \`{}node\_hash\_map`\ provided}}
+\DoxyCodeLine{00313\ \ \ \textcolor{comment}{//\ that\ a\ value\ with\ the\ given\ key\ does\ not\ already\ exist,\ or\ replaces\ it\ with}}
+\DoxyCodeLine{00314\ \ \ \textcolor{comment}{//\ the\ element\ value\ if\ a\ key\ for\ that\ value\ already\ exists,\ returning\ an}}
+\DoxyCodeLine{00315\ \ \ \textcolor{comment}{//\ iterator\ pointing\ to\ the\ newly\ inserted\ element.\ If\ rehashing\ occurs\ due\ to}}
+\DoxyCodeLine{00316\ \ \ \textcolor{comment}{//\ the\ insertion,\ all\ iterators\ are\ invalidated.\ Overloads\ are\ listed}}
+\DoxyCodeLine{00317\ \ \ \textcolor{comment}{//\ below.}}
+\DoxyCodeLine{00318\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00319\ \ \ \textcolor{comment}{//\ std::pair<iterator,\ bool>\ insert\_or\_assign(const\ init\_type\&\ k,\ T\&\&\ obj):}}
+\DoxyCodeLine{00320\ \ \ \textcolor{comment}{//\ std::pair<iterator,\ bool>\ insert\_or\_assign(init\_type\&\&\ k,\ T\&\&\ obj):}}
+\DoxyCodeLine{00321\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00322\ \ \ \textcolor{comment}{//\ \ \ Inserts/Assigns\ (or\ moves)\ the\ element\ of\ the\ specified\ key\ into\ the}}
+\DoxyCodeLine{00323\ \ \ \textcolor{comment}{//\ \ \ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00324\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00325\ \ \ \textcolor{comment}{//\ iterator\ insert\_or\_assign(const\_iterator\ hint,}}
+\DoxyCodeLine{00326\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ const\ init\_type\&\ k,\ T\&\&\ obj):}}
+\DoxyCodeLine{00327\ \ \ \textcolor{comment}{//\ iterator\ insert\_or\_assign(const\_iterator\ hint,\ init\_type\&\&\ k,\ T\&\&\ obj):}}
+\DoxyCodeLine{00328\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00329\ \ \ \textcolor{comment}{//\ \ \ Inserts/Assigns\ (or\ moves)\ the\ element\ of\ the\ specified\ key\ into\ the}}
+\DoxyCodeLine{00330\ \ \ \textcolor{comment}{//\ \ \ \`{}node\_hash\_map`\ using\ the\ position\ of\ \`{}hint`\ as\ a\ non-\/binding\ suggestion}}
+\DoxyCodeLine{00331\ \ \ \textcolor{comment}{//\ \ \ for\ where\ to\ begin\ the\ insertion\ search.}}
+\DoxyCodeLine{00332\ \ \ \textcolor{keyword}{using\ }Base::insert\_or\_assign;}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00334\ \ \ \textcolor{comment}{//\ node\_hash\_map::emplace()}}
+\DoxyCodeLine{00335\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00336\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ by\ constructing\ it\ in-\/place}}
+\DoxyCodeLine{00337\ \ \ \textcolor{comment}{//\ within\ the\ \`{}node\_hash\_map`,\ provided\ that\ no\ element\ with\ the\ given\ key}}
+\DoxyCodeLine{00338\ \ \ \textcolor{comment}{//\ already\ exists.}}
+\DoxyCodeLine{00339\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00340\ \ \ \textcolor{comment}{//\ The\ element\ may\ be\ constructed\ even\ if\ there\ already\ is\ an\ element\ with\ the}}
+\DoxyCodeLine{00341\ \ \ \textcolor{comment}{//\ key\ in\ the\ container,\ in\ which\ case\ the\ newly\ constructed\ element\ will\ be}}
+\DoxyCodeLine{00342\ \ \ \textcolor{comment}{//\ destroyed\ immediately.\ Prefer\ \`{}try\_emplace()`\ unless\ your\ key\ is\ not}}
+\DoxyCodeLine{00343\ \ \ \textcolor{comment}{//\ copyable\ or\ moveable.}}
+\DoxyCodeLine{00344\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00345\ \ \ \textcolor{comment}{//\ If\ rehashing\ occurs\ due\ to\ the\ insertion,\ all\ iterators\ are\ invalidated.}}
+\DoxyCodeLine{00346\ \ \ \textcolor{keyword}{using\ }Base::emplace;}
+\DoxyCodeLine{00347\ }
+\DoxyCodeLine{00348\ \ \ \textcolor{comment}{//\ node\_hash\_map::emplace\_hint()}}
+\DoxyCodeLine{00349\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00350\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ by\ constructing\ it\ in-\/place}}
+\DoxyCodeLine{00351\ \ \ \textcolor{comment}{//\ within\ the\ \`{}node\_hash\_map`,\ using\ the\ position\ of\ \`{}hint`\ as\ a\ non-\/binding}}
+\DoxyCodeLine{00352\ \ \ \textcolor{comment}{//\ suggestion\ for\ where\ to\ begin\ the\ insertion\ search,\ and\ only\ inserts}}
+\DoxyCodeLine{00353\ \ \ \textcolor{comment}{//\ provided\ that\ no\ element\ with\ the\ given\ key\ already\ exists.}}
+\DoxyCodeLine{00354\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00355\ \ \ \textcolor{comment}{//\ The\ element\ may\ be\ constructed\ even\ if\ there\ already\ is\ an\ element\ with\ the}}
+\DoxyCodeLine{00356\ \ \ \textcolor{comment}{//\ key\ in\ the\ container,\ in\ which\ case\ the\ newly\ constructed\ element\ will\ be}}
+\DoxyCodeLine{00357\ \ \ \textcolor{comment}{//\ destroyed\ immediately.\ Prefer\ \`{}try\_emplace()`\ unless\ your\ key\ is\ not}}
+\DoxyCodeLine{00358\ \ \ \textcolor{comment}{//\ copyable\ or\ moveable.}}
+\DoxyCodeLine{00359\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00360\ \ \ \textcolor{comment}{//\ If\ rehashing\ occurs\ due\ to\ the\ insertion,\ all\ iterators\ are\ invalidated.}}
+\DoxyCodeLine{00361\ \ \ \textcolor{keyword}{using\ }Base::emplace\_hint;}
+\DoxyCodeLine{00362\ }
+\DoxyCodeLine{00363\ \ \ \textcolor{comment}{//\ node\_hash\_map::try\_emplace()}}
+\DoxyCodeLine{00364\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00365\ \ \ \textcolor{comment}{//\ Inserts\ an\ element\ of\ the\ specified\ value\ by\ constructing\ it\ in-\/place}}
+\DoxyCodeLine{00366\ \ \ \textcolor{comment}{//\ within\ the\ \`{}node\_hash\_map`,\ provided\ that\ no\ element\ with\ the\ given\ key}}
+\DoxyCodeLine{00367\ \ \ \textcolor{comment}{//\ already\ exists.\ Unlike\ \`{}emplace()`,\ if\ an\ element\ with\ the\ given\ key}}
+\DoxyCodeLine{00368\ \ \ \textcolor{comment}{//\ already\ exists,\ we\ guarantee\ that\ no\ element\ is\ constructed.}}
+\DoxyCodeLine{00369\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00370\ \ \ \textcolor{comment}{//\ If\ rehashing\ occurs\ due\ to\ the\ insertion,\ all\ iterators\ are\ invalidated.}}
+\DoxyCodeLine{00371\ \ \ \textcolor{comment}{//\ Overloads\ are\ listed\ below.}}
+\DoxyCodeLine{00372\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00373\ \ \ \textcolor{comment}{//\ \ \ std::pair<iterator,\ bool>\ try\_emplace(const\ key\_type\&\ k,\ Args\&\&...\ args):}}
+\DoxyCodeLine{00374\ \ \ \textcolor{comment}{//\ \ \ std::pair<iterator,\ bool>\ try\_emplace(key\_type\&\&\ k,\ Args\&\&...\ args):}}
+\DoxyCodeLine{00375\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00376\ \ \ \textcolor{comment}{//\ Inserts\ (via\ copy\ or\ move)\ the\ element\ of\ the\ specified\ key\ into\ the}}
+\DoxyCodeLine{00377\ \ \ \textcolor{comment}{//\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00378\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00379\ \ \ \textcolor{comment}{//\ \ \ iterator\ try\_emplace(const\_iterator\ hint,}}
+\DoxyCodeLine{00380\ \ \ \textcolor{comment}{//\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ const\ key\_type\&\ k,\ Args\&\&...\ args):}}
+\DoxyCodeLine{00381\ \ \ \textcolor{comment}{//\ \ \ iterator\ try\_emplace(const\_iterator\ hint,\ key\_type\&\&\ k,\ Args\&\&...\ args):}}
+\DoxyCodeLine{00382\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00383\ \ \ \textcolor{comment}{//\ Inserts\ (via\ copy\ or\ move)\ the\ element\ of\ the\ specified\ key\ into\ the}}
+\DoxyCodeLine{00384\ \ \ \textcolor{comment}{//\ \`{}node\_hash\_map`\ using\ the\ position\ of\ \`{}hint`\ as\ a\ non-\/binding\ suggestion}}
+\DoxyCodeLine{00385\ \ \ \textcolor{comment}{//\ for\ where\ to\ begin\ the\ insertion\ search.}}
+\DoxyCodeLine{00386\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00387\ \ \ \textcolor{comment}{//\ All\ \`{}try\_emplace()`\ overloads\ make\ the\ same\ guarantees\ regarding\ rvalue}}
+\DoxyCodeLine{00388\ \ \ \textcolor{comment}{//\ arguments\ as\ \`{}std::unordered\_map::try\_emplace()`,\ namely\ that\ these}}
+\DoxyCodeLine{00389\ \ \ \textcolor{comment}{//\ functions\ will\ not\ move\ from\ rvalue\ arguments\ if\ insertions\ do\ not\ happen.}}
+\DoxyCodeLine{00390\ \ \ \textcolor{keyword}{using\ }Base::try\_emplace;}
+\DoxyCodeLine{00391\ }
+\DoxyCodeLine{00392\ \ \ \textcolor{comment}{//\ node\_hash\_map::extract()}}
+\DoxyCodeLine{00393\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00394\ \ \ \textcolor{comment}{//\ Extracts\ the\ indicated\ element,\ erasing\ it\ in\ the\ process,\ and\ returns\ it}}
+\DoxyCodeLine{00395\ \ \ \textcolor{comment}{//\ as\ a\ C++17-\/compatible\ node\ handle.\ Overloads\ are\ listed\ below.}}
+\DoxyCodeLine{00396\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00397\ \ \ \textcolor{comment}{//\ node\_type\ extract(const\_iterator\ position):}}
+\DoxyCodeLine{00398\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00399\ \ \ \textcolor{comment}{//\ \ \ Extracts\ the\ key,value\ pair\ of\ the\ element\ at\ the\ indicated\ position\ and}}
+\DoxyCodeLine{00400\ \ \ \textcolor{comment}{//\ \ \ returns\ a\ node\ handle\ owning\ that\ extracted\ data.}}
+\DoxyCodeLine{00401\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00402\ \ \ \textcolor{comment}{//\ node\_type\ extract(const\ key\_type\&\ x):}}
+\DoxyCodeLine{00403\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00404\ \ \ \textcolor{comment}{//\ \ \ Extracts\ the\ key,value\ pair\ of\ the\ element\ with\ a\ key\ matching\ the\ passed}}
+\DoxyCodeLine{00405\ \ \ \textcolor{comment}{//\ \ \ key\ value\ and\ returns\ a\ node\ handle\ owning\ that\ extracted\ data.\ If\ the}}
+\DoxyCodeLine{00406\ \ \ \textcolor{comment}{//\ \ \ \`{}node\_hash\_map`\ does\ not\ contain\ an\ element\ with\ a\ matching\ key,\ this}}
+\DoxyCodeLine{00407\ \ \ \textcolor{comment}{//\ \ \ function\ returns\ an\ empty\ node\ handle.}}
+\DoxyCodeLine{00408\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00409\ \ \ \textcolor{comment}{//\ NOTE:\ when\ compiled\ in\ an\ earlier\ version\ of\ C++\ than\ C++17,}}
+\DoxyCodeLine{00410\ \ \ \textcolor{comment}{//\ \`{}node\_type::key()`\ returns\ a\ const\ reference\ to\ the\ key\ instead\ of\ a}}
+\DoxyCodeLine{00411\ \ \ \textcolor{comment}{//\ mutable\ reference.\ We\ cannot\ safely\ return\ a\ mutable\ reference\ without}}
+\DoxyCodeLine{00412\ \ \ \textcolor{comment}{//\ std::launder\ (which\ is\ not\ available\ before\ C++17).}}
+\DoxyCodeLine{00413\ \ \ \textcolor{keyword}{using\ }Base::extract;}
+\DoxyCodeLine{00414\ }
+\DoxyCodeLine{00415\ \ \ \textcolor{comment}{//\ node\_hash\_map::merge()}}
+\DoxyCodeLine{00416\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00417\ \ \ \textcolor{comment}{//\ Extracts\ elements\ from\ a\ given\ \`{}source`\ node\ hash\ map\ into\ this}}
+\DoxyCodeLine{00418\ \ \ \textcolor{comment}{//\ \`{}node\_hash\_map`.\ If\ the\ destination\ \`{}node\_hash\_map`\ already\ contains\ an}}
+\DoxyCodeLine{00419\ \ \ \textcolor{comment}{//\ element\ with\ an\ equivalent\ key,\ that\ element\ is\ not\ extracted.}}
+\DoxyCodeLine{00420\ \ \ \textcolor{keyword}{using\ }Base::merge;}
+\DoxyCodeLine{00421\ }
+\DoxyCodeLine{00422\ \ \ \textcolor{comment}{//\ node\_hash\_map::swap(node\_hash\_map\&\ other)}}
+\DoxyCodeLine{00423\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00424\ \ \ \textcolor{comment}{//\ Exchanges\ the\ contents\ of\ this\ \`{}node\_hash\_map`\ with\ those\ of\ the\ \`{}other`}}
+\DoxyCodeLine{00425\ \ \ \textcolor{comment}{//\ node\ hash\ map.}}
+\DoxyCodeLine{00426\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00427\ \ \ \textcolor{comment}{//\ All\ iterators\ and\ references\ on\ the\ \`{}node\_hash\_map`\ remain\ valid,\ excepting}}
+\DoxyCodeLine{00428\ \ \ \textcolor{comment}{//\ for\ the\ past-\/the-\/end\ iterator,\ which\ is\ invalidated.}}
+\DoxyCodeLine{00429\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00430\ \ \ \textcolor{comment}{//\ \`{}swap()`\ requires\ that\ the\ node\ hash\ map's\ hashing\ and\ key\ equivalence}}
+\DoxyCodeLine{00431\ \ \ \textcolor{comment}{//\ functions\ be\ Swappable,\ and\ are\ exchanged\ using\ unqualified\ calls\ to}}
+\DoxyCodeLine{00432\ \ \ \textcolor{comment}{//\ non-\/member\ \`{}swap()`.\ If\ the\ map's\ allocator\ has}}
+\DoxyCodeLine{00433\ \ \ \textcolor{comment}{//\ \`{}std::allocator\_traits<allocator\_type>::propagate\_on\_container\_swap::value`}}
+\DoxyCodeLine{00434\ \ \ \textcolor{comment}{//\ set\ to\ \`{}true`,\ the\ allocators\ are\ also\ exchanged\ using\ an\ unqualified\ call}}
+\DoxyCodeLine{00435\ \ \ \textcolor{comment}{//\ to\ non-\/member\ \`{}swap()`;\ otherwise,\ the\ allocators\ are\ not\ swapped.}}
+\DoxyCodeLine{00436\ \ \ \textcolor{keyword}{using\ }Base::swap;}
+\DoxyCodeLine{00437\ }
+\DoxyCodeLine{00438\ \ \ \textcolor{comment}{//\ node\_hash\_map::rehash(count)}}
+\DoxyCodeLine{00439\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00440\ \ \ \textcolor{comment}{//\ Rehashes\ the\ \`{}node\_hash\_map`,\ setting\ the\ number\ of\ slots\ to\ be\ at\ least}}
+\DoxyCodeLine{00441\ \ \ \textcolor{comment}{//\ the\ passed\ value.\ If\ the\ new\ number\ of\ slots\ increases\ the\ load\ factor\ more}}
+\DoxyCodeLine{00442\ \ \ \textcolor{comment}{//\ than\ the\ current\ maximum\ load\ factor}}
+\DoxyCodeLine{00443\ \ \ \textcolor{comment}{//\ (`count`\ <\ \`{}size()`\ /\ \`{}max\_load\_factor()`),\ then\ the\ new\ number\ of\ slots}}
+\DoxyCodeLine{00444\ \ \ \textcolor{comment}{//\ will\ be\ at\ least\ \`{}size()`\ /\ \`{}max\_load\_factor()`.}}
+\DoxyCodeLine{00445\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00446\ \ \ \textcolor{comment}{//\ To\ force\ a\ rehash,\ pass\ rehash(0).}}
+\DoxyCodeLine{00447\ \ \ \textcolor{keyword}{using\ }Base::rehash;}
+\DoxyCodeLine{00448\ }
+\DoxyCodeLine{00449\ \ \ \textcolor{comment}{//\ node\_hash\_map::reserve(count)}}
+\DoxyCodeLine{00450\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00451\ \ \ \textcolor{comment}{//\ Sets\ the\ number\ of\ slots\ in\ the\ \`{}node\_hash\_map`\ to\ the\ number\ needed\ to}}
+\DoxyCodeLine{00452\ \ \ \textcolor{comment}{//\ accommodate\ at\ least\ \`{}count`\ total\ elements\ without\ exceeding\ the\ current}}
+\DoxyCodeLine{00453\ \ \ \textcolor{comment}{//\ maximum\ load\ factor,\ and\ may\ rehash\ the\ container\ if\ needed.}}
+\DoxyCodeLine{00454\ \ \ \textcolor{keyword}{using\ }Base::reserve;}
+\DoxyCodeLine{00455\ }
+\DoxyCodeLine{00456\ \ \ \textcolor{comment}{//\ node\_hash\_map::at()}}
+\DoxyCodeLine{00457\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00458\ \ \ \textcolor{comment}{//\ Returns\ a\ reference\ to\ the\ mapped\ value\ of\ the\ element\ with\ key\ equivalent}}
+\DoxyCodeLine{00459\ \ \ \textcolor{comment}{//\ to\ the\ passed\ key.}}
+\DoxyCodeLine{00460\ \ \ \textcolor{keyword}{using\ }Base::at;}
+\DoxyCodeLine{00461\ }
+\DoxyCodeLine{00462\ \ \ \textcolor{comment}{//\ node\_hash\_map::contains()}}
+\DoxyCodeLine{00463\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00464\ \ \ \textcolor{comment}{//\ Determines\ whether\ an\ element\ with\ a\ key\ comparing\ equal\ to\ the\ given\ \`{}key`}}
+\DoxyCodeLine{00465\ \ \ \textcolor{comment}{//\ exists\ within\ the\ \`{}node\_hash\_map`,\ returning\ \`{}true`\ if\ so\ or\ \`{}false`}}
+\DoxyCodeLine{00466\ \ \ \textcolor{comment}{//\ otherwise.}}
+\DoxyCodeLine{00467\ \ \ \textcolor{keyword}{using\ }Base::contains;}
+\DoxyCodeLine{00468\ }
+\DoxyCodeLine{00469\ \ \ \textcolor{comment}{//\ node\_hash\_map::count(const\ Key\&\ key)\ const}}
+\DoxyCodeLine{00470\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00471\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ elements\ with\ a\ key\ comparing\ equal\ to\ the\ given}}
+\DoxyCodeLine{00472\ \ \ \textcolor{comment}{//\ \`{}key`\ within\ the\ \`{}node\_hash\_map`.\ note\ that\ this\ function\ will\ return}}
+\DoxyCodeLine{00473\ \ \ \textcolor{comment}{//\ either\ \`{}1`\ or\ \`{}0`\ since\ duplicate\ keys\ are\ not\ allowed\ within\ a}}
+\DoxyCodeLine{00474\ \ \ \textcolor{comment}{//\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00475\ \ \ \textcolor{keyword}{using\ }Base::count;}
+\DoxyCodeLine{00476\ }
+\DoxyCodeLine{00477\ \ \ \textcolor{comment}{//\ node\_hash\_map::equal\_range()}}
+\DoxyCodeLine{00478\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00479\ \ \ \textcolor{comment}{//\ Returns\ a\ closed\ range\ [first,\ last],\ defined\ by\ a\ \`{}std::pair`\ of\ two}}
+\DoxyCodeLine{00480\ \ \ \textcolor{comment}{//\ iterators,\ containing\ all\ elements\ with\ the\ passed\ key\ in\ the}}
+\DoxyCodeLine{00481\ \ \ \textcolor{comment}{//\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00482\ \ \ \textcolor{keyword}{using\ }Base::equal\_range;}
+\DoxyCodeLine{00483\ }
+\DoxyCodeLine{00484\ \ \ \textcolor{comment}{//\ node\_hash\_map::find()}}
+\DoxyCodeLine{00485\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00486\ \ \ \textcolor{comment}{//\ Finds\ an\ element\ with\ the\ passed\ \`{}key`\ within\ the\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00487\ \ \ \textcolor{keyword}{using\ }Base::find;}
+\DoxyCodeLine{00488\ }
+\DoxyCodeLine{00489\ \ \ \textcolor{comment}{//\ node\_hash\_map::operator[]()}}
+\DoxyCodeLine{00490\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00491\ \ \ \textcolor{comment}{//\ Returns\ a\ reference\ to\ the\ value\ mapped\ to\ the\ passed\ key\ within\ the}}
+\DoxyCodeLine{00492\ \ \ \textcolor{comment}{//\ \`{}node\_hash\_map`,\ performing\ an\ \`{}insert()`\ if\ the\ key\ does\ not\ already}}
+\DoxyCodeLine{00493\ \ \ \textcolor{comment}{//\ exist.\ If\ an\ insertion\ occurs\ and\ results\ in\ a\ rehashing\ of\ the\ container,}}
+\DoxyCodeLine{00494\ \ \ \textcolor{comment}{//\ all\ iterators\ are\ invalidated.\ Otherwise\ iterators\ are\ not\ affected\ and}}
+\DoxyCodeLine{00495\ \ \ \textcolor{comment}{//\ references\ are\ not\ invalidated.\ Overloads\ are\ listed\ below.}}
+\DoxyCodeLine{00496\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00497\ \ \ \textcolor{comment}{//\ T\&\ operator[](const\ Key\&\ key):}}
+\DoxyCodeLine{00498\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00499\ \ \ \textcolor{comment}{//\ \ \ Inserts\ an\ init\_type\ object\ constructed\ in-\/place\ if\ the\ element\ with\ the}}
+\DoxyCodeLine{00500\ \ \ \textcolor{comment}{//\ \ \ given\ key\ does\ not\ exist.}}
+\DoxyCodeLine{00501\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00502\ \ \ \textcolor{comment}{//\ T\&\ operator[](Key\&\&\ key):}}
+\DoxyCodeLine{00503\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00504\ \ \ \textcolor{comment}{//\ \ \ Inserts\ an\ init\_type\ object\ constructed\ in-\/place\ provided\ that\ an\ element}}
+\DoxyCodeLine{00505\ \ \ \textcolor{comment}{//\ \ \ with\ the\ given\ key\ does\ not\ exist.}}
+\DoxyCodeLine{00506\ \ \ \textcolor{keyword}{using\ }Base::operator[];}
+\DoxyCodeLine{00507\ }
+\DoxyCodeLine{00508\ \ \ \textcolor{comment}{//\ node\_hash\_map::bucket\_count()}}
+\DoxyCodeLine{00509\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00510\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ "{}buckets"{}\ within\ the\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00511\ \ \ \textcolor{keyword}{using\ }Base::bucket\_count;}
+\DoxyCodeLine{00512\ }
+\DoxyCodeLine{00513\ \ \ \textcolor{comment}{//\ node\_hash\_map::load\_factor()}}
+\DoxyCodeLine{00514\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00515\ \ \ \textcolor{comment}{//\ Returns\ the\ current\ load\ factor\ of\ the\ \`{}node\_hash\_map`\ (the\ average\ number}}
+\DoxyCodeLine{00516\ \ \ \textcolor{comment}{//\ of\ slots\ occupied\ with\ a\ value\ within\ the\ hash\ map).}}
+\DoxyCodeLine{00517\ \ \ \textcolor{keyword}{using\ }Base::load\_factor;}
+\DoxyCodeLine{00518\ }
+\DoxyCodeLine{00519\ \ \ \textcolor{comment}{//\ node\_hash\_map::max\_load\_factor()}}
+\DoxyCodeLine{00520\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00521\ \ \ \textcolor{comment}{//\ Manages\ the\ maximum\ load\ factor\ of\ the\ \`{}node\_hash\_map`.\ Overloads\ are}}
+\DoxyCodeLine{00522\ \ \ \textcolor{comment}{//\ listed\ below.}}
+\DoxyCodeLine{00523\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00524\ \ \ \textcolor{comment}{//\ float\ node\_hash\_map::max\_load\_factor()}}
+\DoxyCodeLine{00525\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00526\ \ \ \textcolor{comment}{//\ \ \ Returns\ the\ current\ maximum\ load\ factor\ of\ the\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00527\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00528\ \ \ \textcolor{comment}{//\ void\ node\_hash\_map::max\_load\_factor(float\ ml)}}
+\DoxyCodeLine{00529\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00530\ \ \ \textcolor{comment}{//\ \ \ Sets\ the\ maximum\ load\ factor\ of\ the\ \`{}node\_hash\_map`\ to\ the\ passed\ value.}}
+\DoxyCodeLine{00531\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00532\ \ \ \textcolor{comment}{//\ \ \ NOTE:\ This\ overload\ is\ provided\ only\ for\ API\ compatibility\ with\ the\ STL;}}
+\DoxyCodeLine{00533\ \ \ \textcolor{comment}{//\ \ \ \`{}node\_hash\_map`\ will\ ignore\ any\ set\ load\ factor\ and\ manage\ its\ rehashing}}
+\DoxyCodeLine{00534\ \ \ \textcolor{comment}{//\ \ \ internally\ as\ an\ implementation\ detail.}}
+\DoxyCodeLine{00535\ \ \ \textcolor{keyword}{using\ }Base::max\_load\_factor;}
+\DoxyCodeLine{00536\ }
+\DoxyCodeLine{00537\ \ \ \textcolor{comment}{//\ node\_hash\_map::get\_allocator()}}
+\DoxyCodeLine{00538\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00539\ \ \ \textcolor{comment}{//\ Returns\ the\ allocator\ function\ associated\ with\ this\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00540\ \ \ \textcolor{keyword}{using\ }Base::get\_allocator;}
+\DoxyCodeLine{00541\ }
+\DoxyCodeLine{00542\ \ \ \textcolor{comment}{//\ node\_hash\_map::hash\_function()}}
+\DoxyCodeLine{00543\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00544\ \ \ \textcolor{comment}{//\ Returns\ the\ hashing\ function\ used\ to\ hash\ the\ keys\ within\ this}}
+\DoxyCodeLine{00545\ \ \ \textcolor{comment}{//\ \`{}node\_hash\_map`.}}
+\DoxyCodeLine{00546\ \ \ \textcolor{keyword}{using\ }Base::hash\_function;}
+\DoxyCodeLine{00547\ }
+\DoxyCodeLine{00548\ \ \ \textcolor{comment}{//\ node\_hash\_map::key\_eq()}}
+\DoxyCodeLine{00549\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00550\ \ \ \textcolor{comment}{//\ Returns\ the\ function\ used\ for\ comparing\ keys\ equality.}}
+\DoxyCodeLine{00551\ \ \ \textcolor{keyword}{using\ }Base::key\_eq;}
+\DoxyCodeLine{00552\ \};}
+\DoxyCodeLine{00553\ }
+\DoxyCodeLine{00554\ \textcolor{comment}{//\ erase\_if(node\_hash\_map<>,\ Pred)}}
+\DoxyCodeLine{00555\ \textcolor{comment}{//}}
+\DoxyCodeLine{00556\ \textcolor{comment}{//\ Erases\ all\ elements\ that\ satisfy\ the\ predicate\ \`{}pred`\ from\ the\ container\ \`{}c`.}}
+\DoxyCodeLine{00557\ \textcolor{comment}{//\ Returns\ the\ number\ of\ erased\ elements.}}
+\DoxyCodeLine{00558\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ K,\ \textcolor{keyword}{typename}\ V,\ \textcolor{keyword}{typename}\ H,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca3a3ea00cfc35332cedf6e5e9a32e94da}{E}},\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7fc56270e7a70fa81a5935b72eacbe29}{A}},}
+\DoxyCodeLine{00559\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ Predicate>}
+\DoxyCodeLine{00560\ \textcolor{keyword}{typename}\ node\_hash\_map<K,\ V,\ H,\ E,\ A>::size\_type\ \mbox{\hyperlink{namespaceabsl_a8f80d7d5468e89aa076e56759cbea9cb}{erase\_if}}(}
+\DoxyCodeLine{00561\ \ \ \ \ node\_hash\_map<K,\ V,\ H,\ E,\ A>\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ Predicate\ pred)\ \{}
+\DoxyCodeLine{00562\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_aa822d2bb3b13a740e2c4d7d20ccd52a9}{container\_internal::EraseIf}}(pred,\ \&\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}});}
+\DoxyCodeLine{00563\ \}}
+\DoxyCodeLine{00564\ }
+\DoxyCodeLine{00565\ \textcolor{comment}{//\ swap(node\_hash\_map<>,\ node\_hash\_map<>)}}
+\DoxyCodeLine{00566\ \textcolor{comment}{//}}
+\DoxyCodeLine{00567\ \textcolor{comment}{//\ Swaps\ the\ contents\ of\ two\ \`{}node\_hash\_map`\ containers.}}
+\DoxyCodeLine{00568\ \textcolor{comment}{//}}
+\DoxyCodeLine{00569\ \textcolor{comment}{//\ NOTE:\ we\ need\ to\ define\ this\ function\ template\ in\ order\ for}}
+\DoxyCodeLine{00570\ \textcolor{comment}{//\ \`{}flat\_hash\_set::swap`\ to\ be\ called\ instead\ of\ \`{}std::swap`.\ Even\ though\ we}}
+\DoxyCodeLine{00571\ \textcolor{comment}{//\ have\ \`{}swap(raw\_hash\_set\&,\ raw\_hash\_set\&)`\ defined,\ that\ function\ requires\ a}}
+\DoxyCodeLine{00572\ \textcolor{comment}{//\ derived-\/to-\/base\ conversion,\ whereas\ \`{}std::swap`\ is\ a\ function\ template\ so}}
+\DoxyCodeLine{00573\ \textcolor{comment}{//\ \`{}std::swap`\ will\ be\ preferred\ by\ compiler.}}
+\DoxyCodeLine{00574\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ K,\ \textcolor{keyword}{typename}\ V,\ \textcolor{keyword}{typename}\ H,\ \textcolor{keyword}{typename}\ E,\ \textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00575\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_a6d0e7d492f9cf75a00239615f076e456}{swap}}(node\_hash\_map<K,\ V,\ H,\ E,\ A>\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},}
+\DoxyCodeLine{00576\ \ \ \ \ \ \ \ \ \ \ node\_hash\_map<K,\ V,\ H,\ E,\ A>\&\ y)\ \textcolor{keyword}{noexcept}(\textcolor{keyword}{noexcept}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.swap(y)))\ \{}
+\DoxyCodeLine{00577\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.swap(y);}
+\DoxyCodeLine{00578\ \}}
+\DoxyCodeLine{00579\ }
+\DoxyCodeLine{00580\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00581\ }
+\DoxyCodeLine{00582\ \textcolor{comment}{//\ c\_for\_each\_fast(node\_hash\_map<>,\ Function)}}
+\DoxyCodeLine{00583\ \textcolor{comment}{//}}
+\DoxyCodeLine{00584\ \textcolor{comment}{//\ Container-\/based\ version\ of\ the\ <algorithm>\ \`{}std::for\_each()`\ function\ to}}
+\DoxyCodeLine{00585\ \textcolor{comment}{//\ apply\ a\ function\ to\ a\ container's\ elements.}}
+\DoxyCodeLine{00586\ \textcolor{comment}{//\ There\ is\ no\ guarantees\ on\ the\ order\ of\ the\ function\ calls.}}
+\DoxyCodeLine{00587\ \textcolor{comment}{//\ Erasure\ and/or\ insertion\ of\ elements\ in\ the\ function\ is\ not\ allowed.}}
+\DoxyCodeLine{00588\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ K,\ \textcolor{keyword}{typename}\ V,\ \textcolor{keyword}{typename}\ H,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca3a3ea00cfc35332cedf6e5e9a32e94da}{E}},\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7fc56270e7a70fa81a5935b72eacbe29}{A}},}
+\DoxyCodeLine{00589\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_1_1ABSL__NAMESPACE__BEGIN_a6be1d1237d656818e9d2d3a968174ebd}{Function}}>}
+\DoxyCodeLine{00590\ \mbox{\hyperlink{namespaceabsl_af47101d71bf50fda2b5cb36d43a38f2a}{decay\_t<Function>}}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a5e7e466336dbdff30c676c80675ffc57}{c\_for\_each\_fast}}(\textcolor{keyword}{const}\ node\_hash\_map<K,\ V,\ H,\ E,\ A>\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},}
+\DoxyCodeLine{00591\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Function\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \{}
+\DoxyCodeLine{00592\ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a6e3fe22a4353c4ddcdd8830c6ebef953}{container\_internal::ForEach}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ \&\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}});}
+\DoxyCodeLine{00593\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}};}
+\DoxyCodeLine{00594\ \}}
+\DoxyCodeLine{00595\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ K,\ \textcolor{keyword}{typename}\ V,\ \textcolor{keyword}{typename}\ H,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca3a3ea00cfc35332cedf6e5e9a32e94da}{E}},\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7fc56270e7a70fa81a5935b72eacbe29}{A}},}
+\DoxyCodeLine{00596\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_1_1ABSL__NAMESPACE__BEGIN_a6be1d1237d656818e9d2d3a968174ebd}{Function}}>}
+\DoxyCodeLine{00597\ \mbox{\hyperlink{namespaceabsl_af47101d71bf50fda2b5cb36d43a38f2a}{decay\_t<Function>}}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a5e7e466336dbdff30c676c80675ffc57}{c\_for\_each\_fast}}(node\_hash\_map<K,\ V,\ H,\ E,\ A>\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},}
+\DoxyCodeLine{00598\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Function\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \{}
+\DoxyCodeLine{00599\ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a6e3fe22a4353c4ddcdd8830c6ebef953}{container\_internal::ForEach}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ \&\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}});}
+\DoxyCodeLine{00600\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}};}
+\DoxyCodeLine{00601\ \}}
+\DoxyCodeLine{00602\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ K,\ \textcolor{keyword}{typename}\ V,\ \textcolor{keyword}{typename}\ H,\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca3a3ea00cfc35332cedf6e5e9a32e94da}{E}},\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7fc56270e7a70fa81a5935b72eacbe29}{A}},}
+\DoxyCodeLine{00603\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{namespaceabsl_1_1ABSL__NAMESPACE__BEGIN_a6be1d1237d656818e9d2d3a968174ebd}{Function}}>}
+\DoxyCodeLine{00604\ \mbox{\hyperlink{namespaceabsl_af47101d71bf50fda2b5cb36d43a38f2a}{decay\_t<Function>}}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a5e7e466336dbdff30c676c80675ffc57}{c\_for\_each\_fast}}(node\_hash\_map<K,\ V,\ H,\ E,\ A>\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},}
+\DoxyCodeLine{00605\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Function\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}})\ \{}
+\DoxyCodeLine{00606\ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a6e3fe22a4353c4ddcdd8830c6ebef953}{container\_internal::ForEach}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ \&\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}});}
+\DoxyCodeLine{00607\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}};}
+\DoxyCodeLine{00608\ \}}
+\DoxyCodeLine{00609\ }
+\DoxyCodeLine{00610\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00611\ }
+\DoxyCodeLine{00612\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00613\ }
+\DoxyCodeLine{00614\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Key,\ \textcolor{keyword}{class}\ Value>}
+\DoxyCodeLine{00615\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy}{NodeHashMapPolicy}}}
+\DoxyCodeLine{00616\ \ \ \ \ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1node__slot__policy}{absl::container\_internal::node\_slot\_policy}}<}
+\DoxyCodeLine{00617\ \ \ \ \ \ \ \ \ \ \ std::pair<const\ Key,\ Value>\&,\ NodeHashMapPolicy<Key,\ Value>>\ \{}
+\DoxyCodeLine{00618\ \ \ \textcolor{keyword}{using\ }value\_type\ =\ std::pair<const\ Key,\ Value>;}
+\DoxyCodeLine{00619\ }
+\DoxyCodeLine{00620\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00621\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a2e3a7de34097760293b118fc47591d5e}{key\_type}}\ =\ Key;}
+\DoxyCodeLine{00622\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a57a4c37e5358a01fdb0da69555015ffb}{mapped\_type}}\ =\ Value;}
+\DoxyCodeLine{00623\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a00acd62a3b32b75e4b789354556c4602}{init\_type}}\ =\ std::pair<\textcolor{comment}{/*non\ const*/}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a2e3a7de34097760293b118fc47591d5e}{key\_type}},\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a57a4c37e5358a01fdb0da69555015ffb}{mapped\_type}}>;}
+\DoxyCodeLine{00624\ }
+\DoxyCodeLine{00625\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Allocator,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00626\ \ \ \textcolor{keyword}{static}\ value\_type*\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a0ad719425d05bcdf0f038933d275b7cc}{new\_element}}(Allocator*\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00627\ \ \ \ \ \textcolor{keyword}{using\ }PairAlloc\ =\ \textcolor{keyword}{typename}\ absl::allocator\_traits<}
+\DoxyCodeLine{00628\ \ \ \ \ \ \ \ \ Allocator>::template\ rebind\_alloc<value\_type>;}
+\DoxyCodeLine{00629\ \ \ \ \ PairAlloc\ pair\_alloc(*\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}});}
+\DoxyCodeLine{00630\ \ \ \ \ value\_type*\ res\ =}
+\DoxyCodeLine{00631\ \ \ \ \ \ \ \ \ absl::allocator\_traits<PairAlloc>::allocate(pair\_alloc,\ 1);}
+\DoxyCodeLine{00632\ \ \ \ \ absl::allocator\_traits<PairAlloc>::construct(pair\_alloc,\ res,}
+\DoxyCodeLine{00633\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Args>(args)...);}
+\DoxyCodeLine{00634\ \ \ \ \ \textcolor{keywordflow}{return}\ res;}
+\DoxyCodeLine{00635\ \ \ \}}
+\DoxyCodeLine{00636\ }
+\DoxyCodeLine{00637\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Allocator>}
+\DoxyCodeLine{00638\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a2f326c9282f51d82200f7b1afacd8319}{delete\_element}}(Allocator*\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}},\ value\_type*\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__benchmark_8cc_ab43c7a62bb76edb17a7deacc3400de7c}{pair}})\ \{}
+\DoxyCodeLine{00639\ \ \ \ \ \textcolor{keyword}{using\ }PairAlloc\ =\ \textcolor{keyword}{typename}\ absl::allocator\_traits<}
+\DoxyCodeLine{00640\ \ \ \ \ \ \ \ \ Allocator>::template\ rebind\_alloc<value\_type>;}
+\DoxyCodeLine{00641\ \ \ \ \ PairAlloc\ pair\_alloc(*\mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a58bc91864ce9643c9ce65eeebdf8d5f1}{alloc}});}
+\DoxyCodeLine{00642\ \ \ \ \ absl::allocator\_traits<PairAlloc>::destroy(pair\_alloc,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__benchmark_8cc_ab43c7a62bb76edb17a7deacc3400de7c}{pair}});}
+\DoxyCodeLine{00643\ \ \ \ \ absl::allocator\_traits<PairAlloc>::deallocate(pair\_alloc,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__benchmark_8cc_ab43c7a62bb76edb17a7deacc3400de7c}{pair}},\ 1);}
+\DoxyCodeLine{00644\ \ \ \}}
+\DoxyCodeLine{00645\ }
+\DoxyCodeLine{00646\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}},\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00647\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{decltype}(\mbox{\hyperlink{namespaceabsl_1_1container__internal_ab013d9615e9643a3b666cd26a9c37fa3}{absl::container\_internal::DecomposePair}}(}
+\DoxyCodeLine{00648\ \ \ \ \ \ \ std::declval<F>(),\ std::declval<Args>()...))}
+\DoxyCodeLine{00649\ \ \ \mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a3ed657261420bef4c2feea86618d8ae9}{apply}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca800618943025315f869e4e1f09471012}{F}}\&\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}},\ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00650\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_ab013d9615e9643a3b666cd26a9c37fa3}{absl::container\_internal::DecomposePair}}(std::forward<F>(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca8fa14cdd754f91cc6554c9e71929cce7}{f}}),}
+\DoxyCodeLine{00651\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Args>(args)...);}
+\DoxyCodeLine{00652\ \ \ \}}
+\DoxyCodeLine{00653\ }
+\DoxyCodeLine{00654\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a4da120e5dcd8eea48f6532ecc0839be1}{element\_space\_used}}(\textcolor{keyword}{const}\ value\_type*)\ \{}
+\DoxyCodeLine{00655\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{sizeof}(value\_type);}
+\DoxyCodeLine{00656\ \ \ \}}
+\DoxyCodeLine{00657\ }
+\DoxyCodeLine{00658\ \ \ \textcolor{keyword}{static}\ Value\&\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_a65bc751304550c2179c34edf0f44cd8e}{value}}(value\_type*\ elem)\ \{\ \textcolor{keywordflow}{return}\ elem-\/>second;\ \}}
+\DoxyCodeLine{00659\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{const}\ Value\&\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_ab2555cfac8b84d886e806cd7da142659}{value}}(\textcolor{keyword}{const}\ value\_type*\ elem)\ \{\ \textcolor{keywordflow}{return}\ elem-\/>second;\ \}}
+\DoxyCodeLine{00660\ }
+\DoxyCodeLine{00661\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Hash>}
+\DoxyCodeLine{00662\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_af43403b3a7498b774c3ee46c850d1ec1}{HashSlotFn}}\ \mbox{\hyperlink{classabsl_1_1container__internal_1_1NodeHashMapPolicy_aeaa5843ae5feea0adff5402a9e755337}{get\_hash\_slot\_fn}}()\ \{}
+\DoxyCodeLine{00663\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1memory__internal_1_1IsLayoutCompatible}{memory\_internal::IsLayoutCompatible<Key,\ Value>::value}}}
+\DoxyCodeLine{00664\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ \&\mbox{\hyperlink{namespaceabsl_1_1container__internal_a2aab05fd46f0e240aae77205d049c047}{TypeErasedDerefAndApplyToSlotFn<Hash,\ Key>}}}
+\DoxyCodeLine{00665\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00666\ \ \ \}}
+\DoxyCodeLine{00667\ \};}
+\DoxyCodeLine{00668\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00669\ }
+\DoxyCodeLine{00670\ \textcolor{keyword}{namespace\ }container\_algorithm\_internal\ \{}
+\DoxyCodeLine{00671\ }
+\DoxyCodeLine{00672\ \textcolor{comment}{//\ Specialization\ of\ trait\ in\ absl/algorithm/container.h}}
+\DoxyCodeLine{00673\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Key,\ \textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ Hash,\ \textcolor{keyword}{class}\ KeyEqual,\ \textcolor{keyword}{class}\ Allocator>}
+\DoxyCodeLine{00674\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__algorithm__internal_1_1IsUnorderedContainer}{IsUnorderedContainer}}<}
+\DoxyCodeLine{00675\ \ \ \ \ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{classabsl_1_1node__hash__map}{node\_hash\_map}}<Key,\ T,\ Hash,\ KeyEqual,\ Allocator>>\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00676\ }
+\DoxyCodeLine{00677\ \}\ \ \textcolor{comment}{//\ namespace\ container\_algorithm\_internal}}
+\DoxyCodeLine{00678\ }
+\DoxyCodeLine{00679\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00680\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00681\ }
+\DoxyCodeLine{00682\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CONTAINER\_NODE\_HASH\_MAP\_H\_}}
+
+\end{DoxyCode}

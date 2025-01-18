@@ -1,0 +1,201 @@
+\doxysection{cord\+\_\+rep\+\_\+flat.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2cord__rep__flat_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2cord__rep__flat_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/strings/internal/cord\_rep\_flat.h@{tensor/build/\_deps/absl-\/src/absl/strings/internal/cord\_rep\_flat.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2cord__rep__flat_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2020\ The\ Abseil\ Authors}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_INTERNAL\_CORD\_REP\_FLAT\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_INTERNAL\_CORD\_REP\_FLAT\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#include\ <cstdint>}}
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00022\ }
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}absl/strings/internal/cord\_internal.h"{}}}
+\DoxyCodeLine{00026\ }
+\DoxyCodeLine{00027\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00028\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00029\ \textcolor{keyword}{namespace\ }cord\_internal\ \{}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ Note:\ all\ constants\ below\ are\ never\ ODR\ used\ and\ internal\ to\ cord,\ we\ define}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ these\ as\ static\ constexpr\ to\ avoid\ 'in\ struct'\ definition\ and\ usage\ clutter.}}
+\DoxyCodeLine{00033\ }
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ Largest\ and\ smallest\ flat\ node\ lengths\ we\ are\ willing\ to\ allocate}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ Flat\ allocation\ size\ is\ stored\ in\ tag,\ which\ currently\ can\ encode\ sizes\ up}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ to\ 4K,\ encoded\ as\ multiple\ of\ either\ 8\ or\ 32\ bytes.}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ If\ we\ allow\ for\ larger\ sizes,\ we\ need\ to\ change\ this\ to\ 8/64,\ 16/128,\ etc.}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ kMinFlatSize\ is\ bounded\ by\ tag\ needing\ to\ be\ at\ least\ FLAT\ *\ 8\ bytes,\ and}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ ideally\ a\ 'nice'\ size\ aligning\ with\ allocation\ and\ cacheline\ sizes\ like\ 32.}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ kMaxFlatSize\ is\ bounded\ by\ the\ size\ resulting\ in\ a\ computed\ tag\ no\ greater}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ than\ MAX\_FLAT\_TAG.\ MAX\_FLAT\_TAG\ provides\ for\ additional\ 'high'\ tag\ values.}}
+\DoxyCodeLine{00042\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ kFlatOverhead\ =\ offsetof(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep}{CordRep}},\ storage);}
+\DoxyCodeLine{00043\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a2bade7ff523c332217decaefb5de8dfc}{kMinFlatSize}}\ =\ 32;}
+\DoxyCodeLine{00044\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_ab9f80b513fdbc8cbef61a4e8d86be569}{kMaxFlatSize}}\ =\ 4096;}
+\DoxyCodeLine{00045\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ kMaxFlatLength\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_ab9f80b513fdbc8cbef61a4e8d86be569}{kMaxFlatSize}}\ -\/\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a0d3674ba2790c13773b1fcfc87645599}{kFlatOverhead}};}
+\DoxyCodeLine{00046\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a6855fe559e6f6cab604bd961d2e4280b}{kMinFlatLength}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a2bade7ff523c332217decaefb5de8dfc}{kMinFlatSize}}\ -\/\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a0d3674ba2790c13773b1fcfc87645599}{kFlatOverhead}};}
+\DoxyCodeLine{00047\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a089aa34a6a8e39eec60e9ab84dfe0178}{kMaxLargeFlatSize}}\ =\ 256\ *\ 1024;}
+\DoxyCodeLine{00048\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_af7e9d9c89ed1cbf95acb29ce66f71928}{kMaxLargeFlatLength}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a089aa34a6a8e39eec60e9ab84dfe0178}{kMaxLargeFlatSize}}\ -\/\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a0d3674ba2790c13773b1fcfc87645599}{kFlatOverhead}};}
+\DoxyCodeLine{00049\ }
+\DoxyCodeLine{00050\ \textcolor{comment}{//\ kTagBase\ should\ make\ the\ Size\ <-\/-\/>\ Tag\ computation\ resilient}}
+\DoxyCodeLine{00051\ \textcolor{comment}{//\ against\ changes\ to\ the\ value\ of\ FLAT\ when\ we\ add\ a\ new\ tag..}}
+\DoxyCodeLine{00052\ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a3368ba5b40157622951608dec2ea207c}{kTagBase}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695ac9d7cb6a8d7380945d713291c7bf3de3}{FLAT}}\ -\/\ 4;}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ Converts\ the\ provided\ rounded\ size\ to\ the\ corresponding\ tag}}
+\DoxyCodeLine{00055\ \textcolor{keyword}{constexpr}\ uint8\_t\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a8f59d1d924f3f2220ef955214ff2aa38}{AllocatedSizeToTagUnchecked}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00056\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{static\_cast<}uint8\_t\textcolor{keyword}{>}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ <=\ 512\ ?\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a3368ba5b40157622951608dec2ea207c}{kTagBase}}\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ /\ 8}
+\DoxyCodeLine{00057\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ <=\ 8192}
+\DoxyCodeLine{00058\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a3368ba5b40157622951608dec2ea207c}{kTagBase}}\ +\ 512\ /\ 8\ +\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ /\ 64\ -\/\ 512\ /\ 64}
+\DoxyCodeLine{00059\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a3368ba5b40157622951608dec2ea207c}{kTagBase}}\ +\ 512\ /\ 8\ +\ ((8192\ -\/\ 512)\ /\ 64)\ +}
+\DoxyCodeLine{00060\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ /\ 4096\ -\/\ 8192\ /\ 4096);}
+\DoxyCodeLine{00061\ \}}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ Converts\ the\ provided\ tag\ to\ the\ corresponding\ allocated\ size}}
+\DoxyCodeLine{00064\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_af141e58f3698f1b76cb6b32dc732bacc}{TagToAllocatedSize}}(uint8\_t\ tag)\ \{}
+\DoxyCodeLine{00065\ \ \ \textcolor{keywordflow}{return}\ (tag\ <=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a3368ba5b40157622951608dec2ea207c}{kTagBase}}\ +\ 512\ /\ 8)\ ?\ tag\ *\ 8\ -\/\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a3368ba5b40157622951608dec2ea207c}{kTagBase}}\ *\ 8}
+\DoxyCodeLine{00066\ \ \ \ \ \ \ \ \ \ :\ (tag\ <=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a3368ba5b40157622951608dec2ea207c}{kTagBase}}\ +\ (512\ /\ 8)\ +\ ((8192\ -\/\ 512)\ /\ 64))}
+\DoxyCodeLine{00067\ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 512\ +\ tag\ *\ 64\ -\/\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a3368ba5b40157622951608dec2ea207c}{kTagBase}}\ *\ 64\ -\/\ 512\ /\ 8\ *\ 64}
+\DoxyCodeLine{00068\ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ 8192\ +\ tag\ *\ 4096\ -\/\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a3368ba5b40157622951608dec2ea207c}{kTagBase}}\ *\ 4096\ -\/}
+\DoxyCodeLine{00069\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ((512\ /\ 8)\ +\ ((8192\ -\/\ 512)\ /\ 64))\ *\ 4096;}
+\DoxyCodeLine{00070\ \}}
+\DoxyCodeLine{00071\ }
+\DoxyCodeLine{00072\ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{namespaceabsl_1_1cord__internal_a8f59d1d924f3f2220ef955214ff2aa38}{AllocatedSizeToTagUnchecked}}(\mbox{\hyperlink{namespaceabsl_1_1cord__internal_a2bade7ff523c332217decaefb5de8dfc}{kMinFlatSize}})\ ==\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695ac9d7cb6a8d7380945d713291c7bf3de3}{FLAT}},\ \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{00073\ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{namespaceabsl_1_1cord__internal_a8f59d1d924f3f2220ef955214ff2aa38}{AllocatedSizeToTagUnchecked}}(\mbox{\hyperlink{namespaceabsl_1_1cord__internal_a089aa34a6a8e39eec60e9ab84dfe0178}{kMaxLargeFlatSize}})\ ==\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695a6294a7748f60c466873c88e665def178}{MAX\_FLAT\_TAG}},}
+\DoxyCodeLine{00074\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ RoundUp\ logically\ performs\ \`{}((n\ +\ m\ -\/\ 1)\ /\ m)\ *\ m`\ to\ round\ up\ to\ the\ nearest}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ multiple\ of\ \`{}m`,\ optimized\ for\ the\ invariant\ that\ \`{}m`\ is\ a\ power\ of\ 2.}}
+\DoxyCodeLine{00078\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a18bc5fb4de1c204a47ed7c9c2a6277c3}{RoundUp}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}},\ \textcolor{keywordtype}{size\_t}\ m)\ \{}
+\DoxyCodeLine{00079\ \ \ \textcolor{keywordflow}{return}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ +\ m\ -\/\ 1)\ \&\ (0\ -\/\ m);}
+\DoxyCodeLine{00080\ \}}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \textcolor{comment}{//\ Returns\ the\ size\ to\ the\ nearest\ equal\ or\ larger\ value\ that\ can\ be}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ expressed\ exactly\ as\ a\ tag\ value.}}
+\DoxyCodeLine{00084\ \textcolor{keyword}{inline}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a024804d9fe89f5133687089838ab9d31}{RoundUpForTag}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00085\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a18bc5fb4de1c204a47ed7c9c2a6277c3}{RoundUp}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}},\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ <=\ 512)\ ?\ 8\ :\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ <=\ 8192\ ?\ 64\ :\ 4096));}
+\DoxyCodeLine{00086\ \}}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \textcolor{comment}{//\ Converts\ the\ allocated\ size\ to\ a\ tag,\ rounding\ down\ if\ the\ size}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ does\ not\ exactly\ match\ a\ 'tag\ expressible'\ size\ value.\ The\ result\ is}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ undefined\ if\ the\ size\ exceeds\ the\ maximum\ size\ that\ can\ be\ encoded\ in}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ a\ tag,\ i.e.,\ if\ size\ is\ larger\ than\ TagToAllocatedSize(<max\ tag>).}}
+\DoxyCodeLine{00092\ \textcolor{keyword}{inline}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a58c956967b2b3b326df2b220ae9b2274}{uint8\_t}}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_aacc4bd326e8b19f14a9b87cf2788372d}{AllocatedSizeToTag}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}})\ \{}
+\DoxyCodeLine{00093\ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{namespaceEigen_1_1numext_a58c956967b2b3b326df2b220ae9b2274}{uint8\_t}}\ tag\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a8f59d1d924f3f2220ef955214ff2aa38}{AllocatedSizeToTagUnchecked}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00094\ \ \ assert(tag\ <=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695a6294a7748f60c466873c88e665def178}{MAX\_FLAT\_TAG}});}
+\DoxyCodeLine{00095\ \ \ \textcolor{keywordflow}{return}\ tag;}
+\DoxyCodeLine{00096\ \}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \textcolor{comment}{//\ Converts\ the\ provided\ tag\ to\ the\ corresponding\ available\ data\ length}}
+\DoxyCodeLine{00099\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a45c921ad1dea6cb8273b5030269f65f0}{TagToLength}}(uint8\_t\ tag)\ \{}
+\DoxyCodeLine{00100\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_af141e58f3698f1b76cb6b32dc732bacc}{TagToAllocatedSize}}(tag)\ -\/\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a0d3674ba2790c13773b1fcfc87645599}{kFlatOverhead}};}
+\DoxyCodeLine{00101\ \}}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \textcolor{comment}{//\ Enforce\ that\ kMaxFlatSize\ maps\ to\ a\ well-\/known\ exact\ tag\ value.}}
+\DoxyCodeLine{00104\ \textcolor{keyword}{static\_assert}(\mbox{\hyperlink{namespaceabsl_1_1cord__internal_af141e58f3698f1b76cb6b32dc732bacc}{TagToAllocatedSize}}(\mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695a6294a7748f60c466873c88e665def178}{MAX\_FLAT\_TAG}})\ ==\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a089aa34a6a8e39eec60e9ab84dfe0178}{kMaxLargeFlatSize}},}
+\DoxyCodeLine{00105\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Bad\ tag\ logic"{}});}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat}{CordRepFlat}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep}{CordRep}}\ \{}
+\DoxyCodeLine{00108\ \ \ \textcolor{comment}{//\ Tag\ for\ explicit\ 'large\ flat'\ allocation}}
+\DoxyCodeLine{00109\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_1_1Large}{Large}}\ \{\};}
+\DoxyCodeLine{00110\ }
+\DoxyCodeLine{00111\ \ \ \textcolor{comment}{//\ Creates\ a\ new\ flat\ node.}}
+\DoxyCodeLine{00112\ \ \ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{size\_t}\ max\_flat\_size,\ \textcolor{keyword}{typename}...\ Args>}
+\DoxyCodeLine{00113\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat}{CordRepFlat}}*\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_a30f67f898a3616e107403ed09f8254f6}{NewImpl}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}},\ Args...\ args\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a532dcbae3a0d71263d6d595c4a6b7e81}{ABSL\_ATTRIBUTE\_UNUSED}})\ \{}
+\DoxyCodeLine{00114\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ <=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a6855fe559e6f6cab604bd961d2e4280b}{kMinFlatLength}})\ \{}
+\DoxyCodeLine{00115\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a6855fe559e6f6cab604bd961d2e4280b}{kMinFlatLength}};}
+\DoxyCodeLine{00116\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ >\ max\_flat\_size\ -\/\ kFlatOverhead)\ \{}
+\DoxyCodeLine{00117\ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ =\ max\_flat\_size\ -\/\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a0d3674ba2790c13773b1fcfc87645599}{kFlatOverhead}};}
+\DoxyCodeLine{00118\ \ \ \ \ \}}
+\DoxyCodeLine{00119\ }
+\DoxyCodeLine{00120\ \ \ \ \ \textcolor{comment}{//\ Round\ size\ up\ so\ it\ matches\ a\ size\ we\ can\ exactly\ express\ in\ a\ tag.}}
+\DoxyCodeLine{00121\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a024804d9fe89f5133687089838ab9d31}{RoundUpForTag}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ +\ kFlatOverhead);}
+\DoxyCodeLine{00122\ \ \ \ \ \textcolor{keywordtype}{void}*\ \textcolor{keyword}{const}\ raw\_rep\ =\ ::operator\ \textcolor{keyword}{new}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00123\ \ \ \ \ \textcolor{comment}{//\ GCC\ 13\ has\ a\ false-\/positive\ -\/Wstringop-\/overflow\ warning\ here.}}
+\DoxyCodeLine{00124\ \textcolor{preprocessor}{\ \ \ \ \#if\ ABSL\_INTERNAL\_HAVE\_MIN\_GNUC\_VERSION(13,\ 0)}}
+\DoxyCodeLine{00125\ \textcolor{preprocessor}{\ \ \ \ \#pragma\ GCC\ diagnostic\ push}}
+\DoxyCodeLine{00126\ \textcolor{preprocessor}{\ \ \ \ \#pragma\ GCC\ diagnostic\ ignored\ "{}-\/Wstringop-\/overflow"{}}}
+\DoxyCodeLine{00127\ \textcolor{preprocessor}{\ \ \ \ \#endif}}
+\DoxyCodeLine{00128\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat}{CordRepFlat}}*\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}}\ =\ \textcolor{keyword}{new}\ (raw\_rep)\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat}{CordRepFlat}}();}
+\DoxyCodeLine{00129\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}}-\/>\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_a179f49019ae42fc01bdf54b6093a5c33}{tag}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_aacc4bd326e8b19f14a9b87cf2788372d}{AllocatedSizeToTag}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00130\ \textcolor{preprocessor}{\ \ \ \ \#if\ ABSL\_INTERNAL\_HAVE\_MIN\_GNUC\_VERSION(13,\ 0)}}
+\DoxyCodeLine{00131\ \textcolor{preprocessor}{\ \ \ \ \#pragma\ GCC\ diagnostic\ pop}}
+\DoxyCodeLine{00132\ \textcolor{preprocessor}{\ \ \ \ \#endif}}
+\DoxyCodeLine{00133\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}};}
+\DoxyCodeLine{00134\ \ \ \}}
+\DoxyCodeLine{00135\ }
+\DoxyCodeLine{00136\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat}{CordRepFlat}}*\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_aae59059839c1febf4716c2d7fc865962}{New}}(\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}})\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_a30f67f898a3616e107403ed09f8254f6}{NewImpl<kMaxFlatSize>}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}});\ \}}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat}{CordRepFlat}}*\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_ab49260b33e46ec66a702a87836c28a9b}{New}}(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_1_1Large}{Large}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}})\ \{}
+\DoxyCodeLine{00139\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_a30f67f898a3616e107403ed09f8254f6}{NewImpl<kMaxLargeFlatSize>}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}});}
+\DoxyCodeLine{00140\ \ \ \}}
+\DoxyCodeLine{00141\ }
+\DoxyCodeLine{00142\ \ \ \textcolor{comment}{//\ Deletes\ a\ CordRepFlat\ instance\ created\ previously\ through\ a\ call\ to\ New().}}
+\DoxyCodeLine{00143\ \ \ \textcolor{comment}{//\ Flat\ CordReps\ are\ allocated\ and\ constructed\ with\ raw\ ::operator\ new\ and}}
+\DoxyCodeLine{00144\ \ \ \textcolor{comment}{//\ placement\ new,\ and\ must\ be\ destructed\ and\ deallocated\ accordingly.}}
+\DoxyCodeLine{00145\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_a3ec15149402b6c9d8b47fe0b60083914}{Delete}}(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep}{CordRep}}*\mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}})\ \{}
+\DoxyCodeLine{00146\ \ \ \ \ assert(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}}-\/>tag\ >=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695ac9d7cb6a8d7380945d713291c7bf3de3}{FLAT}}\ \&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}}-\/>tag\ <=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695a6294a7748f60c466873c88e665def178}{MAX\_FLAT\_TAG}});}
+\DoxyCodeLine{00147\ }
+\DoxyCodeLine{00148\ \textcolor{preprocessor}{\#if\ defined(\_\_cpp\_sized\_deallocation)}}
+\DoxyCodeLine{00149\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_af141e58f3698f1b76cb6b32dc732bacc}{TagToAllocatedSize}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}}-\/>tag);}
+\DoxyCodeLine{00150\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}}-\/>\string~CordRep();}
+\DoxyCodeLine{00151\ \ \ \ \ ::operator\ \textcolor{keyword}{delete}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}},\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}});}
+\DoxyCodeLine{00152\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00153\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}}-\/>\string~CordRep();}
+\DoxyCodeLine{00154\ \ \ \ \ ::operator\ \textcolor{keyword}{delete}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2cord__analysis_8cc_a2c5f19185456bd83cc1b428c25581b9e}{rep}});}
+\DoxyCodeLine{00155\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00156\ \ \ \}}
+\DoxyCodeLine{00157\ }
+\DoxyCodeLine{00158\ \ \ \textcolor{comment}{//\ Create\ a\ CordRepFlat\ containing\ \`{}data`,\ with\ an\ optional\ additional}}
+\DoxyCodeLine{00159\ \ \ \textcolor{comment}{//\ extra\ capacity\ of\ up\ to\ \`{}extra`\ bytes.\ Requires\ that\ \`{}data.size()`}}
+\DoxyCodeLine{00160\ \ \ \textcolor{comment}{//\ is\ less\ than\ kMaxFlatLength.}}
+\DoxyCodeLine{00161\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat}{CordRepFlat}}*\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_a62266417ac2f3c01238362ea81ba52b8}{Create}}(\mbox{\hyperlink{classabsl_1_1string__view}{absl::string\_view}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}},\ \textcolor{keywordtype}{size\_t}\ extra\ =\ 0)\ \{}
+\DoxyCodeLine{00162\ \ \ \ \ assert(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}.size()\ <=\ kMaxFlatLength);}
+\DoxyCodeLine{00163\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat}{CordRepFlat}}*\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_aa50cfbda2dbc22022c2b2a6580e6da91}{flat}}\ =\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_aae59059839c1febf4716c2d7fc865962}{New}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}.size()\ +\ (std::min)(extra,\ kMaxFlatLength));}
+\DoxyCodeLine{00164\ \ \ \ \ memcpy(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_aa50cfbda2dbc22022c2b2a6580e6da91}{flat}}-\/>\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_a68bdcff4a926ba602783494d95272715}{Data}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}.data(),\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}.size());}
+\DoxyCodeLine{00165\ \ \ \ \ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_aa50cfbda2dbc22022c2b2a6580e6da91}{flat}}-\/>\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_af1380a03e3795f21ee242127e607261f}{length}}\ =\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}.size();}
+\DoxyCodeLine{00166\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_aa50cfbda2dbc22022c2b2a6580e6da91}{flat}};}
+\DoxyCodeLine{00167\ \ \ \}}
+\DoxyCodeLine{00168\ }
+\DoxyCodeLine{00169\ \ \ \textcolor{comment}{//\ Returns\ a\ pointer\ to\ the\ data\ inside\ this\ flat\ rep.}}
+\DoxyCodeLine{00170\ \ \ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_a68bdcff4a926ba602783494d95272715}{Data}}()\ \{\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_abc16d4e0cf6feecf8f885179a0f9780a}{storage}});\ \}}
+\DoxyCodeLine{00171\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_ad64c9d0682981a192b24538f2e416a03}{Data}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }\textcolor{keywordtype}{char}*\textcolor{keyword}{>}(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_abc16d4e0cf6feecf8f885179a0f9780a}{storage}});\ \}}
+\DoxyCodeLine{00172\ }
+\DoxyCodeLine{00173\ \ \ \textcolor{comment}{//\ Returns\ the\ maximum\ capacity\ (payload\ size)\ of\ this\ instance.}}
+\DoxyCodeLine{00174\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_afb5f988ffdd98b1c964b5ed2c2f0344b}{Capacity}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a45c921ad1dea6cb8273b5030269f65f0}{TagToLength}}(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_a179f49019ae42fc01bdf54b6093a5c33}{tag}});\ \}}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ \ \ \textcolor{comment}{//\ Returns\ the\ allocated\ size\ (payload\ +\ overhead)\ of\ this\ instance.}}
+\DoxyCodeLine{00177\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRepFlat_a3b3e2065988869e4e76b4a1823ec1f0f}{AllocatedSize}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_af141e58f3698f1b76cb6b32dc732bacc}{TagToAllocatedSize}}(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_a179f49019ae42fc01bdf54b6093a5c33}{tag}});\ \}}
+\DoxyCodeLine{00178\ \};}
+\DoxyCodeLine{00179\ }
+\DoxyCodeLine{00180\ \textcolor{comment}{//\ Now\ that\ CordRepFlat\ is\ defined,\ we\ can\ define\ CordRep's\ helper\ casts:}}
+\DoxyCodeLine{00181\ \textcolor{keyword}{inline}\ CordRepFlat*\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_aa50cfbda2dbc22022c2b2a6580e6da91}{CordRep::flat}}()\ \{}
+\DoxyCodeLine{00182\ \ \ assert(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_a179f49019ae42fc01bdf54b6093a5c33}{tag}}\ >=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695ac9d7cb6a8d7380945d713291c7bf3de3}{FLAT}}\ \&\&\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_a179f49019ae42fc01bdf54b6093a5c33}{tag}}\ <=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695a6294a7748f60c466873c88e665def178}{MAX\_FLAT\_TAG}});}
+\DoxyCodeLine{00183\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}CordRepFlat*\textcolor{keyword}{>}(\textcolor{keyword}{this});}
+\DoxyCodeLine{00184\ \}}
+\DoxyCodeLine{00185\ }
+\DoxyCodeLine{00186\ \textcolor{keyword}{inline}\ \textcolor{keyword}{const}\ CordRepFlat*\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_aa50cfbda2dbc22022c2b2a6580e6da91}{CordRep::flat}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00187\ \ \ assert(\mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_a179f49019ae42fc01bdf54b6093a5c33}{tag}}\ >=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695ac9d7cb6a8d7380945d713291c7bf3de3}{FLAT}}\ \&\&\ \mbox{\hyperlink{structabsl_1_1cord__internal_1_1CordRep_a179f49019ae42fc01bdf54b6093a5c33}{tag}}\ <=\ \mbox{\hyperlink{namespaceabsl_1_1cord__internal_a61ea586e32032a0c22ea05d092c2b695a6294a7748f60c466873c88e665def178}{MAX\_FLAT\_TAG}});}
+\DoxyCodeLine{00188\ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{reinterpret\_cast<}\textcolor{keyword}{const\ }CordRepFlat*\textcolor{keyword}{>}(\textcolor{keyword}{this});}
+\DoxyCodeLine{00189\ \}}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \}\ \ \textcolor{comment}{//\ namespace\ cord\_internal}}
+\DoxyCodeLine{00192\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00193\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_INTERNAL\_CORD\_REP\_FLAT\_H\_}}
+
+\end{DoxyCode}

@@ -1,0 +1,774 @@
+\doxysection{string\+\_\+view.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2strings_2string__view_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2strings_2string__view_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/strings/string\_view.h@{tensor/build/\_deps/absl-\/src/absl/strings/string\_view.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2strings_2string__view_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ File:\ string\_view.h}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ -\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/-\/}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ This\ file\ contains\ the\ definition\ of\ the\ \`{}absl::string\_view`\ class.\ A}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//\ \`{}string\_view`\ points\ to\ a\ contiguous\ span\ of\ characters,\ often\ part\ or\ all\ of}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ another\ \`{}std::string`,\ double-\/quoted\ string\ literal,\ character\ array,\ or\ even}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ another\ \`{}string\_view`.}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ This\ \`{}absl::string\_view`\ abstraction\ is\ designed\ to\ be\ a\ drop-\/in}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//\ replacement\ for\ the\ C++17\ \`{}std::string\_view`\ abstraction.}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_STRING\_VIEW\_H\_}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_STRING\_VIEW\_H\_}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <cstring>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <iosfwd>}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <iterator>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <limits>}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00040\ \textcolor{preprocessor}{\#include\ "{}absl/base/nullability.h"{}}}
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00042\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/throw\_delegate.h"{}}}
+\DoxyCodeLine{00043\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\#include\ "{}absl/base/port.h"{}}}
+\DoxyCodeLine{00046\ }
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\#ifdef\ ABSL\_USES\_STD\_STRING\_VIEW}}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\#include\ <string\_view>}\ \ \textcolor{comment}{//\ IWYU\ pragma:\ export}}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00052\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00053\ \textcolor{keyword}{using\ }string\_view\ =\ std::string\_view;}
+\DoxyCodeLine{00054\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00055\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ ABSL\_USES\_STD\_STRING\_VIEW}}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#if\ ABSL\_HAVE\_BUILTIN(\_\_builtin\_memcmp)\ ||\ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\ \ \ \ (defined(\_\_GNUC\_\_)\ \&\&\ !defined(\_\_clang\_\_))\ ||\ \(\backslash\)}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\ \ \ \ (defined(\_MSC\_VER)\ \&\&\ \_MSC\_VER\ >=\ 1928)}}
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_STRING\_VIEW\_MEMCMP\ \_\_builtin\_memcmp}}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ ABSL\_HAVE\_BUILTIN(\_\_builtin\_memcmp)}}
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_STRING\_VIEW\_MEMCMP\ memcmp}}
+\DoxyCodeLine{00065\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_HAVE\_BUILTIN(\_\_builtin\_memcmp)}}
+\DoxyCodeLine{00066\ }
+\DoxyCodeLine{00067\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00068\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ absl::string\_view}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//\ A\ \`{}string\_view`\ provides\ a\ lightweight\ view\ into\ the\ string\ data\ provided\ by}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ a\ \`{}std::string`,\ double-\/quoted\ string\ literal,\ character\ array,\ or\ even}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ another\ \`{}string\_view`.\ A\ \`{}string\_view`\ does\ *not*\ own\ the\ string\ to\ which\ it}}
+\DoxyCodeLine{00075\ \textcolor{comment}{//\ points,\ and\ that\ data\ cannot\ be\ modified\ through\ the\ view.}}
+\DoxyCodeLine{00076\ \textcolor{comment}{//}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ You\ can\ use\ \`{}string\_view`\ as\ a\ function\ or\ method\ parameter\ anywhere\ a}}
+\DoxyCodeLine{00078\ \textcolor{comment}{//\ parameter\ can\ receive\ a\ double-\/quoted\ string\ literal,\ \`{}const\ char*`,}}
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ \`{}std::string`,\ or\ another\ \`{}absl::string\_view`\ argument\ with\ no\ need\ to\ copy}}
+\DoxyCodeLine{00080\ \textcolor{comment}{//\ the\ string\ data.\ Systematic\ use\ of\ \`{}string\_view`\ within\ function\ arguments}}
+\DoxyCodeLine{00081\ \textcolor{comment}{//\ reduces\ data\ copies\ and\ \`{}strlen()`\ calls.}}
+\DoxyCodeLine{00082\ \textcolor{comment}{//}}
+\DoxyCodeLine{00083\ \textcolor{comment}{//\ Because\ of\ its\ small\ size,\ prefer\ passing\ \`{}string\_view`\ by\ value:}}
+\DoxyCodeLine{00084\ \textcolor{comment}{//}}
+\DoxyCodeLine{00085\ \textcolor{comment}{//\ \ \ void\ MyFunction(absl::string\_view\ arg);}}
+\DoxyCodeLine{00086\ \textcolor{comment}{//}}
+\DoxyCodeLine{00087\ \textcolor{comment}{//\ If\ circumstances\ require,\ you\ may\ also\ pass\ one\ by\ const\ reference:}}
+\DoxyCodeLine{00088\ \textcolor{comment}{//}}
+\DoxyCodeLine{00089\ \textcolor{comment}{//\ \ \ void\ MyFunction(const\ absl::string\_view\&\ arg);\ \ //\ not\ preferred}}
+\DoxyCodeLine{00090\ \textcolor{comment}{//}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ Passing\ by\ value\ generates\ slightly\ smaller\ code\ for\ many\ architectures.}}
+\DoxyCodeLine{00092\ \textcolor{comment}{//}}
+\DoxyCodeLine{00093\ \textcolor{comment}{//\ In\ either\ case,\ the\ source\ data\ of\ the\ \`{}string\_view`\ must\ outlive\ the}}
+\DoxyCodeLine{00094\ \textcolor{comment}{//\ \`{}string\_view`\ itself.}}
+\DoxyCodeLine{00095\ \textcolor{comment}{//}}
+\DoxyCodeLine{00096\ \textcolor{comment}{//\ A\ \`{}string\_view`\ is\ also\ suitable\ for\ local\ variables\ if\ you\ know\ that\ the}}
+\DoxyCodeLine{00097\ \textcolor{comment}{//\ lifetime\ of\ the\ underlying\ object\ is\ longer\ than\ the\ lifetime\ of\ your}}
+\DoxyCodeLine{00098\ \textcolor{comment}{//\ \`{}string\_view`\ variable.\ However,\ beware\ of\ binding\ a\ \`{}string\_view`\ to\ a}}
+\DoxyCodeLine{00099\ \textcolor{comment}{//\ temporary\ value:}}
+\DoxyCodeLine{00100\ \textcolor{comment}{//}}
+\DoxyCodeLine{00101\ \textcolor{comment}{//\ \ \ //\ BAD\ use\ of\ string\_view:\ lifetime\ problem}}
+\DoxyCodeLine{00102\ \textcolor{comment}{//\ \ \ absl::string\_view\ sv\ =\ obj.ReturnAString();}}
+\DoxyCodeLine{00103\ \textcolor{comment}{//}}
+\DoxyCodeLine{00104\ \textcolor{comment}{//\ \ \ //\ GOOD\ use\ of\ string\_view:\ str\ outlives\ sv}}
+\DoxyCodeLine{00105\ \textcolor{comment}{//\ \ \ std::string\ str\ =\ obj.ReturnAString();}}
+\DoxyCodeLine{00106\ \textcolor{comment}{//\ \ \ absl::string\_view\ sv\ =\ str;}}
+\DoxyCodeLine{00107\ \textcolor{comment}{//}}
+\DoxyCodeLine{00108\ \textcolor{comment}{//\ Due\ to\ lifetime\ issues,\ a\ \`{}string\_view`\ is\ sometimes\ a\ poor\ choice\ for\ a}}
+\DoxyCodeLine{00109\ \textcolor{comment}{//\ return\ value\ and\ usually\ a\ poor\ choice\ for\ a\ data\ member.\ If\ you\ do\ use\ a}}
+\DoxyCodeLine{00110\ \textcolor{comment}{//\ \`{}string\_view`\ this\ way,\ it\ is\ your\ responsibility\ to\ ensure\ that\ the\ object}}
+\DoxyCodeLine{00111\ \textcolor{comment}{//\ pointed\ to\ by\ the\ \`{}string\_view`\ outlives\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00112\ \textcolor{comment}{//}}
+\DoxyCodeLine{00113\ \textcolor{comment}{//\ A\ \`{}string\_view`\ may\ represent\ a\ whole\ string\ or\ just\ part\ of\ a\ string.\ For}}
+\DoxyCodeLine{00114\ \textcolor{comment}{//\ example,\ when\ splitting\ a\ string,\ \`{}std::vector<absl::string\_view>`\ is\ a}}
+\DoxyCodeLine{00115\ \textcolor{comment}{//\ natural\ data\ type\ for\ the\ output.}}
+\DoxyCodeLine{00116\ \textcolor{comment}{//}}
+\DoxyCodeLine{00117\ \textcolor{comment}{//\ For\ another\ example,\ a\ Cord\ is\ a\ non-\/contiguous,\ potentially\ very}}
+\DoxyCodeLine{00118\ \textcolor{comment}{//\ long\ string-\/like\ object.\ \ The\ Cord\ class\ has\ an\ interface\ that\ iteratively}}
+\DoxyCodeLine{00119\ \textcolor{comment}{//\ provides\ string\_view\ objects\ that\ point\ to\ the\ successive\ pieces\ of\ a\ Cord}}
+\DoxyCodeLine{00120\ \textcolor{comment}{//\ object.}}
+\DoxyCodeLine{00121\ \textcolor{comment}{//}}
+\DoxyCodeLine{00122\ \textcolor{comment}{//\ When\ constructed\ from\ a\ source\ which\ is\ NUL-\/terminated,\ the\ \`{}string\_view`}}
+\DoxyCodeLine{00123\ \textcolor{comment}{//\ itself\ will\ not\ include\ the\ NUL-\/terminator\ unless\ a\ specific\ size\ (including}}
+\DoxyCodeLine{00124\ \textcolor{comment}{//\ the\ NUL)\ is\ passed\ to\ the\ constructor.\ As\ a\ result,\ common\ idioms\ that\ work}}
+\DoxyCodeLine{00125\ \textcolor{comment}{//\ on\ NUL-\/terminated\ strings\ do\ not\ work\ on\ \`{}string\_view`\ objects.\ If\ you\ write}}
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ code\ that\ scans\ a\ \`{}string\_view`,\ you\ must\ check\ its\ length\ rather\ than\ test}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ for\ nul,\ for\ example.\ Note,\ however,\ that\ nuls\ may\ still\ be\ embedded\ within}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ a\ \`{}string\_view`\ explicitly.}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//}}
+\DoxyCodeLine{00130\ \textcolor{comment}{//\ You\ may\ create\ a\ null\ \`{}string\_view`\ in\ two\ ways:}}
+\DoxyCodeLine{00131\ \textcolor{comment}{//}}
+\DoxyCodeLine{00132\ \textcolor{comment}{//\ \ \ absl::string\_view\ sv;}}
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ \ \ absl::string\_view\ sv(nullptr,\ 0);}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//}}
+\DoxyCodeLine{00135\ \textcolor{comment}{//\ For\ the\ above,\ \`{}sv.data()\ ==\ nullptr`,\ \`{}sv.length()\ ==\ 0`,\ and}}
+\DoxyCodeLine{00136\ \textcolor{comment}{//\ \`{}sv.empty()\ ==\ true`.\ Also,\ if\ you\ create\ a\ \`{}string\_view`\ with\ a\ non-\/null}}
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ pointer\ then\ \`{}sv.data()\ !=\ nullptr`.\ Thus,\ you\ can\ use\ \`{}string\_view()`\ to}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ signal\ an\ undefined\ value\ that\ is\ different\ from\ other\ \`{}string\_view`\ values}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ in\ a\ similar\ fashion\ to\ how\ \`{}const\ char*\ p1\ =\ nullptr;`\ is\ different\ from}}
+\DoxyCodeLine{00140\ \textcolor{comment}{//\ \`{}const\ char*\ p2\ =\ "{}"{};`.\ However,\ in\ practice,\ it\ is\ not\ recommended\ to\ rely}}
+\DoxyCodeLine{00141\ \textcolor{comment}{//\ on\ this\ behavior.}}
+\DoxyCodeLine{00142\ \textcolor{comment}{//}}
+\DoxyCodeLine{00143\ \textcolor{comment}{//\ Be\ careful\ not\ to\ confuse\ a\ null\ \`{}string\_view`\ with\ an\ empty\ one.\ A\ null}}
+\DoxyCodeLine{00144\ \textcolor{comment}{//\ \`{}string\_view`\ is\ an\ empty\ \`{}string\_view`,\ but\ some\ empty\ \`{}string\_view`s\ are}}
+\DoxyCodeLine{00145\ \textcolor{comment}{//\ not\ null.\ Prefer\ checking\ for\ emptiness\ over\ checking\ for\ null.}}
+\DoxyCodeLine{00146\ \textcolor{comment}{//}}
+\DoxyCodeLine{00147\ \textcolor{comment}{//\ There\ are\ many\ ways\ to\ create\ an\ empty\ string\_view:}}
+\DoxyCodeLine{00148\ \textcolor{comment}{//}}
+\DoxyCodeLine{00149\ \textcolor{comment}{//\ \ \ const\ char*\ nullcp\ =\ nullptr;}}
+\DoxyCodeLine{00150\ \textcolor{comment}{//\ \ \ //\ string\_view.size()\ will\ return\ 0\ in\ all\ cases.}}
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ \ \ absl::string\_view();}}
+\DoxyCodeLine{00152\ \textcolor{comment}{//\ \ \ absl::string\_view(nullcp,\ 0);}}
+\DoxyCodeLine{00153\ \textcolor{comment}{//\ \ \ absl::string\_view("{}"{});}}
+\DoxyCodeLine{00154\ \textcolor{comment}{//\ \ \ absl::string\_view("{}"{},\ 0);}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ \ \ absl::string\_view("{}abcdef"{},\ 0);}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//\ \ \ absl::string\_view("{}abcdef"{}\ +\ 6,\ 0);}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//}}
+\DoxyCodeLine{00158\ \textcolor{comment}{//\ All\ empty\ \`{}string\_view`\ objects\ whether\ null\ or\ not,\ are\ equal:}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ \ \ absl::string\_view()\ ==\ absl::string\_view("{}"{},\ 0)}}
+\DoxyCodeLine{00161\ \textcolor{comment}{//\ \ \ absl::string\_view(nullptr,\ 0)\ ==\ absl::string\_view("{}abcdef"{}+6,\ 0)}}
+\DoxyCodeLine{00162\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a06c5a3a8fae3fd73ffecd65b03c17059}{ABSL\_ATTRIBUTE\_VIEW}}\ \mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ \{}
+\DoxyCodeLine{00163\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00164\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_afb5413b947d151cb8850c9d123b6dfb7}{traits\_type}}\ =\ std::char\_traits<char>;}
+\DoxyCodeLine{00165\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a1ecaa4779c9748602fbdac2c252a1152}{value\_type}}\ =\ char;}
+\DoxyCodeLine{00166\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a67889f90d20448ce0ccea4f30b498b48}{pointer}}\ =\ \mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<char*>}};}
+\DoxyCodeLine{00167\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a51425264190c5ba43d0d5153227bed1a}{const\_pointer}}\ =\ \mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ char*>}};}
+\DoxyCodeLine{00168\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a45a13d02bb974f959d2f9a940f94a384}{reference}}\ =\ \textcolor{keywordtype}{char}\&;}
+\DoxyCodeLine{00169\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a1d3d5c37422e5ee994acd251f552520f}{const\_reference}}\ =\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}\&;}
+\DoxyCodeLine{00170\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a78cdcba8fd842f9254509fd972a26a78}{const\_iterator}}\ =\ \mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ char*>}};}
+\DoxyCodeLine{00171\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a1c691b54db8eaad5d507932242df43f3}{iterator}}\ =\ \mbox{\hyperlink{classabsl_1_1string__view_a78cdcba8fd842f9254509fd972a26a78}{const\_iterator}};}
+\DoxyCodeLine{00172\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a8c2151768484273ec3c2b813e6ed5c25}{const\_reverse\_iterator}}\ =\ std::reverse\_iterator<const\_iterator>;}
+\DoxyCodeLine{00173\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a1e983924b79df30228c3f6610e8cf000}{reverse\_iterator}}\ =\ \mbox{\hyperlink{classabsl_1_1string__view_a8c2151768484273ec3c2b813e6ed5c25}{const\_reverse\_iterator}};}
+\DoxyCodeLine{00174\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ =\ size\_t;}
+\DoxyCodeLine{00175\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_aa8483ce282ea1b9a0a59b553b8284964}{difference\_type}}\ =\ std::ptrdiff\_t;}
+\DoxyCodeLine{00176\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{classabsl_1_1string__view_ae640f9b75129832268b6289abbe3092f}{absl\_internal\_is\_view}}\ =\ std::true\_type;}
+\DoxyCodeLine{00177\ }
+\DoxyCodeLine{00178\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ npos\ =\ \textcolor{keyword}{static\_cast<}\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\textcolor{keyword}{>}(-\/1);}
+\DoxyCodeLine{00179\ }
+\DoxyCodeLine{00180\ \ \ \textcolor{comment}{//\ Null\ \`{}string\_view`\ constructor}}
+\DoxyCodeLine{00181\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a535dfb73ac874335614dfe53acf0ce69}{string\_view}}()\ noexcept\ :\ ptr\_(\textcolor{keywordtype}{nullptr}),\ length\_(0)\ \{\}}
+\DoxyCodeLine{00182\ }
+\DoxyCodeLine{00183\ \ \ \textcolor{comment}{//\ Implicit\ constructors}}
+\DoxyCodeLine{00184\ }
+\DoxyCodeLine{00185\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Allocator>}
+\DoxyCodeLine{00186\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a71f10f023f592a80b33352b95e5174e5}{string\_view}}(\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00187\ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::basic\_string<\textcolor{keywordtype}{char},\ std::char\_traits<char>,\ Allocator>\&\ str}
+\DoxyCodeLine{00188\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a479d3e7804d4917ff3b309b92e4f4b6d}{ABSL\_ATTRIBUTE\_LIFETIME\_BOUND}})\ \textcolor{keyword}{noexcept}}
+\DoxyCodeLine{00189\ \ \ \ \ \ \ \textcolor{comment}{//\ This\ is\ implemented\ in\ terms\ of\ \`{}string\_view(p,\ n)`\ so\ \`{}str.size()`}}
+\DoxyCodeLine{00190\ \ \ \ \ \ \ \textcolor{comment}{//\ doesn't\ need\ to\ be\ reevaluated\ after\ \`{}ptr\_`\ is\ set.}}
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \textcolor{comment}{//\ The\ length\ check\ is\ also\ skipped\ since\ it\ is\ unnecessary\ and\ causes}}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ \textcolor{comment}{//\ code\ bloat.}}
+\DoxyCodeLine{00193\ \ \ \ \ \ \ :\ \mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(str.data(),\ str.size(),\ SkipCheckLengthTag\{\})\ \{\}}
+\DoxyCodeLine{00194\ }
+\DoxyCodeLine{00195\ \ \ \textcolor{comment}{//\ Implicit\ constructor\ of\ a\ \`{}string\_view`\ from\ NUL-\/terminated\ \`{}str`.\ When}}
+\DoxyCodeLine{00196\ \ \ \textcolor{comment}{//\ accepting\ possibly\ null\ strings,\ use\ \`{}absl::NullSafeStringView(str)`}}
+\DoxyCodeLine{00197\ \ \ \textcolor{comment}{//\ instead\ (see\ below).}}
+\DoxyCodeLine{00198\ \ \ \textcolor{comment}{//\ The\ length\ check\ is\ skipped\ since\ it\ is\ unnecessary\ and\ causes\ code\ bloat.}}
+\DoxyCodeLine{00199\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a4014beba6277cb40084140fce4b4efb0}{string\_view}}(\ \ \textcolor{comment}{//\ NOLINT(runtime/explicit)}}
+\DoxyCodeLine{00200\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ str)}
+\DoxyCodeLine{00201\ \ \ \ \ \ \ :\ ptr\_(str),\ length\_(str\ ?\ StrlenInternal(str)\ :\ 0)\ \{\}}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \ \ \textcolor{comment}{//\ Constructor\ of\ a\ \`{}string\_view`\ from\ a\ \`{}const\ char*`\ and\ length.}}
+\DoxyCodeLine{00204\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a972f0d3290fe2f3330f5f75385352d78}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ char*>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}},\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}})}
+\DoxyCodeLine{00205\ \ \ \ \ \ \ :\ ptr\_(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}),\ length\_(CheckLengthInternal(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}))\ \{\}}
+\DoxyCodeLine{00206\ }
+\DoxyCodeLine{00207\ \ \ \textcolor{comment}{//\ NOTE:\ Harmlessly\ omitted\ to\ work\ around\ gdb\ bug.}}
+\DoxyCodeLine{00208\ \ \ \textcolor{comment}{//\ \ \ constexpr\ string\_view(const\ string\_view\&)\ noexcept\ =\ default;}}
+\DoxyCodeLine{00209\ \ \ \textcolor{comment}{//\ \ \ string\_view\&\ operator=(const\ string\_view\&)\ noexcept\ =\ default;}}
+\DoxyCodeLine{00210\ }
+\DoxyCodeLine{00211\ \ \ \textcolor{comment}{//\ Iterators}}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \ \ \textcolor{comment}{//\ string\_view::begin()}}
+\DoxyCodeLine{00214\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00215\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ pointing\ to\ the\ first\ character\ at\ the\ beginning\ of\ the}}
+\DoxyCodeLine{00216\ \ \ \textcolor{comment}{//\ \`{}string\_view`,\ or\ \`{}end()`\ if\ the\ \`{}string\_view`\ is\ empty.}}
+\DoxyCodeLine{00217\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a78cdcba8fd842f9254509fd972a26a78}{const\_iterator}}\ \mbox{\hyperlink{classabsl_1_1string__view_af54f993a2d24505ad3e83f96b550f778}{begin}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ ptr\_;\ \}}
+\DoxyCodeLine{00218\ }
+\DoxyCodeLine{00219\ \ \ \textcolor{comment}{//\ string\_view::end()}}
+\DoxyCodeLine{00220\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00221\ \ \ \textcolor{comment}{//\ Returns\ an\ iterator\ pointing\ just\ beyond\ the\ last\ character\ at\ the\ end\ of}}
+\DoxyCodeLine{00222\ \ \ \textcolor{comment}{//\ the\ \`{}string\_view`.\ This\ iterator\ acts\ as\ a\ placeholder;\ attempting\ to}}
+\DoxyCodeLine{00223\ \ \ \textcolor{comment}{//\ access\ it\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00224\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a78cdcba8fd842f9254509fd972a26a78}{const\_iterator}}\ \mbox{\hyperlink{classabsl_1_1string__view_ae11a3e8582fe4958223a68e811aee233}{end}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ ptr\_\ +\ length\_;\ \}}
+\DoxyCodeLine{00225\ }
+\DoxyCodeLine{00226\ \ \ \textcolor{comment}{//\ string\_view::cbegin()}}
+\DoxyCodeLine{00227\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00228\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ pointing\ to\ the\ first\ character\ at\ the\ beginning}}
+\DoxyCodeLine{00229\ \ \ \textcolor{comment}{//\ of\ the\ \`{}string\_view`,\ or\ \`{}end()`\ if\ the\ \`{}string\_view`\ is\ empty.}}
+\DoxyCodeLine{00230\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a78cdcba8fd842f9254509fd972a26a78}{const\_iterator}}\ \mbox{\hyperlink{classabsl_1_1string__view_aef86d7875e1142df708a5c015d6b81ac}{cbegin}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_aa9f974458dc400bd897fe724a13dcd47}{begin}}();\ \}}
+\DoxyCodeLine{00231\ }
+\DoxyCodeLine{00232\ \ \ \textcolor{comment}{//\ string\_view::cend()}}
+\DoxyCodeLine{00233\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00234\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ iterator\ pointing\ just\ beyond\ the\ last\ character\ at\ the\ end}}
+\DoxyCodeLine{00235\ \ \ \textcolor{comment}{//\ of\ the\ \`{}string\_view`.\ This\ pointer\ acts\ as\ a\ placeholder;\ attempting\ to}}
+\DoxyCodeLine{00236\ \ \ \textcolor{comment}{//\ access\ its\ element\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00237\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a78cdcba8fd842f9254509fd972a26a78}{const\_iterator}}\ \mbox{\hyperlink{classabsl_1_1string__view_a354c9cc5d32f350b3ec5ec1bfcd2a6bd}{cend}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}}();\ \}}
+\DoxyCodeLine{00238\ }
+\DoxyCodeLine{00239\ \ \ \textcolor{comment}{//\ string\_view::rbegin()}}
+\DoxyCodeLine{00240\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00241\ \ \ \textcolor{comment}{//\ Returns\ a\ reverse\ iterator\ pointing\ to\ the\ last\ character\ at\ the\ end\ of\ the}}
+\DoxyCodeLine{00242\ \ \ \textcolor{comment}{//\ \`{}string\_view`,\ or\ \`{}rend()`\ if\ the\ \`{}string\_view`\ is\ empty.}}
+\DoxyCodeLine{00243\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a8c2151768484273ec3c2b813e6ed5c25}{const\_reverse\_iterator}}\ \mbox{\hyperlink{classabsl_1_1string__view_adfadd20915a73db9b608497d446d4eda}{rbegin}}()\ const\ noexcept\ \{}
+\DoxyCodeLine{00244\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1string__view_a8c2151768484273ec3c2b813e6ed5c25}{const\_reverse\_iterator}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_a8fd806ad19b8f5513a4cf18cbf77532c}{end}}());}
+\DoxyCodeLine{00245\ \ \ \}}
+\DoxyCodeLine{00246\ }
+\DoxyCodeLine{00247\ \ \ \textcolor{comment}{//\ string\_view::rend()}}
+\DoxyCodeLine{00248\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00249\ \ \ \textcolor{comment}{//\ Returns\ a\ reverse\ iterator\ pointing\ just\ before\ the\ first\ character\ at\ the}}
+\DoxyCodeLine{00250\ \ \ \textcolor{comment}{//\ beginning\ of\ the\ \`{}string\_view`.\ This\ pointer\ acts\ as\ a\ placeholder;}}
+\DoxyCodeLine{00251\ \ \ \textcolor{comment}{//\ attempting\ to\ access\ its\ element\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00252\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a8c2151768484273ec3c2b813e6ed5c25}{const\_reverse\_iterator}}\ \mbox{\hyperlink{classabsl_1_1string__view_a5e0bb06f2851d9c18643baf26ed7fe6c}{rend}}()\ const\ noexcept\ \{}
+\DoxyCodeLine{00253\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1string__view_a8c2151768484273ec3c2b813e6ed5c25}{const\_reverse\_iterator}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_aa9f974458dc400bd897fe724a13dcd47}{begin}}());}
+\DoxyCodeLine{00254\ \ \ \}}
+\DoxyCodeLine{00255\ }
+\DoxyCodeLine{00256\ \ \ \textcolor{comment}{//\ string\_view::crbegin()}}
+\DoxyCodeLine{00257\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00258\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ reverse\ iterator\ pointing\ to\ the\ last\ character\ at\ the\ end}}
+\DoxyCodeLine{00259\ \ \ \textcolor{comment}{//\ of\ the\ \`{}string\_view`,\ or\ \`{}crend()`\ if\ the\ \`{}string\_view`\ is\ empty.}}
+\DoxyCodeLine{00260\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a8c2151768484273ec3c2b813e6ed5c25}{const\_reverse\_iterator}}\ \mbox{\hyperlink{classabsl_1_1string__view_ad8faaf821e89a4be84883eb020b3bb21}{crbegin}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ rbegin();\ \}}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \ \ \textcolor{comment}{//\ string\_view::crend()}}
+\DoxyCodeLine{00263\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00264\ \ \ \textcolor{comment}{//\ Returns\ a\ const\ reverse\ iterator\ pointing\ just\ before\ the\ first\ character}}
+\DoxyCodeLine{00265\ \ \ \textcolor{comment}{//\ at\ the\ beginning\ of\ the\ \`{}string\_view`.\ This\ pointer\ acts\ as\ a\ placeholder;}}
+\DoxyCodeLine{00266\ \ \ \textcolor{comment}{//\ attempting\ to\ access\ its\ element\ results\ in\ undefined\ behavior.}}
+\DoxyCodeLine{00267\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a8c2151768484273ec3c2b813e6ed5c25}{const\_reverse\_iterator}}\ \mbox{\hyperlink{classabsl_1_1string__view_ad129682a326fffe1d04fa6b26ba33b5c}{crend}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ rend();\ \}}
+\DoxyCodeLine{00268\ }
+\DoxyCodeLine{00269\ \ \ \textcolor{comment}{//\ Capacity\ Utilities}}
+\DoxyCodeLine{00270\ }
+\DoxyCodeLine{00271\ \ \ \textcolor{comment}{//\ string\_view::size()}}
+\DoxyCodeLine{00272\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00273\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ characters\ in\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00274\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a3950f228eccec8f88e34b9a90ad94428}{size}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ length\_;\ \}}
+\DoxyCodeLine{00275\ }
+\DoxyCodeLine{00276\ \ \ \textcolor{comment}{//\ string\_view::length()}}
+\DoxyCodeLine{00277\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00278\ \ \ \textcolor{comment}{//\ Returns\ the\ number\ of\ characters\ in\ the\ \`{}string\_view`.\ Alias\ for\ \`{}size()`.}}
+\DoxyCodeLine{00279\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a3dd6c567a7bb3cb12763017d275b0f68}{length}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}();\ \}}
+\DoxyCodeLine{00280\ }
+\DoxyCodeLine{00281\ \ \ \textcolor{comment}{//\ string\_view::max\_size()}}
+\DoxyCodeLine{00282\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00283\ \ \ \textcolor{comment}{//\ Returns\ the\ maximum\ number\ of\ characters\ the\ \`{}string\_view`\ can\ hold.}}
+\DoxyCodeLine{00284\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a63d00e94cfa881da9de429b0ead03771}{max\_size}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ kMaxSize;\ \}}
+\DoxyCodeLine{00285\ }
+\DoxyCodeLine{00286\ \ \ \textcolor{comment}{//\ string\_view::empty()}}
+\DoxyCodeLine{00287\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00288\ \ \ \textcolor{comment}{//\ Checks\ if\ the\ \`{}string\_view`\ is\ empty\ (refers\ to\ no\ characters).}}
+\DoxyCodeLine{00289\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1string__view_afd8bd29b979f1655dea7e5fd8431162d}{empty}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ length\_\ ==\ 0;\ \}}
+\DoxyCodeLine{00290\ }
+\DoxyCodeLine{00291\ \ \ \textcolor{comment}{//\ string\_view::operator[]}}
+\DoxyCodeLine{00292\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00293\ \ \ \textcolor{comment}{//\ Returns\ the\ ith\ element\ of\ the\ \`{}string\_view`\ using\ the\ array\ operator.}}
+\DoxyCodeLine{00294\ \ \ \textcolor{comment}{//\ Note\ that\ this\ operator\ does\ not\ perform\ any\ bounds\ checking.}}
+\DoxyCodeLine{00295\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a1d3d5c37422e5ee994acd251f552520f}{const\_reference}}\ \mbox{\hyperlink{classabsl_1_1string__view_a1f64f163dc6171cb21b296b55abea540}{operator[]}}(\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00296\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ <\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()),\ ptr\_[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00297\ \ \ \}}
+\DoxyCodeLine{00298\ }
+\DoxyCodeLine{00299\ \ \ \textcolor{comment}{//\ string\_view::at()}}
+\DoxyCodeLine{00300\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00301\ \ \ \textcolor{comment}{//\ Returns\ the\ ith\ element\ of\ the\ \`{}string\_view`.\ Bounds\ checking\ is\ performed,}}
+\DoxyCodeLine{00302\ \ \ \textcolor{comment}{//\ and\ an\ exception\ of\ type\ \`{}std::out\_of\_range`\ will\ be\ thrown\ on\ invalid}}
+\DoxyCodeLine{00303\ \ \ \textcolor{comment}{//\ access.}}
+\DoxyCodeLine{00304\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a1d3d5c37422e5ee994acd251f552520f}{const\_reference}}\ \mbox{\hyperlink{classabsl_1_1string__view_a6e04b4c017d8ecb3158f591d209a0c3c}{at}}(\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00305\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}\ >=\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()))\ \{}
+\DoxyCodeLine{00306\ \ \ \ \ \ \ base\_internal::ThrowStdOutOfRange(\textcolor{stringliteral}{"{}absl::string\_view::at"{}});}
+\DoxyCodeLine{00307\ \ \ \ \ \}}
+\DoxyCodeLine{00308\ \ \ \ \ \textcolor{keywordflow}{return}\ ptr\_[\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}];}
+\DoxyCodeLine{00309\ \ \ \}}
+\DoxyCodeLine{00310\ }
+\DoxyCodeLine{00311\ \ \ \textcolor{comment}{//\ string\_view::front()}}
+\DoxyCodeLine{00312\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00313\ \ \ \textcolor{comment}{//\ Returns\ the\ first\ element\ of\ a\ \`{}string\_view`.}}
+\DoxyCodeLine{00314\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a1d3d5c37422e5ee994acd251f552520f}{const\_reference}}\ \mbox{\hyperlink{classabsl_1_1string__view_ae0a372bb333dee1a5b427612fecf4530}{front}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00315\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(!empty()),\ ptr\_[0];}
+\DoxyCodeLine{00316\ \ \ \}}
+\DoxyCodeLine{00317\ }
+\DoxyCodeLine{00318\ \ \ \textcolor{comment}{//\ string\_view::back()}}
+\DoxyCodeLine{00319\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00320\ \ \ \textcolor{comment}{//\ Returns\ the\ last\ element\ of\ a\ \`{}string\_view`.}}
+\DoxyCodeLine{00321\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a1d3d5c37422e5ee994acd251f552520f}{const\_reference}}\ \mbox{\hyperlink{classabsl_1_1string__view_afa965d7e09e144267e81b3f5e9428b07}{back}}()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00322\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(!empty()),\ ptr\_[\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ -\/\ 1];}
+\DoxyCodeLine{00323\ \ \ \}}
+\DoxyCodeLine{00324\ }
+\DoxyCodeLine{00325\ \ \ \textcolor{comment}{//\ string\_view::data()}}
+\DoxyCodeLine{00326\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00327\ \ \ \textcolor{comment}{//\ Returns\ a\ pointer\ to\ the\ underlying\ character\ array\ (which\ is\ of\ course}}
+\DoxyCodeLine{00328\ \ \ \textcolor{comment}{//\ stored\ elsewhere).\ Note\ that\ \`{}string\_view::data()`\ may\ contain\ embedded\ nul}}
+\DoxyCodeLine{00329\ \ \ \textcolor{comment}{//\ characters,\ but\ the\ returned\ buffer\ may\ or\ may\ not\ be\ NUL-\/terminated;}}
+\DoxyCodeLine{00330\ \ \ \textcolor{comment}{//\ therefore,\ do\ not\ pass\ \`{}data()`\ to\ a\ routine\ that\ expects\ a\ NUL-\/terminated}}
+\DoxyCodeLine{00331\ \ \ \textcolor{comment}{//\ string.}}
+\DoxyCodeLine{00332\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view_a51425264190c5ba43d0d5153227bed1a}{const\_pointer}}\ \mbox{\hyperlink{classabsl_1_1string__view_acdd63d87adecc9cb89e3bb2c4efedf47}{data}}()\ const\ noexcept\ \{\ \textcolor{keywordflow}{return}\ ptr\_;\ \}}
+\DoxyCodeLine{00333\ }
+\DoxyCodeLine{00334\ \ \ \textcolor{comment}{//\ Modifiers}}
+\DoxyCodeLine{00335\ }
+\DoxyCodeLine{00336\ \ \ \textcolor{comment}{//\ string\_view::remove\_prefix()}}
+\DoxyCodeLine{00337\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00338\ \ \ \textcolor{comment}{//\ Removes\ the\ first\ \`{}n`\ characters\ from\ the\ \`{}string\_view`.\ Note\ that\ the}}
+\DoxyCodeLine{00339\ \ \ \textcolor{comment}{//\ underlying\ string\ is\ not\ changed,\ only\ the\ view.}}
+\DoxyCodeLine{00340\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1string__view_a1d78bb13f0549184f3736331e2c3654d}{remove\_prefix}}(\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ \{}
+\DoxyCodeLine{00341\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ <=\ length\_);}
+\DoxyCodeLine{00342\ \ \ \ \ ptr\_\ +=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00343\ \ \ \ \ length\_\ -\/=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00344\ \ \ \}}
+\DoxyCodeLine{00345\ }
+\DoxyCodeLine{00346\ \ \ \textcolor{comment}{//\ string\_view::remove\_suffix()}}
+\DoxyCodeLine{00347\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00348\ \ \ \textcolor{comment}{//\ Removes\ the\ last\ \`{}n`\ characters\ from\ the\ \`{}string\_view`.\ Note\ that\ the}}
+\DoxyCodeLine{00349\ \ \ \textcolor{comment}{//\ underlying\ string\ is\ not\ changed,\ only\ the\ view.}}
+\DoxyCodeLine{00350\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1string__view_a94220be4ae78c3e42cc84c7660e0f455}{remove\_suffix}}(\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}})\ \{}
+\DoxyCodeLine{00351\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ <=\ length\_);}
+\DoxyCodeLine{00352\ \ \ \ \ length\_\ -\/=\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}};}
+\DoxyCodeLine{00353\ \ \ \}}
+\DoxyCodeLine{00354\ }
+\DoxyCodeLine{00355\ \ \ \textcolor{comment}{//\ string\_view::swap()}}
+\DoxyCodeLine{00356\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00357\ \ \ \textcolor{comment}{//\ Swaps\ this\ \`{}string\_view`\ with\ another\ \`{}string\_view`.}}
+\DoxyCodeLine{00358\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1string__view_a8b429f78f4aa5dad447840e429e9464d}{swap}}(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\&\ s)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00359\ \ \ \ \ \textcolor{keyword}{auto}\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}}\ =\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{00360\ \ \ \ \ *\textcolor{keyword}{this}\ =\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}};}
+\DoxyCodeLine{00361\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}\ =\ \mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}};}
+\DoxyCodeLine{00362\ \ \ \}}
+\DoxyCodeLine{00363\ }
+\DoxyCodeLine{00364\ \ \ \textcolor{comment}{//\ Explicit\ conversion\ operators}}
+\DoxyCodeLine{00365\ }
+\DoxyCodeLine{00366\ \ \ \textcolor{comment}{//\ Converts\ to\ \`{}std::basic\_string`.}}
+\DoxyCodeLine{00367\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ A>}
+\DoxyCodeLine{00368\ \ \ \textcolor{keyword}{explicit}\ \textcolor{keyword}{operator}\ std::basic\_string<char,\ traits\_type,\ A>()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00369\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}())\ \textcolor{keywordflow}{return}\ \{\};}
+\DoxyCodeLine{00370\ \ \ \ \ \textcolor{keywordflow}{return}\ std::basic\_string<char,\ traits\_type,\ A>(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}(),\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}());}
+\DoxyCodeLine{00371\ \ \ \}}
+\DoxyCodeLine{00372\ }
+\DoxyCodeLine{00373\ \ \ \textcolor{comment}{//\ string\_view::copy()}}
+\DoxyCodeLine{00374\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00375\ \ \ \textcolor{comment}{//\ Copies\ the\ contents\ of\ the\ \`{}string\_view`\ at\ offset\ \`{}pos`\ and\ length\ \`{}n`}}
+\DoxyCodeLine{00376\ \ \ \textcolor{comment}{//\ into\ \`{}buf`.}}
+\DoxyCodeLine{00377\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_af3910ae6fe618d3cca91f9eb588d3dd8}{copy}}(\textcolor{keywordtype}{char}*\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}},\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00378\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(pos\ >\ length\_))\ \{}
+\DoxyCodeLine{00379\ \ \ \ \ \ \ base\_internal::ThrowStdOutOfRange(\textcolor{stringliteral}{"{}absl::string\_view::copy"{}});}
+\DoxyCodeLine{00380\ \ \ \ \ \}}
+\DoxyCodeLine{00381\ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ rlen\ =\ (std::min)(length\_\ -\/\ pos,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}});}
+\DoxyCodeLine{00382\ \ \ \ \ \textcolor{keywordflow}{if}\ (rlen\ >\ 0)\ \{}
+\DoxyCodeLine{00383\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ start\ =\ ptr\_\ +\ pos;}
+\DoxyCodeLine{00384\ \ \ \ \ \ \ traits\_type::copy(\mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}},\ start,\ rlen);}
+\DoxyCodeLine{00385\ \ \ \ \ \}}
+\DoxyCodeLine{00386\ \ \ \ \ \textcolor{keywordflow}{return}\ rlen;}
+\DoxyCodeLine{00387\ \ \ \}}
+\DoxyCodeLine{00388\ }
+\DoxyCodeLine{00389\ \ \ \textcolor{comment}{//\ string\_view::substr()}}
+\DoxyCodeLine{00390\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00391\ \ \ \textcolor{comment}{//\ Returns\ a\ "{}substring"{}\ of\ the\ \`{}string\_view`\ (at\ offset\ \`{}pos`\ and\ length}}
+\DoxyCodeLine{00392\ \ \ \textcolor{comment}{//\ \`{}n`)\ as\ another\ string\_view.\ This\ function\ throws\ \`{}std::out\_of\_bounds`\ if}}
+\DoxyCodeLine{00393\ \ \ \textcolor{comment}{//\ \`{}pos\ >\ size`.}}
+\DoxyCodeLine{00394\ \ \ \textcolor{comment}{//\ Use\ absl::ClippedSubstr\ if\ you\ need\ a\ truncating\ substr\ operation.}}
+\DoxyCodeLine{00395\ \ \ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ \mbox{\hyperlink{classabsl_1_1string__view_a61929025b41349e63db522ea90f7bc7c}{substr}}(\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}}\ =\ npos)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00396\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a7de82b630fc76606a15c23483680a6a1}{ABSL\_PREDICT\_FALSE}}(pos\ >\ length\_))\ \{}
+\DoxyCodeLine{00397\ \ \ \ \ \ \ base\_internal::ThrowStdOutOfRange(\textcolor{stringliteral}{"{}absl::string\_view::substr"{}});}
+\DoxyCodeLine{00398\ \ \ \ \ \}}
+\DoxyCodeLine{00399\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(ptr\_\ +\ pos,\ Min(\mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a76f11d9a0a47b94f72c2d0e77fb32240}{n}},\ length\_\ -\/\ pos));}
+\DoxyCodeLine{00400\ \ \ \}}
+\DoxyCodeLine{00401\ }
+\DoxyCodeLine{00402\ \ \ \textcolor{comment}{//\ string\_view::compare()}}
+\DoxyCodeLine{00403\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00404\ \ \ \textcolor{comment}{//\ Performs\ a\ lexicographical\ comparison\ between\ this\ \`{}string\_view`\ and}}
+\DoxyCodeLine{00405\ \ \ \textcolor{comment}{//\ another\ \`{}string\_view`\ \`{}x`,\ returning\ a\ negative\ value\ if\ \`{}*this`\ is\ less}}
+\DoxyCodeLine{00406\ \ \ \textcolor{comment}{//\ than\ \`{}x`,\ 0\ if\ \`{}*this`\ is\ equal\ to\ \`{}x`,\ and\ a\ positive\ value\ if\ \`{}*this`}}
+\DoxyCodeLine{00407\ \ \ \textcolor{comment}{//\ is\ greater\ than\ \`{}x`.}}
+\DoxyCodeLine{00408\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1string__view_afdca90e80a4ea2e2d63133074fe4229e}{compare}}(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ x)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00409\ \ \ \ \ \textcolor{keywordflow}{return}\ CompareImpl(length\_,\ x.length\_,}
+\DoxyCodeLine{00410\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Min(length\_,\ x.length\_)\ ==\ 0}
+\DoxyCodeLine{00411\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ 0}
+\DoxyCodeLine{00412\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2string__view_8h_ace2f52dbcaac68a4c0da6876fcb8db60}{ABSL\_INTERNAL\_STRING\_VIEW\_MEMCMP}}(}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ptr\_,\ x.ptr\_,\ Min(length\_,\ x.length\_)));}
+\DoxyCodeLine{00414\ \ \ \}}
+\DoxyCodeLine{00415\ }
+\DoxyCodeLine{00416\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::compare()`\ for\ comparing\ a\ substring\ of\ the}}
+\DoxyCodeLine{00417\ \ \ \textcolor{comment}{//\ 'string\_view`\ and\ another\ \`{}absl::string\_view`.}}
+\DoxyCodeLine{00418\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1string__view_a48889d2a117f408b545741d144e9f620}{compare}}(\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos1,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ count1,\ \mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ v)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00419\ \ \ \ \ \textcolor{keywordflow}{return}\ substr(pos1,\ count1).compare(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}});}
+\DoxyCodeLine{00420\ \ \ \}}
+\DoxyCodeLine{00421\ }
+\DoxyCodeLine{00422\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::compare()`\ for\ comparing\ a\ substring\ of\ the}}
+\DoxyCodeLine{00423\ \ \ \textcolor{comment}{//\ \`{}string\_view`\ and\ a\ substring\ of\ another\ \`{}absl::string\_view`.}}
+\DoxyCodeLine{00424\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1string__view_a3de3741b45c39ab81e0d5c4b077cb0fb}{compare}}(\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos1,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ count1,\ \mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ v,}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos2,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ count2)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00426\ \ \ \ \ \textcolor{keywordflow}{return}\ substr(pos1,\ count1).compare(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.substr(pos2,\ count2));}
+\DoxyCodeLine{00427\ \ \ \}}
+\DoxyCodeLine{00428\ }
+\DoxyCodeLine{00429\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::compare()`\ for\ comparing\ a\ \`{}string\_view`\ and\ a}}
+\DoxyCodeLine{00430\ \ \ \textcolor{comment}{//\ a\ different\ C-\/style\ string\ \`{}s`.}}
+\DoxyCodeLine{00431\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1string__view_a8dfbd90974a62985e6dfb369cfc9be96}{compare}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00432\ \ \ \ \ \textcolor{keywordflow}{return}\ compare(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}));}
+\DoxyCodeLine{00433\ \ \ \}}
+\DoxyCodeLine{00434\ }
+\DoxyCodeLine{00435\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::compare()`\ for\ comparing\ a\ substring\ of\ the}}
+\DoxyCodeLine{00436\ \ \ \textcolor{comment}{//\ \`{}string\_view`\ and\ a\ different\ string\ C-\/style\ string\ \`{}s`.}}
+\DoxyCodeLine{00437\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1string__view_af7a74e76abec2df01c4944ebe8d7ce1e}{compare}}(\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos1,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ count1,}
+\DoxyCodeLine{00438\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00439\ \ \ \ \ \textcolor{keywordflow}{return}\ substr(pos1,\ count1).compare(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}));}
+\DoxyCodeLine{00440\ \ \ \}}
+\DoxyCodeLine{00441\ }
+\DoxyCodeLine{00442\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::compare()`\ for\ comparing\ a\ substring\ of\ the}}
+\DoxyCodeLine{00443\ \ \ \textcolor{comment}{//\ \`{}string\_view`\ and\ a\ substring\ of\ a\ different\ C-\/style\ string\ \`{}s`.}}
+\DoxyCodeLine{00444\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ \mbox{\hyperlink{classabsl_1_1string__view_a0a367a65261456d629e281e43a04ead7}{compare}}(\mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos1,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ count1,}
+\DoxyCodeLine{00445\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ count2)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00446\ \ \ \ \ \textcolor{keywordflow}{return}\ substr(pos1,\ count1).compare(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ count2));}
+\DoxyCodeLine{00447\ \ \ \}}
+\DoxyCodeLine{00448\ }
+\DoxyCodeLine{00449\ \ \ \textcolor{comment}{//\ Find\ Utilities}}
+\DoxyCodeLine{00450\ }
+\DoxyCodeLine{00451\ \ \ \textcolor{comment}{//\ string\_view::find()}}
+\DoxyCodeLine{00452\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00453\ \ \ \textcolor{comment}{//\ Finds\ the\ first\ occurrence\ of\ the\ substring\ \`{}s`\ within\ the\ \`{}string\_view`,}}
+\DoxyCodeLine{00454\ \ \ \textcolor{comment}{//\ returning\ the\ position\ of\ the\ first\ character's\ match,\ or\ \`{}npos`\ if\ no}}
+\DoxyCodeLine{00455\ \ \ \textcolor{comment}{//\ match\ was\ found.}}
+\DoxyCodeLine{00456\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a9121ea70de6dab2d32ec7deb868379a5}{find}}(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\ const\ noexcept;}
+\DoxyCodeLine{00457\ }
+\DoxyCodeLine{00458\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find()`\ for\ finding\ the\ given\ character\ \`{}c`}}
+\DoxyCodeLine{00459\ \ \ \textcolor{comment}{//\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00460\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ find(\textcolor{keywordtype}{char}\ c,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\ const\ noexcept;}
+\DoxyCodeLine{00461\ }
+\DoxyCodeLine{00462\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find()`\ for\ finding\ a\ substring\ of\ a\ different}}
+\DoxyCodeLine{00463\ \ \ \textcolor{comment}{//\ C-\/style\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00464\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ find(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{Nonnull}}<const\ \textcolor{keywordtype}{char}*>\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos,}
+\DoxyCodeLine{00465\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00466\ \ \ \ \ \textcolor{keywordflow}{return}\ find(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}),\ pos);}
+\DoxyCodeLine{00467\ \ \ \}}
+\DoxyCodeLine{00468\ }
+\DoxyCodeLine{00469\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find()`\ for\ finding\ a\ different\ C-\/style\ string}}
+\DoxyCodeLine{00470\ \ \ \textcolor{comment}{//\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00471\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a46c8533609f393958f72540ec35fc607}{find}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char\ *>}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00472\ \ \ \ \ \textcolor{keywordflow}{return}\ find(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}),\ pos);}
+\DoxyCodeLine{00473\ \ \ \}}
+\DoxyCodeLine{00474\ }
+\DoxyCodeLine{00475\ \ \ \textcolor{comment}{//\ string\_view::rfind()}}
+\DoxyCodeLine{00476\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00477\ \ \ \textcolor{comment}{//\ Finds\ the\ last\ occurrence\ of\ a\ substring\ \`{}s`\ within\ the\ \`{}string\_view`,}}
+\DoxyCodeLine{00478\ \ \ \textcolor{comment}{//\ returning\ the\ position\ of\ the\ first\ character's\ match,\ or\ \`{}npos`\ if\ no}}
+\DoxyCodeLine{00479\ \ \ \textcolor{comment}{//\ match\ was\ found.}}
+\DoxyCodeLine{00480\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_add393531d5189bc0dcefa0ace537aa19}{rfind}}(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ npos)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00481\ }
+\DoxyCodeLine{00482\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::rfind()`\ for\ finding\ the\ last\ given\ character\ \`{}c`}}
+\DoxyCodeLine{00483\ \ \ \textcolor{comment}{//\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00484\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_ab8a2b5b6771b7e5c5b77f21e73dc8c11}{rfind}}(\textcolor{keywordtype}{char}\ c,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ npos)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00485\ }
+\DoxyCodeLine{00486\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::rfind()`\ for\ finding\ a\ substring\ of\ a\ different}}
+\DoxyCodeLine{00487\ \ \ \textcolor{comment}{//\ C-\/style\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00488\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_ac96813c0091252b4fdc50b5d7ad553de}{rfind}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos,}
+\DoxyCodeLine{00489\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00490\ \ \ \ \ \textcolor{keywordflow}{return}\ rfind(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}),\ pos);}
+\DoxyCodeLine{00491\ \ \ \}}
+\DoxyCodeLine{00492\ }
+\DoxyCodeLine{00493\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::rfind()`\ for\ finding\ a\ different\ C-\/style\ string}}
+\DoxyCodeLine{00494\ \ \ \textcolor{comment}{//\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00495\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_ad6e17b6aaeb4cd756311fd3051445a30}{rfind}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ npos)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00496\ \ \ \ \ \textcolor{keywordflow}{return}\ rfind(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}),\ pos);}
+\DoxyCodeLine{00497\ \ \ \}}
+\DoxyCodeLine{00498\ }
+\DoxyCodeLine{00499\ \ \ \textcolor{comment}{//\ string\_view::find\_first\_of()}}
+\DoxyCodeLine{00500\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00501\ \ \ \textcolor{comment}{//\ Finds\ the\ first\ occurrence\ of\ any\ of\ the\ characters\ in\ \`{}s`\ within\ the}}
+\DoxyCodeLine{00502\ \ \ \textcolor{comment}{//\ \`{}string\_view`,\ returning\ the\ start\ position\ of\ the\ match,\ or\ \`{}npos`\ if\ no}}
+\DoxyCodeLine{00503\ \ \ \textcolor{comment}{//\ match\ was\ found.}}
+\DoxyCodeLine{00504\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a40ef25d05120423052e5de08c9a62b80}{find\_first\_of}}(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\ const\ noexcept;}
+\DoxyCodeLine{00505\ }
+\DoxyCodeLine{00506\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_first\_of()`\ for\ finding\ a\ character\ \`{}c`}}
+\DoxyCodeLine{00507\ \ \ \textcolor{comment}{//\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00508\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ find\_first\_of(\textcolor{keywordtype}{char}\ c,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\ const\ noexcept\ \{}
+\DoxyCodeLine{00509\ \ \ \ \ \textcolor{keywordflow}{return}\ find(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ pos);}
+\DoxyCodeLine{00510\ \ \ \}}
+\DoxyCodeLine{00511\ }
+\DoxyCodeLine{00512\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_first\_of()`\ for\ finding\ a\ substring\ of\ a}}
+\DoxyCodeLine{00513\ \ \ \textcolor{comment}{//\ different\ C-\/style\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00514\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a84bbc9152f3475a076f834f89d82440d}{find\_first\_of}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos,}
+\DoxyCodeLine{00515\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00516\ \ \ \ \ \textcolor{keywordflow}{return}\ find\_first\_of(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}),\ pos);}
+\DoxyCodeLine{00517\ \ \ \}}
+\DoxyCodeLine{00518\ }
+\DoxyCodeLine{00519\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_first\_of()`\ for\ finding\ a\ different\ C-\/style}}
+\DoxyCodeLine{00520\ \ \ \textcolor{comment}{//\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00521\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_abec4932a788fe88fdce5ddbd0e010924}{find\_first\_of}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00523\ \ \ \ \ \textcolor{keywordflow}{return}\ find\_first\_of(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}),\ pos);}
+\DoxyCodeLine{00524\ \ \ \}}
+\DoxyCodeLine{00525\ }
+\DoxyCodeLine{00526\ \ \ \textcolor{comment}{//\ string\_view::find\_last\_of()}}
+\DoxyCodeLine{00527\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00528\ \ \ \textcolor{comment}{//\ Finds\ the\ last\ occurrence\ of\ any\ of\ the\ characters\ in\ \`{}s`\ within\ the}}
+\DoxyCodeLine{00529\ \ \ \textcolor{comment}{//\ \`{}string\_view`,\ returning\ the\ start\ position\ of\ the\ match,\ or\ \`{}npos`\ if\ no}}
+\DoxyCodeLine{00530\ \ \ \textcolor{comment}{//\ match\ was\ found.}}
+\DoxyCodeLine{00531\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a7e24f87d6417f6fdd70d3c8ebb48f3fa}{find\_last\_of}}(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ npos)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00532\ }
+\DoxyCodeLine{00533\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_last\_of()`\ for\ finding\ a\ character\ \`{}c`}}
+\DoxyCodeLine{00534\ \ \ \textcolor{comment}{//\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00535\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a0b33754b8448a518a984ab59babe6220}{find\_last\_of}}(\textcolor{keywordtype}{char}\ c,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ npos)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00536\ \ \ \ \ \textcolor{keywordflow}{return}\ rfind(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ pos);}
+\DoxyCodeLine{00537\ \ \ \}}
+\DoxyCodeLine{00538\ }
+\DoxyCodeLine{00539\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_last\_of()`\ for\ finding\ a\ substring\ of\ a}}
+\DoxyCodeLine{00540\ \ \ \textcolor{comment}{//\ different\ C-\/style\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00541\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a966fe73e290fc1b673a61a8100f9783e}{find\_last\_of}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos,}
+\DoxyCodeLine{00542\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00543\ \ \ \ \ \textcolor{keywordflow}{return}\ find\_last\_of(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}),\ pos);}
+\DoxyCodeLine{00544\ \ \ \}}
+\DoxyCodeLine{00545\ }
+\DoxyCodeLine{00546\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_last\_of()`\ for\ finding\ a\ different\ C-\/style}}
+\DoxyCodeLine{00547\ \ \ \textcolor{comment}{//\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00548\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a8e189aabd4a26df82635be0471e50bf9}{find\_last\_of}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,}
+\DoxyCodeLine{00549\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ npos)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00550\ \ \ \ \ \textcolor{keywordflow}{return}\ find\_last\_of(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}),\ pos);}
+\DoxyCodeLine{00551\ \ \ \}}
+\DoxyCodeLine{00552\ }
+\DoxyCodeLine{00553\ \ \ \textcolor{comment}{//\ string\_view::find\_first\_not\_of()}}
+\DoxyCodeLine{00554\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00555\ \ \ \textcolor{comment}{//\ Finds\ the\ first\ occurrence\ of\ any\ of\ the\ characters\ not\ in\ \`{}s`\ within\ the}}
+\DoxyCodeLine{00556\ \ \ \textcolor{comment}{//\ \`{}string\_view`,\ returning\ the\ start\ position\ of\ the\ first\ non-\/match,\ or}}
+\DoxyCodeLine{00557\ \ \ \textcolor{comment}{//\ \`{}npos`\ if\ no\ non-\/match\ was\ found.}}
+\DoxyCodeLine{00558\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a31934394c21b80566b30604252b56fe3}{find\_first\_not\_of}}(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\ const\ noexcept;}
+\DoxyCodeLine{00559\ }
+\DoxyCodeLine{00560\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_first\_not\_of()`\ for\ finding\ a\ character}}
+\DoxyCodeLine{00561\ \ \ \textcolor{comment}{//\ that\ is\ not\ \`{}c`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00562\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ find\_first\_not\_of(\textcolor{keywordtype}{char}\ c,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\ const\ noexcept;}
+\DoxyCodeLine{00563\ }
+\DoxyCodeLine{00564\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_first\_not\_of()`\ for\ finding\ a\ substring\ of\ a}}
+\DoxyCodeLine{00565\ \ \ \textcolor{comment}{//\ different\ C-\/style\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00566\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ find\_first\_not\_of(\mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{Nonnull}}<const\ \textcolor{keywordtype}{char}*>\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos,}
+\DoxyCodeLine{00567\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00568\ \ \ \ \ \textcolor{keywordflow}{return}\ find\_first\_not\_of(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}),\ pos);}
+\DoxyCodeLine{00569\ \ \ \}}
+\DoxyCodeLine{00570\ }
+\DoxyCodeLine{00571\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_first\_not\_of()`\ for\ finding\ a\ different}}
+\DoxyCodeLine{00572\ \ \ \textcolor{comment}{//\ C-\/style\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00573\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_ac9c573e005c489b18d24b96747f73554}{find\_first\_not\_of}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,}
+\DoxyCodeLine{00574\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ 0)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00575\ \ \ \ \ \textcolor{keywordflow}{return}\ find\_first\_not\_of(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}),\ pos);}
+\DoxyCodeLine{00576\ \ \ \}}
+\DoxyCodeLine{00577\ }
+\DoxyCodeLine{00578\ \ \ \textcolor{comment}{//\ string\_view::find\_last\_not\_of()}}
+\DoxyCodeLine{00579\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00580\ \ \ \textcolor{comment}{//\ Finds\ the\ last\ occurrence\ of\ any\ of\ the\ characters\ not\ in\ \`{}s`\ within\ the}}
+\DoxyCodeLine{00581\ \ \ \textcolor{comment}{//\ \`{}string\_view`,\ returning\ the\ start\ position\ of\ the\ last\ non-\/match,\ or}}
+\DoxyCodeLine{00582\ \ \ \textcolor{comment}{//\ \`{}npos`\ if\ no\ non-\/match\ was\ found.}}
+\DoxyCodeLine{00583\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a22246d9afdda69926ed5b145e0a1816b}{find\_last\_not\_of}}(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ s,}
+\DoxyCodeLine{00584\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ npos)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00585\ }
+\DoxyCodeLine{00586\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_last\_not\_of()`\ for\ finding\ a\ character}}
+\DoxyCodeLine{00587\ \ \ \textcolor{comment}{//\ that\ is\ not\ \`{}c`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00588\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_af5290efa82f569e00b14827c221db19c}{find\_last\_not\_of}}(\textcolor{keywordtype}{char}\ c,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ npos)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept};}
+\DoxyCodeLine{00589\ }
+\DoxyCodeLine{00590\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_last\_not\_of()`\ for\ finding\ a\ substring\ of\ a}}
+\DoxyCodeLine{00591\ \ \ \textcolor{comment}{//\ different\ C-\/style\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00592\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_aec8af7c2778e2d6bb9071c263744f7b4}{find\_last\_not\_of}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,\ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos,}
+\DoxyCodeLine{00593\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00594\ \ \ \ \ \textcolor{keywordflow}{return}\ find\_last\_not\_of(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2raw__hash__set__test_8cc_ad43c3812e6d13e0518d9f8b8f463ffcf}{count}}),\ pos);}
+\DoxyCodeLine{00595\ \ \ \}}
+\DoxyCodeLine{00596\ }
+\DoxyCodeLine{00597\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::find\_last\_not\_of()`\ for\ finding\ a\ different}}
+\DoxyCodeLine{00598\ \ \ \textcolor{comment}{//\ C-\/style\ string\ \`{}s`\ within\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00599\ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ \mbox{\hyperlink{classabsl_1_1string__view_a10a4b750af0afb8e46ec3588989a172b}{find\_last\_not\_of}}(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ s,}
+\DoxyCodeLine{00600\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{classabsl_1_1string__view_a5ba6ade1cd700234a76915b1a1c95efc}{size\_type}}\ pos\ =\ npos)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00601\ \ \ \ \ \textcolor{keywordflow}{return}\ find\_last\_not\_of(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}),\ pos);}
+\DoxyCodeLine{00602\ \ \ \}}
+\DoxyCodeLine{00603\ }
+\DoxyCodeLine{00604\ \textcolor{preprocessor}{\#if\ ABSL\_INTERNAL\_CPLUSPLUS\_LANG\ >=\ 202002L}}
+\DoxyCodeLine{00605\ \ \ \textcolor{comment}{//\ string\_view::starts\_with()}}
+\DoxyCodeLine{00606\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00607\ \ \ \textcolor{comment}{//\ Returns\ true\ if\ the\ \`{}string\_view`\ starts\ with\ the\ prefix\ \`{}s`.}}
+\DoxyCodeLine{00608\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00609\ \ \ \textcolor{comment}{//\ This\ method\ only\ exists\ when\ targeting\ at\ least\ C++20.}}
+\DoxyCodeLine{00610\ \ \ \textcolor{comment}{//\ If\ support\ for\ C++\ prior\ to\ C++20\ is\ required,\ use\ \`{}absl::StartsWith()`}}
+\DoxyCodeLine{00611\ \ \ \textcolor{comment}{//\ from\ \`{}//absl/strings/match.h`\ for\ compatibility.}}
+\DoxyCodeLine{00612\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ starts\_with(\mbox{\hyperlink{classabsl_1_1string__view}{string\_view}}\ s)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00613\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.empty()\ ||}
+\DoxyCodeLine{00614\ \ \ \ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ >=\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.size()\ \&\&}
+\DoxyCodeLine{00615\ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2string__view_8h_ace2f52dbcaac68a4c0da6876fcb8db60}{ABSL\_INTERNAL\_STRING\_VIEW\_MEMCMP}}(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.data(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.size())\ ==\ 0);}
+\DoxyCodeLine{00616\ \ \ \}}
+\DoxyCodeLine{00617\ }
+\DoxyCodeLine{00618\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::starts\_with()`\ that\ returns\ true\ if\ \`{}c`\ is\ the}}
+\DoxyCodeLine{00619\ \ \ \textcolor{comment}{//\ first\ character\ of\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00620\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ starts\_with(\textcolor{keywordtype}{char}\ c)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00621\ \ \ \ \ \textcolor{keywordflow}{return}\ !empty()\ \&\&\ front()\ ==\ c;}
+\DoxyCodeLine{00622\ \ \ \}}
+\DoxyCodeLine{00623\ }
+\DoxyCodeLine{00624\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::starts\_with()`\ that\ returns\ true\ if\ the}}
+\DoxyCodeLine{00625\ \ \ \textcolor{comment}{//\ \`{}string\_view`\ starts\ with\ the\ C-\/style\ prefix\ \`{}s`.}}
+\DoxyCodeLine{00626\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ starts\_with(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00627\ \ \ \ \ \textcolor{keywordflow}{return}\ starts\_with(string\_view(s));}
+\DoxyCodeLine{00628\ \ \ \}}
+\DoxyCodeLine{00629\ }
+\DoxyCodeLine{00630\ \ \ \textcolor{comment}{//\ string\_view::ends\_with()}}
+\DoxyCodeLine{00631\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00632\ \ \ \textcolor{comment}{//\ Returns\ true\ if\ the\ \`{}string\_view`\ ends\ with\ the\ suffix\ \`{}s`.}}
+\DoxyCodeLine{00633\ \ \ \textcolor{comment}{//}}
+\DoxyCodeLine{00634\ \ \ \textcolor{comment}{//\ This\ method\ only\ exists\ when\ targeting\ at\ least\ C++20.}}
+\DoxyCodeLine{00635\ \ \ \textcolor{comment}{//\ If\ support\ for\ C++\ prior\ to\ C++20\ is\ required,\ use\ \`{}absl::EndsWith()`}}
+\DoxyCodeLine{00636\ \ \ \textcolor{comment}{//\ from\ \`{}//absl/strings/match.h`\ for\ compatibility.}}
+\DoxyCodeLine{00637\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ ends\_with(string\_view\ s)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00638\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.empty()\ ||\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ >=\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.size()\ \&\&\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2string__view_8h_ace2f52dbcaac68a4c0da6876fcb8db60}{ABSL\_INTERNAL\_STRING\_VIEW\_MEMCMP}}(}
+\DoxyCodeLine{00639\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}()\ +\ (\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc_8cc_aad9b71a31372d5c0ab9c23163efe9544}{size}}()\ -\/\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.size()),}
+\DoxyCodeLine{00640\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.data(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.size())\ ==\ 0);}
+\DoxyCodeLine{00641\ \ \ \}}
+\DoxyCodeLine{00642\ }
+\DoxyCodeLine{00643\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::ends\_with()`\ that\ returns\ true\ if\ \`{}c`\ is\ the}}
+\DoxyCodeLine{00644\ \ \ \textcolor{comment}{//\ last\ character\ of\ the\ \`{}string\_view`.}}
+\DoxyCodeLine{00645\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ ends\_with(\textcolor{keywordtype}{char}\ c)\ \textcolor{keyword}{const}\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00646\ \ \ \ \ \textcolor{keywordflow}{return}\ !empty()\ \&\&\ back()\ ==\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}};}
+\DoxyCodeLine{00647\ \ \ \}}
+\DoxyCodeLine{00648\ }
+\DoxyCodeLine{00649\ \ \ \textcolor{comment}{//\ Overload\ of\ \`{}string\_view::ends\_with()`\ that\ returns\ true\ if\ the}}
+\DoxyCodeLine{00650\ \ \ \textcolor{comment}{//\ \`{}string\_view`\ ends\ with\ the\ C-\/style\ suffix\ \`{}s`.}}
+\DoxyCodeLine{00651\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ ends\_with(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ s)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00652\ \ \ \ \ \textcolor{keywordflow}{return}\ ends\_with(string\_view(s));}
+\DoxyCodeLine{00653\ \ \ \}}
+\DoxyCodeLine{00654\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_INTERNAL\_CPLUSPLUS\_LANG\ >=\ 202002L}}
+\DoxyCodeLine{00655\ }
+\DoxyCodeLine{00656\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00657\ \ \ \textcolor{comment}{//\ The\ constructor\ from\ std::string\ delegates\ to\ this\ constructor.}}
+\DoxyCodeLine{00658\ \ \ \textcolor{comment}{//\ See\ the\ comment\ on\ that\ constructor\ for\ the\ rationale.}}
+\DoxyCodeLine{00659\ \ \ \textcolor{keyword}{struct\ }SkipCheckLengthTag\ \{\};}
+\DoxyCodeLine{00660\ \ \ string\_view(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ char*>}}\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}},\ size\_type\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}},}
+\DoxyCodeLine{00661\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ SkipCheckLengthTag)\ noexcept}
+\DoxyCodeLine{00662\ \ \ \ \ \ \ :\ ptr\_(\mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_adafb71d8f41ef4c3e3d3ccb46fe854c8}{data}}),\ length\_(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}})\ \{\}}
+\DoxyCodeLine{00663\ }
+\DoxyCodeLine{00664\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ size\_type\ kMaxSize\ =}
+\DoxyCodeLine{00665\ \ \ \ \ \ \ (std::numeric\_limits<difference\_type>::max)();}
+\DoxyCodeLine{00666\ }
+\DoxyCodeLine{00667\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ size\_type\ CheckLengthInternal(size\_type\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}})\ \{}
+\DoxyCodeLine{00668\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_ad9db16f751dddd2faa3f7a37154632c6}{ABSL\_HARDENING\_ASSERT}}(\mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}}\ <=\ kMaxSize),\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}};}
+\DoxyCodeLine{00669\ \ \ \}}
+\DoxyCodeLine{00670\ }
+\DoxyCodeLine{00671\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ size\_type\ StrlenInternal(\mbox{\hyperlink{namespaceabsl_a461434045a71362dc05f8df68052ec38}{absl::Nonnull<const\ char*>}}\ str)\ \{}
+\DoxyCodeLine{00672\ \textcolor{preprocessor}{\#if\ defined(\_MSC\_VER)\ \&\&\ !defined(\_\_clang\_\_)}}
+\DoxyCodeLine{00673\ \ \ \ \ \textcolor{comment}{//\ MSVC\ 2017+\ can\ evaluate\ this\ at\ compile-\/time.}}
+\DoxyCodeLine{00674\ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ begin\ =\ \mbox{\hyperlink{namespacefineweb_a641a62d871754cc0f0114a0f593a4067}{str}};}
+\DoxyCodeLine{00675\ \ \ \ \ \textcolor{keywordflow}{while}\ (*str\ !=\ \textcolor{charliteral}{'\(\backslash\)0'})\ ++\mbox{\hyperlink{namespacefineweb_a641a62d871754cc0f0114a0f593a4067}{str}};}
+\DoxyCodeLine{00676\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespacefineweb_a641a62d871754cc0f0114a0f593a4067}{str}}\ -\/\ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2internal_2str__format_2float__conversion_8cc_aa9f974458dc400bd897fe724a13dcd47}{begin}};}
+\DoxyCodeLine{00677\ \textcolor{preprocessor}{\#elif\ ABSL\_HAVE\_BUILTIN(\_\_builtin\_strlen)\ ||\ \(\backslash\)}}
+\DoxyCodeLine{00678\ \textcolor{preprocessor}{\ \ \ \ (defined(\_\_GNUC\_\_)\ \&\&\ !defined(\_\_clang\_\_))}}
+\DoxyCodeLine{00679\ \ \ \ \ \textcolor{comment}{//\ GCC\ has\ \_\_builtin\_strlen\ according\ to}}
+\DoxyCodeLine{00680\ \ \ \ \ \textcolor{comment}{//\ https://gcc.gnu.org/onlinedocs/gcc-\/4.7.0/gcc/Other-\/Builtins.html,\ but}}
+\DoxyCodeLine{00681\ \ \ \ \ \textcolor{comment}{//\ ABSL\_HAVE\_BUILTIN\ doesn't\ detect\ that,\ so\ we\ use\ the\ extra\ checks\ above.}}
+\DoxyCodeLine{00682\ \ \ \ \ \textcolor{comment}{//\ \_\_builtin\_strlen\ is\ constexpr.}}
+\DoxyCodeLine{00683\ \ \ \ \ \textcolor{keywordflow}{return}\ \_\_builtin\_strlen(str);}
+\DoxyCodeLine{00684\ \textcolor{preprocessor}{\#else}}
+\DoxyCodeLine{00685\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespacefineweb_a641a62d871754cc0f0114a0f593a4067}{str}}\ ?\ strlen(str)\ :\ 0;}
+\DoxyCodeLine{00686\ \textcolor{preprocessor}{\#endif}}
+\DoxyCodeLine{00687\ \ \ \}}
+\DoxyCodeLine{00688\ }
+\DoxyCodeLine{00689\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1internal__layout_1_1adl__barrier_af3c667aae08dbc5d4820c66feb199c7e}{Min}}(size\_type\ length\_a,\ size\_type\ length\_b)\ \{}
+\DoxyCodeLine{00690\ \ \ \ \ \textcolor{keywordflow}{return}\ length\_a\ <\ length\_b\ ?\ length\_a\ :\ length\_b;}
+\DoxyCodeLine{00691\ \ \ \}}
+\DoxyCodeLine{00692\ }
+\DoxyCodeLine{00693\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{int}\ CompareImpl(size\_type\ length\_a,\ size\_type\ length\_b,}
+\DoxyCodeLine{00694\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}\ compare\_result)\ \{}
+\DoxyCodeLine{00695\ \ \ \ \ \textcolor{keywordflow}{return}\ compare\_result\ ==\ 0\ ?\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(length\_a\ >\ length\_b)\ -\/}
+\DoxyCodeLine{00696\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{int}\textcolor{keyword}{>}(length\_a\ <\ length\_b)}
+\DoxyCodeLine{00697\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ (compare\_result\ <\ 0\ ?\ -\/1\ :\ 1);}
+\DoxyCodeLine{00698\ \ \ \}}
+\DoxyCodeLine{00699\ }
+\DoxyCodeLine{00700\ \ \ \mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ char*>}}\ ptr\_;}
+\DoxyCodeLine{00701\ \ \ size\_type\ length\_;}
+\DoxyCodeLine{00702\ \};}
+\DoxyCodeLine{00703\ }
+\DoxyCodeLine{00704\ \textcolor{comment}{//\ This\ large\ function\ is\ defined\ inline\ so\ that\ in\ a\ fairly\ common\ case\ where}}
+\DoxyCodeLine{00705\ \textcolor{comment}{//\ one\ of\ the\ arguments\ is\ a\ literal,\ the\ compiler\ can\ elide\ a\ lot\ of\ the}}
+\DoxyCodeLine{00706\ \textcolor{comment}{//\ following\ comparisons.}}
+\DoxyCodeLine{00707\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a6e23a3339a264413328c9a0ce0896eac}{operator==}}(string\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ string\_view\ y)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00708\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.size()\ ==\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}}.size()\ \&\&}
+\DoxyCodeLine{00709\ \ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.empty()\ ||}
+\DoxyCodeLine{00710\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2strings_2string__view_8h_ace2f52dbcaac68a4c0da6876fcb8db60}{ABSL\_INTERNAL\_STRING\_VIEW\_MEMCMP}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.data(),\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}}.data(),\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.size())\ ==\ 0);}
+\DoxyCodeLine{00711\ \}}
+\DoxyCodeLine{00712\ }
+\DoxyCodeLine{00713\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a78dbd46464e8900c304d14534f0567bc}{operator!=}}(string\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ string\_view\ y)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00714\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}\ ==\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}});}
+\DoxyCodeLine{00715\ \}}
+\DoxyCodeLine{00716\ }
+\DoxyCodeLine{00717\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aa48960e448fa3aefb047530196e017b7}{operator<}}(string\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ string\_view\ y)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00718\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}.compare(y)\ <\ 0;}
+\DoxyCodeLine{00719\ \}}
+\DoxyCodeLine{00720\ }
+\DoxyCodeLine{00721\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a190b6b1dd99fa3df43c9775c7140c4dc}{operator>}}(string\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ string\_view\ y)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00722\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}};}
+\DoxyCodeLine{00723\ \}}
+\DoxyCodeLine{00724\ }
+\DoxyCodeLine{00725\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_aabcadd94f539da66532f7199bfc95fa9}{operator<=}}(string\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ string\_view\ y)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00726\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}}\ <\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}});}
+\DoxyCodeLine{00727\ \}}
+\DoxyCodeLine{00728\ }
+\DoxyCodeLine{00729\ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_a49d80292dfe7f27ea80f4de0875f6907}{operator>=}}(string\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}},\ string\_view\ y)\ \textcolor{keyword}{noexcept}\ \{}
+\DoxyCodeLine{00730\ \ \ \textcolor{keywordflow}{return}\ !(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9dd4e461268c8034f5c8564e155c67a6}{x}}\ <\ \mbox{\hyperlink{namespaceEigen_1_1internal_a3cc80fc03610837da180f7e6d8e7b3ec}{y}});}
+\DoxyCodeLine{00731\ \}}
+\DoxyCodeLine{00732\ }
+\DoxyCodeLine{00733\ \textcolor{comment}{//\ IO\ Insertion\ Operator}}
+\DoxyCodeLine{00734\ std::ostream\&\ \mbox{\hyperlink{namespaceabsl_a28a291a3fe339195acfaae93e38b9573}{operator<<}}(std::ostream\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8acad95679752134a2d9eb61dbd7b91c4bcc}{o}},\ string\_view\ piece);}
+\DoxyCodeLine{00735\ }
+\DoxyCodeLine{00736\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00737\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00738\ }
+\DoxyCodeLine{00739\ \textcolor{preprocessor}{\#undef\ ABSL\_INTERNAL\_STRING\_VIEW\_MEMCMP}}
+\DoxyCodeLine{00740\ }
+\DoxyCodeLine{00741\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_USES\_STD\_STRING\_VIEW}}
+\DoxyCodeLine{00742\ }
+\DoxyCodeLine{00743\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00744\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00745\ }
+\DoxyCodeLine{00746\ \textcolor{comment}{//\ ClippedSubstr()}}
+\DoxyCodeLine{00747\ \textcolor{comment}{//}}
+\DoxyCodeLine{00748\ \textcolor{comment}{//\ Like\ \`{}s.substr(pos,\ n)`,\ but\ clips\ \`{}pos`\ to\ an\ upper\ bound\ of\ \`{}s.size()`.}}
+\DoxyCodeLine{00749\ \textcolor{comment}{//\ Provided\ because\ std::string\_view::substr\ throws\ if\ \`{}pos\ >\ size()`}}
+\DoxyCodeLine{00750\ \textcolor{keyword}{inline}\ string\_view\ \mbox{\hyperlink{namespaceabsl_ac0d414b72be847197113e4218e9154a6}{ClippedSubstr}}(string\_view\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ \textcolor{keywordtype}{size\_t}\ pos,}
+\DoxyCodeLine{00751\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}}\ =\ \mbox{\hyperlink{classabsl_1_1string__view_ac00c2a76b83a0811218ab014353c7726}{string\_view::npos}})\ \{}
+\DoxyCodeLine{00752\ \ \ pos\ =\ (std::min)(pos,\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.size()));}
+\DoxyCodeLine{00753\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}}.\mbox{\hyperlink{classabsl_1_1string__view_a61929025b41349e63db522ea90f7bc7c}{substr}}(pos,\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca7b8b965ad4bca0e41ab51de7b31363a1}{n}});}
+\DoxyCodeLine{00754\ \}}
+\DoxyCodeLine{00755\ }
+\DoxyCodeLine{00756\ \textcolor{comment}{//\ NullSafeStringView()}}
+\DoxyCodeLine{00757\ \textcolor{comment}{//}}
+\DoxyCodeLine{00758\ \textcolor{comment}{//\ Creates\ an\ \`{}absl::string\_view`\ from\ a\ pointer\ \`{}p`\ even\ if\ it's\ null-\/valued.}}
+\DoxyCodeLine{00759\ \textcolor{comment}{//\ This\ function\ should\ be\ used\ where\ an\ \`{}absl::string\_view`\ can\ be\ created\ from}}
+\DoxyCodeLine{00760\ \textcolor{comment}{//\ a\ possibly-\/null\ pointer.}}
+\DoxyCodeLine{00761\ \textcolor{keyword}{constexpr}\ string\_view\ \mbox{\hyperlink{namespaceabsl_ad6b5fe321f9b65eeee906b806b71a7c9}{NullSafeStringView}}(\mbox{\hyperlink{namespaceabsl_a3579ef5ab5cc0b36ba0cde2b84062b4b}{absl::Nullable<const\ char*>}}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ \{}
+\DoxyCodeLine{00762\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}}\ ?\ string\_view(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca83878c91171338902e0fe0fb97a8c47a}{p}})\ :\ string\_view();}
+\DoxyCodeLine{00763\ \}}
+\DoxyCodeLine{00764\ }
+\DoxyCodeLine{00765\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00766\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00767\ }
+\DoxyCodeLine{00768\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_STRING\_VIEW\_H\_}}
+
+\end{DoxyCode}

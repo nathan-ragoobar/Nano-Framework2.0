@@ -1,0 +1,223 @@
+\doxysection{raw\+\_\+logging.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2raw__logging_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2raw__logging_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/base/internal/raw\_logging.h@{tensor/build/\_deps/absl-\/src/absl/base/internal/raw\_logging.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2base_2internal_2raw__logging_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2017\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Thread-\/safe\ logging\ routines\ that\ do\ not\ allocate\ any\ memory\ or}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ acquire\ any\ locks,\ and\ can\ therefore\ be\ used\ by\ low-\/level\ memory}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ allocation,\ synchronization,\ and\ signal-\/handling\ code.}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#ifndef\ ABSL\_BASE\_INTERNAL\_RAW\_LOGGING\_H\_}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#define\ ABSL\_BASE\_INTERNAL\_RAW\_LOGGING\_H\_}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <string>}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ "{}absl/base/attributes.h"{}}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/atomic\_hook.h"{}}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ "{}absl/base/log\_severity.h"{}}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#include\ "{}absl/base/port.h"{}}}
+\DoxyCodeLine{00031\ }
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ This\ is\ similar\ to\ LOG(severity)\ <<\ format...,\ but}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ *\ it\ is\ to\ be\ used\ ONLY\ by\ low-\/level\ modules\ that\ can't\ use\ normal\ LOG()}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ *\ it\ is\ designed\ to\ be\ a\ low-\/level\ logger\ that\ does\ not\ allocate\ any}}
+\DoxyCodeLine{00035\ \textcolor{comment}{//\ \ \ memory\ and\ does\ not\ need\ any\ locks,\ hence:}}
+\DoxyCodeLine{00036\ \textcolor{comment}{//\ *\ it\ logs\ straight\ and\ ONLY\ to\ STDERR\ w/o\ buffering}}
+\DoxyCodeLine{00037\ \textcolor{comment}{//\ *\ it\ uses\ an\ explicit\ printf-\/format\ and\ arguments\ list}}
+\DoxyCodeLine{00038\ \textcolor{comment}{//\ *\ it\ will\ silently\ chop\ off\ really\ long\ message\ strings}}
+\DoxyCodeLine{00039\ \textcolor{comment}{//\ Usage\ example:}}
+\DoxyCodeLine{00040\ \textcolor{comment}{//\ \ \ ABSL\_RAW\_LOG(ERROR,\ "{}Failed\ foo\ with\ \%i:\ \%s"{},\ status,\ error);}}
+\DoxyCodeLine{00041\ \textcolor{comment}{//\ This\ will\ print\ an\ almost\ standard\ log\ line\ like\ this\ to\ stderr\ only:}}
+\DoxyCodeLine{00042\ \textcolor{comment}{//\ \ \ E0821\ 211317\ file.cc:123]\ RAW:\ Failed\ foo\ with\ 22:\ bad\_file}}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG(severity,\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00045\ \textcolor{preprocessor}{\ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00046\ \textcolor{preprocessor}{\ \ \ \ constexpr\ const\ char*\ absl\_raw\_log\_internal\_basename\ =\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00047\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ ::absl::raw\_log\_internal::Basename(\_\_FILE\_\_,\ sizeof(\_\_FILE\_\_)\ -\/\ 1);\ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00048\ \textcolor{preprocessor}{\ \ \ \ ::absl::raw\_log\_internal::RawLog(ABSL\_RAW\_LOG\_INTERNAL\_\#\#severity,\ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00049\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl\_raw\_log\_internal\_basename,\ \_\_LINE\_\_,\ \(\backslash\)}}
+\DoxyCodeLine{00050\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \_\_VA\_ARGS\_\_);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00051\ \textcolor{preprocessor}{\ \ \ \ ABSL\_RAW\_LOG\_INTERNAL\_MAYBE\_UNREACHABLE\_\#\#severity;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00052\ \textcolor{preprocessor}{\ \ \}\ while\ (0)}}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{comment}{//\ Similar\ to\ CHECK(condition)\ <<\ message,\ but\ for\ low-\/level\ modules:}}
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ we\ use\ only\ ABSL\_RAW\_LOG\ that\ does\ not\ allocate\ memory.}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ We\ do\ not\ want\ to\ provide\ args\ list\ here\ to\ encourage\ this\ usage:}}
+\DoxyCodeLine{00057\ \textcolor{comment}{//\ \ \ if\ (!cond)\ \ ABSL\_RAW\_LOG(FATAL,\ "{}foo\ ..."{},\ hard\_to\_compute\_args);}}
+\DoxyCodeLine{00058\ \textcolor{comment}{//\ so\ that\ the\ args\ are\ not\ computed\ when\ not\ needed.}}
+\DoxyCodeLine{00059\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_CHECK(condition,\ message)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00060\ \textcolor{preprocessor}{\ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00061\ \textcolor{preprocessor}{\ \ \ \ if\ (ABSL\_PREDICT\_FALSE(!(condition)))\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00062\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_RAW\_LOG(FATAL,\ "{}Check\ \%s\ failed:\ \%s"{},\ \#condition,\ message);\ \(\backslash\)}}
+\DoxyCodeLine{00063\ \textcolor{preprocessor}{\ \ \ \ \}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00064\ \textcolor{preprocessor}{\ \ \}\ while\ (0)}}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \textcolor{comment}{//\ ABSL\_INTERNAL\_LOG\ and\ ABSL\_INTERNAL\_CHECK\ work\ like\ the\ RAW\ variants\ above,}}
+\DoxyCodeLine{00067\ \textcolor{comment}{//\ except\ that\ if\ the\ richer\ log\ library\ is\ linked\ into\ the\ binary,\ we\ dispatch}}
+\DoxyCodeLine{00068\ \textcolor{comment}{//\ to\ that\ instead.\ \ This\ is\ potentially\ useful\ for\ internal\ logging\ and}}
+\DoxyCodeLine{00069\ \textcolor{comment}{//\ assertions,\ where\ we\ are\ using\ RAW\_LOG\ neither\ for\ its\ async-\/signal-\/safety}}
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ nor\ for\ its\ non-\/allocating\ nature,\ but\ rather\ because\ raw\ logging\ has\ very}}
+\DoxyCodeLine{00071\ \textcolor{comment}{//\ few\ other\ dependencies.}}
+\DoxyCodeLine{00072\ \textcolor{comment}{//}}
+\DoxyCodeLine{00073\ \textcolor{comment}{//\ The\ API\ is\ a\ subset\ of\ the\ above:\ each\ macro\ only\ takes\ two\ arguments.\ \ Use}}
+\DoxyCodeLine{00074\ \textcolor{comment}{//\ StrCat\ if\ you\ need\ to\ build\ a\ richer\ message.}}
+\DoxyCodeLine{00075\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_LOG(severity,\ message)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00076\ \textcolor{preprocessor}{\ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00077\ \textcolor{preprocessor}{\ \ \ \ constexpr\ const\ char*\ absl\_raw\_log\_internal\_filename\ =\ \_\_FILE\_\_;\ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00078\ \textcolor{preprocessor}{\ \ \ \ ::absl::raw\_log\_internal::internal\_log\_function(\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00079\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ ABSL\_RAW\_LOG\_INTERNAL\_\#\#severity,\ absl\_raw\_log\_internal\_filename,\ \(\backslash\)}}
+\DoxyCodeLine{00080\ \textcolor{preprocessor}{\ \ \ \ \ \ \ \ \_\_LINE\_\_,\ message);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00081\ \textcolor{preprocessor}{\ \ \ \ ABSL\_RAW\_LOG\_INTERNAL\_MAYBE\_UNREACHABLE\_\#\#severity;\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00082\ \textcolor{preprocessor}{\ \ \}\ while\ (0)}}
+\DoxyCodeLine{00083\ }
+\DoxyCodeLine{00084\ \textcolor{preprocessor}{\#define\ ABSL\_INTERNAL\_CHECK(condition,\ message)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00085\ \textcolor{preprocessor}{\ \ do\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00086\ \textcolor{preprocessor}{\ \ \ \ if\ (ABSL\_PREDICT\_FALSE(!(condition)))\ \{\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00087\ \textcolor{preprocessor}{\ \ \ \ \ \ std::string\ death\_message\ =\ "{}Check\ "{}\ \#condition\ "{}\ failed:\ "{};\ \(\backslash\)}}
+\DoxyCodeLine{00088\ \textcolor{preprocessor}{\ \ \ \ \ \ death\_message\ +=\ std::string(message);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00089\ \textcolor{preprocessor}{\ \ \ \ \ \ ABSL\_INTERNAL\_LOG(FATAL,\ death\_message);\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00090\ \textcolor{preprocessor}{\ \ \ \ \}\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00091\ \textcolor{preprocessor}{\ \ \}\ while\ (0)}}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \textcolor{preprocessor}{\#ifndef\ NDEBUG}}
+\DoxyCodeLine{00094\ }
+\DoxyCodeLine{00095\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_DLOG(severity,\ ...)\ ABSL\_RAW\_LOG(severity,\ \_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00096\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_DCHECK(condition,\ message)\ ABSL\_RAW\_CHECK(condition,\ message)}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\#else\ \ }\textcolor{comment}{//\ NDEBUG}}
+\DoxyCodeLine{00099\ }
+\DoxyCodeLine{00100\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_DLOG(severity,\ ...)\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \(\backslash\)}}
+\DoxyCodeLine{00101\ \textcolor{preprocessor}{\ \ while\ (false)\ ABSL\_RAW\_LOG(severity,\ \_\_VA\_ARGS\_\_)}}
+\DoxyCodeLine{00102\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_DCHECK(condition,\ message)\ \(\backslash\)}}
+\DoxyCodeLine{00103\ \textcolor{preprocessor}{\ \ while\ (false)\ ABSL\_RAW\_CHECK(condition,\ message)}}
+\DoxyCodeLine{00104\ }
+\DoxyCodeLine{00105\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ NDEBUG}}
+\DoxyCodeLine{00106\ }
+\DoxyCodeLine{00107\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_INFO\ ::absl::LogSeverity::kInfo}}
+\DoxyCodeLine{00108\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_WARNING\ ::absl::LogSeverity::kWarning}}
+\DoxyCodeLine{00109\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_ERROR\ ::absl::LogSeverity::kError}}
+\DoxyCodeLine{00110\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_FATAL\ ::absl::LogSeverity::kFatal}}
+\DoxyCodeLine{00111\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_DFATAL\ ::absl::kLogDebugFatal}}
+\DoxyCodeLine{00112\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_LEVEL(severity)\ \(\backslash\)}}
+\DoxyCodeLine{00113\ \textcolor{preprocessor}{\ \ ::absl::NormalizeLogSeverity(severity)}}
+\DoxyCodeLine{00114\ }
+\DoxyCodeLine{00115\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_MAYBE\_UNREACHABLE\_INFO}}
+\DoxyCodeLine{00116\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_MAYBE\_UNREACHABLE\_WARNING}}
+\DoxyCodeLine{00117\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_MAYBE\_UNREACHABLE\_ERROR}}
+\DoxyCodeLine{00118\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_MAYBE\_UNREACHABLE\_FATAL\ ABSL\_UNREACHABLE()}}
+\DoxyCodeLine{00119\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_MAYBE\_UNREACHABLE\_DFATAL}}
+\DoxyCodeLine{00120\ \textcolor{preprocessor}{\#define\ ABSL\_RAW\_LOG\_INTERNAL\_MAYBE\_UNREACHABLE\_LEVEL(severity)}}
+\DoxyCodeLine{00121\ }
+\DoxyCodeLine{00122\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00123\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00124\ \textcolor{keyword}{namespace\ }raw\_log\_internal\ \{}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ Helper\ function\ to\ implement\ ABSL\_RAW\_LOG}}
+\DoxyCodeLine{00127\ \textcolor{comment}{//\ Logs\ format...\ at\ "{}severity"{}\ level,\ reporting\ it}}
+\DoxyCodeLine{00128\ \textcolor{comment}{//\ as\ called\ from\ file:line.}}
+\DoxyCodeLine{00129\ \textcolor{comment}{//\ This\ does\ not\ allocate\ memory\ or\ acquire\ locks.}}
+\DoxyCodeLine{00130\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_a37b06e8a83794faa97603b12a98fcb16}{RawLog}}(\mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23}{absl::LogSeverity}}\ severity,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ file,\ \textcolor{keywordtype}{int}\ line,}
+\DoxyCodeLine{00131\ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ format,\ ...)\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2attributes_8h_a3da582714aa24f7d48149dcba5f2f9c6}{ABSL\_PRINTF\_ATTRIBUTE}}(4,\ 5);}
+\DoxyCodeLine{00132\ }
+\DoxyCodeLine{00133\ \textcolor{comment}{//\ Writes\ the\ provided\ buffer\ directly\ to\ stderr,\ in\ a\ signal-\/safe,\ low-\/level}}
+\DoxyCodeLine{00134\ \textcolor{comment}{//\ manner.\ \ Preserves\ errno.}}
+\DoxyCodeLine{00135\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_acdd09439d22c12ce26b5e1874907fbea}{AsyncSignalSafeWriteError}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca03c7c0ace395d80182db07ae2c30f034}{s}},\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2low__level__alloc__test_8cc_afed088663f8704004425cdae2120b9b3}{len}});}
+\DoxyCodeLine{00136\ }
+\DoxyCodeLine{00137\ \textcolor{comment}{//\ compile-\/time\ function\ to\ get\ the\ "{}base"{}\ filename,\ that\ is,\ the\ part\ of}}
+\DoxyCodeLine{00138\ \textcolor{comment}{//\ a\ filename\ after\ the\ last\ "{}/"{}\ or\ "{}\(\backslash\)"{}\ path\ separator.\ \ The\ search\ starts\ at}}
+\DoxyCodeLine{00139\ \textcolor{comment}{//\ the\ end\ of\ the\ string;\ the\ second\ parameter\ is\ the\ length\ of\ the\ string.}}
+\DoxyCodeLine{00140\ \textcolor{keyword}{constexpr}\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_ace5ad481cac181d08abcfd28d789fd41}{Basename}}(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ fname,\ \textcolor{keywordtype}{int}\ offset)\ \{}
+\DoxyCodeLine{00141\ \ \ \textcolor{keywordflow}{return}\ offset\ ==\ 0\ ||\ fname[offset\ -\/\ 1]\ ==\ \textcolor{charliteral}{'/'}\ ||\ fname[offset\ -\/\ 1]\ ==\ \textcolor{charliteral}{'\(\backslash\)\(\backslash\)'}}
+\DoxyCodeLine{00142\ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ fname\ +\ offset}
+\DoxyCodeLine{00143\ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_ace5ad481cac181d08abcfd28d789fd41}{Basename}}(fname,\ offset\ -\/\ 1);}
+\DoxyCodeLine{00144\ \}}
+\DoxyCodeLine{00145\ }
+\DoxyCodeLine{00146\ \textcolor{comment}{//\ For\ testing\ only.}}
+\DoxyCodeLine{00147\ \textcolor{comment}{//\ Returns\ true\ if\ raw\ logging\ is\ fully\ supported.\ When\ it\ is\ not}}
+\DoxyCodeLine{00148\ \textcolor{comment}{//\ fully\ supported,\ no\ messages\ will\ be\ emitted,\ but\ a\ log\ at\ FATAL}}
+\DoxyCodeLine{00149\ \textcolor{comment}{//\ severity\ will\ cause\ an\ abort.}}
+\DoxyCodeLine{00150\ \textcolor{comment}{//}}
+\DoxyCodeLine{00151\ \textcolor{comment}{//\ TODO(gfalcon):\ Come\ up\ with\ a\ better\ name\ for\ this\ method.}}
+\DoxyCodeLine{00152\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_a4890df437287d80a1146f98be5d14af6}{RawLoggingFullySupported}}();}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \textcolor{comment}{//\ Function\ type\ for\ a\ raw\_log\ customization\ hook\ for\ suppressing\ messages}}
+\DoxyCodeLine{00155\ \textcolor{comment}{//\ by\ severity,\ and\ for\ writing\ custom\ prefixes\ on\ non-\/suppressed\ messages.}}
+\DoxyCodeLine{00156\ \textcolor{comment}{//}}
+\DoxyCodeLine{00157\ \textcolor{comment}{//\ The\ installed\ hook\ is\ called\ for\ every\ raw\ log\ invocation.\ \ The\ message\ will}}
+\DoxyCodeLine{00158\ \textcolor{comment}{//\ be\ logged\ to\ stderr\ only\ if\ the\ hook\ returns\ true.\ \ FATAL\ errors\ will\ cause}}
+\DoxyCodeLine{00159\ \textcolor{comment}{//\ the\ process\ to\ abort,\ even\ if\ writing\ to\ stderr\ is\ suppressed.\ \ The\ hook\ is}}
+\DoxyCodeLine{00160\ \textcolor{comment}{//\ also\ provided\ with\ an\ output\ buffer,\ where\ it\ can\ write\ a\ custom\ log\ message}}
+\DoxyCodeLine{00161\ \textcolor{comment}{//\ prefix.}}
+\DoxyCodeLine{00162\ \textcolor{comment}{//}}
+\DoxyCodeLine{00163\ \textcolor{comment}{//\ The\ raw\_log\ system\ does\ not\ allocate\ memory\ or\ grab\ locks.\ \ User-\/provided}}
+\DoxyCodeLine{00164\ \textcolor{comment}{//\ hooks\ must\ avoid\ these\ operations,\ and\ must\ not\ throw\ exceptions.}}
+\DoxyCodeLine{00165\ \textcolor{comment}{//}}
+\DoxyCodeLine{00166\ \textcolor{comment}{//\ 'severity'\ is\ the\ severity\ level\ of\ the\ message\ being\ written.}}
+\DoxyCodeLine{00167\ \textcolor{comment}{//\ 'file'\ and\ 'line'\ are\ the\ file\ and\ line\ number\ where\ the\ ABSL\_RAW\_LOG\ macro}}
+\DoxyCodeLine{00168\ \textcolor{comment}{//\ was\ located.}}
+\DoxyCodeLine{00169\ \textcolor{comment}{//\ 'buf'\ and\ 'buf\_size'\ are\ pointers\ to\ the\ buffer\ and\ buffer\ size.\ \ If\ the}}
+\DoxyCodeLine{00170\ \textcolor{comment}{//\ hook\ writes\ a\ prefix,\ it\ must\ increment\ *buf\ and\ decrement\ *buf\_size}}
+\DoxyCodeLine{00171\ \textcolor{comment}{//\ accordingly.}}
+\DoxyCodeLine{00172\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_add69e2dbe11c1703c88842846c08ffcb}{LogFilterAndPrefixHook}}\ =\ bool\ (*)(\mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23}{absl::LogSeverity}}\ severity,}
+\DoxyCodeLine{00173\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ file,\ \textcolor{keywordtype}{int}\ line,\ \textcolor{keywordtype}{char}**\ \mbox{\hyperlink{abseil-cpp_2absl_2synchronization_2mutex_8cc_a1742b90b063c37fd462e8943e3d312d6}{buf}},}
+\DoxyCodeLine{00174\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keywordtype}{int}*\ buf\_size);}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ \textcolor{comment}{//\ Function\ type\ for\ a\ raw\_log\ customization\ hook\ called\ to\ abort\ a\ process}}
+\DoxyCodeLine{00177\ \textcolor{comment}{//\ when\ a\ FATAL\ message\ is\ logged.\ \ If\ the\ provided\ AbortHook()\ returns,\ the}}
+\DoxyCodeLine{00178\ \textcolor{comment}{//\ logging\ system\ will\ call\ abort().}}
+\DoxyCodeLine{00179\ \textcolor{comment}{//}}
+\DoxyCodeLine{00180\ \textcolor{comment}{//\ 'file'\ and\ 'line'\ are\ the\ file\ and\ line\ number\ where\ the\ ABSL\_RAW\_LOG\ macro}}
+\DoxyCodeLine{00181\ \textcolor{comment}{//\ was\ located.}}
+\DoxyCodeLine{00182\ \textcolor{comment}{//\ The\ NUL-\/terminated\ logged\ message\ lives\ in\ the\ buffer\ between\ 'buf\_start'}}
+\DoxyCodeLine{00183\ \textcolor{comment}{//\ and\ 'buf\_end'.\ \ 'prefix\_end'\ points\ to\ the\ first\ non-\/prefix\ character\ of\ the}}
+\DoxyCodeLine{00184\ \textcolor{comment}{//\ buffer\ (as\ written\ by\ the\ LogFilterAndPrefixHook.)}}
+\DoxyCodeLine{00185\ \textcolor{comment}{//}}
+\DoxyCodeLine{00186\ \textcolor{comment}{//\ The\ lifetime\ of\ the\ filename\ and\ message\ buffers\ will\ not\ end\ while\ the}}
+\DoxyCodeLine{00187\ \textcolor{comment}{//\ process\ remains\ alive.}}
+\DoxyCodeLine{00188\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_a0269a573fdc517833606a6a255bc9df3}{AbortHook}}\ =\ void\ (*)(\textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ file,\ \textcolor{keywordtype}{int}\ line,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ buf\_start,}
+\DoxyCodeLine{00189\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ prefix\_end,\ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ buf\_end);}
+\DoxyCodeLine{00190\ }
+\DoxyCodeLine{00191\ \textcolor{comment}{//\ Internal\ logging\ function\ for\ ABSL\_INTERNAL\_LOG\ to\ dispatch\ to.}}
+\DoxyCodeLine{00192\ \textcolor{comment}{//}}
+\DoxyCodeLine{00193\ \textcolor{comment}{//\ TODO(gfalcon):\ When\ string\_view\ no\ longer\ depends\ on\ base,\ change\ this}}
+\DoxyCodeLine{00194\ \textcolor{comment}{//\ interface\ to\ take\ its\ message\ as\ a\ string\_view\ instead.}}
+\DoxyCodeLine{00195\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_a2f0ac1e7b3da4cfb9672db4d1c74146a}{InternalLogFunction}}\ =\ void\ (*)(\mbox{\hyperlink{namespaceabsl_ad1a5e4bd360138eb7556a7a18e23cd23}{absl::LogSeverity}}\ severity,}
+\DoxyCodeLine{00196\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{char}*\ file,\ \textcolor{keywordtype}{int}\ line,}
+\DoxyCodeLine{00197\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ std::string\&\ message);}
+\DoxyCodeLine{00198\ }
+\DoxyCodeLine{00199\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2atomic__hook_8h_aabe054311d8d221a56556c105d582677}{ABSL\_INTERNAL\_ATOMIC\_HOOK\_ATTRIBUTES}}\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a806e23ebe4fd3a16cd6d752dc7931c77}{ABSL\_DLL}}\ \textcolor{keyword}{extern}\ base\_internal::AtomicHook<}
+\DoxyCodeLine{00200\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_a2f0ac1e7b3da4cfb9672db4d1c74146a}{InternalLogFunction}}>}
+\DoxyCodeLine{00201\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_ad9e3f21d5faa73bd6f9be5d2a9956b17}{internal\_log\_function}};}
+\DoxyCodeLine{00202\ }
+\DoxyCodeLine{00203\ \textcolor{comment}{//\ Registers\ hooks\ of\ the\ above\ types.\ \ Only\ a\ single\ hook\ of\ each\ type\ may\ be}}
+\DoxyCodeLine{00204\ \textcolor{comment}{//\ registered.\ \ It\ is\ an\ error\ to\ call\ these\ functions\ multiple\ times\ with}}
+\DoxyCodeLine{00205\ \textcolor{comment}{//\ different\ input\ arguments.}}
+\DoxyCodeLine{00206\ \textcolor{comment}{//}}
+\DoxyCodeLine{00207\ \textcolor{comment}{//\ These\ functions\ are\ safe\ to\ call\ at\ any\ point\ during\ initialization;\ they\ do}}
+\DoxyCodeLine{00208\ \textcolor{comment}{//\ not\ block\ or\ malloc,\ and\ are\ async-\/signal\ safe.}}
+\DoxyCodeLine{00209\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_a77ab9ac02ff851185c741b98122e0bf6}{RegisterLogFilterAndPrefixHook}}(\mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_add69e2dbe11c1703c88842846c08ffcb}{LogFilterAndPrefixHook}}\ func);}
+\DoxyCodeLine{00210\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_a6814828299906533d8288ecd129fd57f}{RegisterAbortHook}}(\mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_a0269a573fdc517833606a6a255bc9df3}{AbortHook}}\ func);}
+\DoxyCodeLine{00211\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_af33554b333b722167d78f7b775de869a}{RegisterInternalLogFunction}}(\mbox{\hyperlink{namespaceabsl_1_1raw__log__internal_a2f0ac1e7b3da4cfb9672db4d1c74146a}{InternalLogFunction}}\ func);}
+\DoxyCodeLine{00212\ }
+\DoxyCodeLine{00213\ \}\ \ \textcolor{comment}{//\ namespace\ raw\_log\_internal}}
+\DoxyCodeLine{00214\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00215\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00216\ }
+\DoxyCodeLine{00217\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_BASE\_INTERNAL\_RAW\_LOGGING\_H\_}}
+
+\end{DoxyCode}

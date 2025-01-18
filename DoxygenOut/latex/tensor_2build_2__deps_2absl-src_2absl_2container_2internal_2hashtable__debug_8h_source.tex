@@ -1,0 +1,108 @@
+\doxysection{hashtable\+\_\+debug.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2container_2internal_2hashtable__debug_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2container_2internal_2hashtable__debug_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/container/internal/hashtable\_debug.h@{tensor/build/\_deps/absl-\/src/absl/container/internal/hashtable\_debug.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2container_2internal_2hashtable__debug_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ This\ library\ provides\ APIs\ to\ debug\ the\ probing\ behavior\ of\ hash\ tables.}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ In\ general,\ the\ probing\ behavior\ is\ a\ black\ box\ for\ users\ and\ only\ the}}
+\DoxyCodeLine{00018\ \textcolor{comment}{//\ side\ effects\ can\ be\ measured\ in\ the\ form\ of\ performance\ differences.}}
+\DoxyCodeLine{00019\ \textcolor{comment}{//\ These\ APIs\ give\ a\ glimpse\ on\ the\ actual\ behavior\ of\ the\ probing\ algorithms\ in}}
+\DoxyCodeLine{00020\ \textcolor{comment}{//\ these\ hashtables\ given\ a\ specified\ hash\ function\ and\ a\ set\ of\ elements.}}
+\DoxyCodeLine{00021\ \textcolor{comment}{//}}
+\DoxyCodeLine{00022\ \textcolor{comment}{//\ The\ probe\ count\ distribution\ can\ be\ used\ to\ assess\ the\ quality\ of\ the\ hash}}
+\DoxyCodeLine{00023\ \textcolor{comment}{//\ function\ for\ that\ particular\ hash\ table.\ Note\ that\ a\ hash\ function\ that}}
+\DoxyCodeLine{00024\ \textcolor{comment}{//\ performs\ well\ in\ one\ hash\ table\ implementation\ does\ not\ necessarily\ performs}}
+\DoxyCodeLine{00025\ \textcolor{comment}{//\ well\ in\ a\ different\ one.}}
+\DoxyCodeLine{00026\ \textcolor{comment}{//}}
+\DoxyCodeLine{00027\ \textcolor{comment}{//\ This\ library\ supports\ std::unordered\_\{set,map\},\ dense\_hash\_\{set,map\}\ and}}
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ absl::\{flat,node,string\}\_hash\_\{set,map\}.}}
+\DoxyCodeLine{00029\ }
+\DoxyCodeLine{00030\ \textcolor{preprocessor}{\#ifndef\ ABSL\_CONTAINER\_INTERNAL\_HASHTABLE\_DEBUG\_H\_}}
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#define\ ABSL\_CONTAINER\_INTERNAL\_HASHTABLE\_DEBUG\_H\_}}
+\DoxyCodeLine{00032\ }
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ <algorithm>}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00037\ }
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/container/internal/hashtable\_debug\_hooks.h"{}}}
+\DoxyCodeLine{00039\ }
+\DoxyCodeLine{00040\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00041\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00042\ \textcolor{keyword}{namespace\ }container\_internal\ \{}
+\DoxyCodeLine{00043\ }
+\DoxyCodeLine{00044\ \textcolor{comment}{//\ Returns\ the\ number\ of\ probes\ required\ to\ lookup\ \`{}key`.\ \ Returns\ 0\ for\ a}}
+\DoxyCodeLine{00045\ \textcolor{comment}{//\ search\ with\ no\ collisions.\ \ Higher\ values\ mean\ more\ hash\ collisions\ occurred;}}
+\DoxyCodeLine{00046\ \textcolor{comment}{//\ however,\ the\ exact\ meaning\ of\ this\ number\ varies\ according\ to\ the\ container}}
+\DoxyCodeLine{00047\ \textcolor{comment}{//\ type.}}
+\DoxyCodeLine{00048\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ C>}
+\DoxyCodeLine{00049\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_aa7c8e38bd88a1b7036910f8e3f1b29ea}{GetHashtableDebugNumProbes}}(}
+\DoxyCodeLine{00050\ \ \ \ \ \textcolor{keyword}{const}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ C::key\_type\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a35af0be900467fedbb610bd6ea65ed78}{key}})\ \{}
+\DoxyCodeLine{00051\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hashtable__debug__internal_1_1HashtableDebugAccess_a447e277822f938a5d82cfc20aaeaf6b4}{absl::container\_internal::hashtable\_debug\_internal::}}}
+\DoxyCodeLine{00052\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1hashtable__debug__internal_1_1HashtableDebugAccess_a447e277822f938a5d82cfc20aaeaf6b4}{\ \ \ \ \ \ HashtableDebugAccess<C>::GetNumProbes}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}},\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__test_8cc_a35af0be900467fedbb610bd6ea65ed78}{key}});}
+\DoxyCodeLine{00053\ \}}
+\DoxyCodeLine{00054\ }
+\DoxyCodeLine{00055\ \textcolor{comment}{//\ Gets\ a\ histogram\ of\ the\ number\ of\ probes\ for\ each\ elements\ in\ the\ container.}}
+\DoxyCodeLine{00056\ \textcolor{comment}{//\ The\ sum\ of\ all\ the\ values\ in\ the\ vector\ is\ equal\ to\ container.size().}}
+\DoxyCodeLine{00057\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ C>}
+\DoxyCodeLine{00058\ std::vector<size\_t>\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a61b3d405601eadea498c3349856ed59e}{GetHashtableDebugNumProbesHistogram}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\&\ container)\ \{}
+\DoxyCodeLine{00059\ \ \ std::vector<size\_t>\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{00060\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keyword}{auto}\ it\ =\ container.begin();\ it\ !=\ container.end();\ ++it)\ \{}
+\DoxyCodeLine{00061\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ num\_probes\ =\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_aa7c8e38bd88a1b7036910f8e3f1b29ea}{GetHashtableDebugNumProbes}}(}
+\DoxyCodeLine{00062\ \ \ \ \ \ \ \ \ container,}
+\DoxyCodeLine{00063\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1container__internal_1_1hashtable__debug__internal_a9402647b7b49e1f3812b7ea60d2119b5}{absl::container\_internal::hashtable\_debug\_internal::GetKey<C>}}(*it,\ 0));}
+\DoxyCodeLine{00064\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.resize((std::max)(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}.size(),\ num\_probes\ +\ 1));}
+\DoxyCodeLine{00065\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}[num\_probes]++;}
+\DoxyCodeLine{00066\ \ \ \}}
+\DoxyCodeLine{00067\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{00068\ \}}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary}{HashtableDebugProbeSummary}}\ \{}
+\DoxyCodeLine{00071\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary_a47d893daf00beeefb19ee19bb3b44ddb}{total\_elements}};}
+\DoxyCodeLine{00072\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary_aeb68de1798bfdd4501324e122df40d8e}{total\_num\_probes}};}
+\DoxyCodeLine{00073\ \ \ \textcolor{keywordtype}{double}\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary_a2d67e497292510ce969110081f1db034}{mean}};}
+\DoxyCodeLine{00074\ \};}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \textcolor{comment}{//\ Gets\ a\ summary\ of\ the\ probe\ count\ distribution\ for\ the\ elements\ in\ the}}
+\DoxyCodeLine{00077\ \textcolor{comment}{//\ container.}}
+\DoxyCodeLine{00078\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ C>}
+\DoxyCodeLine{00079\ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary}{HashtableDebugProbeSummary}}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a922a7ca1a88d57e68ad106ef5c2ee622}{GetHashtableDebugProbeSummary}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\&\ container)\ \{}
+\DoxyCodeLine{00080\ \ \ \textcolor{keyword}{auto}\ probes\ =\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a61b3d405601eadea498c3349856ed59e}{GetHashtableDebugNumProbesHistogram}}(container);}
+\DoxyCodeLine{00081\ \ \ \mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary}{HashtableDebugProbeSummary}}\ summary\ =\ \{\};}
+\DoxyCodeLine{00082\ \ \ \textcolor{keywordflow}{for}\ (\textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ =\ 0;\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ <\ probes.size();\ ++\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}})\ \{}
+\DoxyCodeLine{00083\ \ \ \ \ summary.\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary_a47d893daf00beeefb19ee19bb3b44ddb}{total\_elements}}\ +=\ probes[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}];}
+\DoxyCodeLine{00084\ \ \ \ \ summary.\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary_aeb68de1798bfdd4501324e122df40d8e}{total\_num\_probes}}\ +=\ probes[\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}]\ *\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}};}
+\DoxyCodeLine{00085\ \ \ \}}
+\DoxyCodeLine{00086\ \ \ summary.\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary_a2d67e497292510ce969110081f1db034}{mean}}\ =\ 1.0\ *\ summary.\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary_aeb68de1798bfdd4501324e122df40d8e}{total\_num\_probes}}\ /\ summary.\mbox{\hyperlink{structabsl_1_1container__internal_1_1HashtableDebugProbeSummary_a47d893daf00beeefb19ee19bb3b44ddb}{total\_elements}};}
+\DoxyCodeLine{00087\ \ \ \textcolor{keywordflow}{return}\ summary;}
+\DoxyCodeLine{00088\ \}}
+\DoxyCodeLine{00089\ }
+\DoxyCodeLine{00090\ \textcolor{comment}{//\ Returns\ the\ number\ of\ bytes\ requested\ from\ the\ allocator\ by\ the\ container}}
+\DoxyCodeLine{00091\ \textcolor{comment}{//\ and\ not\ freed.}}
+\DoxyCodeLine{00092\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ C>}
+\DoxyCodeLine{00093\ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{namespaceabsl_1_1container__internal_a7bab92ef74fa2b31712e5aac97859168}{AllocatedByteSize}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{abseil-cpp_2absl_2hash_2internal_2city__test_8cc_ac54ae397901fe700628cafadea3c5208}{C}}\&\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}})\ \{}
+\DoxyCodeLine{00094\ \ \ \textcolor{keywordflow}{return}\ absl::container\_internal::hashtable\_debug\_internal::}
+\DoxyCodeLine{00095\ \ \ \ \ \ \ HashtableDebugAccess<C>::AllocatedByteSize(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca4a8a08f09d37b73795649038408b5f33}{c}});}
+\DoxyCodeLine{00096\ \}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \}\ \ \textcolor{comment}{//\ namespace\ container\_internal}}
+\DoxyCodeLine{00099\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00100\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00101\ }
+\DoxyCodeLine{00102\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_CONTAINER\_INTERNAL\_HASHTABLE\_DEBUG\_H\_}}
+
+\end{DoxyCode}

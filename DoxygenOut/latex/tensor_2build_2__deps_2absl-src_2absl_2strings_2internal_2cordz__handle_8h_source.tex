@@ -1,0 +1,104 @@
+\doxysection{cordz\+\_\+handle.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2cordz__handle_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2cordz__handle_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/strings/internal/cordz\_handle.h@{tensor/build/\_deps/absl-\/src/absl/strings/internal/cordz\_handle.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2strings_2internal_2cordz__handle_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2019\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ }
+\DoxyCodeLine{00015\ \textcolor{preprocessor}{\#ifndef\ ABSL\_STRINGS\_INTERNAL\_CORDZ\_HANDLE\_H\_}}
+\DoxyCodeLine{00016\ \textcolor{preprocessor}{\#define\ ABSL\_STRINGS\_INTERNAL\_CORDZ\_HANDLE\_H\_}}
+\DoxyCodeLine{00017\ }
+\DoxyCodeLine{00018\ \textcolor{preprocessor}{\#include\ <atomic>}}
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#include\ <vector>}}
+\DoxyCodeLine{00020\ }
+\DoxyCodeLine{00021\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/raw\_logging.h"{}}}
+\DoxyCodeLine{00023\ }
+\DoxyCodeLine{00024\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00025\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00026\ \textcolor{keyword}{namespace\ }cord\_internal\ \{}
+\DoxyCodeLine{00027\ }
+\DoxyCodeLine{00028\ \textcolor{comment}{//\ This\ base\ class\ allows\ multiple\ types\ of\ object\ (CordzInfo\ and}}
+\DoxyCodeLine{00029\ \textcolor{comment}{//\ CordzSampleToken)\ to\ exist\ simultaneously\ on\ the\ delete\ queue\ (pointed\ to\ by}}
+\DoxyCodeLine{00030\ \textcolor{comment}{//\ global\_dq\_tail\ and\ traversed\ using\ dq\_prev\_\ and\ dq\_next\_).\ The}}
+\DoxyCodeLine{00031\ \textcolor{comment}{//\ delete\ queue\ guarantees\ that\ once\ a\ profiler\ creates\ a\ CordzSampleToken\ and}}
+\DoxyCodeLine{00032\ \textcolor{comment}{//\ has\ gained\ visibility\ into\ a\ CordzInfo\ object,\ that\ CordzInfo\ object\ will\ not}}
+\DoxyCodeLine{00033\ \textcolor{comment}{//\ be\ deleted\ prematurely.\ This\ allows\ the\ profiler\ to\ inspect\ all\ CordzInfo}}
+\DoxyCodeLine{00034\ \textcolor{comment}{//\ objects\ that\ are\ alive\ without\ needing\ to\ hold\ a\ global\ lock.}}
+\DoxyCodeLine{00035\ \textcolor{keyword}{class\ }\mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a806e23ebe4fd3a16cd6d752dc7931c77}{ABSL\_DLL}}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle}{CordzHandle}}\ \{}
+\DoxyCodeLine{00036\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00037\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle_a56db35c5000b9854c2e5a9dfbe6f8388}{CordzHandle}}()\ :\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle}{CordzHandle}}(false)\ \{\}}
+\DoxyCodeLine{00038\ }
+\DoxyCodeLine{00039\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle_ac954fba5c450b606a4dbac83fa86385c}{is\_snapshot}}()\textcolor{keyword}{\ const\ }\{\ \textcolor{keywordflow}{return}\ is\_snapshot\_;\ \}}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \ \ \textcolor{comment}{//\ Returns\ true\ if\ this\ instance\ is\ safe\ to\ be\ deleted\ because\ it\ is\ either\ a}}
+\DoxyCodeLine{00042\ \ \ \textcolor{comment}{//\ snapshot,\ which\ is\ always\ safe\ to\ delete,\ or\ not\ included\ in\ the\ global}}
+\DoxyCodeLine{00043\ \ \ \textcolor{comment}{//\ delete\ queue\ and\ thus\ not\ included\ in\ any\ snapshot.}}
+\DoxyCodeLine{00044\ \ \ \textcolor{comment}{//\ Callers\ are\ responsible\ for\ making\ sure\ this\ instance\ can\ not\ be\ newly}}
+\DoxyCodeLine{00045\ \ \ \textcolor{comment}{//\ discovered\ by\ other\ threads.\ For\ example,\ CordzInfo\ instances\ first\ de-\/list}}
+\DoxyCodeLine{00046\ \ \ \textcolor{comment}{//\ themselves\ from\ the\ global\ CordzInfo\ list\ before\ determining\ if\ they\ are}}
+\DoxyCodeLine{00047\ \ \ \textcolor{comment}{//\ safe\ to\ be\ deleted\ directly.}}
+\DoxyCodeLine{00048\ \ \ \textcolor{comment}{//\ If\ SafeToDelete\ returns\ false,\ callers\ MUST\ use\ the\ Delete()\ method\ to}}
+\DoxyCodeLine{00049\ \ \ \textcolor{comment}{//\ safely\ queue\ CordzHandle\ instances\ for\ deletion.}}
+\DoxyCodeLine{00050\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle_af7947799111ebe9ed139e4f444a4c426}{SafeToDelete}}()\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00051\ }
+\DoxyCodeLine{00052\ \ \ \textcolor{comment}{//\ Deletes\ the\ provided\ instance,\ or\ puts\ it\ on\ the\ delete\ queue\ to\ be\ deleted}}
+\DoxyCodeLine{00053\ \ \ \textcolor{comment}{//\ once\ there\ are\ no\ more\ sample\ tokens\ (snapshot)\ instances\ potentially}}
+\DoxyCodeLine{00054\ \ \ \textcolor{comment}{//\ referencing\ the\ instance.\ \`{}handle`\ should\ not\ be\ null.}}
+\DoxyCodeLine{00055\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle_afbea8e2eddb6d346f152c6b4ad930395}{Delete}}(\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle}{CordzHandle}}*\ handle);}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \ \ \textcolor{comment}{//\ Returns\ the\ current\ entries\ in\ the\ delete\ queue\ in\ LIFO\ order.}}
+\DoxyCodeLine{00058\ \ \ \textcolor{keyword}{static}\ std::vector<const\ CordzHandle*>\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle_aef66ba760ce1a9078c9eacb8e7b21ba7}{DiagnosticsGetDeleteQueue}}();}
+\DoxyCodeLine{00059\ }
+\DoxyCodeLine{00060\ \ \ \textcolor{comment}{//\ Returns\ true\ if\ the\ provided\ handle\ is\ nullptr\ or\ guarded\ by\ this\ handle.}}
+\DoxyCodeLine{00061\ \ \ \textcolor{comment}{//\ Since\ the\ CordzSnapshot\ token\ is\ itself\ a\ CordzHandle,\ this\ method\ will}}
+\DoxyCodeLine{00062\ \ \ \textcolor{comment}{//\ allow\ tests\ to\ check\ if\ that\ token\ is\ keeping\ an\ arbitrary\ CordzHandle}}
+\DoxyCodeLine{00063\ \ \ \textcolor{comment}{//\ alive.}}
+\DoxyCodeLine{00064\ \ \ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle_adcc1d7036c1782faa9c25fce8cea1e7c}{DiagnosticsHandleIsSafeToInspect}}(\textcolor{keyword}{const}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle}{CordzHandle}}*\ handle)\ \textcolor{keyword}{const};}
+\DoxyCodeLine{00065\ }
+\DoxyCodeLine{00066\ \ \ \textcolor{comment}{//\ Returns\ the\ current\ entries\ in\ the\ delete\ queue,\ in\ LIFO\ order,\ that\ are}}
+\DoxyCodeLine{00067\ \ \ \textcolor{comment}{//\ protected\ by\ this.\ CordzHandle\ objects\ are\ only\ placed\ on\ the\ delete\ queue}}
+\DoxyCodeLine{00068\ \ \ \textcolor{comment}{//\ after\ CordzHandle::Delete\ is\ called\ with\ them\ as\ an\ argument.\ Only}}
+\DoxyCodeLine{00069\ \ \ \textcolor{comment}{//\ CordzHandle\ objects\ that\ are\ not\ also\ CordzSnapshot\ objects\ will\ be}}
+\DoxyCodeLine{00070\ \ \ \textcolor{comment}{//\ included\ in\ the\ return\ vector.\ For\ each\ of\ the\ handles\ in\ the\ return}}
+\DoxyCodeLine{00071\ \ \ \textcolor{comment}{//\ vector,\ the\ earliest\ that\ their\ memory\ can\ be\ freed\ is\ when\ this}}
+\DoxyCodeLine{00072\ \ \ \textcolor{comment}{//\ CordzSnapshot\ object\ is\ deleted.}}
+\DoxyCodeLine{00073\ \ \ std::vector<const\ CordzHandle*>\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle_a14ba641e048058a3b0951a9b1163db90}{DiagnosticsGetSafeToInspectDeletedHandles}}();}
+\DoxyCodeLine{00074\ }
+\DoxyCodeLine{00075\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{00076\ \ \ \textcolor{keyword}{explicit}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle_a2340b8112898f9f0bde9491bf2960080}{CordzHandle}}(\textcolor{keywordtype}{bool}\ is\_snapshot);}
+\DoxyCodeLine{00077\ \ \ \textcolor{keyword}{virtual}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle_a3cf71fc10a249482dfaa37d82c3705f8}{\string~CordzHandle}}();}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{00080\ \ \ \textcolor{keyword}{const}\ \textcolor{keywordtype}{bool}\ is\_snapshot\_;}
+\DoxyCodeLine{00081\ }
+\DoxyCodeLine{00082\ \ \ \textcolor{comment}{//\ dq\_prev\_\ and\ dq\_next\_\ require\ the\ global\ queue\ mutex\ to\ be\ held.}}
+\DoxyCodeLine{00083\ \ \ \textcolor{comment}{//\ Unfortunately\ we\ can't\ use\ thread\ annotations\ such\ that\ the\ thread\ safety}}
+\DoxyCodeLine{00084\ \ \ \textcolor{comment}{//\ analysis\ understands\ that\ queue\_\ and\ global\_queue\_\ are\ one\ and\ the\ same.}}
+\DoxyCodeLine{00085\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle}{CordzHandle}}*\ dq\_prev\_\ \ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00086\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle}{CordzHandle}}*\ dq\_next\_\ =\ \textcolor{keyword}{nullptr};}
+\DoxyCodeLine{00087\ \};}
+\DoxyCodeLine{00088\ }
+\DoxyCodeLine{00089\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSnapshot}{CordzSnapshot}}\ :\ \textcolor{keyword}{public}\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle}{CordzHandle}}\ \{}
+\DoxyCodeLine{00090\ \ \textcolor{keyword}{public}:}
+\DoxyCodeLine{00091\ \ \ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzSnapshot_a6600e6d639167e8c4bf5899d0aafdc35}{CordzSnapshot}}()\ :\ \mbox{\hyperlink{classabsl_1_1cord__internal_1_1CordzHandle}{CordzHandle}}(true)\ \{\}}
+\DoxyCodeLine{00092\ \};}
+\DoxyCodeLine{00093\ }
+\DoxyCodeLine{00094\ \}\ \ \textcolor{comment}{//\ namespace\ cord\_internal}}
+\DoxyCodeLine{00095\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{00096\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_STRINGS\_INTERNAL\_CORDZ\_HANDLE\_H\_}}
+
+\end{DoxyCode}

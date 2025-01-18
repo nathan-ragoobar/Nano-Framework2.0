@@ -1,0 +1,1626 @@
+\doxysection{variant.\+h}
+\hypertarget{tensor_2build_2__deps_2absl-src_2absl_2types_2internal_2variant_8h_source}{}\label{tensor_2build_2__deps_2absl-src_2absl_2types_2internal_2variant_8h_source}\index{tensor/build/\_deps/absl-\/src/absl/types/internal/variant.h@{tensor/build/\_deps/absl-\/src/absl/types/internal/variant.h}}
+\mbox{\hyperlink{tensor_2build_2__deps_2absl-src_2absl_2types_2internal_2variant_8h}{Go to the documentation of this file.}}
+\begin{DoxyCode}{0}
+\DoxyCodeLine{00001\ \textcolor{comment}{//\ Copyright\ 2018\ The\ Abseil\ Authors.}}
+\DoxyCodeLine{00002\ \textcolor{comment}{//}}
+\DoxyCodeLine{00003\ \textcolor{comment}{//\ Licensed\ under\ the\ Apache\ License,\ Version\ 2.0\ (the\ "{}License"{});}}
+\DoxyCodeLine{00004\ \textcolor{comment}{//\ you\ may\ not\ use\ this\ file\ except\ in\ compliance\ with\ the\ License.}}
+\DoxyCodeLine{00005\ \textcolor{comment}{//\ You\ may\ obtain\ a\ copy\ of\ the\ License\ at}}
+\DoxyCodeLine{00006\ \textcolor{comment}{//}}
+\DoxyCodeLine{00007\ \textcolor{comment}{//\ \ \ \ \ \ https://www.apache.org/licenses/LICENSE-\/2.0}}
+\DoxyCodeLine{00008\ \textcolor{comment}{//}}
+\DoxyCodeLine{00009\ \textcolor{comment}{//\ Unless\ required\ by\ applicable\ law\ or\ agreed\ to\ in\ writing,\ software}}
+\DoxyCodeLine{00010\ \textcolor{comment}{//\ distributed\ under\ the\ License\ is\ distributed\ on\ an\ "{}AS\ IS"{}\ BASIS,}}
+\DoxyCodeLine{00011\ \textcolor{comment}{//\ WITHOUT\ WARRANTIES\ OR\ CONDITIONS\ OF\ ANY\ KIND,\ either\ express\ or\ implied.}}
+\DoxyCodeLine{00012\ \textcolor{comment}{//\ See\ the\ License\ for\ the\ specific\ language\ governing\ permissions\ and}}
+\DoxyCodeLine{00013\ \textcolor{comment}{//\ limitations\ under\ the\ License.}}
+\DoxyCodeLine{00014\ \textcolor{comment}{//}}
+\DoxyCodeLine{00015\ \textcolor{comment}{//\ Implementation\ details\ of\ absl/types/variant.h,\ pulled\ into\ a}}
+\DoxyCodeLine{00016\ \textcolor{comment}{//\ separate\ file\ to\ avoid\ cluttering\ the\ top\ of\ the\ API\ header\ with}}
+\DoxyCodeLine{00017\ \textcolor{comment}{//\ implementation\ details.}}
+\DoxyCodeLine{00018\ }
+\DoxyCodeLine{00019\ \textcolor{preprocessor}{\#ifndef\ ABSL\_TYPES\_INTERNAL\_VARIANT\_H\_}}
+\DoxyCodeLine{00020\ \textcolor{preprocessor}{\#define\ ABSL\_TYPES\_INTERNAL\_VARIANT\_H\_}}
+\DoxyCodeLine{00021\ }
+\DoxyCodeLine{00022\ \textcolor{preprocessor}{\#include\ <cassert>}}
+\DoxyCodeLine{00023\ \textcolor{preprocessor}{\#include\ <cstddef>}}
+\DoxyCodeLine{00024\ \textcolor{preprocessor}{\#include\ <cstdlib>}}
+\DoxyCodeLine{00025\ \textcolor{preprocessor}{\#include\ <memory>}}
+\DoxyCodeLine{00026\ \textcolor{preprocessor}{\#include\ <stdexcept>}}
+\DoxyCodeLine{00027\ \textcolor{preprocessor}{\#include\ <tuple>}}
+\DoxyCodeLine{00028\ \textcolor{preprocessor}{\#include\ <type\_traits>}}
+\DoxyCodeLine{00029\ \textcolor{preprocessor}{\#include\ <utility>}}
+\DoxyCodeLine{00030\ }
+\DoxyCodeLine{00031\ \textcolor{preprocessor}{\#include\ "{}absl/base/config.h"{}}}
+\DoxyCodeLine{00032\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/identity.h"{}}}
+\DoxyCodeLine{00033\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/inline\_variable.h"{}}}
+\DoxyCodeLine{00034\ \textcolor{preprocessor}{\#include\ "{}absl/base/internal/invoke.h"{}}}
+\DoxyCodeLine{00035\ \textcolor{preprocessor}{\#include\ "{}absl/base/macros.h"{}}}
+\DoxyCodeLine{00036\ \textcolor{preprocessor}{\#include\ "{}absl/base/optimization.h"{}}}
+\DoxyCodeLine{00037\ \textcolor{preprocessor}{\#include\ "{}absl/meta/type\_traits.h"{}}}
+\DoxyCodeLine{00038\ \textcolor{preprocessor}{\#include\ "{}absl/types/bad\_variant\_access.h"{}}}
+\DoxyCodeLine{00039\ \textcolor{preprocessor}{\#include\ "{}absl/utility/utility.h"{}}}
+\DoxyCodeLine{00040\ }
+\DoxyCodeLine{00041\ \textcolor{preprocessor}{\#if\ !defined(ABSL\_USES\_STD\_VARIANT)}}
+\DoxyCodeLine{00042\ }
+\DoxyCodeLine{00043\ \textcolor{keyword}{namespace\ }\mbox{\hyperlink{namespaceabsl}{absl}}\ \{}
+\DoxyCodeLine{00044\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a1426209ed359f780778edc8975b23f07}{ABSL\_NAMESPACE\_BEGIN}}}
+\DoxyCodeLine{00045\ }
+\DoxyCodeLine{00046\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{00047\ \textcolor{keyword}{class\ }variant;}
+\DoxyCodeLine{00048\ }
+\DoxyCodeLine{00049\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2inline__variable_8h_a401cd241bee1b210ebca85418447c7cb}{ABSL\_INTERNAL\_INLINE\_CONSTEXPR}}(\textcolor{keywordtype}{size\_t},\ variant\_npos,\ \textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{size\_t}\textcolor{keyword}{>}(-\/1));}
+\DoxyCodeLine{00050\ }
+\DoxyCodeLine{00051\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00052\ \textcolor{keyword}{struct\ }variant\_size;}
+\DoxyCodeLine{00053\ }
+\DoxyCodeLine{00054\ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I,\ \textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00055\ \textcolor{keyword}{struct\ }variant\_alternative;}
+\DoxyCodeLine{00056\ }
+\DoxyCodeLine{00057\ \textcolor{keyword}{namespace\ }variant\_internal\ \{}
+\DoxyCodeLine{00058\ }
+\DoxyCodeLine{00059\ \textcolor{comment}{//\ NOTE:\ See\ specializations\ below\ for\ details.}}
+\DoxyCodeLine{00060\ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I,\ \textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00061\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAlternativeSfinae}{VariantAlternativeSfinae}}\ \{\};}
+\DoxyCodeLine{00062\ }
+\DoxyCodeLine{00063\ \textcolor{comment}{//\ Requires:\ I\ <\ variant\_size\_v<T>.}}
+\DoxyCodeLine{00064\ \textcolor{comment}{//}}
+\DoxyCodeLine{00065\ \textcolor{comment}{//\ Value:\ The\ Ith\ type\ of\ Types...}}
+\DoxyCodeLine{00066\ \textcolor{keyword}{template}\ <std::size\_t\ I,\ \textcolor{keyword}{class\ }T0,\ \textcolor{keyword}{class}...\ Tn>}
+\DoxyCodeLine{00067\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAlternativeSfinae}{VariantAlternativeSfinae}}<I,\ \mbox{\hyperlink{classabsl_1_1variant}{variant}}<T0,\ Tn...>>}
+\DoxyCodeLine{00068\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAlternativeSfinae}{VariantAlternativeSfinae}}<I\ -\/\ 1,\ variant<Tn...>>\ \{\};}
+\DoxyCodeLine{00069\ }
+\DoxyCodeLine{00070\ \textcolor{comment}{//\ Value:\ T0}}
+\DoxyCodeLine{00071\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }T0,\ \textcolor{keyword}{class}...\ Ts>}
+\DoxyCodeLine{00072\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAlternativeSfinae}{VariantAlternativeSfinae}}<0,\ \mbox{\hyperlink{classabsl_1_1variant}{variant}}<T0,\ Ts...>>\ \{}
+\DoxyCodeLine{00073\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAlternativeSfinae_3_010_00_01variant_3_01T0_00_01Ts_8_8_8_01_4_01_4_a268b228504743f2fef426637267c41e0}{type}}\ =\ T0;}
+\DoxyCodeLine{00074\ \};}
+\DoxyCodeLine{00075\ }
+\DoxyCodeLine{00076\ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I,\ \textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00077\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_add46efdeba76a588baa4aa67920f8d78}{VariantAlternativeSfinaeT}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAlternativeSfinae}{VariantAlternativeSfinae<I,\ T>::type}};}
+\DoxyCodeLine{00078\ }
+\DoxyCodeLine{00079\ \textcolor{comment}{//\ NOTE:\ Requires\ T\ to\ be\ a\ reference\ type.}}
+\DoxyCodeLine{00080\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00081\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo}};}
+\DoxyCodeLine{00082\ }
+\DoxyCodeLine{00083\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00084\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo}}<T\&,\ U>\ \{}
+\DoxyCodeLine{00085\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo_3_01T_01_6_00_01U_01_4_a579c25557cc5b65a5497857a9b8684ad}{type}}\ =\ U\&;}
+\DoxyCodeLine{00086\ \};}
+\DoxyCodeLine{00087\ }
+\DoxyCodeLine{00088\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00089\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo}}<T\&\&,\ U>\ \{}
+\DoxyCodeLine{00090\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo_3_01T_01_6_6_00_01U_01_4_aa260ea0ba182b24b6253f3ba7d417363}{type}}\ =\ U\&\&;}
+\DoxyCodeLine{00091\ \};}
+\DoxyCodeLine{00092\ }
+\DoxyCodeLine{00093\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00094\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo}}<const\ T\&,\ U>\ \{}
+\DoxyCodeLine{00095\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo_3_01const_01T_01_6_00_01U_01_4_ac348cdcc77d99588804b435524fecfa3}{type}}\ =\ \textcolor{keyword}{const}\ U\&;}
+\DoxyCodeLine{00096\ \};}
+\DoxyCodeLine{00097\ }
+\DoxyCodeLine{00098\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00099\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo}}<const\ T\&\&,\ U>\ \{}
+\DoxyCodeLine{00100\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo_3_01const_01T_01_6_6_00_01U_01_4_a68066ffae1c84fae67449f5ef7f3ee87}{type}}\ =\ \textcolor{keyword}{const}\ U\&\&;}
+\DoxyCodeLine{00101\ \};}
+\DoxyCodeLine{00102\ }
+\DoxyCodeLine{00103\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00104\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo}}<volatile\ T\&,\ U>\ \{}
+\DoxyCodeLine{00105\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo_3_01volatile_01T_01_6_00_01U_01_4_ae7d89065a8a045acc50f11a484a644f7}{type}}\ =\ \textcolor{keyword}{volatile}\ U\&;}
+\DoxyCodeLine{00106\ \};}
+\DoxyCodeLine{00107\ }
+\DoxyCodeLine{00108\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00109\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo}}<volatile\ T\&\&,\ U>\ \{}
+\DoxyCodeLine{00110\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo_3_01volatile_01T_01_6_6_00_01U_01_4_acab8be3174e42978dc3be8a7f27d0907}{type}}\ =\ \textcolor{keyword}{volatile}\ U\&\&;}
+\DoxyCodeLine{00111\ \};}
+\DoxyCodeLine{00112\ }
+\DoxyCodeLine{00113\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00114\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo}}<volatile\ const\ T\&,\ U>\ \{}
+\DoxyCodeLine{00115\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo_3_01volatile_01const_01T_01_6_00_01U_01_4_a8c4aabe1269bba263a1f549e994ef48a}{type}}\ =\ \textcolor{keyword}{volatile}\ \textcolor{keyword}{const}\ U\&;}
+\DoxyCodeLine{00116\ \};}
+\DoxyCodeLine{00117\ }
+\DoxyCodeLine{00118\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00119\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo}}<volatile\ const\ T\&\&,\ U>\ \{}
+\DoxyCodeLine{00120\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo_3_01volatile_01const_01T_01_6_6_00_01U_01_4_a2e09b705c719d2eee99c54a87f11c303}{type}}\ =\ \textcolor{keyword}{volatile}\ \textcolor{keyword}{const}\ U\&\&;}
+\DoxyCodeLine{00121\ \};}
+\DoxyCodeLine{00122\ }
+\DoxyCodeLine{00123\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ U>}
+\DoxyCodeLine{00124\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_afe78d0cc61c714a949ed4cb7f7829e86}{GiveQualsToT}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1GiveQualsTo}{GiveQualsTo<T,\ U>::type}};}
+\DoxyCodeLine{00125\ }
+\DoxyCodeLine{00126\ \textcolor{comment}{//\ Convenience\ alias,\ since\ size\_t\ integral\_constant\ is\ used\ a\ lot\ in\ this\ file.}}
+\DoxyCodeLine{00127\ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00128\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}\ =\ std::integral\_constant<std::size\_t,\ I>;}
+\DoxyCodeLine{00129\ }
+\DoxyCodeLine{00130\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_a1401e582287ab2bcab9bdd943ee36de9}{NPos}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<variant\_npos>}};}
+\DoxyCodeLine{00131\ }
+\DoxyCodeLine{00132\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Variant,\ \textcolor{keyword}{class}\ T,\ \textcolor{keyword}{class}\ =\ \textcolor{keywordtype}{void}>}
+\DoxyCodeLine{00133\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfConstructedType}{IndexOfConstructedType}}\ \{\};}
+\DoxyCodeLine{00134\ }
+\DoxyCodeLine{00135\ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I,\ \textcolor{keyword}{class}\ Variant>}
+\DoxyCodeLine{00136\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl}{VariantAccessResultImpl}};}
+\DoxyCodeLine{00137\ }
+\DoxyCodeLine{00138\ \textcolor{keyword}{template}\ <std::size\_t\ I,\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Variantemplate,\ \textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{00139\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl}{VariantAccessResultImpl}}<I,\ Variantemplate<T...>\&>\ \{}
+\DoxyCodeLine{00140\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl_3_01I_00_01Variantemplate_3_01T_8_8_8_01_4_01_6_01_4_aa9834bf639302f98bebb416d1b58ad0e}{type}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{absl::variant\_alternative}}<I,\ \mbox{\hyperlink{classabsl_1_1variant}{variant}}<T...>>::type\&;}
+\DoxyCodeLine{00141\ \};}
+\DoxyCodeLine{00142\ }
+\DoxyCodeLine{00143\ \textcolor{keyword}{template}\ <std::size\_t\ I,\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Variantemplate,\ \textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{00144\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl}{VariantAccessResultImpl}}<I,\ const\ Variantemplate<T...>\&>\ \{}
+\DoxyCodeLine{00145\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl_3_01I_00_01const_01Variantemplate_3_01T_8_8_8_01_4_01_6_01_4_a4647f736b7323b171a249d1addfbe617}{type}}\ =}
+\DoxyCodeLine{00146\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{absl::variant\_alternative}}<I,\ \mbox{\hyperlink{classabsl_1_1variant}{variant}}<T...>>::type\&;}
+\DoxyCodeLine{00147\ \};}
+\DoxyCodeLine{00148\ }
+\DoxyCodeLine{00149\ \textcolor{keyword}{template}\ <std::size\_t\ I,\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Variantemplate,\ \textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{00150\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl}{VariantAccessResultImpl}}<I,\ Variantemplate<T...>\&\&>\ \{}
+\DoxyCodeLine{00151\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl_3_01I_00_01Variantemplate_3_01T_8_8_8_01_4_01_6_6_01_4_a55fd6fbb03507bf02f688dbe1ec1e2be}{type}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{absl::variant\_alternative}}<I,\ \mbox{\hyperlink{classabsl_1_1variant}{variant}}<T...>>::type\&\&;}
+\DoxyCodeLine{00152\ \};}
+\DoxyCodeLine{00153\ }
+\DoxyCodeLine{00154\ \textcolor{keyword}{template}\ <std::size\_t\ I,\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...>\ \textcolor{keyword}{class\ }Variantemplate,\ \textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{00155\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl}{VariantAccessResultImpl}}<I,\ const\ Variantemplate<T...>\&\&>\ \{}
+\DoxyCodeLine{00156\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl_3_01I_00_01const_01Variantemplate_3_01T_8_8_8_01_4_01_6_6_01_4_a46263f94e044e5b3c4ce9f739f4c73c3}{type}}\ =}
+\DoxyCodeLine{00157\ \ \ \ \ \ \ \textcolor{keyword}{const}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{absl::variant\_alternative}}<I,\ \mbox{\hyperlink{classabsl_1_1variant}{variant}}<T...>>::type\&\&;}
+\DoxyCodeLine{00158\ \};}
+\DoxyCodeLine{00159\ }
+\DoxyCodeLine{00160\ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I,\ \textcolor{keyword}{class}\ Variant>}
+\DoxyCodeLine{00161\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_a7629a9e76fe7b64355e3f680a9e558b3}{VariantAccessResult}}\ =}
+\DoxyCodeLine{00162\ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantAccessResultImpl}{VariantAccessResultImpl<I,\ Variant\&\&>::type}};}
+\DoxyCodeLine{00163\ }
+\DoxyCodeLine{00164\ \textcolor{comment}{//\ NOTE:\ This\ is\ used\ instead\ of\ std::array\ to\ reduce\ instantiation\ overhead.}}
+\DoxyCodeLine{00165\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ std::\textcolor{keywordtype}{size\_t}\ Size>}
+\DoxyCodeLine{00166\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1SimpleArray}{SimpleArray}}\ \{}
+\DoxyCodeLine{00167\ \ \ \textcolor{keyword}{static\_assert}(Size\ !=\ 0,\ \textcolor{stringliteral}{"{}"{}});}
+\DoxyCodeLine{00168\ \ \ T\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1SimpleArray_ae5b269b49ef4f6200cb5fc91c8be9a24}{value}}[Size];}
+\DoxyCodeLine{00169\ \};}
+\DoxyCodeLine{00170\ }
+\DoxyCodeLine{00171\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00172\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1AccessedType}{AccessedType}}\ \{}
+\DoxyCodeLine{00173\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1AccessedType_a17b2cc26b8d700a95acd8336c9fe19f0}{type}}\ =\ T;}
+\DoxyCodeLine{00174\ \};}
+\DoxyCodeLine{00175\ }
+\DoxyCodeLine{00176\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00177\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_a0eb57bf365fec8acf5da613259452919}{AccessedTypeT}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1AccessedType_a17b2cc26b8d700a95acd8336c9fe19f0}{AccessedType<T>::type}};}
+\DoxyCodeLine{00178\ }
+\DoxyCodeLine{00179\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ std::\textcolor{keywordtype}{size\_t}\ Size>}
+\DoxyCodeLine{00180\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1AccessedType}{AccessedType}}<\mbox{\hyperlink{structabsl_1_1variant__internal_1_1SimpleArray}{SimpleArray}}<T,\ Size>>\ \{}
+\DoxyCodeLine{00181\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1AccessedType_3_01SimpleArray_3_01T_00_01Size_01_4_01_4_a487513b8756da10a4a271ff788abf854}{type}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_a0eb57bf365fec8acf5da613259452919}{AccessedTypeT<T>}};}
+\DoxyCodeLine{00182\ \};}
+\DoxyCodeLine{00183\ }
+\DoxyCodeLine{00184\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00185\ \textcolor{keyword}{constexpr}\ T\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_a26cf5d3f2ab5b7311cec1ca418aeb1e7}{AccessSimpleArray}}(\textcolor{keyword}{const}\ T\&\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}})\ \{}
+\DoxyCodeLine{00186\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}};}
+\DoxyCodeLine{00187\ \}}
+\DoxyCodeLine{00188\ }
+\DoxyCodeLine{00189\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }T,\ std::size\_t\ Size,\ \textcolor{keyword}{class}...\ SizeT>}
+\DoxyCodeLine{00190\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_a0eb57bf365fec8acf5da613259452919}{AccessedTypeT<T>}}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_a26cf5d3f2ab5b7311cec1ca418aeb1e7}{AccessSimpleArray}}(\textcolor{keyword}{const}\ SimpleArray<T,\ Size>\&\ table,}
+\DoxyCodeLine{00191\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\ head\_index,}
+\DoxyCodeLine{00192\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ SizeT...\ tail\_indices)\ \{}
+\DoxyCodeLine{00193\ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_a26cf5d3f2ab5b7311cec1ca418aeb1e7}{AccessSimpleArray}}(table.value[head\_index],\ tail\_indices...);}
+\DoxyCodeLine{00194\ \}}
+\DoxyCodeLine{00195\ }
+\DoxyCodeLine{00196\ \textcolor{comment}{//\ Note:\ Intentionally\ is\ an\ alias.}}
+\DoxyCodeLine{00197\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00198\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac2e3aa4a69cc10c967cea9e66e1aff10}{AlwaysZero}}\ =\ SizeT<0>;}
+\DoxyCodeLine{00199\ }
+\DoxyCodeLine{00200\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ Vs>}
+\DoxyCodeLine{00201\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesResultImpl}{VisitIndicesResultImpl}}\ \{}
+\DoxyCodeLine{00202\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesResultImpl_a99fb4a72dbe7f10e9b798363f2b0428f}{type}}\ =\ \mbox{\hyperlink{namespaceabsl_ae68357235a46d10a2fa83f9eaeea080c}{absl::result\_of\_t}}<Op(\mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac2e3aa4a69cc10c967cea9e66e1aff10}{AlwaysZero<Vs>}}...)>;}
+\DoxyCodeLine{00203\ \};}
+\DoxyCodeLine{00204\ }
+\DoxyCodeLine{00205\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ Vs>}
+\DoxyCodeLine{00206\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac9dd5f215db80a523bfd3eb5b770d1d5}{VisitIndicesResultT}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesResultImpl}{VisitIndicesResultImpl}}<Op,\ Vs...>::type;}
+\DoxyCodeLine{00207\ }
+\DoxyCodeLine{00208\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }ReturnType,\ \textcolor{keyword}{class\ }FunctionObject,\ \textcolor{keyword}{class\ }EndIndices,}
+\DoxyCodeLine{00209\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{class\ }BoundIndices>}
+\DoxyCodeLine{00210\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrix}{MakeVisitationMatrix}};}
+\DoxyCodeLine{00211\ }
+\DoxyCodeLine{00212\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }ReturnType,\ \textcolor{keyword}{class\ }FunctionObject,\ std::size\_t...\ Indices>}
+\DoxyCodeLine{00213\ \textcolor{keyword}{constexpr}\ ReturnType\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ab90bbf27a482b597fe7b3a9aa43d7313}{call\_with\_indices}}(FunctionObject\&\&\ function)\ \{}
+\DoxyCodeLine{00214\ \ \ \textcolor{keyword}{static\_assert}(}
+\DoxyCodeLine{00215\ \ \ \ \ \ \ std::is\_same<ReturnType,\ decltype(std::declval<FunctionObject>()(}
+\DoxyCodeLine{00216\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<Indices>}}()...))>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}},}
+\DoxyCodeLine{00217\ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Not\ all\ visitation\ overloads\ have\ the\ same\ return\ type."{}});}
+\DoxyCodeLine{00218\ \ \ \textcolor{keywordflow}{return}\ std::forward<FunctionObject>(function)(\mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<Indices>}}()...);}
+\DoxyCodeLine{00219\ \}}
+\DoxyCodeLine{00220\ }
+\DoxyCodeLine{00221\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }ReturnType,\ \textcolor{keyword}{class\ }FunctionObject,\ std::size\_t...\ BoundIndices>}
+\DoxyCodeLine{00222\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrix}{MakeVisitationMatrix}}<ReturnType,\ FunctionObject,\ index\_sequence<>,}
+\DoxyCodeLine{00223\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<BoundIndices...>>\ \{}
+\DoxyCodeLine{00224\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrix_3_01ReturnType_00_01FunctionObject_00_01ded3d714e8bffe1998011064380a1a14_aeb56082e3cd8b78f1a765eac7e7e62a7}{ResultType}}\ =\ ReturnType\ (*)(FunctionObject\&\&);}
+\DoxyCodeLine{00225\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrix_3_01ReturnType_00_01FunctionObject_00_01ded3d714e8bffe1998011064380a1a14_aeb56082e3cd8b78f1a765eac7e7e62a7}{ResultType}}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrix_3_01ReturnType_00_01FunctionObject_00_01ded3d714e8bffe1998011064380a1a14_af34fd37f8f532b4ead596d9ea308e8de}{Run}}()\ \{}
+\DoxyCodeLine{00226\ \ \ \ \ \textcolor{keywordflow}{return}\ \&\mbox{\hyperlink{namespaceabsl_1_1variant__internal_ab90bbf27a482b597fe7b3a9aa43d7313}{call\_with\_indices}}<ReturnType,\ FunctionObject,}
+\DoxyCodeLine{00227\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (BoundIndices\ -\/\ 1)...>;}
+\DoxyCodeLine{00228\ \ \ \}}
+\DoxyCodeLine{00229\ \};}
+\DoxyCodeLine{00230\ }
+\DoxyCodeLine{00231\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Is,\ std::\textcolor{keywordtype}{size\_t}\ J>}
+\DoxyCodeLine{00232\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1AppendToIndexSequence}{AppendToIndexSequence}};}
+\DoxyCodeLine{00233\ }
+\DoxyCodeLine{00234\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Is,\ std::\textcolor{keywordtype}{size\_t}\ J>}
+\DoxyCodeLine{00235\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_acf654053c21a74a6c5492983005dd5bc}{AppendToIndexSequenceT}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1AppendToIndexSequence}{AppendToIndexSequence<Is,\ J>::type}};}
+\DoxyCodeLine{00236\ }
+\DoxyCodeLine{00237\ \textcolor{keyword}{template}\ <std::size\_t...\ Is,\ std::size\_t\ J>}
+\DoxyCodeLine{00238\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1AppendToIndexSequence}{AppendToIndexSequence}}<index\_sequence<Is...>,\ J>\ \{}
+\DoxyCodeLine{00239\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1AppendToIndexSequence_3_01index__sequence_3_01Is_8_8_8_01_4_00_01J_01_4_a0720f14e780c9b2e6bbb2b765faeb611}{type}}\ =\ index\_sequence<Is...,\ J>;}
+\DoxyCodeLine{00240\ \};}
+\DoxyCodeLine{00241\ }
+\DoxyCodeLine{00242\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }ReturnType,\ \textcolor{keyword}{class\ }FunctionObject,\ \textcolor{keyword}{class\ }EndIndices,}
+\DoxyCodeLine{00243\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{class\ }CurrIndices,\ \textcolor{keyword}{class\ }BoundIndices>}
+\DoxyCodeLine{00244\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrixImpl}{MakeVisitationMatrixImpl}};}
+\DoxyCodeLine{00245\ }
+\DoxyCodeLine{00246\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }ReturnType,\ \textcolor{keyword}{class\ }FunctionObject,\ \textcolor{keyword}{class\ }EndIndices,}
+\DoxyCodeLine{00247\ \ \ \ \ \ \ \ \ \ \ std::size\_t...\ CurrIndices,\ \textcolor{keyword}{class\ }BoundIndices>}
+\DoxyCodeLine{00248\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrixImpl}{MakeVisitationMatrixImpl}}<ReturnType,\ FunctionObject,\ EndIndices,}
+\DoxyCodeLine{00249\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<CurrIndices...>,\ BoundIndices>\ \{}
+\DoxyCodeLine{00250\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1SimpleArray}{ResultType}}\ =\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1SimpleArray}{SimpleArray}}<}
+\DoxyCodeLine{00251\ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrix}{MakeVisitationMatrix}}<ReturnType,\ FunctionObject,\ EndIndices,}
+\DoxyCodeLine{00252\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<>>::ResultType,}
+\DoxyCodeLine{00253\ \ \ \ \ \ \ \textcolor{keyword}{sizeof}...(CurrIndices)>;}
+\DoxyCodeLine{00254\ }
+\DoxyCodeLine{00255\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1SimpleArray}{ResultType}}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrixImpl_3_01ReturnType_00_01FunctionObject_0c8339aacc77751cae9be9cf0972fa628_a3d6ef7b43b4488eaf98ea597f7f550ee}{Run}}()\ \{}
+\DoxyCodeLine{00256\ \ \ \ \ \textcolor{keywordflow}{return}\ \{\{\mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrix}{MakeVisitationMatrix}}<}
+\DoxyCodeLine{00257\ \ \ \ \ \ \ \ \ ReturnType,\ FunctionObject,\ EndIndices,}
+\DoxyCodeLine{00258\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_acf654053c21a74a6c5492983005dd5bc}{AppendToIndexSequenceT<BoundIndices,\ CurrIndices>}}>::Run()...\}\};}
+\DoxyCodeLine{00259\ \ \ \}}
+\DoxyCodeLine{00260\ \};}
+\DoxyCodeLine{00261\ }
+\DoxyCodeLine{00262\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }ReturnType,\ \textcolor{keyword}{class\ }FunctionObject,\ std::size\_t\ HeadEndIndex,}
+\DoxyCodeLine{00263\ \ \ \ \ \ \ \ \ \ \ std::size\_t...\ TailEndIndices,\ std::size\_t...\ BoundIndices>}
+\DoxyCodeLine{00264\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrix}{MakeVisitationMatrix}}<ReturnType,\ FunctionObject,}
+\DoxyCodeLine{00265\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<HeadEndIndex,\ TailEndIndices...>,}
+\DoxyCodeLine{00266\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<BoundIndices...>>}
+\DoxyCodeLine{00267\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrixImpl}{MakeVisitationMatrixImpl}}<ReturnType,\ FunctionObject,}
+\DoxyCodeLine{00268\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<TailEndIndices...>,}
+\DoxyCodeLine{00269\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::make\_index\_sequence<HeadEndIndex>,}
+\DoxyCodeLine{00270\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<BoundIndices...>>\ \{\};}
+\DoxyCodeLine{00271\ }
+\DoxyCodeLine{00272\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnreachableSwitchCase}{UnreachableSwitchCase}}\ \{}
+\DoxyCodeLine{00273\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Op>}
+\DoxyCodeLine{00274\ \ \ [[noreturn]]\ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac9dd5f215db80a523bfd3eb5b770d1d5}{VisitIndicesResultT<Op,\ std::size\_t>}}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnreachableSwitchCase_a0afaabbe759e69194ee08923396bd0e5}{Run}}(}
+\DoxyCodeLine{00275\ \ \ \ \ \ \ Op\&\&\ \textcolor{comment}{/*ignored*/})\ \{}
+\DoxyCodeLine{00276\ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2optimization_8h_a27b8fb05e2143ab28382ca991501f3c1}{ABSL\_UNREACHABLE}}();}
+\DoxyCodeLine{00277\ \ \ \}}
+\DoxyCodeLine{00278\ \};}
+\DoxyCodeLine{00279\ }
+\DoxyCodeLine{00280\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Op,\ std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00281\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1ReachableSwitchCase}{ReachableSwitchCase}}\ \{}
+\DoxyCodeLine{00282\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac9dd5f215db80a523bfd3eb5b770d1d5}{VisitIndicesResultT<Op,\ std::size\_t>}}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1ReachableSwitchCase_a23e33997d47a6b93dd0294baa86a6513}{Run}}(Op\&\&\ op)\ \{}
+\DoxyCodeLine{00283\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a4e159c18e37d8511af4cfc169e0cc8a3}{absl::base\_internal::invoke}}(std::forward<Op>(op),\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<I>}}());}
+\DoxyCodeLine{00284\ \ \ \}}
+\DoxyCodeLine{00285\ \};}
+\DoxyCodeLine{00286\ }
+\DoxyCodeLine{00287\ \textcolor{comment}{//\ The\ number\ 33\ is\ just\ a\ guess\ at\ a\ reasonable\ maximum\ to\ our\ switch.\ It\ is}}
+\DoxyCodeLine{00288\ \textcolor{comment}{//\ not\ based\ on\ any\ analysis.\ The\ reason\ it\ is\ a\ power\ of\ 2\ plus\ 1\ instead\ of\ a}}
+\DoxyCodeLine{00289\ \textcolor{comment}{//\ power\ of\ 2\ is\ because\ the\ number\ was\ picked\ to\ correspond\ to\ a\ power\ of\ 2}}
+\DoxyCodeLine{00290\ \textcolor{comment}{//\ amount\ of\ "{}normal"{}\ alternatives,\ plus\ one\ for\ the\ possibility\ of\ the\ user}}
+\DoxyCodeLine{00291\ \textcolor{comment}{//\ providing\ "{}monostate"{}\ in\ addition\ to\ the\ more\ natural\ alternatives.}}
+\DoxyCodeLine{00292\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2internal_2inline__variable_8h_a401cd241bee1b210ebca85418447c7cb}{ABSL\_INTERNAL\_INLINE\_CONSTEXPR}}(std::size\_t,\ MaxUnrolledVisitCases,\ 33);}
+\DoxyCodeLine{00293\ }
+\DoxyCodeLine{00294\ \textcolor{comment}{//\ Note:\ The\ default-\/definition\ is\ for\ unreachable\ cases.}}
+\DoxyCodeLine{00295\ \textcolor{keyword}{template}\ <\textcolor{keywordtype}{bool}\ IsReachable>}
+\DoxyCodeLine{00296\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1PickCaseImpl}{PickCaseImpl}}\ \{}
+\DoxyCodeLine{00297\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Op,\ std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00298\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnreachableSwitchCase}{Apply}}\ =\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnreachableSwitchCase}{UnreachableSwitchCase}};}
+\DoxyCodeLine{00299\ \};}
+\DoxyCodeLine{00300\ }
+\DoxyCodeLine{00301\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00302\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1PickCaseImpl}{PickCaseImpl}}<\textcolor{comment}{/*IsReachable\ =*/}true>\ \{}
+\DoxyCodeLine{00303\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Op,\ std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00304\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1ReachableSwitchCase}{Apply}}\ =\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1ReachableSwitchCase}{ReachableSwitchCase<Op,\ I>}};}
+\DoxyCodeLine{00305\ \};}
+\DoxyCodeLine{00306\ }
+\DoxyCodeLine{00307\ \textcolor{comment}{//\ Note:\ This\ form\ of\ dance\ with\ template\ aliases\ is\ to\ make\ sure\ that\ we}}
+\DoxyCodeLine{00308\ \textcolor{comment}{//\ \ \ \ \ \ \ instantiate\ a\ number\ of\ templates\ proportional\ to\ the\ number\ of\ variant}}
+\DoxyCodeLine{00309\ \textcolor{comment}{//\ \ \ \ \ \ \ alternatives\ rather\ than\ a\ number\ of\ templates\ proportional\ to\ our}}
+\DoxyCodeLine{00310\ \textcolor{comment}{//\ \ \ \ \ \ \ maximum\ unrolled\ amount\ of\ visitation\ cases\ (aliases\ are\ effectively}}
+\DoxyCodeLine{00311\ \textcolor{comment}{//\ \ \ \ \ \ \ "{}free"{}\ whereas\ other\ template\ instantiations\ are\ costly).}}
+\DoxyCodeLine{00312\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Op,\ std::\textcolor{keywordtype}{size\_t}\ I,\ std::\textcolor{keywordtype}{size\_t}\ EndIndex>}
+\DoxyCodeLine{00313\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1PickCaseImpl}{PickCaseImpl}}<(I\ <\ EndIndex)>::template\ Apply<Op,\ I>;}
+\DoxyCodeLine{00314\ }
+\DoxyCodeLine{00315\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ ReturnType>}
+\DoxyCodeLine{00316\ [[noreturn]]\ ReturnType\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_afe77a3ae2895da6d94e3403aadf54495}{TypedThrowBadVariantAccess}}()\ \{}
+\DoxyCodeLine{00317\ \ \ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_afd2e711517d096b4212d6602b844edb7}{absl::variant\_internal::ThrowBadVariantAccess}}();}
+\DoxyCodeLine{00318\ \}}
+\DoxyCodeLine{00319\ }
+\DoxyCodeLine{00320\ \textcolor{comment}{//\ Given\ N\ variant\ sizes,\ determine\ the\ number\ of\ cases\ there\ would\ need\ to\ be}}
+\DoxyCodeLine{00321\ \textcolor{comment}{//\ in\ a\ single\ switch-\/statement\ that\ would\ cover\ every\ possibility\ in\ the}}
+\DoxyCodeLine{00322\ \textcolor{comment}{//\ corresponding\ N-\/ary\ visit\ operation.}}
+\DoxyCodeLine{00323\ \textcolor{keyword}{template}\ <std::size\_t...\ NumAlternatives>}
+\DoxyCodeLine{00324\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1NumCasesOfSwitch}{NumCasesOfSwitch}};}
+\DoxyCodeLine{00325\ }
+\DoxyCodeLine{00326\ \textcolor{keyword}{template}\ <std::size\_t\ HeadNumAlternatives,\ std::size\_t...\ TailNumAlternatives>}
+\DoxyCodeLine{00327\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1NumCasesOfSwitch}{NumCasesOfSwitch}}<HeadNumAlternatives,\ TailNumAlternatives...>\ \{}
+\DoxyCodeLine{00328\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ std::size\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}\ =}
+\DoxyCodeLine{00329\ \ \ \ \ \ \ (HeadNumAlternatives\ +\ 1)\ *}
+\DoxyCodeLine{00330\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1NumCasesOfSwitch}{NumCasesOfSwitch}}<TailNumAlternatives...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}};}
+\DoxyCodeLine{00331\ \};}
+\DoxyCodeLine{00332\ }
+\DoxyCodeLine{00333\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00334\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1NumCasesOfSwitch}{NumCasesOfSwitch}}<>\ \{}
+\DoxyCodeLine{00335\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ std::size\_t\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{value}}\ =\ 1;}
+\DoxyCodeLine{00336\ \};}
+\DoxyCodeLine{00337\ }
+\DoxyCodeLine{00338\ \textcolor{comment}{//\ A\ switch\ statement\ optimizes\ better\ than\ the\ table\ of\ function\ pointers.}}
+\DoxyCodeLine{00339\ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ EndIndex>}
+\DoxyCodeLine{00340\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesSwitch}{VisitIndicesSwitch}}\ \{}
+\DoxyCodeLine{00341\ \ \ \textcolor{keyword}{static\_assert}(EndIndex\ <=\ MaxUnrolledVisitCases,}
+\DoxyCodeLine{00342\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Maximum\ unrolled\ switch\ size\ exceeded."{}});}
+\DoxyCodeLine{00343\ }
+\DoxyCodeLine{00344\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Op>}
+\DoxyCodeLine{00345\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac9dd5f215db80a523bfd3eb5b770d1d5}{VisitIndicesResultT<Op,\ std::size\_t>}}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesSwitch_a6438d452a7a17e571c14ab378d981c9e}{Run}}(Op\&\&\ op,\ std::size\_t\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}})\ \{}
+\DoxyCodeLine{00346\ \ \ \ \ \textcolor{keywordflow}{switch}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}})\ \{}
+\DoxyCodeLine{00347\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 0:}
+\DoxyCodeLine{00348\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 0,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00349\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 1:}
+\DoxyCodeLine{00350\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 1,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00351\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 2:}
+\DoxyCodeLine{00352\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 2,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00353\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 3:}
+\DoxyCodeLine{00354\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 3,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00355\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 4:}
+\DoxyCodeLine{00356\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 4,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00357\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 5:}
+\DoxyCodeLine{00358\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 5,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00359\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 6:}
+\DoxyCodeLine{00360\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 6,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00361\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 7:}
+\DoxyCodeLine{00362\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 7,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00363\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 8:}
+\DoxyCodeLine{00364\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 8,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00365\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 9:}
+\DoxyCodeLine{00366\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 9,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00367\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 10:}
+\DoxyCodeLine{00368\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 10,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00369\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 11:}
+\DoxyCodeLine{00370\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 11,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00371\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 12:}
+\DoxyCodeLine{00372\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 12,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00373\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 13:}
+\DoxyCodeLine{00374\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 13,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00375\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 14:}
+\DoxyCodeLine{00376\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 14,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00377\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 15:}
+\DoxyCodeLine{00378\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 15,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00379\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 16:}
+\DoxyCodeLine{00380\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 16,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00381\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 17:}
+\DoxyCodeLine{00382\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 17,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00383\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 18:}
+\DoxyCodeLine{00384\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 18,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00385\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 19:}
+\DoxyCodeLine{00386\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 19,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00387\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 20:}
+\DoxyCodeLine{00388\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 20,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00389\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 21:}
+\DoxyCodeLine{00390\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 21,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00391\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 22:}
+\DoxyCodeLine{00392\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 22,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00393\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 23:}
+\DoxyCodeLine{00394\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 23,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00395\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 24:}
+\DoxyCodeLine{00396\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 24,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00397\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 25:}
+\DoxyCodeLine{00398\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 25,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00399\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 26:}
+\DoxyCodeLine{00400\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 26,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00401\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 27:}
+\DoxyCodeLine{00402\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 27,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00403\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 28:}
+\DoxyCodeLine{00404\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 28,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00405\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 29:}
+\DoxyCodeLine{00406\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 29,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00407\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 30:}
+\DoxyCodeLine{00408\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 30,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00409\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 31:}
+\DoxyCodeLine{00410\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 31,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00411\ \ \ \ \ \ \ \textcolor{keywordflow}{case}\ 32:}
+\DoxyCodeLine{00412\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ae206417bdbfdd588004e7d8d04804cf4}{PickCase<Op,\ 32,\ EndIndex>::Run}}(std::forward<Op>(op));}
+\DoxyCodeLine{00413\ \ \ \ \ \ \ \textcolor{keywordflow}{default}:}
+\DoxyCodeLine{00414\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{abseil-cpp_2absl_2base_2macros_8h_a4d70d2bd0537c88540bb8a58bd3c9074}{ABSL\_ASSERT}}(\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ ==\ variant\_npos);}
+\DoxyCodeLine{00415\ \ \ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1base__internal_a4e159c18e37d8511af4cfc169e0cc8a3}{absl::base\_internal::invoke}}(std::forward<Op>(op),\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_a1401e582287ab2bcab9bdd943ee36de9}{NPos}}());}
+\DoxyCodeLine{00416\ \ \ \ \ \}}
+\DoxyCodeLine{00417\ \ \ \}}
+\DoxyCodeLine{00418\ \};}
+\DoxyCodeLine{00419\ }
+\DoxyCodeLine{00420\ \textcolor{keyword}{template}\ <std::size\_t...\ EndIndices>}
+\DoxyCodeLine{00421\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesFallback}{VisitIndicesFallback}}\ \{}
+\DoxyCodeLine{00422\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}>}
+\DoxyCodeLine{00423\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac9dd5f215db80a523bfd3eb5b770d1d5}{VisitIndicesResultT}}<Op,\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}...>\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesFallback_a36f1206f77a95479d1a04a6b774dced3}{Run}}(Op\&\&\ op,\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}...\ indices)\ \{}
+\DoxyCodeLine{00424\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_a26cf5d3f2ab5b7311cec1ca418aeb1e7}{AccessSimpleArray}}(}
+\DoxyCodeLine{00425\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1MakeVisitationMatrix}{MakeVisitationMatrix}}<\mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac9dd5f215db80a523bfd3eb5b770d1d5}{VisitIndicesResultT<Op,\ SizeT...>}},\ Op,}
+\DoxyCodeLine{00426\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<(EndIndices\ +\ 1)...>,}
+\DoxyCodeLine{00427\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<>>\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesFallback_a36f1206f77a95479d1a04a6b774dced3}{::Run}}(),}
+\DoxyCodeLine{00428\ \ \ \ \ \ \ \ \ (indices\ +\ 1)...)(std::forward<Op>(op));}
+\DoxyCodeLine{00429\ \ \ \}}
+\DoxyCodeLine{00430\ \};}
+\DoxyCodeLine{00431\ }
+\DoxyCodeLine{00432\ \textcolor{comment}{//\ Take\ an\ N-\/dimensional\ series\ of\ indices\ and\ convert\ them\ into\ a\ single\ index}}
+\DoxyCodeLine{00433\ \textcolor{comment}{//\ without\ loss\ of\ information.\ The\ purpose\ of\ this\ is\ to\ be\ able\ to\ convert\ an}}
+\DoxyCodeLine{00434\ \textcolor{comment}{//\ N-\/ary\ visit\ operation\ into\ a\ single\ switch\ statement.}}
+\DoxyCodeLine{00435\ \textcolor{keyword}{template}\ <std::size\_t...>}
+\DoxyCodeLine{00436\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1FlattenIndices}{FlattenIndices}};}
+\DoxyCodeLine{00437\ }
+\DoxyCodeLine{00438\ \textcolor{keyword}{template}\ <std::size\_t\ HeadSize,\ std::size\_t...\ TailSize>}
+\DoxyCodeLine{00439\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1FlattenIndices}{FlattenIndices}}<HeadSize,\ TailSize...>\ \{}
+\DoxyCodeLine{00440\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ SizeType>}
+\DoxyCodeLine{00441\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ std::size\_t\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1FlattenIndices_3_01HeadSize_00_01TailSize_8_8_8_01_4_a6c4b3bb4f6906653432d8b724f694899}{Run}}(std::size\_t\ \mbox{\hyperlink{BlockMethods_8h_af652402b7c3103c3e9f6c62d51e8d490}{head}},\ SizeType...\ \mbox{\hyperlink{BlockMethods_8h_a0f7bc7c54f8377f705ed23c2f5e71089}{tail}})\ \{}
+\DoxyCodeLine{00442\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{BlockMethods_8h_af652402b7c3103c3e9f6c62d51e8d490}{head}}\ +\ HeadSize\ *\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1FlattenIndices}{FlattenIndices<TailSize...>::Run}}(\mbox{\hyperlink{BlockMethods_8h_a0f7bc7c54f8377f705ed23c2f5e71089}{tail}}...);}
+\DoxyCodeLine{00443\ \ \ \}}
+\DoxyCodeLine{00444\ \};}
+\DoxyCodeLine{00445\ }
+\DoxyCodeLine{00446\ \textcolor{keyword}{template}\ <>}
+\DoxyCodeLine{00447\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1FlattenIndices}{FlattenIndices}}<>\ \{}
+\DoxyCodeLine{00448\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ std::size\_t\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1FlattenIndices_3_4_aa4e19ac8c28e15762171be0a965d8af4}{Run}}()\ \{\ \textcolor{keywordflow}{return}\ 0;\ \}}
+\DoxyCodeLine{00449\ \};}
+\DoxyCodeLine{00450\ }
+\DoxyCodeLine{00451\ \textcolor{comment}{//\ Take\ a\ single\ "{}flattened"{}\ index\ (flattened\ by\ FlattenIndices)\ and\ determine}}
+\DoxyCodeLine{00452\ \textcolor{comment}{//\ the\ value\ of\ the\ index\ of\ one\ of\ the\ logically\ represented\ dimensions.}}
+\DoxyCodeLine{00453\ \textcolor{keyword}{template}\ <std::size\_t\ I,\ std::size\_t\ IndexToGet,\ std::size\_t\ HeadSize,}
+\DoxyCodeLine{00454\ \ \ \ \ \ \ \ \ \ \ std::size\_t...\ TailSize>}
+\DoxyCodeLine{00455\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnflattenIndex}{UnflattenIndex}}\ \{}
+\DoxyCodeLine{00456\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ std::size\_t\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnflattenIndex_a2ccee51ea3b39bbf587e7666f179017c}{value}}\ =}
+\DoxyCodeLine{00457\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnflattenIndex}{UnflattenIndex}}<I\ /\ HeadSize,\ IndexToGet\ -\/\ 1,\ TailSize...>\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnflattenIndex_a2ccee51ea3b39bbf587e7666f179017c}{::value}};}
+\DoxyCodeLine{00458\ \};}
+\DoxyCodeLine{00459\ }
+\DoxyCodeLine{00460\ \textcolor{keyword}{template}\ <std::size\_t\ I,\ std::size\_t\ HeadSize,\ std::size\_t...\ TailSize>}
+\DoxyCodeLine{00461\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnflattenIndex}{UnflattenIndex}}<I,\ 0,\ HeadSize,\ TailSize...>\ \{}
+\DoxyCodeLine{00462\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{constexpr}\ std::size\_t\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnflattenIndex_a2ccee51ea3b39bbf587e7666f179017c}{value}}\ =\ (I\ \%\ HeadSize);}
+\DoxyCodeLine{00463\ \};}
+\DoxyCodeLine{00464\ }
+\DoxyCodeLine{00465\ \textcolor{comment}{//\ The\ backend\ for\ converting\ an\ N-\/ary\ visit\ operation\ into\ a\ unary\ visit.}}
+\DoxyCodeLine{00466\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }IndexSequence,\ std::size\_t...\ EndIndices>}
+\DoxyCodeLine{00467\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesVariadicImpl}{VisitIndicesVariadicImpl}};}
+\DoxyCodeLine{00468\ }
+\DoxyCodeLine{00469\ \textcolor{keyword}{template}\ <std::size\_t...\ \mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}},\ std::size\_t...\ EndIndices>}
+\DoxyCodeLine{00470\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesVariadicImpl}{VisitIndicesVariadicImpl}}<\mbox{\hyperlink{namespaceabsl}{absl}}::index\_sequence<N...>,\ EndIndices...>\ \{}
+\DoxyCodeLine{00471\ \ \ \textcolor{comment}{//\ A\ type\ that\ can\ take\ an\ N-\/ary\ function\ object\ and\ converts\ it\ to\ a\ unary}}
+\DoxyCodeLine{00472\ \ \ \textcolor{comment}{//\ function\ object\ that\ takes\ a\ single,\ flattened\ index,\ and\ "{}unflattens"{}\ it}}
+\DoxyCodeLine{00473\ \ \ \textcolor{comment}{//\ into\ its\ individual\ dimensions\ when\ forwarding\ to\ the\ wrapped\ object.}}
+\DoxyCodeLine{00474\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Op>}
+\DoxyCodeLine{00475\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesVariadicImpl_3_01absl_1_1index__sequence_3_01N_8_a24dc0299ae8ab075576192db82f9ff9}{FlattenedOp}}\ \{}
+\DoxyCodeLine{00476\ \ \ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00477\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac9dd5f215db80a523bfd3eb5b770d1d5}{VisitIndicesResultT}}<Op,\ \textcolor{keyword}{decltype}(EndIndices)...>\ \textcolor{keyword}{operator}()(}
+\DoxyCodeLine{00478\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<I>}}\ \textcolor{comment}{/*index*/})\ \&\&\ \{}
+\DoxyCodeLine{00479\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ base\_internal::invoke(}
+\DoxyCodeLine{00480\ \ \ \ \ \ \ \ \ \ \ std::forward<Op>(op),}
+\DoxyCodeLine{00481\ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}<\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnflattenIndex}{UnflattenIndex}}<I,\ \mbox{\hyperlink{TensorIntDiv_8h_ab2b6b0c222cd1ce70d6a831f57241e59}{N}},\ (EndIndices\ +\ 1)...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}\ -\/}
+\DoxyCodeLine{00482\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::size\_t\{1\}>()...);}
+\DoxyCodeLine{00483\ \ \ \ \ \}}
+\DoxyCodeLine{00484\ }
+\DoxyCodeLine{00485\ \ \ \ \ Op\&\&\ op;}
+\DoxyCodeLine{00486\ \ \ \};}
+\DoxyCodeLine{00487\ }
+\DoxyCodeLine{00488\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Op,\ \textcolor{keyword}{class}...\ SizeType>}
+\DoxyCodeLine{00489\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac9dd5f215db80a523bfd3eb5b770d1d5}{VisitIndicesResultT}}<Op,\ \textcolor{keyword}{decltype}(EndIndices)...>\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesVariadicImpl_3_01absl_1_1index__sequence_3_01N_8_397a91ce4ff95615520fc402bcac30ab_a10f80be5c779cbf28633aa8ae1a9ac10}{Run}}(Op\&\&\ op,}
+\DoxyCodeLine{00490\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ SizeType...\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}})\ \{}
+\DoxyCodeLine{00491\ \ \ \ \ \textcolor{keywordflow}{return}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesSwitch}{VisitIndicesSwitch}}<\mbox{\hyperlink{structabsl_1_1variant__internal_1_1NumCasesOfSwitch}{NumCasesOfSwitch}}<EndIndices...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}}>::Run(}
+\DoxyCodeLine{00492\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesVariadicImpl_3_01absl_1_1index__sequence_3_01N_8_a24dc0299ae8ab075576192db82f9ff9}{FlattenedOp<Op>}}\{std::forward<Op>(op)\},}
+\DoxyCodeLine{00493\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1FlattenIndices}{FlattenIndices}}<(EndIndices\ +\ std::size\_t\{1\})...>::Run(}
+\DoxyCodeLine{00494\ \ \ \ \ \ \ \ \ \ \ \ \ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca865c0c0b4ab0e063e5caa3387c1a8741}{i}}\ +\ std::size\_t\{1\})...));}
+\DoxyCodeLine{00495\ \ \ \}}
+\DoxyCodeLine{00496\ \};}
+\DoxyCodeLine{00497\ }
+\DoxyCodeLine{00498\ \textcolor{keyword}{template}\ <std::size\_t...\ EndIndices>}
+\DoxyCodeLine{00499\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesVariadic}{VisitIndicesVariadic}}}
+\DoxyCodeLine{00500\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndicesVariadicImpl}{VisitIndicesVariadicImpl}}<absl::make\_index\_sequence<sizeof...(EndIndices)>,}
+\DoxyCodeLine{00501\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ EndIndices...>\ \{\};}
+\DoxyCodeLine{00502\ }
+\DoxyCodeLine{00503\ \textcolor{comment}{//\ This\ implementation\ will\ flatten\ N-\/ary\ visit\ operations\ into\ a\ single\ switch}}
+\DoxyCodeLine{00504\ \textcolor{comment}{//\ statement\ when\ the\ number\ of\ cases\ would\ be\ less\ than\ our\ maximum\ specified}}
+\DoxyCodeLine{00505\ \textcolor{comment}{//\ switch-\/statement\ size.}}
+\DoxyCodeLine{00506\ \textcolor{comment}{//\ TODO(calabrese)}}
+\DoxyCodeLine{00507\ \textcolor{comment}{//\ \ \ Based\ on\ benchmarks,\ determine\ whether\ the\ function\ table\ approach\ actually}}
+\DoxyCodeLine{00508\ \textcolor{comment}{//\ \ \ does\ optimize\ better\ than\ a\ chain\ of\ switch\ statements\ and\ possibly\ update}}
+\DoxyCodeLine{00509\ \textcolor{comment}{//\ \ \ the\ implementation\ accordingly.\ Also\ consider\ increasing\ the\ maximum\ switch}}
+\DoxyCodeLine{00510\ \textcolor{comment}{//\ \ \ size.}}
+\DoxyCodeLine{00511\ \textcolor{keyword}{template}\ <std::size\_t...\ EndIndices>}
+\DoxyCodeLine{00512\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VisitIndices}{VisitIndices}}}
+\DoxyCodeLine{00513\ \ \ \ \ :\ \mbox{\hyperlink{namespaceabsl_a24ebae7b4dce6920574b4dbbc2d96616}{absl::conditional\_t}}<(NumCasesOfSwitch<EndIndices...>::value\ <=}
+\DoxyCodeLine{00514\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ MaxUnrolledVisitCases),}
+\DoxyCodeLine{00515\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ VisitIndicesVariadic<EndIndices...>,}
+\DoxyCodeLine{00516\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ VisitIndicesFallback<EndIndices...>>\ \{\};}
+\DoxyCodeLine{00517\ }
+\DoxyCodeLine{00518\ template\ <std::size\_t\ EndIndex>}
+\DoxyCodeLine{00519\ struct\ VisitIndices<EndIndex>}
+\DoxyCodeLine{00520\ \ \ \ \ :\ absl::conditional\_t<(EndIndex\ <=\ MaxUnrolledVisitCases),}
+\DoxyCodeLine{00521\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ VisitIndicesSwitch<EndIndex>,}
+\DoxyCodeLine{00522\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ VisitIndicesFallback<EndIndex>>\ \{\};}
+\DoxyCodeLine{00523\ }
+\DoxyCodeLine{00524\ \textcolor{comment}{//\ Suppress\ bogus\ warning\ on\ MSVC:\ MSVC\ complains\ that\ the\ \`{}reinterpret\_cast`}}
+\DoxyCodeLine{00525\ \textcolor{comment}{//\ below\ is\ returning\ the\ address\ of\ a\ temporary\ or\ local\ object.}}
+\DoxyCodeLine{00526\ \#ifdef\ \_MSC\_VER}
+\DoxyCodeLine{00527\ \#pragma\ warning(push)}
+\DoxyCodeLine{00528\ \#pragma\ warning(disable\ :\ 4172)}
+\DoxyCodeLine{00529\ \#endif\ \ \textcolor{comment}{//\ \_MSC\_VER}}
+\DoxyCodeLine{00530\ }
+\DoxyCodeLine{00531\ \textcolor{comment}{//\ TODO(calabrese)\ std::launder}}
+\DoxyCodeLine{00532\ \textcolor{comment}{//\ TODO(calabrese)\ constexpr}}
+\DoxyCodeLine{00533\ \textcolor{comment}{//\ NOTE:\ DO\ NOT\ REMOVE\ the\ \`{}inline`\ keyword\ as\ it\ is\ necessary\ to\ work\ around\ a}}
+\DoxyCodeLine{00534\ \textcolor{comment}{//\ MSVC\ bug.\ See\ https://github.com/abseil/abseil-\/cpp/issues/129\ for\ details.}}
+\DoxyCodeLine{00535\ template\ <class\ Self,\ std::size\_t\ I>}
+\DoxyCodeLine{00536\ inline\ VariantAccessResult<I,\ Self>\ AccessUnion(Self\&\&\ self,\ SizeT<I>\ \textcolor{comment}{/*i*/})\ \{}
+\DoxyCodeLine{00537\ \ \ return\ reinterpret\_cast<VariantAccessResult<I,\ Self>>(self);}
+\DoxyCodeLine{00538\ \}}
+\DoxyCodeLine{00539\ }
+\DoxyCodeLine{00540\ \#ifdef\ \_MSC\_VER}
+\DoxyCodeLine{00541\ \#pragma\ warning(pop)}
+\DoxyCodeLine{00542\ \#endif\ \ \textcolor{comment}{//\ \_MSC\_VER}}
+\DoxyCodeLine{00543\ }
+\DoxyCodeLine{00544\ template\ <class\ T>}
+\DoxyCodeLine{00545\ void\ DeducedDestroy(T\&\ self)\ \{\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00546\ \ \ self.\string~T();}
+\DoxyCodeLine{00547\ \}}
+\DoxyCodeLine{00548\ }
+\DoxyCodeLine{00549\ \textcolor{comment}{//\ NOTE:\ This\ type\ exists\ as\ a\ single\ entity\ for\ variant\ and\ its\ bases\ to}}
+\DoxyCodeLine{00550\ \textcolor{comment}{//\ befriend.\ It\ contains\ helper\ functionality\ that\ manipulates\ the\ state\ of\ the}}
+\DoxyCodeLine{00551\ \textcolor{comment}{//\ variant,\ such\ as\ the\ implementation\ of\ things\ like\ assignment\ and\ emplace}}
+\DoxyCodeLine{00552\ \textcolor{comment}{//\ operations.}}
+\DoxyCodeLine{00553\ struct\ VariantCoreAccess\ \{}
+\DoxyCodeLine{00554\ \ \ template\ <class\ VariantType>}
+\DoxyCodeLine{00555\ \ \ static\ typename\ VariantType::Variant\&\ Derived(VariantType\&\ self)\ \{\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00556\ \ \ \ \ return\ static\_cast<typename\ VariantType::Variant\&>(self);}
+\DoxyCodeLine{00557\ \ \ \}}
+\DoxyCodeLine{00558\ }
+\DoxyCodeLine{00559\ \ \ template\ <class\ VariantType>}
+\DoxyCodeLine{00560\ \ \ static\ const\ typename\ VariantType::Variant\&\ Derived(}
+\DoxyCodeLine{00561\ \ \ \ \ \ \ const\ VariantType\&\ self)\ \{\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00562\ \ \ \ \ return\ static\_cast<const\ typename\ VariantType::Variant\&>(self);}
+\DoxyCodeLine{00563\ \ \ \}}
+\DoxyCodeLine{00564\ }
+\DoxyCodeLine{00565\ \ \ template\ <class\ VariantType>}
+\DoxyCodeLine{00566\ \ \ static\ void\ Destroy(VariantType\&\ self)\ \{\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00567\ \ \ \ \ Derived(self).destroy();}
+\DoxyCodeLine{00568\ \ \ \ \ self.index\_\ =\ absl::variant\_npos;}
+\DoxyCodeLine{00569\ \ \ \}}
+\DoxyCodeLine{00570\ }
+\DoxyCodeLine{00571\ \ \ template\ <class\ Variant>}
+\DoxyCodeLine{00572\ \ \ static\ void\ SetIndex(Variant\&\ self,\ std::size\_t\ i)\ \{\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00573\ \ \ \ \ self.index\_\ =\ i;}
+\DoxyCodeLine{00574\ \ \ \}}
+\DoxyCodeLine{00575\ }
+\DoxyCodeLine{00576\ \ \ template\ <class\ Variant>}
+\DoxyCodeLine{00577\ \ \ static\ void\ InitFrom(Variant\&\ self,\ Variant\&\&\ other)\ \{\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00578\ \ \ \ \ VisitIndices<absl::variant\_size<Variant>::value>::Run(}
+\DoxyCodeLine{00579\ \ \ \ \ \ \ \ \ InitFromVisitor<Variant,\ Variant\&\&>\{\&self,}
+\DoxyCodeLine{00580\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<Variant>(other)\},}
+\DoxyCodeLine{00581\ \ \ \ \ \ \ \ \ other.index());}
+\DoxyCodeLine{00582\ \ \ \ \ self.index\_\ =\ other.index();}
+\DoxyCodeLine{00583\ \ \ \}}
+\DoxyCodeLine{00584\ }
+\DoxyCodeLine{00585\ \ \ \textcolor{comment}{//\ Access\ a\ variant\ alternative,\ assuming\ the\ index\ is\ correct.}}
+\DoxyCodeLine{00586\ \ \ template\ <std::size\_t\ I,\ class\ Variant>}
+\DoxyCodeLine{00587\ \ \ static\ VariantAccessResult<I,\ Variant>\ Access(Variant\&\&\ self)\ \{}
+\DoxyCodeLine{00588\ \ \ \ \ \textcolor{comment}{//\ This\ cast\ instead\ of\ invocation\ of\ AccessUnion\ with\ an\ rvalue\ is\ a}}
+\DoxyCodeLine{00589\ \ \ \ \ \textcolor{comment}{//\ workaround\ for\ msvc.\ Without\ this\ there\ is\ a\ runtime\ failure\ when\ dealing}}
+\DoxyCodeLine{00590\ \ \ \ \ \textcolor{comment}{//\ with\ rvalues.}}
+\DoxyCodeLine{00591\ \ \ \ \ \textcolor{comment}{//\ TODO(calabrese)\ Reduce\ test\ case\ and\ find\ a\ simpler\ workaround.}}
+\DoxyCodeLine{00592\ \ \ \ \ return\ static\_cast<VariantAccessResult<I,\ Variant>>(}
+\DoxyCodeLine{00593\ \ \ \ \ \ \ \ \ variant\_internal::AccessUnion(self.state\_,\ SizeT<I>()));}
+\DoxyCodeLine{00594\ \ \ \}}
+\DoxyCodeLine{00595\ }
+\DoxyCodeLine{00596\ \ \ \textcolor{comment}{//\ Access\ a\ variant\ alternative,\ throwing\ if\ the\ index\ is\ incorrect.}}
+\DoxyCodeLine{00597\ \ \ template\ <std::size\_t\ I,\ class\ Variant>}
+\DoxyCodeLine{00598\ \ \ static\ VariantAccessResult<I,\ Variant>\ CheckedAccess(Variant\&\&\ self)\ \{}
+\DoxyCodeLine{00599\ \ \ \ \ if\ (ABSL\_PREDICT\_FALSE(self.index\_\ !=\ I))\ \{}
+\DoxyCodeLine{00600\ \ \ \ \ \ \ TypedThrowBadVariantAccess<VariantAccessResult<I,\ Variant>>();}
+\DoxyCodeLine{00601\ \ \ \ \ \}}
+\DoxyCodeLine{00602\ }
+\DoxyCodeLine{00603\ \ \ \ \ return\ Access<I>(std::forward<Variant>(self));}
+\DoxyCodeLine{00604\ \ \ \}}
+\DoxyCodeLine{00605\ }
+\DoxyCodeLine{00606\ \ \ \textcolor{comment}{//\ The\ implementation\ of\ the\ move-\/assignment\ operation\ for\ a\ variant.}}
+\DoxyCodeLine{00607\ \ \ template\ <class\ VType>}
+\DoxyCodeLine{00608\ \ \ struct\ MoveAssignVisitor\ \{}
+\DoxyCodeLine{00609\ \ \ \ \ using\ DerivedType\ =\ typename\ VType::Variant;}
+\DoxyCodeLine{00610\ \ \ \ \ template\ <std::size\_t\ NewIndex>}
+\DoxyCodeLine{00611\ \ \ \ \ void\ operator()(SizeT<NewIndex>\ \textcolor{comment}{/*new\_i*/})\ const\ \{}
+\DoxyCodeLine{00612\ \ \ \ \ \ \ if\ (left-\/>index\_\ ==\ NewIndex)\ \{}
+\DoxyCodeLine{00613\ \ \ \ \ \ \ \ \ Access<NewIndex>(*left)\ =\ std::move(Access<NewIndex>(*right));}
+\DoxyCodeLine{00614\ \ \ \ \ \ \ \}\ else\ \{}
+\DoxyCodeLine{00615\ \ \ \ \ \ \ \ \ Derived(*left).template\ emplace<NewIndex>(}
+\DoxyCodeLine{00616\ \ \ \ \ \ \ \ \ \ \ \ \ std::move(Access<NewIndex>(*right)));}
+\DoxyCodeLine{00617\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00618\ \ \ \ \ \}}
+\DoxyCodeLine{00619\ }
+\DoxyCodeLine{00620\ \ \ \ \ void\ operator()(SizeT<absl::variant\_npos>\ \textcolor{comment}{/*new\_i*/})\ const\ \{}
+\DoxyCodeLine{00621\ \ \ \ \ \ \ Destroy(*left);}
+\DoxyCodeLine{00622\ \ \ \ \ \}}
+\DoxyCodeLine{00623\ }
+\DoxyCodeLine{00624\ \ \ \ \ VType*\ left;}
+\DoxyCodeLine{00625\ \ \ \ \ VType*\ right;}
+\DoxyCodeLine{00626\ \ \ \};}
+\DoxyCodeLine{00627\ }
+\DoxyCodeLine{00628\ \ \ template\ <class\ VType>}
+\DoxyCodeLine{00629\ \ \ static\ MoveAssignVisitor<VType>\ MakeMoveAssignVisitor(VType*\ left,}
+\DoxyCodeLine{00630\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ VType*\ other)\ \{}
+\DoxyCodeLine{00631\ \ \ \ \ return\ \{left,\ other\};}
+\DoxyCodeLine{00632\ \ \ \}}
+\DoxyCodeLine{00633\ }
+\DoxyCodeLine{00634\ \ \ \textcolor{comment}{//\ The\ implementation\ of\ the\ assignment\ operation\ for\ a\ variant.}}
+\DoxyCodeLine{00635\ \ \ template\ <class\ VType>}
+\DoxyCodeLine{00636\ \ \ struct\ CopyAssignVisitor\ \{}
+\DoxyCodeLine{00637\ \ \ \ \ using\ DerivedType\ =\ typename\ VType::Variant;}
+\DoxyCodeLine{00638\ \ \ \ \ template\ <std::size\_t\ NewIndex>}
+\DoxyCodeLine{00639\ \ \ \ \ void\ operator()(SizeT<NewIndex>\ \textcolor{comment}{/*new\_i*/})\ const\ \{}
+\DoxyCodeLine{00640\ \ \ \ \ \ \ using\ New\ =}
+\DoxyCodeLine{00641\ \ \ \ \ \ \ \ \ \ \ typename\ absl::variant\_alternative<NewIndex,\ DerivedType>::type;}
+\DoxyCodeLine{00642\ }
+\DoxyCodeLine{00643\ \ \ \ \ \ \ if\ (left-\/>index\_\ ==\ NewIndex)\ \{}
+\DoxyCodeLine{00644\ \ \ \ \ \ \ \ \ Access<NewIndex>(*left)\ =\ Access<NewIndex>(*right);}
+\DoxyCodeLine{00645\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \textcolor{keywordflow}{if}\ (std::is\_nothrow\_copy\_constructible<New>::value\ ||}
+\DoxyCodeLine{00646\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ !std::is\_nothrow\_move\_constructible<New>::value)\ \{}
+\DoxyCodeLine{00647\ \ \ \ \ \ \ \ \ Derived(*left).template\ emplace<NewIndex>(Access<NewIndex>(*right));}
+\DoxyCodeLine{00648\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00649\ \ \ \ \ \ \ \ \ Derived(*left)\ =\ DerivedType(Derived(*right));}
+\DoxyCodeLine{00650\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00651\ \ \ \ \ \}}
+\DoxyCodeLine{00652\ }
+\DoxyCodeLine{00653\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_1_1CopyAssignVisitor_ac55dc196e78f9d195efc1de9305cab98}{operator()}}(\mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<absl::variant\_npos>}}\ \textcolor{comment}{/*new\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00654\ \ \ \ \ \ \ Destroy(*left);}
+\DoxyCodeLine{00655\ \ \ \ \ \}}
+\DoxyCodeLine{00656\ }
+\DoxyCodeLine{00657\ \ \ \ \ VType*\ left;}
+\DoxyCodeLine{00658\ \ \ \ \ \textcolor{keyword}{const}\ VType*\ right;}
+\DoxyCodeLine{00659\ \ \ \};}
+\DoxyCodeLine{00660\ }
+\DoxyCodeLine{00661\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ VType>}
+\DoxyCodeLine{00662\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_1_1CopyAssignVisitor}{CopyAssignVisitor<VType>}}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_a593bff6267b134e225fbf121bb623dfb}{MakeCopyAssignVisitor}}(VType*\ left,}
+\DoxyCodeLine{00663\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{const}\ VType\&\ other)\ \{}
+\DoxyCodeLine{00664\ \ \ \ \ \textcolor{keywordflow}{return}\ \{left,\ \&other\};}
+\DoxyCodeLine{00665\ \ \ \}}
+\DoxyCodeLine{00666\ }
+\DoxyCodeLine{00667\ \ \ \textcolor{comment}{//\ The\ implementation\ of\ conversion-\/assignment\ operations\ for\ variant.}}
+\DoxyCodeLine{00668\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Left,\ \textcolor{keyword}{class}\ QualifiedNew>}
+\DoxyCodeLine{00669\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_1_1ConversionAssignVisitor}{ConversionAssignVisitor}}\ \{}
+\DoxyCodeLine{00670\ \ \ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfConstructedType}{NewIndex}}\ =}
+\DoxyCodeLine{00671\ \ \ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfConstructedType}{variant\_internal::IndexOfConstructedType<Left,\ QualifiedNew>}};}
+\DoxyCodeLine{00672\ }
+\DoxyCodeLine{00673\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_1_1ConversionAssignVisitor_a5595819606687410e5ce6fbbc281bd62}{operator()}}(\mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<NewIndex::value>}}\ \textcolor{comment}{/*old\_i*/}}
+\DoxyCodeLine{00674\ \ \ \ \ )\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00675\ \ \ \ \ \ \ Access<NewIndex::value>(*left)\ =\ std::forward<QualifiedNew>(other);}
+\DoxyCodeLine{00676\ \ \ \ \ \}}
+\DoxyCodeLine{00677\ }
+\DoxyCodeLine{00678\ \ \ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ OldIndex>}
+\DoxyCodeLine{00679\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_1_1ConversionAssignVisitor_a1921abf1440567d7c312af3465a849c4}{operator()}}(\mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<OldIndex>}}\ \textcolor{comment}{/*old\_i*/}}
+\DoxyCodeLine{00680\ \ \ \ \ )\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00681\ \ \ \ \ \ \ \textcolor{keyword}{using\ }New\ =}
+\DoxyCodeLine{00682\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{absl::variant\_alternative<NewIndex::value,\ Left>::type}};}
+\DoxyCodeLine{00683\ \ \ \ \ \ \ \textcolor{keywordflow}{if}\ (std::is\_nothrow\_constructible<New,\ QualifiedNew>::value\ ||}
+\DoxyCodeLine{00684\ \ \ \ \ \ \ \ \ \ \ !std::is\_nothrow\_move\_constructible<New>::value)\ \{}
+\DoxyCodeLine{00685\ \ \ \ \ \ \ \ \ left-\/>template\ emplace<NewIndex::value>(}
+\DoxyCodeLine{00686\ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<QualifiedNew>(other));}
+\DoxyCodeLine{00687\ \ \ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{00688\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ the\ standard\ says\ "{}equivalent\ to}}
+\DoxyCodeLine{00689\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ operator=(variant(std::forward<T>(t)))"{},\ but\ we\ use\ \`{}emplace`\ here}}
+\DoxyCodeLine{00690\ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ because\ the\ variant's\ move\ assignment\ operator\ could\ be\ deleted.}}
+\DoxyCodeLine{00691\ \ \ \ \ \ \ \ \ left-\/>template\ emplace<NewIndex::value>(}
+\DoxyCodeLine{00692\ \ \ \ \ \ \ \ \ \ \ \ \ New(std::forward<QualifiedNew>(other)));}
+\DoxyCodeLine{00693\ \ \ \ \ \ \ \}}
+\DoxyCodeLine{00694\ \ \ \ \ \}}
+\DoxyCodeLine{00695\ }
+\DoxyCodeLine{00696\ \ \ \ \ Left*\ left;}
+\DoxyCodeLine{00697\ \ \ \ \ QualifiedNew\&\&\ other;}
+\DoxyCodeLine{00698\ \ \ \};}
+\DoxyCodeLine{00699\ }
+\DoxyCodeLine{00700\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Left,\ \textcolor{keyword}{class}\ QualifiedNew>}
+\DoxyCodeLine{00701\ \ \ \textcolor{keyword}{static}\ ConversionAssignVisitor<Left,\ QualifiedNew>}
+\DoxyCodeLine{00702\ \ \ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_ab25cfcff789e4ceda7fdb69eadae8485}{MakeConversionAssignVisitor}}(Left*\ left,\ QualifiedNew\&\&\ qual)\ \{}
+\DoxyCodeLine{00703\ \ \ \ \ \textcolor{keywordflow}{return}\ \{left,\ std::forward<QualifiedNew>(qual)\};}
+\DoxyCodeLine{00704\ \ \ \}}
+\DoxyCodeLine{00705\ }
+\DoxyCodeLine{00706\ \ \ \textcolor{comment}{//\ Backend\ for\ operations\ for\ \`{}emplace()`\ which\ destructs\ \`{}*self`\ then}}
+\DoxyCodeLine{00707\ \ \ \textcolor{comment}{//\ construct\ a\ new\ alternative\ with\ \`{}Args...`.}}
+\DoxyCodeLine{00708\ \ \ \textcolor{keyword}{template}\ <std::size\_t\ NewIndex,\ \textcolor{keyword}{class\ }Self,\ \textcolor{keyword}{class}...\ Args>}
+\DoxyCodeLine{00709\ \ \ \textcolor{keyword}{static}\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{absl::variant\_alternative<NewIndex,\ Self>::type}}\&\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_a7c29fff5dac5bf8c9ed5c0a3a6853c13}{Replace}}(}
+\DoxyCodeLine{00710\ \ \ \ \ \ \ Self*\ self,\ Args\&\&...\ args)\ \{}
+\DoxyCodeLine{00711\ \ \ \ \ Destroy(*self);}
+\DoxyCodeLine{00712\ \ \ \ \ \textcolor{keyword}{using\ }New\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{absl::variant\_alternative<NewIndex,\ Self>::type}};}
+\DoxyCodeLine{00713\ \ \ \ \ New*\ \textcolor{keyword}{const}\ result\ =\ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&self-\/>state\_))}
+\DoxyCodeLine{00714\ \ \ \ \ \ \ \ \ New(std::forward<Args>(args)...);}
+\DoxyCodeLine{00715\ \ \ \ \ self-\/>index\_\ =\ NewIndex;}
+\DoxyCodeLine{00716\ \ \ \ \ \textcolor{keywordflow}{return}\ *result;}
+\DoxyCodeLine{00717\ \ \ \}}
+\DoxyCodeLine{00718\ }
+\DoxyCodeLine{00719\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ LeftVariant,\ \textcolor{keyword}{class}\ QualifiedRightVariant>}
+\DoxyCodeLine{00720\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_1_1InitFromVisitor}{InitFromVisitor}}\ \{}
+\DoxyCodeLine{00721\ \ \ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ NewIndex>}
+\DoxyCodeLine{00722\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_1_1InitFromVisitor_ab76f14985753ac981ef2ad27cf1088e6}{operator()}}(\mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<NewIndex>}}\ \textcolor{comment}{/*new\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00723\ \ \ \ \ \ \ \textcolor{keyword}{using\ }Alternative\ =}
+\DoxyCodeLine{00724\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{variant\_alternative<NewIndex,\ LeftVariant>::type}};}
+\DoxyCodeLine{00725\ \ \ \ \ \ \ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&left-\/>state\_))\ Alternative(}
+\DoxyCodeLine{00726\ \ \ \ \ \ \ \ \ \ \ Access<NewIndex>(std::forward<QualifiedRightVariant>(right)));}
+\DoxyCodeLine{00727\ \ \ \ \ \}}
+\DoxyCodeLine{00728\ }
+\DoxyCodeLine{00729\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1VariantCoreAccess_1_1InitFromVisitor_a672586b9cfa6115f5604382c7fa34ea9}{operator()}}(\mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<absl::variant\_npos>}}\ \textcolor{comment}{/*new\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{00730\ \ \ \ \ \ \ \textcolor{comment}{//\ This\ space\ intentionally\ left\ blank.}}
+\DoxyCodeLine{00731\ \ \ \ \ \}}
+\DoxyCodeLine{00732\ \ \ \ \ LeftVariant*\ left;}
+\DoxyCodeLine{00733\ \ \ \ \ QualifiedRightVariant\&\&\ right;}
+\DoxyCodeLine{00734\ \ \ \};}
+\DoxyCodeLine{00735\ \};}
+\DoxyCodeLine{00736\ }
+\DoxyCodeLine{00737\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Expected,\ \textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{00738\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}};}
+\DoxyCodeLine{00739\ }
+\DoxyCodeLine{00740\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Expected>}
+\DoxyCodeLine{00741\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}}<Expected>\ \{}
+\DoxyCodeLine{00742\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl_3_01Expected_01_4_acf3a2e2fe6ec07241f16b67c04bc0189}{IndexFromEnd}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<0>}};}
+\DoxyCodeLine{00743\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl_3_01Expected_01_4_a685457bfce644ae7e0611c98da9bc13a}{MatchedIndexFromEnd}}\ =\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl_3_01Expected_01_4_acf3a2e2fe6ec07241f16b67c04bc0189}{IndexFromEnd}};}
+\DoxyCodeLine{00744\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl_3_01Expected_01_4_ae978534ad2b010c4fd825b55200ebf4c}{MultipleMatches}}\ =\ std::false\_type;}
+\DoxyCodeLine{00745\ \};}
+\DoxyCodeLine{00746\ }
+\DoxyCodeLine{00747\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Expected,\ \textcolor{keyword}{class\ }Head,\ \textcolor{keyword}{class}...\ Tail>}
+\DoxyCodeLine{00748\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}}<Expected,\ Head,\ Tail...>\ :\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}}<Expected,\ Tail...>\ \{}
+\DoxyCodeLine{00749\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl_3_01Expected_00_01Head_00_01Tail_8_8_8_01_4_ae9bde7cd61d61ac66e1f441464656c0b}{IndexFromEnd}}\ =}
+\DoxyCodeLine{00750\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}<\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}}<Expected,\ Tail...>::IndexFromEnd::value\ +\ 1>;}
+\DoxyCodeLine{00751\ \};}
+\DoxyCodeLine{00752\ }
+\DoxyCodeLine{00753\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Expected,\ \textcolor{keyword}{class}...\ Tail>}
+\DoxyCodeLine{00754\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}}<Expected,\ Expected,\ Tail...>}
+\DoxyCodeLine{00755\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}}<Expected,\ Tail...>\ \{}
+\DoxyCodeLine{00756\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl_3_01Expected_00_01Expected_00_01Tail_8_8_8_01_4_a5fea35b543c3152fc2cda78944f8ac36}{IndexFromEnd}}\ =}
+\DoxyCodeLine{00757\ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}<\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}}<Expected,\ Tail...>::IndexFromEnd::value\ +\ 1>;}
+\DoxyCodeLine{00758\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl_3_01Expected_00_01Expected_00_01Tail_8_8_8_01_4_ab8524a5543873fbd9a3dea23c15156b1}{MatchedIndexFromEnd}}\ =\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl_3_01Expected_00_01Expected_00_01Tail_8_8_8_01_4_a5fea35b543c3152fc2cda78944f8ac36}{IndexFromEnd}};}
+\DoxyCodeLine{00759\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl_3_01Expected_00_01Expected_00_01Tail_8_8_8_01_4_a14438cfe6ad10abbf61a90c06aee3c22}{MultipleMatches}}\ =\ std::integral\_constant<}
+\DoxyCodeLine{00760\ \ \ \ \ \ \ bool,\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}}<Expected,\ Tail...>::MatchedIndexFromEnd::value\ !=\ 0>;}
+\DoxyCodeLine{00761\ \};}
+\DoxyCodeLine{00762\ }
+\DoxyCodeLine{00763\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Expected,\ \textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{00764\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfMeta}{IndexOfMeta}}\ \{}
+\DoxyCodeLine{00765\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{Results}}\ =\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfImpl}{IndexOfImpl}}<Expected,\ Types...>;}
+\DoxyCodeLine{00766\ \ \ \textcolor{keyword}{static\_assert}(!Results::MultipleMatches::value,}
+\DoxyCodeLine{00767\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Attempted\ to\ access\ a\ variant\ by\ specifying\ a\ type\ that\ "{}}}
+\DoxyCodeLine{00768\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}matches\ more\ than\ one\ alternative."{}});}
+\DoxyCodeLine{00769\ \ \ \textcolor{keyword}{static\_assert}(Results::MatchedIndexFromEnd::value\ !=\ 0,}
+\DoxyCodeLine{00770\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}Attempted\ to\ access\ a\ variant\ by\ specifying\ a\ type\ that\ does\ "{}}}
+\DoxyCodeLine{00771\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{stringliteral}{"{}not\ match\ any\ alternative."{}});}
+\DoxyCodeLine{00772\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfMeta_a5ff3509066a0e368787645a4dcb2cb7f}{type}}\ =\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}<\textcolor{keyword}{sizeof}...(Types)\ -\/\ Results::MatchedIndexFromEnd::value>;}
+\DoxyCodeLine{00773\ \};}
+\DoxyCodeLine{00774\ }
+\DoxyCodeLine{00775\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Expected,\ \textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{00776\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac4751f23e362400ebea372fdca3556d1}{IndexOf}}\ =\ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfMeta}{IndexOfMeta}}<Expected,\ Types...>::type;}
+\DoxyCodeLine{00777\ }
+\DoxyCodeLine{00778\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Variant,\ \textcolor{keyword}{class}\ T,\ std::\textcolor{keywordtype}{size\_t}\ CurrIndex>}
+\DoxyCodeLine{00779\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnambiguousIndexOfImpl}{UnambiguousIndexOfImpl}};}
+\DoxyCodeLine{00780\ }
+\DoxyCodeLine{00781\ \textcolor{comment}{//\ Terminating\ case\ encountered\ once\ we've\ checked\ all\ of\ the\ alternatives}}
+\DoxyCodeLine{00782\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ T,\ std::\textcolor{keywordtype}{size\_t}\ CurrIndex>}
+\DoxyCodeLine{00783\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnambiguousIndexOfImpl}{UnambiguousIndexOfImpl}}<\mbox{\hyperlink{classabsl_1_1variant}{variant}}<>,\ T,\ CurrIndex>\ :\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}<CurrIndex>\ \{\};}
+\DoxyCodeLine{00784\ }
+\DoxyCodeLine{00785\ \textcolor{comment}{//\ Case\ where\ T\ is\ not\ Head}}
+\DoxyCodeLine{00786\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Head,\ \textcolor{keyword}{class}...\ Tail,\ \textcolor{keyword}{class\ }T,\ std::size\_t\ CurrIndex>}
+\DoxyCodeLine{00787\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnambiguousIndexOfImpl}{UnambiguousIndexOfImpl}}<\mbox{\hyperlink{classabsl_1_1variant}{variant}}<Head,\ Tail...>,\ T,\ CurrIndex>}
+\DoxyCodeLine{00788\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnambiguousIndexOfImpl}{UnambiguousIndexOfImpl}}<variant<Tail...>,\ T,\ CurrIndex\ +\ 1>::type\ \{\};}
+\DoxyCodeLine{00789\ }
+\DoxyCodeLine{00790\ \textcolor{comment}{//\ Case\ where\ T\ is\ Head}}
+\DoxyCodeLine{00791\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }Head,\ \textcolor{keyword}{class}...\ Tail,\ std::size\_t\ CurrIndex>}
+\DoxyCodeLine{00792\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnambiguousIndexOfImpl}{UnambiguousIndexOfImpl}}<\mbox{\hyperlink{classabsl_1_1variant}{variant}}<Head,\ Tail...>,\ Head,\ CurrIndex>}
+\DoxyCodeLine{00793\ \ \ \ \ :\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT}}<UnambiguousIndexOfImpl<variant<Tail...>,\ Head,\ 0>::value\ ==}
+\DoxyCodeLine{00794\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ sizeof...(Tail)}
+\DoxyCodeLine{00795\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ?\ CurrIndex}
+\DoxyCodeLine{00796\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ :\ CurrIndex\ +\ sizeof...(Tail)\ +\ 1>\ \{\};}
+\DoxyCodeLine{00797\ }
+\DoxyCodeLine{00798\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Variant,\ \textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00799\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnambiguousIndexOf}{UnambiguousIndexOf}};}
+\DoxyCodeLine{00800\ }
+\DoxyCodeLine{00801\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1NoMatch}{NoMatch}}\ \{}
+\DoxyCodeLine{00802\ \ \ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1NoMatch_1_1type}{type}}\ \{\};}
+\DoxyCodeLine{00803\ \};}
+\DoxyCodeLine{00804\ }
+\DoxyCodeLine{00805\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Alts,\ \textcolor{keyword}{class\ }T>}
+\DoxyCodeLine{00806\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1UnambiguousIndexOf}{UnambiguousIndexOf}}<\mbox{\hyperlink{classabsl_1_1variant}{variant}}<Alts...>,\ T>}
+\DoxyCodeLine{00807\ \ \ \ \ :\ std::conditional<UnambiguousIndexOfImpl<variant<Alts...>,\ T,\ 0>::value\ !=}
+\DoxyCodeLine{00808\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ sizeof...(Alts),}
+\DoxyCodeLine{00809\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ UnambiguousIndexOfImpl<variant<Alts...>,\ T,\ 0>,}
+\DoxyCodeLine{00810\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ NoMatch>::type::type\ \{\};}
+\DoxyCodeLine{00811\ }
+\DoxyCodeLine{00812\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }T,\ std::size\_t\ \textcolor{comment}{/*Dummy*/}>}
+\DoxyCodeLine{00813\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_a20c0ca7cef587eb1f69e0a933df0658f}{UnambiguousTypeOfImpl}}\ =\ T;}
+\DoxyCodeLine{00814\ }
+\DoxyCodeLine{00815\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Variant,\ \textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00816\ \textcolor{keyword}{using\ }\mbox{\hyperlink{namespaceabsl_1_1variant__internal_ac7e0aef3ad1a997704ca21df79a95dd9}{UnambiguousTypeOfT}}\ =}
+\DoxyCodeLine{00817\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_a20c0ca7cef587eb1f69e0a933df0658f}{UnambiguousTypeOfImpl<T,\ UnambiguousIndexOf<Variant,\ T>::value}}>;}
+\DoxyCodeLine{00818\ }
+\DoxyCodeLine{00819\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }H,\ \textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{00820\ \textcolor{keyword}{class\ }\mbox{\hyperlink{classabsl_1_1variant__internal_1_1VariantStateBase}{VariantStateBase}};}
+\DoxyCodeLine{00821\ }
+\DoxyCodeLine{00822\ \textcolor{comment}{//\ This\ is\ an\ implementation\ of\ the\ "{}imaginary\ function"{}\ that\ is\ described\ in}}
+\DoxyCodeLine{00823\ \textcolor{comment}{//\ [variant.ctor]}}
+\DoxyCodeLine{00824\ \textcolor{comment}{//\ It\ is\ used\ in\ order\ to\ determine\ which\ alternative\ to\ construct\ during}}
+\DoxyCodeLine{00825\ \textcolor{comment}{//\ initialization\ from\ some\ type\ T.}}
+\DoxyCodeLine{00826\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Variant,\ std::\textcolor{keywordtype}{size\_t}\ I\ =\ 0>}
+\DoxyCodeLine{00827\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1ImaginaryFun}{ImaginaryFun}};}
+\DoxyCodeLine{00828\ }
+\DoxyCodeLine{00829\ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00830\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1ImaginaryFun}{ImaginaryFun}}<\mbox{\hyperlink{classabsl_1_1variant}{variant}}<>,\ I>\ \{}
+\DoxyCodeLine{00831\ \ \ \textcolor{keyword}{static}\ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1ImaginaryFun_3_01variant_3_4_00_01I_01_4_a23be5511c30b473b7a1b6047c720261e}{Run}}()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{00832\ \};}
+\DoxyCodeLine{00833\ }
+\DoxyCodeLine{00834\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class\ }H,\ \textcolor{keyword}{class}...\ T,\ std::size\_t\ I>}
+\DoxyCodeLine{00835\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1ImaginaryFun}{ImaginaryFun}}<\mbox{\hyperlink{classabsl_1_1variant}{variant}}<H,\ T...>,\ I>\ :\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1ImaginaryFun}{ImaginaryFun}}<variant<T...>,\ I\ +\ 1>\ \{}
+\DoxyCodeLine{00836\ \ \ \textcolor{keyword}{using\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1ImaginaryFun}{ImaginaryFun}}<\mbox{\hyperlink{classabsl_1_1variant}{variant}}<T...>,\ I\ +\ 1>::Run;}
+\DoxyCodeLine{00837\ }
+\DoxyCodeLine{00838\ \ \ \textcolor{comment}{//\ NOTE:\ const\&\ and\ \&\&\ are\ used\ instead\ of\ by-\/value\ due\ to\ lack\ of\ guaranteed}}
+\DoxyCodeLine{00839\ \ \ \textcolor{comment}{//\ move\ elision\ of\ C++17.\ This\ may\ have\ other\ minor\ differences,\ but\ tests}}
+\DoxyCodeLine{00840\ \ \ \textcolor{comment}{//\ pass.}}
+\DoxyCodeLine{00841\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<I>}}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1ImaginaryFun_3_01variant_3_01H_00_01T_8_8_8_01_4_00_01I_01_4_aeb67cb0c16ab8c6430eb1b961d6aea0e}{Run}}(\textcolor{keyword}{const}\ H\&,\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<I>}});}
+\DoxyCodeLine{00842\ \ \ \textcolor{keyword}{static}\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<I>}}\ \mbox{\hyperlink{structabsl_1_1variant__internal_1_1ImaginaryFun_3_01variant_3_01H_00_01T_8_8_8_01_4_00_01I_01_4_acf758a22b37afa20600f0fe73f373349}{Run}}(H\&\&,\ \mbox{\hyperlink{namespaceabsl_1_1variant__internal_aa911b0ab31b15c2e3ea742e491a0bdd6}{SizeT<I>}});}
+\DoxyCodeLine{00843\ \};}
+\DoxyCodeLine{00844\ }
+\DoxyCodeLine{00845\ \textcolor{comment}{//\ The\ following\ metafunctions\ are\ used\ in\ constructor\ and\ assignment}}
+\DoxyCodeLine{00846\ \textcolor{comment}{//\ constraints.}}
+\DoxyCodeLine{00847\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Self,\ \textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00848\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IsNeitherSelfNorInPlace}{IsNeitherSelfNorInPlace}}\ :\ std::true\_type\ \{\};}
+\DoxyCodeLine{00849\ }
+\DoxyCodeLine{00850\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Self>}
+\DoxyCodeLine{00851\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IsNeitherSelfNorInPlace}{IsNeitherSelfNorInPlace}}<Self,\ Self>\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00852\ }
+\DoxyCodeLine{00853\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Self,\ \textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00854\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IsNeitherSelfNorInPlace}{IsNeitherSelfNorInPlace}}<Self,\ \mbox{\hyperlink{namespaceabsl_a4364f1b671955c529d6026ad6808bec6}{in\_place\_type\_t}}<T>>\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00855\ }
+\DoxyCodeLine{00856\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Self,\ std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{00857\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IsNeitherSelfNorInPlace}{IsNeitherSelfNorInPlace}}<Self,\ \mbox{\hyperlink{namespaceabsl_a5251b75e7f240430014441e5ecf75ac0}{in\_place\_index\_t}}<I>>\ :\ std::false\_type\ \{\};}
+\DoxyCodeLine{00858\ }
+\DoxyCodeLine{00859\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}\ Variant,\ \textcolor{keyword}{class}\ T>}
+\DoxyCodeLine{00860\ \textcolor{keyword}{struct\ }\mbox{\hyperlink{structabsl_1_1variant__internal_1_1IndexOfConstructedType}{IndexOfConstructedType}}<}
+\DoxyCodeLine{00861\ \ \ \ \ Variant,\ T,}
+\DoxyCodeLine{00862\ \ \ \ \ \mbox{\hyperlink{namespaceabsl_a5d24e222375f72da89ee76f10480f40c}{void\_t}}<decltype(\mbox{\hyperlink{structabsl_1_1variant__internal_1_1ImaginaryFun}{ImaginaryFun}}<Variant>::Run(std::declval<T>(),\ \{\}))>>}
+\DoxyCodeLine{00863\ \ \ \ \ :\ decltype(ImaginaryFun<Variant>::Run(std::declval<T>(),\ \{\}))\ \{\};}
+\DoxyCodeLine{00864\ }
+\DoxyCodeLine{00865\ \textcolor{keyword}{template}\ <std::size\_t...\ Is>}
+\DoxyCodeLine{00866\ \textcolor{keyword}{struct\ }ContainsVariantNPos}
+\DoxyCodeLine{00867\ \ \ \ \ :\ \mbox{\hyperlink{structabsl_1_1negation}{absl::negation}}<std::is\_same<\ \ \textcolor{comment}{//\ NOLINT}}
+\DoxyCodeLine{00868\ \ \ \ \ \ \ \ \ \ \ std::integer\_sequence<bool,\ 0\ <=\ Is...>,}
+\DoxyCodeLine{00869\ \ \ \ \ \ \ \ \ \ \ std::integer\_sequence<bool,\ Is\ !=\ absl::variant\_npos...>>>\ \{\};}
+\DoxyCodeLine{00870\ }
+\DoxyCodeLine{00871\ template\ <class\ Op,\ class...\ QualifiedVariants>}
+\DoxyCodeLine{00872\ using\ RawVisitResult\ =}
+\DoxyCodeLine{00873\ \ \ \ \ absl::result\_of\_t<Op(VariantAccessResult<0,\ QualifiedVariants>...)>;}
+\DoxyCodeLine{00874\ }
+\DoxyCodeLine{00875\ \textcolor{comment}{//\ NOTE:\ The\ spec\ requires\ that\ all\ return-\/paths\ yield\ the\ same\ type\ and\ is\ not}}
+\DoxyCodeLine{00876\ \textcolor{comment}{//\ SFINAE-\/friendly,\ so\ we\ can\ deduce\ the\ return\ type\ by\ examining\ the\ first}}
+\DoxyCodeLine{00877\ \textcolor{comment}{//\ result.\ If\ it's\ not\ callable,\ then\ we\ get\ an\ error,\ but\ are\ compliant\ and}}
+\DoxyCodeLine{00878\ \textcolor{comment}{//\ fast\ to\ compile.}}
+\DoxyCodeLine{00879\ \textcolor{comment}{//\ TODO(calabrese)\ Possibly\ rewrite\ in\ a\ way\ that\ yields\ better\ compile\ errors}}
+\DoxyCodeLine{00880\ \textcolor{comment}{//\ at\ the\ cost\ of\ longer\ compile-\/times.}}
+\DoxyCodeLine{00881\ template\ <class\ Op,\ class...\ QualifiedVariants>}
+\DoxyCodeLine{00882\ struct\ VisitResultImpl\ \{}
+\DoxyCodeLine{00883\ \ \ using\ type\ =}
+\DoxyCodeLine{00884\ \ \ \ \ \ \ absl::result\_of\_t<Op(VariantAccessResult<0,\ QualifiedVariants>...)>;}
+\DoxyCodeLine{00885\ \};}
+\DoxyCodeLine{00886\ }
+\DoxyCodeLine{00887\ \textcolor{comment}{//\ Done\ in\ two\ steps\ intentionally\ so\ that\ we\ don't\ cause\ substitution\ to\ fail.}}
+\DoxyCodeLine{00888\ template\ <class\ Op,\ class...\ QualifiedVariants>}
+\DoxyCodeLine{00889\ using\ VisitResult\ =\ typename\ VisitResultImpl<Op,\ QualifiedVariants...>::type;}
+\DoxyCodeLine{00890\ }
+\DoxyCodeLine{00891\ template\ <class\ Op,\ class...\ QualifiedVariants>}
+\DoxyCodeLine{00892\ struct\ PerformVisitation\ \{}
+\DoxyCodeLine{00893\ \ \ using\ ReturnType\ =\ VisitResult<Op,\ QualifiedVariants...>;}
+\DoxyCodeLine{00894\ }
+\DoxyCodeLine{00895\ \ \ template\ <std::size\_t...\ Is>}
+\DoxyCodeLine{00896\ \ \ constexpr\ ReturnType\ operator()(SizeT<Is>...\ indices)\ const\ \{}
+\DoxyCodeLine{00897\ \ \ \ \ return\ Run(typename\ ContainsVariantNPos<Is...>::type\{\},}
+\DoxyCodeLine{00898\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::index\_sequence\_for<QualifiedVariants...>(),\ indices...);}
+\DoxyCodeLine{00899\ \ \ \}}
+\DoxyCodeLine{00900\ }
+\DoxyCodeLine{00901\ \ \ template\ <std::size\_t...\ TupIs,\ std::size\_t...\ Is>}
+\DoxyCodeLine{00902\ \ \ constexpr\ ReturnType\ Run(std::false\_type\ \textcolor{comment}{/*has\_valueless*/},}
+\DoxyCodeLine{00903\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<TupIs...>,\ SizeT<Is>...)\ const\ \{}
+\DoxyCodeLine{00904\ \ \ \ \ static\_assert(}
+\DoxyCodeLine{00905\ \ \ \ \ \ \ \ \ std::is\_same<ReturnType,}
+\DoxyCodeLine{00906\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ absl::result\_of\_t<Op(VariantAccessResult<}
+\DoxyCodeLine{00907\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Is,\ QualifiedVariants>...)>>::value,}
+\DoxyCodeLine{00908\ \ \ \ \ \ \ \ \ "{}All\ visitation\ overloads\ must\ have\ the\ same\ return\ type."{});}
+\DoxyCodeLine{00909\ \ \ \ \ return\ absl::base\_internal::invoke(}
+\DoxyCodeLine{00910\ \ \ \ \ \ \ \ \ std::forward<Op>(op),}
+\DoxyCodeLine{00911\ \ \ \ \ \ \ \ \ VariantCoreAccess::Access<Is>(}
+\DoxyCodeLine{00912\ \ \ \ \ \ \ \ \ \ \ \ \ std::forward<QualifiedVariants>(std::get<TupIs>(variant\_tup)))...);}
+\DoxyCodeLine{00913\ \ \ \}}
+\DoxyCodeLine{00914\ }
+\DoxyCodeLine{00915\ \ \ template\ <std::size\_t...\ TupIs,\ std::size\_t...\ Is>}
+\DoxyCodeLine{00916\ \ \ [[noreturn]]\ ReturnType\ Run(std::true\_type\ \textcolor{comment}{/*has\_valueless*/},}
+\DoxyCodeLine{00917\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ index\_sequence<TupIs...>,\ SizeT<Is>...)\ const\ \{}
+\DoxyCodeLine{00918\ \ \ \ \ absl::variant\_internal::ThrowBadVariantAccess();}
+\DoxyCodeLine{00919\ \ \ \}}
+\DoxyCodeLine{00920\ }
+\DoxyCodeLine{00921\ \ \ \textcolor{comment}{//\ TODO(calabrese)\ Avoid\ using\ a\ tuple,\ which\ causes\ lots\ of\ instantiations}}
+\DoxyCodeLine{00922\ \ \ \textcolor{comment}{//\ Attempts\ using\ lambda\ variadic\ captures\ fail\ on\ current\ GCC.}}
+\DoxyCodeLine{00923\ \ \ std::tuple<QualifiedVariants\&\&...>\ variant\_tup;}
+\DoxyCodeLine{00924\ \ \ Op\&\&\ op;}
+\DoxyCodeLine{00925\ \};}
+\DoxyCodeLine{00926\ }
+\DoxyCodeLine{00927\ template\ <class...\ T>}
+\DoxyCodeLine{00928\ union\ Union;}
+\DoxyCodeLine{00929\ }
+\DoxyCodeLine{00930\ \textcolor{comment}{//\ We\ want\ to\ allow\ for\ variant<>\ to\ be\ trivial.\ For\ that,\ we\ need\ the\ default}}
+\DoxyCodeLine{00931\ \textcolor{comment}{//\ constructor\ to\ be\ trivial,\ which\ means\ we\ can't\ define\ it\ ourselves.}}
+\DoxyCodeLine{00932\ \textcolor{comment}{//\ Instead,\ we\ use\ a\ non-\/default\ constructor\ that\ takes\ NoopConstructorTag}}
+\DoxyCodeLine{00933\ \textcolor{comment}{//\ that\ doesn't\ affect\ the\ triviality\ of\ the\ types.}}
+\DoxyCodeLine{00934\ struct\ NoopConstructorTag\ \{\};}
+\DoxyCodeLine{00935\ }
+\DoxyCodeLine{00936\ template\ <std::size\_t\ I>}
+\DoxyCodeLine{00937\ struct\ EmplaceTag\ \{\};}
+\DoxyCodeLine{00938\ }
+\DoxyCodeLine{00939\ template\ <>}
+\DoxyCodeLine{00940\ union\ Union<>\ \{}
+\DoxyCodeLine{00941\ \ \ constexpr\ explicit\ Union(NoopConstructorTag)\ noexcept\ \{\}}
+\DoxyCodeLine{00942\ \};}
+\DoxyCodeLine{00943\ }
+\DoxyCodeLine{00944\ \textcolor{comment}{//\ Suppress\ bogus\ warning\ on\ MSVC:\ MSVC\ complains\ that\ Union<T...>\ has\ a\ defined}}
+\DoxyCodeLine{00945\ \textcolor{comment}{//\ deleted\ destructor\ from\ the\ \`{}std::is\_destructible`\ check\ below.}}
+\DoxyCodeLine{00946\ \#ifdef\ \_MSC\_VER}
+\DoxyCodeLine{00947\ \#pragma\ warning(push)}
+\DoxyCodeLine{00948\ \#pragma\ warning(disable\ :\ 4624)}
+\DoxyCodeLine{00949\ \#endif\ \ \textcolor{comment}{//\ \_MSC\_VER}}
+\DoxyCodeLine{00950\ }
+\DoxyCodeLine{00951\ template\ <class\ Head,\ class...\ Tail>}
+\DoxyCodeLine{00952\ union\ Union<Head,\ Tail...>\ \{}
+\DoxyCodeLine{00953\ \ \ using\ TailUnion\ =\ Union<Tail...>;}
+\DoxyCodeLine{00954\ }
+\DoxyCodeLine{00955\ \ \ explicit\ constexpr\ Union(NoopConstructorTag\ \textcolor{comment}{/*tag*/})\ noexcept}
+\DoxyCodeLine{00956\ \ \ \ \ \ \ :\ tail(NoopConstructorTag())\ \{\}}
+\DoxyCodeLine{00957\ }
+\DoxyCodeLine{00958\ \ \ template\ <class...\ P>}
+\DoxyCodeLine{00959\ \ \ explicit\ constexpr\ Union(EmplaceTag<0>,\ P\&\&...\ args)}
+\DoxyCodeLine{00960\ \ \ \ \ \ \ :\ head(std::forward<P>(args)...)\ \{\}}
+\DoxyCodeLine{00961\ }
+\DoxyCodeLine{00962\ \ \ template\ <std::size\_t\ I,\ class...\ P>}
+\DoxyCodeLine{00963\ \ \ explicit\ constexpr\ Union(EmplaceTag<I>,\ P\&\&...\ args)}
+\DoxyCodeLine{00964\ \ \ \ \ \ \ :\ tail(EmplaceTag<I\ -\/\ 1>\{\},\ std::forward<P>(args)...)\ \{\}}
+\DoxyCodeLine{00965\ }
+\DoxyCodeLine{00966\ \ \ Head\ head;}
+\DoxyCodeLine{00967\ \ \ TailUnion\ tail;}
+\DoxyCodeLine{00968\ \};}
+\DoxyCodeLine{00969\ }
+\DoxyCodeLine{00970\ \#ifdef\ \_MSC\_VER}
+\DoxyCodeLine{00971\ \#pragma\ warning(pop)}
+\DoxyCodeLine{00972\ \#endif\ \ \textcolor{comment}{//\ \_MSC\_VER}}
+\DoxyCodeLine{00973\ }
+\DoxyCodeLine{00974\ \textcolor{comment}{//\ TODO(calabrese)\ Just\ contain\ a\ Union\ in\ this\ union\ (certain\ configs\ fail).}}
+\DoxyCodeLine{00975\ template\ <class...\ T>}
+\DoxyCodeLine{00976\ union\ DestructibleUnionImpl;}
+\DoxyCodeLine{00977\ }
+\DoxyCodeLine{00978\ template\ <>}
+\DoxyCodeLine{00979\ union\ DestructibleUnionImpl<>\ \{}
+\DoxyCodeLine{00980\ \ \ constexpr\ explicit\ DestructibleUnionImpl(NoopConstructorTag)\ noexcept\ \{\}}
+\DoxyCodeLine{00981\ \};}
+\DoxyCodeLine{00982\ }
+\DoxyCodeLine{00983\ template\ <class\ Head,\ class...\ Tail>}
+\DoxyCodeLine{00984\ union\ DestructibleUnionImpl<Head,\ Tail...>\ \{}
+\DoxyCodeLine{00985\ \ \ using\ TailUnion\ =\ DestructibleUnionImpl<Tail...>;}
+\DoxyCodeLine{00986\ }
+\DoxyCodeLine{00987\ \ \ explicit\ constexpr\ DestructibleUnionImpl(NoopConstructorTag\ \textcolor{comment}{/*tag*/})\ noexcept}
+\DoxyCodeLine{00988\ \ \ \ \ \ \ :\ tail(NoopConstructorTag())\ \{\}}
+\DoxyCodeLine{00989\ }
+\DoxyCodeLine{00990\ \ \ template\ <class...\ P>}
+\DoxyCodeLine{00991\ \ \ explicit\ constexpr\ DestructibleUnionImpl(EmplaceTag<0>,\ P\&\&...\ args)}
+\DoxyCodeLine{00992\ \ \ \ \ \ \ :\ head(std::forward<P>(args)...)\ \{\}}
+\DoxyCodeLine{00993\ }
+\DoxyCodeLine{00994\ \ \ template\ <std::size\_t\ I,\ class...\ P>}
+\DoxyCodeLine{00995\ \ \ explicit\ constexpr\ DestructibleUnionImpl(EmplaceTag<I>,\ P\&\&...\ args)}
+\DoxyCodeLine{00996\ \ \ \ \ \ \ :\ tail(EmplaceTag<I\ -\/\ 1>\{\},\ std::forward<P>(args)...)\ \{\}}
+\DoxyCodeLine{00997\ }
+\DoxyCodeLine{00998\ \ \ \string~DestructibleUnionImpl()\ \{\}}
+\DoxyCodeLine{00999\ }
+\DoxyCodeLine{01000\ \ \ Head\ head;}
+\DoxyCodeLine{01001\ \ \ TailUnion\ tail;}
+\DoxyCodeLine{01002\ \};}
+\DoxyCodeLine{01003\ }
+\DoxyCodeLine{01004\ \textcolor{comment}{//\ This\ union\ type\ is\ destructible\ even\ if\ one\ or\ more\ T\ are\ not\ trivially}}
+\DoxyCodeLine{01005\ \textcolor{comment}{//\ destructible.\ In\ the\ case\ that\ all\ T\ are\ trivially\ destructible,\ then\ so\ is}}
+\DoxyCodeLine{01006\ \textcolor{comment}{//\ this\ resultant\ type.}}
+\DoxyCodeLine{01007\ template\ <class...\ T>}
+\DoxyCodeLine{01008\ using\ DestructibleUnion\ =}
+\DoxyCodeLine{01009\ \ \ \ \ absl::conditional\_t<std::is\_destructible<Union<T...>>::value,\ Union<T...>,}
+\DoxyCodeLine{01010\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ DestructibleUnionImpl<T...>>;}
+\DoxyCodeLine{01011\ }
+\DoxyCodeLine{01012\ \textcolor{comment}{//\ Deepest\ base,\ containing\ the\ actual\ union\ and\ the\ discriminator}}
+\DoxyCodeLine{01013\ template\ <class\ H,\ class...\ T>}
+\DoxyCodeLine{01014\ class\ VariantStateBase\ \{}
+\DoxyCodeLine{01015\ \ protected:}
+\DoxyCodeLine{01016\ \ \ using\ Variant\ =\ variant<H,\ T...>;}
+\DoxyCodeLine{01017\ }
+\DoxyCodeLine{01018\ \ \ template\ <class\ LazyH\ =\ H,}
+\DoxyCodeLine{01019\ \ \ \ \ \ \ \ \ \ \ \ \ class\ ConstructibleH\ =\ absl::enable\_if\_t<}
+\DoxyCodeLine{01020\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_default\_constructible<LazyH>::value,\ LazyH>>}
+\DoxyCodeLine{01021\ \ \ constexpr\ VariantStateBase()\ noexcept(}
+\DoxyCodeLine{01022\ \ \ \ \ \ \ std::is\_nothrow\_default\_constructible<ConstructibleH>::value)}
+\DoxyCodeLine{01023\ \ \ \ \ \ \ :\ state\_(EmplaceTag<0>()),\ index\_(0)\ \{\}}
+\DoxyCodeLine{01024\ }
+\DoxyCodeLine{01025\ \ \ template\ <std::size\_t\ I,\ class...\ P>}
+\DoxyCodeLine{01026\ \ \ explicit\ constexpr\ VariantStateBase(EmplaceTag<I>\ tag,\ P\&\&...\ args)}
+\DoxyCodeLine{01027\ \ \ \ \ \ \ :\ state\_(tag,\ std::forward<P>(args)...),\ index\_(I)\ \{\}}
+\DoxyCodeLine{01028\ }
+\DoxyCodeLine{01029\ \ \ explicit\ constexpr\ VariantStateBase(NoopConstructorTag)}
+\DoxyCodeLine{01030\ \ \ \ \ \ \ :\ state\_(NoopConstructorTag()),\ index\_(variant\_npos)\ \{\}}
+\DoxyCodeLine{01031\ }
+\DoxyCodeLine{01032\ \ \ void\ destroy()\ \{\}\ \ \textcolor{comment}{//\ Does\ nothing\ (shadowed\ in\ child\ if\ non-\/trivial)}}
+\DoxyCodeLine{01033\ }
+\DoxyCodeLine{01034\ \ \ DestructibleUnion<H,\ T...>\ state\_;}
+\DoxyCodeLine{01035\ \ \ std::size\_t\ index\_;}
+\DoxyCodeLine{01036\ \};}
+\DoxyCodeLine{01037\ }
+\DoxyCodeLine{01038\ using\ absl::internal::type\_identity;}
+\DoxyCodeLine{01039\ }
+\DoxyCodeLine{01040\ \textcolor{comment}{//\ OverloadSet::Overload()\ is\ a\ unary\ function\ which\ is\ overloaded\ to}}
+\DoxyCodeLine{01041\ \textcolor{comment}{//\ take\ any\ of\ the\ element\ types\ of\ the\ variant,\ by\ reference-\/to-\/const.}}
+\DoxyCodeLine{01042\ \textcolor{comment}{//\ The\ return\ type\ of\ the\ overload\ on\ T\ is\ type\_identity<T>,\ so\ that\ you}}
+\DoxyCodeLine{01043\ \textcolor{comment}{//\ can\ statically\ determine\ which\ overload\ was\ called.}}
+\DoxyCodeLine{01044\ \textcolor{comment}{//}}
+\DoxyCodeLine{01045\ \textcolor{comment}{//\ Overload()\ is\ not\ defined,\ so\ it\ can\ only\ be\ called\ in\ unevaluated}}
+\DoxyCodeLine{01046\ \textcolor{comment}{//\ contexts.}}
+\DoxyCodeLine{01047\ template\ <typename...\ Ts>}
+\DoxyCodeLine{01048\ struct\ OverloadSet;}
+\DoxyCodeLine{01049\ }
+\DoxyCodeLine{01050\ template\ <typename\ T,\ typename...\ Ts>}
+\DoxyCodeLine{01051\ struct\ OverloadSet<T,\ Ts...>\ :\ OverloadSet<Ts...>\ \{}
+\DoxyCodeLine{01052\ \ \ using\ Base\ =\ OverloadSet<Ts...>;}
+\DoxyCodeLine{01053\ \ \ static\ type\_identity<T>\ Overload(const\ T\&);}
+\DoxyCodeLine{01054\ \ \ using\ Base::Overload;}
+\DoxyCodeLine{01055\ \};}
+\DoxyCodeLine{01056\ }
+\DoxyCodeLine{01057\ template\ <>}
+\DoxyCodeLine{01058\ struct\ OverloadSet<>\ \{}
+\DoxyCodeLine{01059\ \ \ \textcolor{comment}{//\ For\ any\ case\ not\ handled\ above.}}
+\DoxyCodeLine{01060\ \ \ static\ void\ Overload(...);}
+\DoxyCodeLine{01061\ \};}
+\DoxyCodeLine{01062\ }
+\DoxyCodeLine{01063\ template\ <class\ T>}
+\DoxyCodeLine{01064\ using\ LessThanResult\ =\ decltype(std::declval<T>()\ <\ std::declval<T>());}
+\DoxyCodeLine{01065\ }
+\DoxyCodeLine{01066\ template\ <class\ T>}
+\DoxyCodeLine{01067\ using\ GreaterThanResult\ =\ decltype(std::declval<T>()\ >\ std::declval<T>());}
+\DoxyCodeLine{01068\ }
+\DoxyCodeLine{01069\ template\ <class\ T>}
+\DoxyCodeLine{01070\ using\ LessThanOrEqualResult\ =\ decltype(std::declval<T>()\ <=\ std::declval<T>());}
+\DoxyCodeLine{01071\ }
+\DoxyCodeLine{01072\ template\ <class\ T>}
+\DoxyCodeLine{01073\ using\ GreaterThanOrEqualResult\ =}
+\DoxyCodeLine{01074\ \ \ \ \ decltype(std::declval<T>()\ >=\ std::declval<T>());}
+\DoxyCodeLine{01075\ }
+\DoxyCodeLine{01076\ template\ <class\ T>}
+\DoxyCodeLine{01077\ using\ EqualResult\ =\ decltype(std::declval<T>()\ ==\ std::declval<T>());}
+\DoxyCodeLine{01078\ }
+\DoxyCodeLine{01079\ template\ <class\ T>}
+\DoxyCodeLine{01080\ using\ NotEqualResult\ =\ decltype(std::declval<T>()\ !=\ std::declval<T>());}
+\DoxyCodeLine{01081\ }
+\DoxyCodeLine{01082\ using\ type\_traits\_internal::is\_detected\_convertible;}
+\DoxyCodeLine{01083\ }
+\DoxyCodeLine{01084\ template\ <class...\ T>}
+\DoxyCodeLine{01085\ using\ RequireAllHaveEqualT\ =\ absl::enable\_if\_t<}
+\DoxyCodeLine{01086\ \ \ \ \ absl::conjunction<is\_detected\_convertible<bool,\ EqualResult,\ T>...>::value,}
+\DoxyCodeLine{01087\ \ \ \ \ bool>;}
+\DoxyCodeLine{01088\ }
+\DoxyCodeLine{01089\ template\ <class...\ T>}
+\DoxyCodeLine{01090\ using\ RequireAllHaveNotEqualT\ =}
+\DoxyCodeLine{01091\ \ \ \ \ absl::enable\_if\_t<absl::conjunction<is\_detected\_convertible<}
+\DoxyCodeLine{01092\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool,\ NotEqualResult,\ T>...>::value,}
+\DoxyCodeLine{01093\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool>;}
+\DoxyCodeLine{01094\ }
+\DoxyCodeLine{01095\ template\ <class...\ T>}
+\DoxyCodeLine{01096\ using\ RequireAllHaveLessThanT\ =}
+\DoxyCodeLine{01097\ \ \ \ \ absl::enable\_if\_t<absl::conjunction<is\_detected\_convertible<}
+\DoxyCodeLine{01098\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool,\ LessThanResult,\ T>...>::value,}
+\DoxyCodeLine{01099\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool>;}
+\DoxyCodeLine{01100\ }
+\DoxyCodeLine{01101\ template\ <class...\ T>}
+\DoxyCodeLine{01102\ using\ RequireAllHaveLessThanOrEqualT\ =}
+\DoxyCodeLine{01103\ \ \ \ \ absl::enable\_if\_t<absl::conjunction<is\_detected\_convertible<}
+\DoxyCodeLine{01104\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool,\ LessThanOrEqualResult,\ T>...>::value,}
+\DoxyCodeLine{01105\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool>;}
+\DoxyCodeLine{01106\ }
+\DoxyCodeLine{01107\ template\ <class...\ T>}
+\DoxyCodeLine{01108\ using\ RequireAllHaveGreaterThanOrEqualT\ =}
+\DoxyCodeLine{01109\ \ \ \ \ absl::enable\_if\_t<absl::conjunction<is\_detected\_convertible<}
+\DoxyCodeLine{01110\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool,\ GreaterThanOrEqualResult,\ T>...>::value,}
+\DoxyCodeLine{01111\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool>;}
+\DoxyCodeLine{01112\ }
+\DoxyCodeLine{01113\ template\ <class...\ T>}
+\DoxyCodeLine{01114\ using\ RequireAllHaveGreaterThanT\ =}
+\DoxyCodeLine{01115\ \ \ \ \ absl::enable\_if\_t<absl::conjunction<is\_detected\_convertible<}
+\DoxyCodeLine{01116\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool,\ GreaterThanResult,\ T>...>::value,}
+\DoxyCodeLine{01117\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ bool>;}
+\DoxyCodeLine{01118\ }
+\DoxyCodeLine{01119\ \textcolor{comment}{//\ Helper\ template\ containing\ implementations\ details\ of\ variant\ that\ can't\ go}}
+\DoxyCodeLine{01120\ \textcolor{comment}{//\ in\ the\ private\ section.\ For\ convenience,\ this\ takes\ the\ variant\ type\ as\ a}}
+\DoxyCodeLine{01121\ \textcolor{comment}{//\ single\ template\ parameter.}}
+\DoxyCodeLine{01122\ template\ <typename\ T>}
+\DoxyCodeLine{01123\ struct\ VariantHelper;}
+\DoxyCodeLine{01124\ }
+\DoxyCodeLine{01125\ template\ <typename...\ Ts>}
+\DoxyCodeLine{01126\ struct\ VariantHelper<variant<Ts...>>\ \{}
+\DoxyCodeLine{01127\ \ \ \textcolor{comment}{//\ Type\ metafunction\ which\ returns\ the\ element\ type\ selected\ if}}
+\DoxyCodeLine{01128\ \ \ \textcolor{comment}{//\ OverloadSet::Overload()\ is\ well-\/formed\ when\ called\ with\ argument\ type\ U.}}
+\DoxyCodeLine{01129\ \ \ template\ <typename\ U>}
+\DoxyCodeLine{01130\ \ \ using\ BestMatch\ =\ decltype(variant\_internal::OverloadSet<Ts...>::Overload(}
+\DoxyCodeLine{01131\ \ \ \ \ \ \ std::declval<U>()));}
+\DoxyCodeLine{01132\ }
+\DoxyCodeLine{01133\ \ \ \textcolor{comment}{//\ Type\ metafunction\ which\ returns\ true\ if\ OverloadSet::Overload()\ is}}
+\DoxyCodeLine{01134\ \ \ \textcolor{comment}{//\ well-\/formed\ when\ called\ with\ argument\ type\ U.}}
+\DoxyCodeLine{01135\ \ \ \textcolor{comment}{//\ CanAccept\ can't\ be\ just\ an\ alias\ because\ there\ is\ a\ MSVC\ bug\ on\ parameter}}
+\DoxyCodeLine{01136\ \ \ \textcolor{comment}{//\ pack\ expansion\ involving\ decltype.}}
+\DoxyCodeLine{01137\ \ \ template\ <typename\ U>}
+\DoxyCodeLine{01138\ \ \ struct\ CanAccept}
+\DoxyCodeLine{01139\ \ \ \ \ \ \ :\ std::integral\_constant<bool,\ !std::is\_void<BestMatch<U>>::value>\ \{\};}
+\DoxyCodeLine{01140\ }
+\DoxyCodeLine{01141\ \ \ \textcolor{comment}{//\ Type\ metafunction\ which\ returns\ true\ if\ Other\ is\ an\ instantiation\ of}}
+\DoxyCodeLine{01142\ \ \ \textcolor{comment}{//\ variant,\ and\ variants's\ converting\ constructor\ from\ Other\ will\ be}}
+\DoxyCodeLine{01143\ \ \ \textcolor{comment}{//\ well-\/formed.\ We\ will\ use\ this\ to\ remove\ constructors\ that\ would\ be}}
+\DoxyCodeLine{01144\ \ \ \textcolor{comment}{//\ ill-\/formed\ from\ the\ overload\ set.}}
+\DoxyCodeLine{01145\ \ \ template\ <typename\ Other>}
+\DoxyCodeLine{01146\ \ \ struct\ CanConvertFrom;}
+\DoxyCodeLine{01147\ }
+\DoxyCodeLine{01148\ \ \ template\ <typename...\ Us>}
+\DoxyCodeLine{01149\ \ \ struct\ CanConvertFrom<variant<Us...>>}
+\DoxyCodeLine{01150\ \ \ \ \ \ \ :\ public\ absl::conjunction<CanAccept<Us>...>\ \{\};}
+\DoxyCodeLine{01151\ \};}
+\DoxyCodeLine{01152\ }
+\DoxyCodeLine{01153\ \textcolor{comment}{//\ A\ type\ with\ nontrivial\ copy\ ctor\ and\ trivial\ move\ ctor.}}
+\DoxyCodeLine{01154\ struct\ TrivialMoveOnly\ \{}
+\DoxyCodeLine{01155\ \ \ TrivialMoveOnly(TrivialMoveOnly\&\&)\ =\ default;}
+\DoxyCodeLine{01156\ \};}
+\DoxyCodeLine{01157\ }
+\DoxyCodeLine{01158\ \textcolor{comment}{//\ Trait\ class\ to\ detect\ whether\ a\ type\ is\ trivially\ move\ constructible.}}
+\DoxyCodeLine{01159\ \textcolor{comment}{//\ A\ union's\ defaulted\ copy/move\ constructor\ is\ deleted\ if\ any\ variant\ member's}}
+\DoxyCodeLine{01160\ \textcolor{comment}{//\ copy/move\ constructor\ is\ nontrivial.}}
+\DoxyCodeLine{01161\ template\ <typename\ T>}
+\DoxyCodeLine{01162\ struct\ IsTriviallyMoveConstructible}
+\DoxyCodeLine{01163\ \ \ \ \ :\ std::is\_move\_constructible<Union<T,\ TrivialMoveOnly>>\ \{\};}
+\DoxyCodeLine{01164\ }
+\DoxyCodeLine{01165\ \textcolor{comment}{//\ To\ guarantee\ triviality\ of\ all\ special-\/member\ functions\ that\ can\ be\ trivial,}}
+\DoxyCodeLine{01166\ \textcolor{comment}{//\ we\ use\ a\ chain\ of\ conditional\ bases\ for\ each\ one.}}
+\DoxyCodeLine{01167\ \textcolor{comment}{//\ The\ order\ of\ inheritance\ of\ bases\ from\ child\ to\ base\ are\ logically:}}
+\DoxyCodeLine{01168\ \textcolor{comment}{//}}
+\DoxyCodeLine{01169\ \textcolor{comment}{//\ variant}}
+\DoxyCodeLine{01170\ \textcolor{comment}{//\ VariantCopyAssignBase}}
+\DoxyCodeLine{01171\ \textcolor{comment}{//\ VariantMoveAssignBase}}
+\DoxyCodeLine{01172\ \textcolor{comment}{//\ VariantCopyBase}}
+\DoxyCodeLine{01173\ \textcolor{comment}{//\ VariantMoveBase}}
+\DoxyCodeLine{01174\ \textcolor{comment}{//\ VariantStateBaseDestructor}}
+\DoxyCodeLine{01175\ \textcolor{comment}{//\ VariantStateBase}}
+\DoxyCodeLine{01176\ \textcolor{comment}{//}}
+\DoxyCodeLine{01177\ \textcolor{comment}{//\ Note\ that\ there\ is\ a\ separate\ branch\ at\ each\ base\ that\ is\ dependent\ on}}
+\DoxyCodeLine{01178\ \textcolor{comment}{//\ whether\ or\ not\ that\ corresponding\ special-\/member-\/function\ can\ be\ trivial\ in}}
+\DoxyCodeLine{01179\ \textcolor{comment}{//\ the\ resultant\ variant\ type.}}
+\DoxyCodeLine{01180\ }
+\DoxyCodeLine{01181\ template\ <class...\ T>}
+\DoxyCodeLine{01182\ class\ VariantStateBaseDestructorNontrivial;}
+\DoxyCodeLine{01183\ }
+\DoxyCodeLine{01184\ template\ <class...\ T>}
+\DoxyCodeLine{01185\ class\ VariantMoveBaseNontrivial;}
+\DoxyCodeLine{01186\ }
+\DoxyCodeLine{01187\ template\ <class...\ T>}
+\DoxyCodeLine{01188\ class\ VariantCopyBaseNontrivial;}
+\DoxyCodeLine{01189\ }
+\DoxyCodeLine{01190\ template\ <class...\ T>}
+\DoxyCodeLine{01191\ class\ VariantMoveAssignBaseNontrivial;}
+\DoxyCodeLine{01192\ }
+\DoxyCodeLine{01193\ template\ <class...\ T>}
+\DoxyCodeLine{01194\ class\ VariantCopyAssignBaseNontrivial;}
+\DoxyCodeLine{01195\ }
+\DoxyCodeLine{01196\ \textcolor{comment}{//\ Base\ that\ is\ dependent\ on\ whether\ or\ not\ the\ destructor\ can\ be\ trivial.}}
+\DoxyCodeLine{01197\ template\ <class...\ T>}
+\DoxyCodeLine{01198\ using\ VariantStateBaseDestructor\ =}
+\DoxyCodeLine{01199\ \ \ \ \ absl::conditional\_t<std::is\_destructible<Union<T...>>::value,}
+\DoxyCodeLine{01200\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ VariantStateBase<T...>,}
+\DoxyCodeLine{01201\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ VariantStateBaseDestructorNontrivial<T...>>;}
+\DoxyCodeLine{01202\ }
+\DoxyCodeLine{01203\ \textcolor{comment}{//\ Base\ that\ is\ dependent\ on\ whether\ or\ not\ the\ move-\/constructor\ can\ be}}
+\DoxyCodeLine{01204\ \textcolor{comment}{//\ implicitly\ generated\ by\ the\ compiler\ (trivial\ or\ deleted).}}
+\DoxyCodeLine{01205\ \textcolor{comment}{//\ Previously\ we\ were\ using\ \`{}std::is\_move\_constructible<Union<T...>>`\ to\ check}}
+\DoxyCodeLine{01206\ \textcolor{comment}{//\ whether\ all\ Ts\ have\ trivial\ move\ constructor,\ but\ it\ ran\ into\ a\ GCC\ bug:}}
+\DoxyCodeLine{01207\ \textcolor{comment}{//\ https://gcc.gnu.org/bugzilla/show\_bug.cgi?id=84866}}
+\DoxyCodeLine{01208\ \textcolor{comment}{//\ So\ we\ have\ to\ use\ a\ different\ approach\ (i.e.\ \`{}HasTrivialMoveConstructor`)\ to}}
+\DoxyCodeLine{01209\ \textcolor{comment}{//\ work\ around\ the\ bug.}}
+\DoxyCodeLine{01210\ template\ <class...\ T>}
+\DoxyCodeLine{01211\ using\ VariantMoveBase\ =\ absl::conditional\_t<}
+\DoxyCodeLine{01212\ \ \ \ \ absl::disjunction<}
+\DoxyCodeLine{01213\ \ \ \ \ \ \ \ \ absl::negation<absl::conjunction<std::is\_move\_constructible<T>...>>,}
+\DoxyCodeLine{01214\ \ \ \ \ \ \ \ \ absl::conjunction<IsTriviallyMoveConstructible<T>...>>::value,}
+\DoxyCodeLine{01215\ \ \ \ \ VariantStateBaseDestructor<T...>,\ VariantMoveBaseNontrivial<T...>>;}
+\DoxyCodeLine{01216\ }
+\DoxyCodeLine{01217\ \textcolor{comment}{//\ Base\ that\ is\ dependent\ on\ whether\ or\ not\ the\ copy-\/constructor\ can\ be\ trivial.}}
+\DoxyCodeLine{01218\ template\ <class...\ T>}
+\DoxyCodeLine{01219\ using\ VariantCopyBase\ =\ absl::conditional\_t<}
+\DoxyCodeLine{01220\ \ \ \ \ absl::disjunction<}
+\DoxyCodeLine{01221\ \ \ \ \ \ \ \ \ absl::negation<absl::conjunction<std::is\_copy\_constructible<T>...>>,}
+\DoxyCodeLine{01222\ \ \ \ \ \ \ \ \ std::is\_copy\_constructible<Union<T...>>>::value,}
+\DoxyCodeLine{01223\ \ \ \ \ VariantMoveBase<T...>,\ VariantCopyBaseNontrivial<T...>>;}
+\DoxyCodeLine{01224\ }
+\DoxyCodeLine{01225\ \textcolor{comment}{//\ Base\ that\ is\ dependent\ on\ whether\ or\ not\ the\ move-\/assign\ can\ be\ trivial.}}
+\DoxyCodeLine{01226\ template\ <class...\ T>}
+\DoxyCodeLine{01227\ using\ VariantMoveAssignBase\ =\ absl::conditional\_t<}
+\DoxyCodeLine{01228\ \ \ \ \ absl::disjunction<}
+\DoxyCodeLine{01229\ \ \ \ \ \ \ \ \ absl::conjunction<absl::is\_move\_assignable<Union<T...>>,}
+\DoxyCodeLine{01230\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_move\_constructible<Union<T...>>,}
+\DoxyCodeLine{01231\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_destructible<Union<T...>>>,}
+\DoxyCodeLine{01232\ \ \ \ \ \ \ \ \ absl::negation<absl::conjunction<std::is\_move\_constructible<T>...,}
+\DoxyCodeLine{01233\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Note:\ We're\ not\ qualifying\ this\ with}}
+\DoxyCodeLine{01234\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ absl::\ because\ it\ doesn't\ compile}}
+\DoxyCodeLine{01235\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ under\ MSVC.}}
+\DoxyCodeLine{01236\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ is\_move\_assignable<T>...>>>::value,}
+\DoxyCodeLine{01237\ \ \ \ \ VariantCopyBase<T...>,\ VariantMoveAssignBaseNontrivial<T...>>;}
+\DoxyCodeLine{01238\ }
+\DoxyCodeLine{01239\ \textcolor{comment}{//\ Base\ that\ is\ dependent\ on\ whether\ or\ not\ the\ copy-\/assign\ can\ be\ trivial.}}
+\DoxyCodeLine{01240\ template\ <class...\ T>}
+\DoxyCodeLine{01241\ using\ VariantCopyAssignBase\ =\ absl::conditional\_t<}
+\DoxyCodeLine{01242\ \ \ \ \ absl::disjunction<}
+\DoxyCodeLine{01243\ \ \ \ \ \ \ \ \ absl::conjunction<absl::is\_copy\_assignable<Union<T...>>,}
+\DoxyCodeLine{01244\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_copy\_constructible<Union<T...>>,}
+\DoxyCodeLine{01245\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_destructible<Union<T...>>>,}
+\DoxyCodeLine{01246\ \ \ \ \ \ \ \ \ absl::negation<absl::conjunction<std::is\_copy\_constructible<T>...,}
+\DoxyCodeLine{01247\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ Note:\ We're\ not\ qualifying\ this\ with}}
+\DoxyCodeLine{01248\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ absl::\ because\ it\ doesn't\ compile}}
+\DoxyCodeLine{01249\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \textcolor{comment}{//\ under\ MSVC.}}
+\DoxyCodeLine{01250\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ is\_copy\_assignable<T>...>>>::value,}
+\DoxyCodeLine{01251\ \ \ \ \ VariantMoveAssignBase<T...>,\ VariantCopyAssignBaseNontrivial<T...>>;}
+\DoxyCodeLine{01252\ }
+\DoxyCodeLine{01253\ template\ <class...\ T>}
+\DoxyCodeLine{01254\ using\ VariantBase\ =\ VariantCopyAssignBase<T...>;}
+\DoxyCodeLine{01255\ }
+\DoxyCodeLine{01256\ template\ <class...\ T>}
+\DoxyCodeLine{01257\ class\ VariantStateBaseDestructorNontrivial\ :\ protected\ VariantStateBase<T...>\ \{}
+\DoxyCodeLine{01258\ \ private:}
+\DoxyCodeLine{01259\ \ \ using\ Base\ =\ VariantStateBase<T...>;}
+\DoxyCodeLine{01260\ }
+\DoxyCodeLine{01261\ \ protected:}
+\DoxyCodeLine{01262\ \ \ using\ Base::Base;}
+\DoxyCodeLine{01263\ }
+\DoxyCodeLine{01264\ \ \ VariantStateBaseDestructorNontrivial()\ =\ default;}
+\DoxyCodeLine{01265\ \ \ VariantStateBaseDestructorNontrivial(VariantStateBaseDestructorNontrivial\&\&)\ =}
+\DoxyCodeLine{01266\ \ \ \ \ \ \ default;}
+\DoxyCodeLine{01267\ \ \ VariantStateBaseDestructorNontrivial(}
+\DoxyCodeLine{01268\ \ \ \ \ \ \ const\ VariantStateBaseDestructorNontrivial\&)\ =\ default;}
+\DoxyCodeLine{01269\ \ \ VariantStateBaseDestructorNontrivial\&\ operator=(}
+\DoxyCodeLine{01270\ \ \ \ \ \ \ VariantStateBaseDestructorNontrivial\&\&)\ =\ default;}
+\DoxyCodeLine{01271\ \ \ VariantStateBaseDestructorNontrivial\&\ operator=(}
+\DoxyCodeLine{01272\ \ \ \ \ \ \ const\ VariantStateBaseDestructorNontrivial\&)\ =\ default;}
+\DoxyCodeLine{01273\ }
+\DoxyCodeLine{01274\ \ \ struct\ Destroyer\ \{}
+\DoxyCodeLine{01275\ \ \ \ \ template\ <std::size\_t\ I>}
+\DoxyCodeLine{01276\ \ \ \ \ void\ operator()(SizeT<I>\ i)\ const\ \{}
+\DoxyCodeLine{01277\ \ \ \ \ \ \ using\ Alternative\ =}
+\DoxyCodeLine{01278\ \ \ \ \ \ \ \ \ \ \ typename\ absl::variant\_alternative<I,\ variant<T...>>::type;}
+\DoxyCodeLine{01279\ \ \ \ \ \ \ variant\_internal::AccessUnion(self-\/>state\_,\ i).\string~Alternative();}
+\DoxyCodeLine{01280\ \ \ \ \ \}}
+\DoxyCodeLine{01281\ }
+\DoxyCodeLine{01282\ \ \ \ \ void\ operator()(SizeT<absl::variant\_npos>\ \textcolor{comment}{/*i*/})\ const\ \{}
+\DoxyCodeLine{01283\ \ \ \ \ \ \ \textcolor{comment}{//\ This\ space\ intentionally\ left\ blank}}
+\DoxyCodeLine{01284\ \ \ \ \ \}}
+\DoxyCodeLine{01285\ }
+\DoxyCodeLine{01286\ \ \ \ \ VariantStateBaseDestructorNontrivial*\ self;}
+\DoxyCodeLine{01287\ \ \ \};}
+\DoxyCodeLine{01288\ }
+\DoxyCodeLine{01289\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a79d67fbf3c14432eb184731faf9c4950}{destroy}}()\ \{\ VisitIndices<\textcolor{keyword}{sizeof}...(T)>::Run(Destroyer\{\textcolor{keyword}{this}\},\ index\_);\ \}}
+\DoxyCodeLine{01290\ }
+\DoxyCodeLine{01291\ \ \ \string~VariantStateBaseDestructorNontrivial()\ \{\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2internal_2common__policy__traits__test_8cc_a79d67fbf3c14432eb184731faf9c4950}{destroy}}();\ \}}
+\DoxyCodeLine{01292\ }
+\DoxyCodeLine{01293\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01294\ \ \ \textcolor{keyword}{using\ }Base::index\_;}
+\DoxyCodeLine{01295\ \ \ \textcolor{keyword}{using\ }Base::state\_;}
+\DoxyCodeLine{01296\ \};}
+\DoxyCodeLine{01297\ }
+\DoxyCodeLine{01298\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{01299\ \textcolor{keyword}{class\ }VariantMoveBaseNontrivial\ :\ \textcolor{keyword}{protected}\ VariantStateBaseDestructor<T...>\ \{}
+\DoxyCodeLine{01300\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{01301\ \ \ \textcolor{keyword}{using\ }Base\ =\ VariantStateBaseDestructor<T...>;}
+\DoxyCodeLine{01302\ }
+\DoxyCodeLine{01303\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01304\ \ \ \textcolor{keyword}{using\ }Base::Base;}
+\DoxyCodeLine{01305\ }
+\DoxyCodeLine{01306\ \ \ \textcolor{keyword}{struct\ }Construct\ \{}
+\DoxyCodeLine{01307\ \ \ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{01308\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<I>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01309\ \ \ \ \ \ \ \textcolor{keyword}{using\ }Alternative\ =}
+\DoxyCodeLine{01310\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{absl::variant\_alternative}}<I,\ variant<T...>>::type;}
+\DoxyCodeLine{01311\ \ \ \ \ \ \ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&self-\/>state\_))\ Alternative(}
+\DoxyCodeLine{01312\ \ \ \ \ \ \ \ \ \ \ variant\_internal::AccessUnion(\mbox{\hyperlink{namespacestd}{std}}::move(other-\/>state\_),\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{01313\ \ \ \ \ \}}
+\DoxyCodeLine{01314\ }
+\DoxyCodeLine{01315\ \ \ \ \ \textcolor{keywordtype}{void}\ operator()(SizeT<\mbox{\hyperlink{namespaceabsl}{absl}}::variant\_npos>\ \textcolor{comment}{/*i*/})\textcolor{keyword}{\ const\ }\{\}}
+\DoxyCodeLine{01316\ }
+\DoxyCodeLine{01317\ \ \ \ \ VariantMoveBaseNontrivial*\ self;}
+\DoxyCodeLine{01318\ \ \ \ \ VariantMoveBaseNontrivial*\ other;}
+\DoxyCodeLine{01319\ \ \ \};}
+\DoxyCodeLine{01320\ }
+\DoxyCodeLine{01321\ \ \ VariantMoveBaseNontrivial()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01322\ \ \ VariantMoveBaseNontrivial(VariantMoveBaseNontrivial\&\&\ other)\ \textcolor{keyword}{noexcept}(}
+\DoxyCodeLine{01323\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1conjunction}{absl::conjunction<std::is\_nothrow\_move\_constructible<T>}}...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}})}
+\DoxyCodeLine{01324\ \ \ \ \ \ \ :\ Base(NoopConstructorTag())\ \{}
+\DoxyCodeLine{01325\ \ \ \ \ VisitIndices<\textcolor{keyword}{sizeof}...(T)>::Run(Construct\{\textcolor{keyword}{this},\ \&other\},\ other.index\_);}
+\DoxyCodeLine{01326\ \ \ \ \ index\_\ =\ other.index\_;}
+\DoxyCodeLine{01327\ \ \ \}}
+\DoxyCodeLine{01328\ }
+\DoxyCodeLine{01329\ \ \ VariantMoveBaseNontrivial(VariantMoveBaseNontrivial\ \textcolor{keyword}{const}\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01330\ }
+\DoxyCodeLine{01331\ \ \ VariantMoveBaseNontrivial\&\ operator=(VariantMoveBaseNontrivial\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01332\ \ \ VariantMoveBaseNontrivial\&\ operator=(VariantMoveBaseNontrivial\ \textcolor{keyword}{const}\&)\ =}
+\DoxyCodeLine{01333\ \ \ \ \ \ \ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01334\ }
+\DoxyCodeLine{01335\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01336\ \ \ \textcolor{keyword}{using\ }Base::index\_;}
+\DoxyCodeLine{01337\ \ \ \textcolor{keyword}{using\ }Base::state\_;}
+\DoxyCodeLine{01338\ \};}
+\DoxyCodeLine{01339\ }
+\DoxyCodeLine{01340\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{01341\ \textcolor{keyword}{class\ }VariantCopyBaseNontrivial\ :\ \textcolor{keyword}{protected}\ VariantMoveBase<T...>\ \{}
+\DoxyCodeLine{01342\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{01343\ \ \ \textcolor{keyword}{using\ }Base\ =\ VariantMoveBase<T...>;}
+\DoxyCodeLine{01344\ }
+\DoxyCodeLine{01345\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01346\ \ \ \textcolor{keyword}{using\ }Base::Base;}
+\DoxyCodeLine{01347\ }
+\DoxyCodeLine{01348\ \ \ VariantCopyBaseNontrivial()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01349\ \ \ VariantCopyBaseNontrivial(VariantCopyBaseNontrivial\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01350\ }
+\DoxyCodeLine{01351\ \ \ \textcolor{keyword}{struct\ }Construct\ \{}
+\DoxyCodeLine{01352\ \ \ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{01353\ \ \ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<I>\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01354\ \ \ \ \ \ \ \textcolor{keyword}{using\ }Alternative\ =}
+\DoxyCodeLine{01355\ \ \ \ \ \ \ \ \ \ \ \textcolor{keyword}{typename}\ \mbox{\hyperlink{structabsl_1_1variant__alternative}{absl::variant\_alternative}}<I,\ variant<T...>>::type;}
+\DoxyCodeLine{01356\ \ \ \ \ \ \ ::new\ (\textcolor{keyword}{static\_cast<}\textcolor{keywordtype}{void}*\textcolor{keyword}{>}(\&self-\/>state\_))}
+\DoxyCodeLine{01357\ \ \ \ \ \ \ \ \ \ \ Alternative(variant\_internal::AccessUnion(other-\/>state\_,\ \mbox{\hyperlink{abseil-cpp_2absl_2container_2btree__benchmark_8cc_a717c50cfde3924051c279a89096afd3d}{i}}));}
+\DoxyCodeLine{01358\ \ \ \ \ \}}
+\DoxyCodeLine{01359\ }
+\DoxyCodeLine{01360\ \ \ \ \ \textcolor{keywordtype}{void}\ operator()(SizeT<\mbox{\hyperlink{namespaceabsl}{absl}}::variant\_npos>\ \textcolor{comment}{/*i*/})\textcolor{keyword}{\ const\ }\{\}}
+\DoxyCodeLine{01361\ }
+\DoxyCodeLine{01362\ \ \ \ \ VariantCopyBaseNontrivial*\ self;}
+\DoxyCodeLine{01363\ \ \ \ \ \textcolor{keyword}{const}\ VariantCopyBaseNontrivial*\ other;}
+\DoxyCodeLine{01364\ \ \ \};}
+\DoxyCodeLine{01365\ }
+\DoxyCodeLine{01366\ \ \ VariantCopyBaseNontrivial(VariantCopyBaseNontrivial\ \textcolor{keyword}{const}\&\ other)}
+\DoxyCodeLine{01367\ \ \ \ \ \ \ :\ Base(NoopConstructorTag())\ \{}
+\DoxyCodeLine{01368\ \ \ \ \ VisitIndices<\textcolor{keyword}{sizeof}...(T)>::Run(Construct\{\textcolor{keyword}{this},\ \&other\},\ other.index\_);}
+\DoxyCodeLine{01369\ \ \ \ \ index\_\ =\ other.index\_;}
+\DoxyCodeLine{01370\ \ \ \}}
+\DoxyCodeLine{01371\ }
+\DoxyCodeLine{01372\ \ \ VariantCopyBaseNontrivial\&\ operator=(VariantCopyBaseNontrivial\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01373\ \ \ VariantCopyBaseNontrivial\&\ operator=(VariantCopyBaseNontrivial\ \textcolor{keyword}{const}\&)\ =}
+\DoxyCodeLine{01374\ \ \ \ \ \ \ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01375\ }
+\DoxyCodeLine{01376\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01377\ \ \ \textcolor{keyword}{using\ }Base::index\_;}
+\DoxyCodeLine{01378\ \ \ \textcolor{keyword}{using\ }Base::state\_;}
+\DoxyCodeLine{01379\ \};}
+\DoxyCodeLine{01380\ }
+\DoxyCodeLine{01381\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{01382\ \textcolor{keyword}{class\ }VariantMoveAssignBaseNontrivial\ :\ \textcolor{keyword}{protected}\ VariantCopyBase<T...>\ \{}
+\DoxyCodeLine{01383\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{struct\ }VariantCoreAccess;}
+\DoxyCodeLine{01384\ }
+\DoxyCodeLine{01385\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{01386\ \ \ \textcolor{keyword}{using\ }Base\ =\ VariantCopyBase<T...>;}
+\DoxyCodeLine{01387\ }
+\DoxyCodeLine{01388\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01389\ \ \ \textcolor{keyword}{using\ }Base::Base;}
+\DoxyCodeLine{01390\ }
+\DoxyCodeLine{01391\ \ \ VariantMoveAssignBaseNontrivial()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01392\ \ \ VariantMoveAssignBaseNontrivial(VariantMoveAssignBaseNontrivial\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01393\ \ \ VariantMoveAssignBaseNontrivial(\textcolor{keyword}{const}\ VariantMoveAssignBaseNontrivial\&)\ =}
+\DoxyCodeLine{01394\ \ \ \ \ \ \ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01395\ \ \ VariantMoveAssignBaseNontrivial\&\ operator=(}
+\DoxyCodeLine{01396\ \ \ \ \ \ \ VariantMoveAssignBaseNontrivial\ \textcolor{keyword}{const}\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01397\ }
+\DoxyCodeLine{01398\ \ \ VariantMoveAssignBaseNontrivial\&}
+\DoxyCodeLine{01399\ \ \ operator=(VariantMoveAssignBaseNontrivial\&\&\ other)\ \textcolor{keyword}{noexcept}(}
+\DoxyCodeLine{01400\ \ \ \ \ \ \ \mbox{\hyperlink{structabsl_1_1conjunction}{absl::conjunction<std::is\_nothrow\_move\_constructible<T>}}...,}
+\DoxyCodeLine{01401\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ std::is\_nothrow\_move\_assignable<T>...>\mbox{\hyperlink{abseil-cpp_2absl_2container_2flat__hash__map__test_8cc_a54c2bae0f8aeed048a397b0618037252}{::value}})\ \{}
+\DoxyCodeLine{01402\ \ \ \ \ VisitIndices<\textcolor{keyword}{sizeof}...(T)>::Run(}
+\DoxyCodeLine{01403\ \ \ \ \ \ \ \ \ VariantCoreAccess::MakeMoveAssignVisitor(\textcolor{keyword}{this},\ \&other),\ other.index\_);}
+\DoxyCodeLine{01404\ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{01405\ \ \ \}}
+\DoxyCodeLine{01406\ }
+\DoxyCodeLine{01407\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01408\ \ \ \textcolor{keyword}{using\ }Base::index\_;}
+\DoxyCodeLine{01409\ \ \ \textcolor{keyword}{using\ }Base::state\_;}
+\DoxyCodeLine{01410\ \};}
+\DoxyCodeLine{01411\ }
+\DoxyCodeLine{01412\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ T>}
+\DoxyCodeLine{01413\ \textcolor{keyword}{class\ }VariantCopyAssignBaseNontrivial\ :\ \textcolor{keyword}{protected}\ VariantMoveAssignBase<T...>\ \{}
+\DoxyCodeLine{01414\ \ \ \textcolor{keyword}{friend}\ \textcolor{keyword}{struct\ }VariantCoreAccess;}
+\DoxyCodeLine{01415\ }
+\DoxyCodeLine{01416\ \ \textcolor{keyword}{private}:}
+\DoxyCodeLine{01417\ \ \ \textcolor{keyword}{using\ }Base\ =\ VariantMoveAssignBase<T...>;}
+\DoxyCodeLine{01418\ }
+\DoxyCodeLine{01419\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01420\ \ \ \textcolor{keyword}{using\ }Base::Base;}
+\DoxyCodeLine{01421\ }
+\DoxyCodeLine{01422\ \ \ VariantCopyAssignBaseNontrivial()\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01423\ \ \ VariantCopyAssignBaseNontrivial(VariantCopyAssignBaseNontrivial\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01424\ \ \ VariantCopyAssignBaseNontrivial(\textcolor{keyword}{const}\ VariantCopyAssignBaseNontrivial\&)\ =}
+\DoxyCodeLine{01425\ \ \ \ \ \ \ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01426\ \ \ VariantCopyAssignBaseNontrivial\&\ operator=(}
+\DoxyCodeLine{01427\ \ \ \ \ \ \ VariantCopyAssignBaseNontrivial\&\&)\ =\ \textcolor{keywordflow}{default};}
+\DoxyCodeLine{01428\ }
+\DoxyCodeLine{01429\ \ \ VariantCopyAssignBaseNontrivial\&\ operator=(}
+\DoxyCodeLine{01430\ \ \ \ \ \ \ \textcolor{keyword}{const}\ VariantCopyAssignBaseNontrivial\&\ other)\ \{}
+\DoxyCodeLine{01431\ \ \ \ \ VisitIndices<\textcolor{keyword}{sizeof}...(T)>::Run(}
+\DoxyCodeLine{01432\ \ \ \ \ \ \ \ \ VariantCoreAccess::MakeCopyAssignVisitor(\textcolor{keyword}{this},\ other),\ other.index\_);}
+\DoxyCodeLine{01433\ \ \ \ \ \textcolor{keywordflow}{return}\ *\textcolor{keyword}{this};}
+\DoxyCodeLine{01434\ \ \ \}}
+\DoxyCodeLine{01435\ }
+\DoxyCodeLine{01436\ \ \textcolor{keyword}{protected}:}
+\DoxyCodeLine{01437\ \ \ \textcolor{keyword}{using\ }Base::index\_;}
+\DoxyCodeLine{01438\ \ \ \textcolor{keyword}{using\ }Base::state\_;}
+\DoxyCodeLine{01439\ \};}
+\DoxyCodeLine{01440\ }
+\DoxyCodeLine{01442\ \textcolor{comment}{//\ Visitors\ for\ Comparison\ Operations\ //}}
+\DoxyCodeLine{01444\ }
+\DoxyCodeLine{01445\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{01446\ \textcolor{keyword}{struct\ }EqualsOp\ \{}
+\DoxyCodeLine{01447\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{01448\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ w;}
+\DoxyCodeLine{01449\ }
+\DoxyCodeLine{01450\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<absl::variant\_npos>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01451\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{01452\ \ \ \}}
+\DoxyCodeLine{01453\ }
+\DoxyCodeLine{01454\ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{01455\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<I>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01456\ \ \ \ \ \textcolor{keywordflow}{return}\ VariantCoreAccess::Access<I>(*v)\ ==\ VariantCoreAccess::Access<I>(*w);}
+\DoxyCodeLine{01457\ \ \ \}}
+\DoxyCodeLine{01458\ \};}
+\DoxyCodeLine{01459\ }
+\DoxyCodeLine{01460\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{01461\ \textcolor{keyword}{struct\ }NotEqualsOp\ \{}
+\DoxyCodeLine{01462\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{01463\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ w;}
+\DoxyCodeLine{01464\ }
+\DoxyCodeLine{01465\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<absl::variant\_npos>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01466\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01467\ \ \ \}}
+\DoxyCodeLine{01468\ }
+\DoxyCodeLine{01469\ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{01470\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<I>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01471\ \ \ \ \ \textcolor{keywordflow}{return}\ VariantCoreAccess::Access<I>(*v)\ !=\ VariantCoreAccess::Access<I>(*w);}
+\DoxyCodeLine{01472\ \ \ \}}
+\DoxyCodeLine{01473\ \};}
+\DoxyCodeLine{01474\ }
+\DoxyCodeLine{01475\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{01476\ \textcolor{keyword}{struct\ }LessThanOp\ \{}
+\DoxyCodeLine{01477\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{01478\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ w;}
+\DoxyCodeLine{01479\ }
+\DoxyCodeLine{01480\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<absl::variant\_npos>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01481\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01482\ \ \ \}}
+\DoxyCodeLine{01483\ }
+\DoxyCodeLine{01484\ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{01485\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<I>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01486\ \ \ \ \ \textcolor{keywordflow}{return}\ VariantCoreAccess::Access<I>(*v)\ <\ VariantCoreAccess::Access<I>(*w);}
+\DoxyCodeLine{01487\ \ \ \}}
+\DoxyCodeLine{01488\ \};}
+\DoxyCodeLine{01489\ }
+\DoxyCodeLine{01490\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{01491\ \textcolor{keyword}{struct\ }GreaterThanOp\ \{}
+\DoxyCodeLine{01492\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{01493\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ w;}
+\DoxyCodeLine{01494\ }
+\DoxyCodeLine{01495\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<absl::variant\_npos>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01496\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{false};}
+\DoxyCodeLine{01497\ \ \ \}}
+\DoxyCodeLine{01498\ }
+\DoxyCodeLine{01499\ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{01500\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<I>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01501\ \ \ \ \ \textcolor{keywordflow}{return}\ VariantCoreAccess::Access<I>(*v)\ >\ VariantCoreAccess::Access<I>(*w);}
+\DoxyCodeLine{01502\ \ \ \}}
+\DoxyCodeLine{01503\ \};}
+\DoxyCodeLine{01504\ }
+\DoxyCodeLine{01505\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{01506\ \textcolor{keyword}{struct\ }LessThanOrEqualsOp\ \{}
+\DoxyCodeLine{01507\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{01508\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ w;}
+\DoxyCodeLine{01509\ }
+\DoxyCodeLine{01510\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<absl::variant\_npos>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01511\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{01512\ \ \ \}}
+\DoxyCodeLine{01513\ }
+\DoxyCodeLine{01514\ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{01515\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<I>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01516\ \ \ \ \ \textcolor{keywordflow}{return}\ VariantCoreAccess::Access<I>(*v)\ <=\ VariantCoreAccess::Access<I>(*w);}
+\DoxyCodeLine{01517\ \ \ \}}
+\DoxyCodeLine{01518\ \};}
+\DoxyCodeLine{01519\ }
+\DoxyCodeLine{01520\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{01521\ \textcolor{keyword}{struct\ }GreaterThanOrEqualsOp\ \{}
+\DoxyCodeLine{01522\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{01523\ \ \ \textcolor{keyword}{const}\ variant<Types...>*\ w;}
+\DoxyCodeLine{01524\ }
+\DoxyCodeLine{01525\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<absl::variant\_npos>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01526\ \ \ \ \ \textcolor{keywordflow}{return}\ \textcolor{keyword}{true};}
+\DoxyCodeLine{01527\ \ \ \}}
+\DoxyCodeLine{01528\ }
+\DoxyCodeLine{01529\ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{01530\ \ \ \textcolor{keyword}{constexpr}\ \textcolor{keywordtype}{bool}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<I>\ \textcolor{comment}{/*v\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01531\ \ \ \ \ \textcolor{keywordflow}{return}\ VariantCoreAccess::Access<I>(*v)\ >=\ VariantCoreAccess::Access<I>(*w);}
+\DoxyCodeLine{01532\ \ \ \}}
+\DoxyCodeLine{01533\ \};}
+\DoxyCodeLine{01534\ }
+\DoxyCodeLine{01535\ \textcolor{comment}{//\ Precondition:\ v.index()\ ==\ w.index();}}
+\DoxyCodeLine{01536\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{01537\ \textcolor{keyword}{struct\ }SwapSameIndex\ \{}
+\DoxyCodeLine{01538\ \ \ variant<Types...>*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{01539\ \ \ variant<Types...>*\ w;}
+\DoxyCodeLine{01540\ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ I>}
+\DoxyCodeLine{01541\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<I>)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01542\ \ \ \ \ type\_traits\_internal::Swap(VariantCoreAccess::Access<I>(*v),}
+\DoxyCodeLine{01543\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ VariantCoreAccess::Access<I>(*w));}
+\DoxyCodeLine{01544\ \ \ \}}
+\DoxyCodeLine{01545\ }
+\DoxyCodeLine{01546\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<variant\_npos>)\textcolor{keyword}{\ const\ }\{\}}
+\DoxyCodeLine{01547\ \};}
+\DoxyCodeLine{01548\ }
+\DoxyCodeLine{01549\ \textcolor{comment}{//\ TODO(calabrese)\ do\ this\ from\ a\ different\ namespace\ for\ proper\ adl\ usage}}
+\DoxyCodeLine{01550\ \textcolor{keyword}{template}\ <\textcolor{keyword}{class}...\ Types>}
+\DoxyCodeLine{01551\ \textcolor{keyword}{struct\ }Swap\ \{}
+\DoxyCodeLine{01552\ \ \ variant<Types...>*\ \mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}};}
+\DoxyCodeLine{01553\ \ \ variant<Types...>*\ w;}
+\DoxyCodeLine{01554\ }
+\DoxyCodeLine{01555\ \ \ \textcolor{keywordtype}{void}\ generic\_swap()\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01556\ \ \ \ \ variant<Types...>\ tmp(std::move(*w));}
+\DoxyCodeLine{01557\ \ \ \ \ VariantCoreAccess::Destroy(*w);}
+\DoxyCodeLine{01558\ \ \ \ \ VariantCoreAccess::InitFrom(*w,\ std::move(*v));}
+\DoxyCodeLine{01559\ \ \ \ \ VariantCoreAccess::Destroy(*v);}
+\DoxyCodeLine{01560\ \ \ \ \ VariantCoreAccess::InitFrom(*v,\ std::move(tmp));}
+\DoxyCodeLine{01561\ \ \ \}}
+\DoxyCodeLine{01562\ }
+\DoxyCodeLine{01563\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<absl::variant\_npos>\ \textcolor{comment}{/*w\_i*/})\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01564\ \ \ \ \ \textcolor{keywordflow}{if}\ (!\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}-\/>valueless\_by\_exception())\ \{}
+\DoxyCodeLine{01565\ \ \ \ \ \ \ generic\_swap();}
+\DoxyCodeLine{01566\ \ \ \ \ \}}
+\DoxyCodeLine{01567\ \ \ \}}
+\DoxyCodeLine{01568\ }
+\DoxyCodeLine{01569\ \ \ \textcolor{keyword}{template}\ <std::\textcolor{keywordtype}{size\_t}\ Wi>}
+\DoxyCodeLine{01570\ \ \ \textcolor{keywordtype}{void}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(SizeT<Wi>\ \textcolor{comment}{/*w\_i*/})\ \{}
+\DoxyCodeLine{01571\ \ \ \ \ \textcolor{keywordflow}{if}\ (\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}}-\/>index()\ ==\ Wi)\ \{}
+\DoxyCodeLine{01572\ \ \ \ \ \ \ VisitIndices<\textcolor{keyword}{sizeof}...(Types)>::Run(SwapSameIndex<Types...>\{\mbox{\hyperlink{namespaceabsl_a828e0f13fb3947cdf6406b7a4feec8aca9e3669d19b675bd57058fd4664205d2a}{v}},\ w\},\ Wi);}
+\DoxyCodeLine{01573\ \ \ \ \ \}\ \textcolor{keywordflow}{else}\ \{}
+\DoxyCodeLine{01574\ \ \ \ \ \ \ generic\_swap();}
+\DoxyCodeLine{01575\ \ \ \ \ \}}
+\DoxyCodeLine{01576\ \ \ \}}
+\DoxyCodeLine{01577\ \};}
+\DoxyCodeLine{01578\ }
+\DoxyCodeLine{01579\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Variant,\ \textcolor{keyword}{typename}\ =\ void,\ \textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{01580\ \textcolor{keyword}{struct\ }VariantHashBase\ \{}
+\DoxyCodeLine{01581\ \ \ VariantHashBase()\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01582\ \ \ VariantHashBase(\textcolor{keyword}{const}\ VariantHashBase\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01583\ \ \ VariantHashBase(VariantHashBase\&\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01584\ \ \ VariantHashBase\&\ operator=(\textcolor{keyword}{const}\ VariantHashBase\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01585\ \ \ VariantHashBase\&\ operator=(VariantHashBase\&\&)\ =\ \textcolor{keyword}{delete};}
+\DoxyCodeLine{01586\ \};}
+\DoxyCodeLine{01587\ }
+\DoxyCodeLine{01588\ \textcolor{keyword}{struct\ }VariantHashVisitor\ \{}
+\DoxyCodeLine{01589\ \ \ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ T>}
+\DoxyCodeLine{01590\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(\textcolor{keyword}{const}\ T\&\ t)\ \{}
+\DoxyCodeLine{01591\ \ \ \ \ \textcolor{keywordflow}{return}\ std::hash<T>\{\}(\mbox{\hyperlink{namespaceabsl_adb6bd4a9012b471ac01613aff8d4d81bae358efa489f58062f10dd7316b65649e}{t}});}
+\DoxyCodeLine{01592\ \ \ \}}
+\DoxyCodeLine{01593\ \};}
+\DoxyCodeLine{01594\ }
+\DoxyCodeLine{01595\ \textcolor{keyword}{template}\ <\textcolor{keyword}{typename}\ Variant,\ \textcolor{keyword}{typename}...\ Ts>}
+\DoxyCodeLine{01596\ \textcolor{keyword}{struct\ }VariantHashBase<Variant,}
+\DoxyCodeLine{01597\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \mbox{\hyperlink{namespaceabsl}{absl}}::\mbox{\hyperlink{namespaceabsl_a059ea7c8c3122cd36d4e270733757ff9}{enable\_if\_t}}<absl::conjunction<}
+\DoxyCodeLine{01598\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ type\_traits\_internal::IsHashable<Ts>...>::value>,}
+\DoxyCodeLine{01599\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Ts...>\ \{}
+\DoxyCodeLine{01600\ \ \ \textcolor{keyword}{using\ }argument\_type\ =\ Variant;}
+\DoxyCodeLine{01601\ \ \ \textcolor{keyword}{using\ }result\_type\ =\ size\_t;}
+\DoxyCodeLine{01602\ \ \ \textcolor{keywordtype}{size\_t}\ \mbox{\hyperlink{IndexedViewMethods_8h_a745b5bbf26fefb72e16675ef6ccd9057}{operator()}}(\textcolor{keyword}{const}\ Variant\&\ var)\textcolor{keyword}{\ const\ }\{}
+\DoxyCodeLine{01603\ \ \ \ \ type\_traits\_internal::AssertHashEnabled<Ts...>();}
+\DoxyCodeLine{01604\ \ \ \ \ \textcolor{keywordflow}{if}\ (var.valueless\_by\_exception())\ \{}
+\DoxyCodeLine{01605\ \ \ \ \ \ \ \textcolor{keywordflow}{return}\ 239799884;}
+\DoxyCodeLine{01606\ \ \ \ \ \}}
+\DoxyCodeLine{01607\ \ \ \ \ \textcolor{keywordtype}{size\_t}\ result\ =\ VisitIndices<variant\_size<Variant>::value>::Run(}
+\DoxyCodeLine{01608\ \ \ \ \ \ \ \ \ PerformVisitation<VariantHashVisitor,\ const\ Variant\&>\{}
+\DoxyCodeLine{01609\ \ \ \ \ \ \ \ \ \ \ \ \ std::forward\_as\_tuple(var),\ VariantHashVisitor\{\}\},}
+\DoxyCodeLine{01610\ \ \ \ \ \ \ \ \ var.index());}
+\DoxyCodeLine{01611\ \ \ \ \ \textcolor{comment}{//\ Combine\ the\ index\ and\ the\ hash\ result\ in\ order\ to\ distinguish}}
+\DoxyCodeLine{01612\ \ \ \ \ \textcolor{comment}{//\ std::variant<int,\ int>\ holding\ the\ same\ value\ as\ different\ alternative.}}
+\DoxyCodeLine{01613\ \ \ \ \ \textcolor{keywordflow}{return}\ result\ \string^\ var.index();}
+\DoxyCodeLine{01614\ \ \ \}}
+\DoxyCodeLine{01615\ \};}
+\DoxyCodeLine{01616\ }
+\DoxyCodeLine{01617\ \}\ \ \textcolor{comment}{//\ namespace\ variant\_internal}}
+\DoxyCodeLine{01618\ \mbox{\hyperlink{abseil-cpp_2absl_2base_2config_8h_a49c6cd9be2b7205d48557c9fa90ec5a6}{ABSL\_NAMESPACE\_END}}}
+\DoxyCodeLine{01619\ \}\ \ \textcolor{comment}{//\ namespace\ absl}}
+\DoxyCodeLine{01620\ }
+\DoxyCodeLine{01621\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ !defined(ABSL\_USES\_STD\_VARIANT)}}
+\DoxyCodeLine{01622\ \textcolor{preprocessor}{\#endif\ \ }\textcolor{comment}{//\ ABSL\_TYPES\_INTERNAL\_VARIANT\_H\_}}
+
+\end{DoxyCode}
