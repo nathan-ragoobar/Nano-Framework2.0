@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstdint>
 
+
+
 class FixedPointQ5_10 {
 private:
     int16_t value; // 16-bit integer to store the fixed-point value
@@ -123,6 +125,22 @@ public:
         return *this;
     }
 
+
+
 };
 
+/*
+namespace Eigen {
+namespace numext {
+
+template<>
+inline FixedPointQ5_10 tanh(const FixedPointQ5_10& x) {
+    float temp = x.toFloat();
+    float result = std::tanh(temp);
+    return FixedPointQ5_10(result);
+}
+
+} // namespace numext
+} // namespace Eigen
+*/
 #endif // FIXED_POINT_HPP

@@ -5,6 +5,8 @@
 class FixedPointTest : public ::testing::Test {
 protected:
     static constexpr float EPSILON = 0.001f; // Tolerance for floating-point comparisons
+
+    
 };
 
 // Constructor Tests
@@ -200,6 +202,17 @@ TEST_F(FixedPointTest, SubtractionAssignmentOperator) {
     // Test self-subtraction
     fp1 -= fp1;
     EXPECT_NEAR(fp1.toFloat(), 0.0f, EPSILON);
+}
+
+TEST_F(FixedPointTest, TanhFunctionTest) {
+    // Test with a few sample inputs
+    float inputs[] = {-2.0f, -0.5f, 0.0f, 0.5f, 2.0f};
+    for (float val : inputs) {
+        FixedPointQ5_10 fp(val);
+        FixedPointQ5_10 result = fp_ops::tanh(fp);
+        float expected = std::tanh(val);
+        EXPECT_NEAR(result.toFloat(), expected, EPSILON);
+    }
 }
 
 

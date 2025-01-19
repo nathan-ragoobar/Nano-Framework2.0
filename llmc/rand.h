@@ -84,6 +84,7 @@ Both output:
 #define RAND_H
 
 #include <math.h>
+#include "./../tensor/fixed_point.hpp"
 
 #define MERSENNE_STATE_M 397u
 #define MERSENNE_STATE_N 624u
@@ -160,6 +161,20 @@ inline double randfloat64(mt19937_state* state) {
 void uniform_(float* data, unsigned int numel, float from, float to, mt19937_state* state) {
     for (unsigned int t = 0; t < numel; t++) {
         data[t] = randfloat32(state) * (to - from) + from;
+    }
+}
+
+void uniform_fixed(FixedPointQ5_10* data, unsigned int numel, 
+                  FixedPointQ5_10 from, FixedPointQ5_10 to, 
+                  mt19937_state* state) {
+    for (unsigned int t = 0; t < numel; t++) {
+        // Get random float and convert to FixedPointQ5_10
+        float rand_val = randfloat32(state);
+        FixedPointQ5_10 rand_fixed(rand_val);
+        
+        // Calculate range with fixed-point arithmetic
+        FixedPointQ5_10 range = to - from;
+        data[t] = (rand_fixed * range) + from;
     }
 }
 
