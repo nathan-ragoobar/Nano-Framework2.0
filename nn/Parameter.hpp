@@ -96,6 +96,22 @@ inline void NormalFill(absl::Span<T> weight, T mean = 0.0,
 #endif
 }
 
+//Implementation of the Kaiming uniform initialization for a weight tensor. The function fills the weight tensor with values sampled from a uniform distribution with bounds calculated based on the number of input features. The function has GPU and CPU implementations.
+inline void KaimingUniformFill(absl::Span<FixedPointQ5_10> weight, int in_features) {
+    const FixedPointQ5_10 one(1.0f);
+    const FixedPointQ5_10 in_features_fp(static_cast<float>(in_features));
+    const FixedPointQ5_10 bound = FixedPointQ5_10::sqrt(one / in_features_fp);
+
+#ifdef EIGEN_USE_GPU
+    std::vector<FixedPointQ5_10> w(weight.size());
+    uniform_fixed(w.data(), w.size(), -bound, bound, &g_mt19937_state);
+    g_device.memcpyHostToDevice(weight.data(), w.data(),
+                               sizeof(FixedPointQ5_10) * w.size());
+#else
+    uniform_fixed(weight.data(), weight.size(), -bound, bound, &g_mt19937_state);
+#endif
+}
+
 
 
 

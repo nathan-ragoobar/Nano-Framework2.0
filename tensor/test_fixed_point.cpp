@@ -83,6 +83,12 @@ TEST_F(FixedPointTest, Subtraction) {
     EXPECT_NEAR(result.toFloat(), -1.25f, EPSILON);
 }
 
+TEST_F(FixedPointTest, UnaryMinusOperator) {
+    FixedPointQ5_10 a(1.5f);
+    FixedPointQ5_10 negA = -a;
+    EXPECT_NEAR(negA.toFloat(), -1.5f, EPSILON);
+}
+
 TEST_F(FixedPointTest, Multiplication) {
     FixedPointQ5_10 fp1(3.5f);
     FixedPointQ5_10 fp2(2.0f);

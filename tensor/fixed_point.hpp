@@ -82,6 +82,13 @@ public:
         result.value = value - other.value;
         return result;
     }
+    
+    // Unary minus (negation) - add this
+    FixedPointQ5_10 operator-() const {
+        FixedPointQ5_10 result;
+        result.value = -value;
+        return result;
+    }
 
     // Multiplication
     FixedPointQ5_10 operator*(const FixedPointQ5_10& other) const {

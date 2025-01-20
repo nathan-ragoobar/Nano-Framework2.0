@@ -100,6 +100,21 @@ TEST(NormalFillTest, FixedPointDistribution) {
     EXPECT_NEAR(empirical_mean, 0.0f, 0.1f);
 }
 
+TEST(KaimingUniformFillTest, FixedPointTest) {
+    std::vector<FixedPointQ5_10> data(100);
+    absl::Span<FixedPointQ5_10> span(data);
+    
+    nn::ManualSeed(42);
+    nn::KaimingUniformFill(span, 10);
+    
+    FixedPointQ5_10 expected_bound = FixedPointQ5_10::sqrt(FixedPointQ5_10(0.1f));
+    
+    for(const auto& val : span) {
+        EXPECT_TRUE(val >= -expected_bound);
+        EXPECT_TRUE(val <= expected_bound);
+    }
+}
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
