@@ -135,7 +135,20 @@ inline void UpperTriangularWithNegativeInf(
 #endif
 }
 
-
+//Performs OneHot encoding of target tensor 
+inline void OneHot(typename TTypes<int>::ConstFlat target,
+                       typename TTypes<FixedPointQ5_10>::Matrix label) {
+    int batch_size = target.size();
+    int num_class = label.dimension(1);
+    
+    CHECK_EQ(batch_size, label.dimension(0));
+    
+    for (int i = 0; i < batch_size; ++i) {
+        int ix = target(i);
+        CHECK_LT(ix, num_class);
+        label(i, ix) = FixedPointQ5_10(1.0f);
+    }
+}
 
 
 }  // namespace nn

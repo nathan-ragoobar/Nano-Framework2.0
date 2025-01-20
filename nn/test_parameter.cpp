@@ -149,6 +149,30 @@ TEST(UpperTriangularTest, FixedPointTest) {
     }
 }
 
+TEST(OneHotTest, FixedPointTest) {
+    const int batch_size = 3;
+    const int num_classes = 4;
+    
+    std::vector<int> target_data = {1, 0, 2};
+    std::vector<FixedPointQ5_10> label_data(batch_size * num_classes, FixedPointQ5_10(0.0f));
+    
+    TTypes<int>::ConstFlat target(target_data.data(), batch_size);
+    TTypes<FixedPointQ5_10>::Matrix label(label_data.data(), batch_size, num_classes);
+    
+    OneHot(target, label);
+    
+    // Verify results
+    for(int i = 0; i < batch_size; i++) {
+        for(int j = 0; j < num_classes; j++) {
+            if(j == target_data[i]) {
+                EXPECT_EQ(label(i,j).toFloat(), 1.0f);
+            } else {
+                EXPECT_EQ(label(i,j).toFloat(), 0.0f);
+            }
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
