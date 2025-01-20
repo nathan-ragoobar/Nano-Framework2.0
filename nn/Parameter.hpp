@@ -113,6 +113,27 @@ inline void KaimingUniformFill(absl::Span<FixedPointQ5_10> weight, int in_featur
 }
 
 
+//Creates upper triangle matrix, sets upper triangle to negative infinity, sets diagonal and lower triangle to zero
+inline void UpperTriangularWithNegativeInf(
+    typename TTypes<FixedPointQ5_10>::Matrix matrix) {
+    
+    using MatrixFixed = 
+        Eigen::Matrix<FixedPointQ5_10, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+    
+    MatrixFixed m = MatrixFixed::Zero(matrix.dimension(0), matrix.dimension(1));
+    
+    // Use minimum fixed point value instead of infinity
+    m.triangularView<Eigen::StrictlyUpper>().setConstant(
+        FixedPointQ5_10(-32.0f));  // Minimum value for Q5.10 format
+
+#ifdef EIGEN_USE_GPU
+    g_device.memcpyHostToDevice(matrix.data(), m.data(),
+                               sizeof(FixedPointQ5_10) * m.size());
+#else
+    g_device.memcpy(matrix.data(), m.data(), 
+                    sizeof(FixedPointQ5_10) * m.size());
+#endif
+}
 
 
 

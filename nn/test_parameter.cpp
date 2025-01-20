@@ -115,6 +115,40 @@ TEST(KaimingUniformFillTest, FixedPointTest) {
     }
 }
 
+TEST(UpperTriangularTest, FixedPointTest) {
+    // Create tensor instead of matrix
+    const int size = 3;
+
+    // Q5.10 format has range [-16, 15.999]
+    constexpr float kMinValue = -16.0f;  // Changed from -32.0f
+
+    std::vector<FixedPointQ5_10> data(size * size);
+    
+    // Create tensor map from data
+    TTypes<FixedPointQ5_10, 2>::Tensor matrix(data.data(), size, size);
+    
+    // Initialize to zero
+    for (int i = 0; i < size * size; i++) {
+        data[i] = FixedPointQ5_10(0.0f);
+    }
+
+    UpperTriangularWithNegativeInf(matrix);
+    
+    // Check diagonal and lower triangle are zero
+    for(int i = 0; i < size; i++) {
+        for(int j = 0; j <= i; j++) {
+            EXPECT_EQ(matrix(i,j).toFloat(), 0.0f);
+        }
+    }
+    
+    // Check upper triangle is minimum value
+    for(int i = 0; i < size; i++) {
+        for(int j = i + 1; j < size; j++) {
+            EXPECT_EQ(matrix(i,j).toFloat(), kMinValue);
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
