@@ -113,6 +113,12 @@ public:
         return value > other.value;
     }
 
+    // Not equal operator
+    bool operator!=(const FixedPointQ5_10& other) const {
+    return value != other.value;
+    }
+
+
     // Addition assignment operator
     FixedPointQ5_10& operator+=(const FixedPointQ5_10& other) {
         value += other.value;
@@ -123,6 +129,32 @@ public:
     FixedPointQ5_10& operator-=(const FixedPointQ5_10& other) {
         value -= other.value;
         return *this;
+    }
+
+    bool operator>=(const FixedPointQ5_10& other) const {
+        return value >= other.value;
+    }
+    
+    bool operator<=(const FixedPointQ5_10& other) const {
+        return value <= other.value;
+    }
+    
+   
+    // Static math functions
+    static FixedPointQ5_10 sqrt(const FixedPointQ5_10& x) {
+        return FixedPointQ5_10(std::sqrt(x.toFloat()));
+    }
+
+    static FixedPointQ5_10 log(const FixedPointQ5_10& x) {
+        return FixedPointQ5_10(std::log(x.toFloat()));
+    }
+
+    static FixedPointQ5_10 sin(const FixedPointQ5_10& x) {
+        return FixedPointQ5_10(std::sin(x.toFloat()));
+    }
+
+    static FixedPointQ5_10 cos(const FixedPointQ5_10& x) {
+        return FixedPointQ5_10(std::cos(x.toFloat()));
     }
 
 

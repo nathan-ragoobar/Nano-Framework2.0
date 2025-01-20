@@ -235,6 +235,48 @@ void normal_(float* data, unsigned int numel, float mean, float std, mt19937_sta
     }
 }
 
+void normal_fixed(FixedPointQ5_10* data, unsigned int numel, 
+                 FixedPointQ5_10 mean, FixedPointQ5_10 std, 
+                 mt19937_state* state) {
+    #define EPSILONE FixedPointQ5_10(1e-12f)
+    
+    if (numel >= 16) {
+        // Convert to float, use existing fill, convert back
+        std::vector<float> temp(numel);
+        normal_fill(temp.data(), numel, mean.toFloat(), std.toFloat(), state);
+        for(unsigned int i = 0; i < numel; i++) {
+            data[i] = FixedPointQ5_10(temp[i]);
+        }
+    } else {
+        FixedPointQ5_10 next_normal_sample;
+        int has_next_normal_sample = 0;
+        
+        for (unsigned int t = 0; t < numel; t++) {
+            if (has_next_normal_sample) {
+                data[t] = (next_normal_sample * std) + mean;
+                has_next_normal_sample = 0;
+                continue;
+            }
+            
+            FixedPointQ5_10 u1(randfloat64(state));
+            FixedPointQ5_10 u2(randfloat64(state));
+            
+            // Box-Muller transform with fixed point
+            FixedPointQ5_10 radius = FixedPointQ5_10::sqrt(
+                FixedPointQ5_10(-2.0f) * 
+                FixedPointQ5_10::log(FixedPointQ5_10(1.0f) - u2 + EPSILONE)
+            );
+            
+            FixedPointQ5_10 theta(2.0f * M_PI * u1.toFloat());
+            
+            next_normal_sample = radius * FixedPointQ5_10::sin(theta);
+            has_next_normal_sample = 1;
+            
+            data[t] = (radius * FixedPointQ5_10::cos(theta) * std) + mean;
+        }
+    }
+}
+
 void init_identity_permutation(int *data, int numel) {
     for (int i = 0; i < numel; i++) {
         data[i] = i;
