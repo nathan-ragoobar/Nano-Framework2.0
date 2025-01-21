@@ -26,6 +26,8 @@
 
 namespace nn {
 
+
+
 #ifdef EIGEN_USE_GPU
 Eigen::GpuStreamDevice g_stream;
 Eigen::GpuDevice g_device(&g_stream);
@@ -149,6 +151,319 @@ inline void OneHot(typename TTypes<int>::ConstFlat target,
         label(i, ix) = FixedPointQ5_10(1.0f);
     }
 }
+
+//Splits a range into n parts and returns the start and end index of the i-th part
+//Used for parallel processing of data
+//Deals with array indices so no need to switch datatype to FixedPointQ5_10
+inline std::pair<int, int> SplitRange(int total, int idx, int n) {
+  int q = total / n;
+  int r = total % n;
+  if (idx < r) {
+    return {(q + 1) * idx, (q + 1) * (idx + 1)};
+  } else {
+    return {q * idx + r, q * (idx + 1) + r};
+  }
+}
+
+//Supported data types
+enum DataType : int { 
+    DT_FLOAT = 1, 
+    DT_HALF = 2, 
+    DT_INT32 = 3,
+    DT_FIXED = 4  // Add new enum value
+};
+
+// Validates type T for whether it is a supported DataType.
+// Add base template here
+template <typename T>
+struct IsValidDataType {
+    static constexpr bool value = false;  // Default to false for unknown types
+};
+// DataTypeToEnum<T>::v() and DataTypeToEnum<T>::value are the DataType
+// constants for T, e.g. DataTypeToEnum<float>::v() is DT_FLOAT.
+template <class T>
+struct DataTypeToEnum {
+  static_assert(IsValidDataType<T>::value, "Specified Data Type not supported");
+};  // Specializations below
+
+// EnumToDataType<VALUE>::Type is the type for DataType constant VALUE, e.g.
+// EnumToDataType<DT_FLOAT>::Type is float.
+template <DataType VALUE>
+struct EnumToDataType {};  // Specializations below
+
+// Template specialization for both DataTypeToEnum and EnumToDataType.
+#define MATCH_TYPE_AND_ENUM(TYPE, ENUM)     \
+  template <>                               \
+  struct DataTypeToEnum<TYPE> {             \
+    static DataType v() { return ENUM; }    \
+    static constexpr DataType value = ENUM; \
+  };                                        \
+  template <>                               \
+  struct IsValidDataType<TYPE> {            \
+    static constexpr bool value = true;     \
+  };                                        \
+  template <>                               \
+  struct EnumToDataType<ENUM> {             \
+    typedef TYPE Type;                      \
+  }
+
+
+
+
+MATCH_TYPE_AND_ENUM(float, DT_FLOAT);
+MATCH_TYPE_AND_ENUM(Eigen::half, DT_HALF);
+MATCH_TYPE_AND_ENUM(int, DT_INT32);
+MATCH_TYPE_AND_ENUM(FixedPointQ5_10, DT_FIXED);  // Add new mapping
+
+
+
+// Parameter weight and its corresponding gradient
+struct Parameter {
+  Parameter(const Parameter&) = delete;
+  Parameter& operator=(const Parameter&) = delete;
+
+  explicit Parameter(DataType dtype, int64_t num_element = 0)
+      : dtype_(dtype),
+        num_element_(num_element),
+        data_(nullptr),
+        grad_(nullptr) {
+    if (num_element) {
+      LazyAllocate(num_element);
+    }
+  }
+
+  ~Parameter() {
+    if (data_ != nullptr) {
+      g_device.deallocate(data_);
+    }
+    if (grad_ != nullptr) {
+      g_device.deallocate(grad_);
+    }
+  }
+
+  int64_t size() const { return num_element_; }
+
+  void LazyAllocate(int num_element) {
+    if (data_ == nullptr) {
+      data_ = Allocate(dtype_, num_element);
+      Zero(data_, dtype_, num_element);
+      num_element_ = num_element;
+    }
+    CHECK_EQ(num_element, num_element_);
+  }
+
+ 
+  void LazyAllocateGradient() {
+    if (grad_ == nullptr) {
+      CHECK_GT(num_element_, 0);
+      grad_ = Allocate(dtype_, num_element_);
+      Zero(grad_, dtype_, num_element_);
+    }
+  }
+
+  void ZeroData() {
+    if (data_ != nullptr) {
+      Zero(data_, dtype_, num_element_);
+    }
+  }
+
+  void ZeroGrad() {
+    if (grad_ != nullptr) {
+      Zero(grad_, dtype_, num_element_);
+    }
+  }
+
+  template <typename T>
+  T* data() const {
+    return static_cast<T*>(data_);
+  }
+
+  template <typename T>
+  T* grad() const {
+    return static_cast<T*>(grad_);
+  }
+
+  template <typename T>
+  absl::Span<T> span() const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    return {data<T>(), static_cast<size_t>(num_element_)};
+  }
+
+  template <typename T>
+  absl::Span<T> span_grad() const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    return {grad<T>(), static_cast<size_t>(num_element_)};
+  }
+ 
+  template <typename T>
+  typename TTypes<T>::Flat flat() const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    return {data<T>(), num_element_};
+  }
+  template <typename T>
+  typename TTypes<T>::ConstFlat const_flat() const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    return {data<T>(), num_element_};
+  }
+
+  template <typename T>
+  typename TTypes<T>::Matrix matrix(int rows, int cols) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(rows * cols, num_element_);
+    return {data<T>(), rows, cols};
+  }
+  template <typename T>
+  typename TTypes<T>::ConstMatrix const_matrix(int rows, int cols) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(rows * cols, num_element_);
+    return {data<T>(), rows, cols};
+  }
+
+  template <typename T>
+  typename TTypes<T, 3>::Tensor tensor_3d(int dim0, int dim1, int dim2) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(dim0 * dim1 * dim2, num_element_);
+    return {data<T>(), dim0, dim1, dim2};
+  }
+  template <typename T>
+  typename TTypes<T, 3>::ConstTensor const_tensor_3d(int dim0, int dim1,
+                                                     int dim2) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(dim0 * dim1 * dim2, num_element_);
+    return {data<T>(), dim0, dim1, dim2};
+  }
+
+  template <typename T>
+  typename TTypes<T, 4>::Tensor tensor_4d(int dim0, int dim1, int dim2,
+                                          int dim3) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(dim0 * dim1 * dim2 * dim3, num_element_);
+    return {data<T>(), dim0, dim1, dim2, dim3};
+  }
+  template <typename T>
+  typename TTypes<T, 4>::ConstTensor const_tensor_4d(int dim0, int dim1,
+                                                     int dim2, int dim3) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(dim0 * dim1 * dim2 * dim3, num_element_);
+    return {data<T>(), dim0, dim1, dim2, dim3};
+  }
+
+  template <typename T>
+  typename TTypes<T>::Flat flat_grad() const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    return {grad<T>(), num_element_};
+  }
+  template <typename T>
+  typename TTypes<T>::ConstFlat const_flat_grad() const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    return {grad<T>(), num_element_};
+  }
+
+  template <typename T>
+  typename TTypes<T>::Matrix matrix_grad(int rows, int cols) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(rows * cols, num_element_);
+    return {grad<T>(), rows, cols};
+  }
+  template <typename T>
+  typename TTypes<T>::ConstMatrix const_matrix_grad(int rows, int cols) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(rows * cols, num_element_);
+    return {grad<T>(), rows, cols};
+  }
+
+  template <typename T>
+  typename TTypes<T, 3>::Tensor tensor_3d_grad(int dim0, int dim1,
+                                               int dim2) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(dim0 * dim1 * dim2, num_element_);
+    return {grad<T>(), dim0, dim1, dim2};
+  }
+  template <typename T>
+  typename TTypes<T, 3>::ConstTensor const_tensor_3d_grad(int dim0, int dim1,
+                                                          int dim2) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(dim0 * dim1 * dim2, num_element_);
+    return {grad<T>(), dim0, dim1, dim2};
+  }
+
+  template <typename T>
+  typename TTypes<T, 4>::Tensor tensor_4d_grad(int dim0, int dim1, int dim2,
+                                               int dim3) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(dim0 * dim1 * dim2 * dim3, num_element_);
+    return {grad<T>(), dim0, dim1, dim2, dim3};
+  }
+
+  template <typename T>
+  typename TTypes<T, 4>::ConstTensor const_tensor_4d_grad(int dim0, int dim1,
+                                                          int dim2,
+                                                          int dim3) const {
+    CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
+    CHECK_EQ(dim0 * dim1 * dim2 * dim3, num_element_);
+    return {grad<T>(), dim0, dim1, dim2, dim3};
+  }
+  /**/
+
+ private:
+  static void* Allocate(DataType dtype, int64_t num_element) {
+    if (dtype == DT_FIXED) {
+      return g_device.allocate(sizeof(FixedPointQ5_10) * num_element);
+    } else if (dtype == DT_FLOAT) {
+      return g_device.allocate(sizeof(float) * num_element);
+    } else if (dtype == DT_HALF) {
+      return g_device.allocate(sizeof(Eigen::half) * num_element);
+    } else {
+      throw std::invalid_argument("invalid data type: " +
+                                  std::to_string(dtype));
+    }
+  }
+
+  static void Zero(void* data, DataType dtype, int64_t num_element) {
+    if (dtype == DT_FIXED) {
+      g_device.memset(data, 0, sizeof(FixedPointQ5_10) * num_element);
+    } else if (dtype == DT_FLOAT) {
+      g_device.memset(data, 0, sizeof(float) * num_element);
+    } else if (dtype == DT_HALF) {
+      g_device.memset(data, 0, sizeof(Eigen::half) * num_element);
+    } else {
+      throw std::invalid_argument("invalid data type: " +
+                                  std::to_string(dtype));
+    }
+  }
+
+  DataType dtype_;
+  int64_t num_element_;
+  void* data_;
+  void* grad_;
+};
+
+using Activation = Parameter;
+
+struct Residual {
+  using T = floatX;
+
+  static void Forward(typename TTypes<T>::ConstFlat x,
+                      typename TTypes<T>::ConstFlat Fx,
+                      typename TTypes<T>::Flat Hx) {
+    int N = x.size();
+    CHECK(N == Fx.size() && N == Hx.size());
+
+    // H(x) = x + F(x) -> F(x) = H(x) - x
+    Hx.device(g_device) = x + Fx;
+  }
+
+  static void Backward(typename TTypes<T>::ConstFlat Hx_grad,
+                       typename TTypes<T>::Flat x_grad,
+                       typename TTypes<T>::Flat Fx_grad) {
+    int N = Hx_grad.size();
+    CHECK(N == x_grad.size() && N == Fx_grad.size());
+
+    x_grad.device(g_device) += Hx_grad;
+    Fx_grad.device(g_device) += Hx_grad;
+  }
+};
+
 
 
 }  // namespace nn
