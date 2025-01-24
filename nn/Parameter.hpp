@@ -114,32 +114,32 @@ inline void KaimingUniformFill(absl::Span<fixed_point_7pt8> weight, int in_featu
 #endif
 }
 
-/*
+
 //Creates upper triangle matrix, sets upper triangle to negative infinity, sets diagonal and lower triangle to zero
 inline void UpperTriangularWithNegativeInf(
-    typename TTypes<FixedPointQ5_10>::Matrix matrix) {
+    typename TTypes<fixed_point_7pt8>::Matrix matrix) {
     
     using MatrixFixed = 
-        Eigen::Matrix<FixedPointQ5_10, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+        Eigen::Matrix<fixed_point_7pt8, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
     
     MatrixFixed m = MatrixFixed::Zero(matrix.dimension(0), matrix.dimension(1));
     
     // Use minimum fixed point value instead of infinity
     m.triangularView<Eigen::StrictlyUpper>().setConstant(
-        FixedPointQ5_10(-32.0f));  // Minimum value for Q5.10 format
+        fixed_point_7pt8(-32.0f));  // Minimum value for Q5.10 format
 
 #ifdef EIGEN_USE_GPU
     g_device.memcpyHostToDevice(matrix.data(), m.data(),
-                               sizeof(FixedPointQ5_10) * m.size());
+                               sizeof(fixed_point_7pt8) * m.size());
 #else
     g_device.memcpy(matrix.data(), m.data(), 
-                    sizeof(FixedPointQ5_10) * m.size());
+                    sizeof(fixed_point_7pt8) * m.size());
 #endif
 }
 
 //Performs OneHot encoding of target tensor 
 inline void OneHot(typename TTypes<int>::ConstFlat target,
-                       typename TTypes<FixedPointQ5_10>::Matrix label) {
+                       typename TTypes<fixed_point_7pt8>::Matrix label) {
     int batch_size = target.size();
     int num_class = label.dimension(1);
     
@@ -148,13 +148,14 @@ inline void OneHot(typename TTypes<int>::ConstFlat target,
     for (int i = 0; i < batch_size; ++i) {
         int ix = target(i);
         CHECK_LT(ix, num_class);
-        label(i, ix) = FixedPointQ5_10(1.0f);
+        label(i, ix) = fixed_point_7pt8(1.0f);
     }
 }
 
+
 //Splits a range into n parts and returns the start and end index of the i-th part
 //Used for parallel processing of data
-//Deals with array indices so no need to switch datatype to FixedPointQ5_10
+//Deals with array indices so no need to switch datatype to fixed_point_7pt8
 inline std::pair<int, int> SplitRange(int total, int idx, int n) {
   int q = total / n;
   int r = total % n;
@@ -164,6 +165,7 @@ inline std::pair<int, int> SplitRange(int total, int idx, int n) {
     return {q * idx + r, q * (idx + 1) + r};
   }
 }
+
 
 //Supported data types
 enum DataType : int { 
@@ -213,7 +215,7 @@ struct EnumToDataType {};  // Specializations below
 MATCH_TYPE_AND_ENUM(float, DT_FLOAT);
 MATCH_TYPE_AND_ENUM(Eigen::half, DT_HALF);
 MATCH_TYPE_AND_ENUM(int, DT_INT32);
-MATCH_TYPE_AND_ENUM(FixedPointQ5_10, DT_FIXED);  // Add new mapping
+MATCH_TYPE_AND_ENUM(fixed_point_7pt8, DT_FIXED);  // Add new mapping
 
 
 
@@ -408,7 +410,7 @@ struct Parameter {
  private:
   static void* Allocate(DataType dtype, int64_t num_element) {
     if (dtype == DT_FIXED) {
-      return g_device.allocate(sizeof(FixedPointQ5_10) * num_element);
+      return g_device.allocate(sizeof(fixed_point_7pt8) * num_element);
     } else if (dtype == DT_FLOAT) {
       return g_device.allocate(sizeof(float) * num_element);
     } else if (dtype == DT_HALF) {
@@ -421,7 +423,7 @@ struct Parameter {
 
   static void Zero(void* data, DataType dtype, int64_t num_element) {
     if (dtype == DT_FIXED) {
-      g_device.memset(data, 0, sizeof(FixedPointQ5_10) * num_element);
+      g_device.memset(data, 0, sizeof(fixed_point_7pt8) * num_element);
     } else if (dtype == DT_FLOAT) {
       g_device.memset(data, 0, sizeof(float) * num_element);
     } else if (dtype == DT_HALF) {
@@ -467,33 +469,33 @@ struct Residual {
 // Careful there are a few versions of GeLU, this one is the exact one used by
 // OpenAI
 struct NewGELU {
-  using T = FixedPointQ5_10;
+  using T = fixed_point_7pt8;
 
-  static void Forward(typename TTypes<T>::ConstFlat x,
-                      typename TTypes<T>::Flat y) {
+  static void Forward(typename TTypes<fixed_point_7pt8>::ConstFlat x,
+                      typename TTypes<fixed_point_7pt8>::Flat y) {
     CHECK_EQ(x.size(), y.size());
-    const T sqrt_2_over_pi(std::sqrt(M_2_PI));
+    const fixed_point_7pt8 sqrt_2_over_pi(std::sqrt(M_2_PI));
 
     // y = 0.5 * x * (1.0 + tanh[sqrt(2/pi) * (x + 0.044715 * x^3)])
-    const T half(0.5f);
-    const T one(1.0f);
-    const T coeff(0.044715f);
+    const fixed_point_7pt8 half(0.5f);
+    const fixed_point_7pt8 one(1.0f);
+    const fixed_point_7pt8 coeff(0.044715f);
     
     y.device(g_device) =
         half * x * (one + ((sqrt_2_over_pi * (x + coeff * x * x * x)).tanh()));
   }
 
-  static void Backward(typename TTypes<T>::ConstFlat x,
-                       typename TTypes<T>::ConstFlat y_grad,
-                       typename TTypes<T>::Flat x_grad) {
+  static void Backward(typename TTypes<fixed_point_7pt8>::ConstFlat x,
+                       typename TTypes<fixed_point_7pt8>::ConstFlat y_grad,
+                       typename TTypes<fixed_point_7pt8>::Flat x_grad) {
     CHECK_EQ(x.size(), y_grad.size());
     CHECK_EQ(x.size(), x_grad.size());
 
-    const T sqrt_2_over_pi(FixedPointQ5_10::sqrt(M_2_PI));
-    const T half(0.5f);
-    const T one(1.0f);
-    const T three(3.0f);
-    const T coeff(0.044715f);
+    const fixed_point_7pt8 sqrt_2_over_pi(sqrt(M_2_PI));
+    const fixed_point_7pt8 half(0.5f);
+    const fixed_point_7pt8 one(1.0f);
+    const fixed_point_7pt8 three(3.0f);
+    const fixed_point_7pt8 coeff(0.044715f);
 
     auto cube = coeff * x * x * x;
     auto tanh_arg = sqrt_2_over_pi * (x + cube);
@@ -506,7 +508,7 @@ struct NewGELU {
 };
 
 
-*/
+/**/
 
 }  // namespace nn
 

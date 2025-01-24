@@ -114,13 +114,14 @@ TEST(KaimingUniformFillTest, FixedPointTest) {
         EXPECT_TRUE(val <= expected_bound);
     }
 }
-/*
+
+//This test needs more refinement. I don't think this has any edge cases.
 TEST(UpperTriangularTest, FixedPointTest) {
     // Create tensor instead of matrix
     const int size = 3;
 
-    // Q5.10 format has range [-16, 15.999]
-    constexpr float kMinValue = -16.0f;  // Changed from -32.0f
+    // Q5.10 format has range [-16, 15.999]...... This is no longer valid
+    constexpr float kMinValue = -32.0f;  
 
     std::vector<fixed_point_7pt8> data(size * size);
     
@@ -137,14 +138,14 @@ TEST(UpperTriangularTest, FixedPointTest) {
     // Check diagonal and lower triangle are zero
     for(int i = 0; i < size; i++) {
         for(int j = 0; j <= i; j++) {
-            EXPECT_EQ(matrix(i,j).toFloat(), 0.0f);
+            EXPECT_EQ(matrix(i,j).to_float(), 0.0f);
         }
     }
     
     // Check upper triangle is minimum value
     for(int i = 0; i < size; i++) {
         for(int j = i + 1; j < size; j++) {
-            EXPECT_EQ(matrix(i,j).toFloat(), kMinValue);
+            EXPECT_EQ(matrix(i,j).to_float(), kMinValue);
         }
     }
 }
@@ -154,10 +155,10 @@ TEST(OneHotTest, FixedPointTest) {
     const int num_classes = 4;
     
     std::vector<int> target_data = {1, 0, 2};
-    std::vector<FixedPointQ5_10> label_data(batch_size * num_classes, FixedPointQ5_10(0.0f));
+    std::vector<fixed_point_7pt8> label_data(batch_size * num_classes, fixed_point_7pt8(0.0f));
     
     TTypes<int>::ConstFlat target(target_data.data(), batch_size);
-    TTypes<FixedPointQ5_10>::Matrix label(label_data.data(), batch_size, num_classes);
+    TTypes<fixed_point_7pt8>::Matrix label(label_data.data(), batch_size, num_classes);
     
     OneHot(target, label);
     
@@ -165,9 +166,9 @@ TEST(OneHotTest, FixedPointTest) {
     for(int i = 0; i < batch_size; i++) {
         for(int j = 0; j < num_classes; j++) {
             if(j == target_data[i]) {
-                EXPECT_EQ(label(i,j).toFloat(), 1.0f);
+                EXPECT_EQ(label(i,j).to_float(), 1.0f);
             } else {
-                EXPECT_EQ(label(i,j).toFloat(), 0.0f);
+                EXPECT_EQ(label(i,j).to_float(), 0.0f);
             }
         }
     }
@@ -187,6 +188,8 @@ TEST(SplitRangeTest, BasicFunctionality) {
     EXPECT_EQ(range2.second, 10);
 }
 
+
+
 // Add type declaration first
 struct InvalidType {};
 
@@ -196,30 +199,31 @@ static_assert(!IsValidDataType<InvalidType>::value,
 
 TEST(DataTypeTest, FixedPointDataType) {
     // Runtime checks
-    EXPECT_EQ(DataTypeToEnum<FixedPointQ5_10>::v(), DT_FIXED);
+    EXPECT_EQ(DataTypeToEnum<fixed_point_7pt8>::v(), DT_FIXED);
 
     // Compile-time checks within test
     // Use std::is_same instead of std::is_same_v for C++14
     static_assert(std::is_same<
         typename EnumToDataType<DT_FIXED>::Type,
-        FixedPointQ5_10
-    >::value, "DT_FIXED should map to FixedPointQ5_10");
+        fixed_point_7pt8
+    >::value, "DT_FIXED should map to fixed_point_7pt8");
     
-    static_assert(IsValidDataType<FixedPointQ5_10>::value,
-                 "FixedPointQ5_10 should be a valid type");
+    static_assert(IsValidDataType<fixed_point_7pt8>::value,
+                 "fixed_point_7pt8 should be a valid type");
     
-    static_assert(DataTypeToEnum<FixedPointQ5_10>::value == DT_FIXED,
+    static_assert(DataTypeToEnum<fixed_point_7pt8>::value == DT_FIXED,
                  "Static value should match enum");
 }
 
-TEST(TypeDefinitionTest, FixedPointQ5_10TypeExists) {
+
+TEST(TypeDefinitionTest, fixed_point_7pt8TypeExists) {
     // Compile-time check that type exists
-    static_assert(sizeof(FixedPointQ5_10) > 0, 
-                 "FixedPointQ5_10 type not defined");
+    static_assert(sizeof(fixed_point_7pt8) > 0, 
+                 "fixed_point_7pt8 type not defined");
     
     // Runtime check type has expected properties
-    FixedPointQ5_10 test_val(1.0f);
-    EXPECT_EQ(test_val.toFloat(), 1.0f);
+    fixed_point_7pt8 test_val(1.0f);
+    EXPECT_EQ(test_val.to_float(), 1.0f);
 }
 
 TEST(Parameter, ConstructorInitializesCorrectly) {
@@ -279,75 +283,75 @@ protected:
 TEST_F(ParameterFixedPointTest, LazyAllocationInitializesToZero) {
     Parameter p(DT_FIXED);
     p.LazyAllocate(3);
-    auto data = p.span<FixedPointQ5_10>();
+    auto data = p.span<fixed_point_7pt8>();
     
     for(int i = 0; i < 3; i++) {
-        EXPECT_EQ(data[i].toFloat(), 0.0f);
+        EXPECT_EQ(data[i].to_float(), 0.0f);
     }
 }
 
 TEST_F(ParameterFixedPointTest, GradientLazyAllocation) {
     param->LazyAllocateGradient();
-    auto grad = param->span_grad<FixedPointQ5_10>();
+    auto grad = param->span_grad<fixed_point_7pt8>();
     
     EXPECT_EQ(grad.size(), 5);
     for(int i = 0; i < 5; i++) {
-        EXPECT_EQ(grad[i].toFloat(), 0.0f);
+        EXPECT_EQ(grad[i].to_float(), 0.0f);
     }
 }
 
 // Zero Operations Tests
 TEST_F(ParameterFixedPointTest, ZeroDataOperation) {
-    auto data = param->span<FixedPointQ5_10>();
-    data[0] = FixedPointQ5_10(1.5f);
+    auto data = param->span<fixed_point_7pt8>();
+    data[0] = fixed_point_7pt8(1.5f);
     
     param->ZeroData();
-    EXPECT_EQ(data[0].toFloat(), 0.0f);
+    EXPECT_EQ(data[0].to_float(), 0.0f);
 }
 
 TEST_F(ParameterFixedPointTest, ZeroGradOperation) {
     param->LazyAllocateGradient();
-    auto grad = param->span_grad<FixedPointQ5_10>();
-    grad[0] = FixedPointQ5_10(1.5f);
+    auto grad = param->span_grad<fixed_point_7pt8>();
+    grad[0] = fixed_point_7pt8(1.5f);
     
     param->ZeroGrad();
-    EXPECT_EQ(grad[0].toFloat(), 0.0f);
+    EXPECT_EQ(grad[0].to_float(), 0.0f);
 }
 
 // Data Access Tests
 TEST_F(ParameterFixedPointTest, RawDataAccess) {
-    auto* data_ptr = param->data<FixedPointQ5_10>();
+    auto* data_ptr = param->data<fixed_point_7pt8>();
     EXPECT_NE(data_ptr, nullptr);
     
-    data_ptr[0] = FixedPointQ5_10(2.5f);
-    EXPECT_EQ(data_ptr[0].toFloat(), 2.5f);
+    data_ptr[0] = fixed_point_7pt8(2.5f);
+    EXPECT_EQ(data_ptr[0].to_float(), 2.5f);
 }
 
 TEST_F(ParameterFixedPointTest, RawGradAccess) {
     param->LazyAllocateGradient();
-    auto* grad_ptr = param->grad<FixedPointQ5_10>();
+    auto* grad_ptr = param->grad<fixed_point_7pt8>();
     EXPECT_NE(grad_ptr, nullptr);
     
-    grad_ptr[0] = FixedPointQ5_10(3.5f);
-    EXPECT_EQ(grad_ptr[0].toFloat(), 3.5f);
+    grad_ptr[0] = fixed_point_7pt8(3.5f);
+    EXPECT_EQ(grad_ptr[0].to_float(), 3.5f);
 }
 
 // Span Access Tests
 TEST_F(ParameterFixedPointTest, SpanAccess) {
-    auto span = param->span<FixedPointQ5_10>();
+    auto span = param->span<fixed_point_7pt8>();
     EXPECT_EQ(span.size(), 5);
     
-    span[0] = FixedPointQ5_10(4.5f);
-    EXPECT_EQ(span[0].toFloat(), 4.5f);
+    span[0] = fixed_point_7pt8(4.5f);
+    EXPECT_EQ(span[0].to_float(), 4.5f);
 }
 
 TEST_F(ParameterFixedPointTest, GradSpanAccess) {
     param->LazyAllocateGradient();
-    auto grad_span = param->span_grad<FixedPointQ5_10>();
+    auto grad_span = param->span_grad<fixed_point_7pt8>();
     EXPECT_EQ(grad_span.size(), 5);
     
-    grad_span[0] = FixedPointQ5_10(5.5f);
-    EXPECT_EQ(grad_span[0].toFloat(), 5.5f);
+    grad_span[0] = fixed_point_7pt8(5.5f);
+    EXPECT_EQ(grad_span[0].to_float(), 5.5f);
 }
 
 // Type Checking Tests
@@ -356,6 +360,7 @@ TEST_F(ParameterFixedPointTest, WrongTypeAccess) {
     EXPECT_DEATH(param->span_grad<float>(), "");
 }
 
+//I think this class is not needed. REMOVE IT
 class TensorTest : public ::testing::Test {
 protected:
     void SetUp() override {
@@ -377,67 +382,67 @@ protected:
 
 // Flat Tensor Tests
 TEST_F(TensorTest, FlatTensorAccess) {
-    auto flat = param->flat<FixedPointQ5_10>();
+    auto flat = param->flat<fixed_point_7pt8>();
     EXPECT_EQ(flat.size(), 24);
     
-    flat(0) = FixedPointQ5_10(1.5f);
-    EXPECT_EQ(flat(0).toFloat(), 1.5f);
+    flat(0) = fixed_point_7pt8(1.5f);
+    EXPECT_EQ(flat(0).to_float(), 1.5f);
 }
 
 TEST_F(TensorTest, ConstFlatTensorAccess) {
-    auto const_flat = param->const_flat<FixedPointQ5_10>();
+    auto const_flat = param->const_flat<fixed_point_7pt8>();
     EXPECT_EQ(const_flat.size(), 24);
 }
 
 // Matrix Tests
 TEST_F(TensorTest, MatrixTensorAccess) {
-    auto matrix = param->matrix<FixedPointQ5_10>(6, 4);
+    auto matrix = param->matrix<fixed_point_7pt8>(6, 4);
     EXPECT_EQ(matrix.dimension(0), 6);
     EXPECT_EQ(matrix.dimension(1), 4);
     
-    matrix(0, 0) = FixedPointQ5_10(2.5f);
-    EXPECT_EQ(matrix(0, 0).toFloat(), 2.5f);
+    matrix(0, 0) = fixed_point_7pt8(2.5f);
+    EXPECT_EQ(matrix(0, 0).to_float(), 2.5f);
 }
 
 TEST_F(TensorTest, MatrixDimensionMismatch) {
-    EXPECT_DEATH(param->matrix<FixedPointQ5_10>(5, 5), "");
+    EXPECT_DEATH(param->matrix<fixed_point_7pt8>(5, 5), "");
 }
 
 // 3D Tensor Tests
 TEST_F(TensorTest, Tensor3DAccess) {
-    auto tensor3d = param->tensor_3d<FixedPointQ5_10>(2, 3, 4);
+    auto tensor3d = param->tensor_3d<fixed_point_7pt8>(2, 3, 4);
     EXPECT_EQ(tensor3d.dimension(0), 2);
     EXPECT_EQ(tensor3d.dimension(1), 3);
     EXPECT_EQ(tensor3d.dimension(2), 4);
     
-    tensor3d(0, 0, 0) = FixedPointQ5_10(3.5f);
-    EXPECT_EQ(tensor3d(0, 0, 0).toFloat(), 3.5f);
+    tensor3d(0, 0, 0) = fixed_point_7pt8(3.5f);
+    EXPECT_EQ(tensor3d(0, 0, 0).to_float(), 3.5f);
 }
 
 // 4D Tensor Tests
 TEST_F(TensorTest, Tensor4DAccess) {
-    auto tensor4d = param->tensor_4d<FixedPointQ5_10>(2, 2, 2, 3);
+    auto tensor4d = param->tensor_4d<fixed_point_7pt8>(2, 2, 2, 3);
     EXPECT_EQ(tensor4d.dimension(0), 2);
     EXPECT_EQ(tensor4d.dimension(1), 2);
     EXPECT_EQ(tensor4d.dimension(2), 2);
     EXPECT_EQ(tensor4d.dimension(3), 3);
     
-    tensor4d(0, 0, 0, 0) = FixedPointQ5_10(4.5f);
-    EXPECT_EQ(tensor4d(0, 0, 0, 0).toFloat(), 4.5f);
+    tensor4d(0, 0, 0, 0) = fixed_point_7pt8(4.5f);
+    EXPECT_EQ(tensor4d(0, 0, 0, 0).to_float(), 4.5f);
 }
 
 // Gradient Tests
 TEST_F(TensorTest, GradientTensorAccess) {
-    auto flat_grad = param->flat_grad<FixedPointQ5_10>();
-    auto matrix_grad = param->matrix_grad<FixedPointQ5_10>(6, 4);
-    auto tensor3d_grad = param->tensor_3d_grad<FixedPointQ5_10>(2, 3, 4);
-    auto tensor4d_grad = param->tensor_4d_grad<FixedPointQ5_10>(2, 2, 2, 3);
+    auto flat_grad = param->flat_grad<fixed_point_7pt8>();
+    auto matrix_grad = param->matrix_grad<fixed_point_7pt8>(6, 4);
+    auto tensor3d_grad = param->tensor_3d_grad<fixed_point_7pt8>(2, 3, 4);
+    auto tensor4d_grad = param->tensor_4d_grad<fixed_point_7pt8>(2, 2, 2, 3);
     
-    flat_grad(0) = FixedPointQ5_10(5.5f);
-    EXPECT_EQ(flat_grad(0).toFloat(), 5.5f);
+    flat_grad(0) = fixed_point_7pt8(5.5f);
+    EXPECT_EQ(flat_grad(0).to_float(), 5.5f);
     
-    matrix_grad(0, 0) = FixedPointQ5_10(6.5f);
-    EXPECT_EQ(matrix_grad(0, 0).toFloat(), 6.5f);
+    matrix_grad(0, 0) = fixed_point_7pt8(6.5f);
+    EXPECT_EQ(matrix_grad(0, 0).to_float(), 6.5f);
 }
 
 // Type Checking Tests
@@ -453,17 +458,17 @@ TEST(ResidualTest, FixedPointOperations) {
     Parameter Fx(DT_FIXED, 3);
     Parameter Hx(DT_FIXED, 3);
     
-    auto x_span = x.span<FixedPointQ5_10>();
-    auto Fx_span = Fx.span<FixedPointQ5_10>();
+    auto x_span = x.span<fixed_point_7pt8>();
+    auto Fx_span = Fx.span<fixed_point_7pt8>();
     
-    x_span[0] = FixedPointQ5_10(1.0f);
-    Fx_span[0] = FixedPointQ5_10(2.0f);
+    x_span[0] = fixed_point_7pt8(1.0f);
+    Fx_span[0] = fixed_point_7pt8(2.0f);
     
-   Residual::Forward(x.const_flat<FixedPointQ5_10>(),    // Changed to const_flat
-                     Fx.const_flat<FixedPointQ5_10>(),     // Changed to const_flat
-                     Hx.flat<FixedPointQ5_10>());
+   Residual::Forward(x.const_flat<fixed_point_7pt8>(),    // Changed to const_flat
+                     Fx.const_flat<fixed_point_7pt8>(),     // Changed to const_flat
+                     Hx.flat<fixed_point_7pt8>());
                      
-    EXPECT_EQ(Hx.flat<FixedPointQ5_10>()(0).toFloat(), 3.0f);
+    EXPECT_EQ(Hx.flat<fixed_point_7pt8>()(0).to_float(), 3.0f);
 }
 
 TEST(ResidualTest, BackwardFixedPoint) {
@@ -473,23 +478,23 @@ TEST(ResidualTest, BackwardFixedPoint) {
     Parameter Fx_grad(DT_FIXED, 3);
 
     // Initialize gradients
-    auto Hx_grad_span = Hx_grad.span<FixedPointQ5_10>();
-    Hx_grad_span[0] = FixedPointQ5_10(1.0f);
-    Hx_grad_span[1] = FixedPointQ5_10(2.0f);
-    Hx_grad_span[2] = FixedPointQ5_10(3.0f);
+    auto Hx_grad_span = Hx_grad.span<fixed_point_7pt8>();
+    Hx_grad_span[0] = fixed_point_7pt8(1.0f);
+    Hx_grad_span[1] = fixed_point_7pt8(2.0f);
+    Hx_grad_span[2] = fixed_point_7pt8(3.0f);
 
     // Call backward
-    Residual::Backward(Hx_grad.const_flat<FixedPointQ5_10>(),
-                      x_grad.flat<FixedPointQ5_10>(),
-                      Fx_grad.flat<FixedPointQ5_10>());
+    Residual::Backward(Hx_grad.const_flat<fixed_point_7pt8>(),
+                      x_grad.flat<fixed_point_7pt8>(),
+                      Fx_grad.flat<fixed_point_7pt8>());
 
     // Verify gradients accumulated correctly
-    auto x_grad_span = x_grad.span<FixedPointQ5_10>();
-    auto Fx_grad_span = Fx_grad.span<FixedPointQ5_10>();
+    auto x_grad_span = x_grad.span<fixed_point_7pt8>();
+    auto Fx_grad_span = Fx_grad.span<fixed_point_7pt8>();
 
     for(int i = 0; i < 3; i++) {
-        EXPECT_EQ(x_grad_span[i].toFloat(), Hx_grad_span[i].toFloat());
-        EXPECT_EQ(Fx_grad_span[i].toFloat(), Hx_grad_span[i].toFloat());
+        EXPECT_EQ(x_grad_span[i].to_float(), Hx_grad_span[i].to_float());
+        EXPECT_EQ(Fx_grad_span[i].to_float(), Hx_grad_span[i].to_float());
     }
 }
 
@@ -497,42 +502,49 @@ TEST(NewGELUTest, ForwardFixedPoint) {
     Parameter x(DT_FIXED, 3);
     Parameter y(DT_FIXED, 3);
     
-    auto x_span = x.span<FixedPointQ5_10>();
-    x_span[0] = FixedPointQ5_10(1.0f);
-    x_span[1] = FixedPointQ5_10(0.0f);
-    x_span[2] = FixedPointQ5_10(-1.0f);
+    auto x_span = x.span<fixed_point_7pt8>();
+    x_span[0] = fixed_point_7pt8(1.0f);
+    x_span[1] = fixed_point_7pt8(0.0f);
+    x_span[2] = fixed_point_7pt8(-1.0f);
     
-    NewGELU::Forward(x.const_flat<FixedPointQ5_10>(),
-                    y.flat<FixedPointQ5_10>());
+    NewGELU::Forward(x.const_flat<fixed_point_7pt8>(),
+                    y.flat<fixed_point_7pt8>());
     
-    auto y_span = y.span<FixedPointQ5_10>();
-    EXPECT_NEAR(y_span[0].toFloat(), 0.841f, 0.01f);
-    EXPECT_NEAR(y_span[1].toFloat(), 0.0f, 0.01f);
-    EXPECT_NEAR(y_span[2].toFloat(), -0.159f, 0.01f);
+    auto y_span = y.span<fixed_point_7pt8>();
+    EXPECT_NEAR(y_span[0].to_float(), 0.841f, 0.01f);
+    EXPECT_NEAR(y_span[1].to_float(), 0.0f, 0.01f);
+    EXPECT_NEAR(y_span[2].to_float(), -0.159f, 0.01f);
 }
+
+//This test case is not working. It is failing.
+//Idk how to verify that the value that the test case is even checking for is correct.
 
 TEST(NewGELUTest, BackwardFixedPoint) {
     Parameter x(DT_FIXED, 2);
     Parameter y_grad(DT_FIXED, 2);
     Parameter x_grad(DT_FIXED, 2);
     
-    auto x_span = x.span<FixedPointQ5_10>();
-    auto y_grad_span = y_grad.span<FixedPointQ5_10>();
+    auto x_span = x.span<fixed_point_7pt8>();
+    auto y_grad_span = y_grad.span<fixed_point_7pt8>();
     
-    x_span[0] = FixedPointQ5_10(1.0f);
-    x_span[1] = FixedPointQ5_10(-1.0f);
-    y_grad_span[0] = FixedPointQ5_10(1.0f);
-    y_grad_span[1] = FixedPointQ5_10(1.0f);
+    x_span[0] = fixed_point_7pt8(1.0f);
+    x_span[1] = fixed_point_7pt8(-1.0f);
+    y_grad_span[0] = fixed_point_7pt8(1.0f);
+    y_grad_span[1] = fixed_point_7pt8(1.0f);
     
-    NewGELU::Backward(x.const_flat<FixedPointQ5_10>(),
-                     y_grad.const_flat<FixedPointQ5_10>(),
-                     x_grad.flat<FixedPointQ5_10>());
+    NewGELU::Backward(x.const_flat<fixed_point_7pt8>(),
+                     y_grad.const_flat<fixed_point_7pt8>(),
+                     x_grad.flat<fixed_point_7pt8>());
+
+    //std::cout << x.span<fixed_point_7pt8>()[1].to_float() << std::endl;
+    //std::cout << y_grad.span<fixed_point_7pt8>()[1].to_float() << std::endl;
+    //std::cout << x_grad.span<fixed_point_7pt8>()[1].to_float() << std::endl;
     
-    auto x_grad_span = x_grad.span<FixedPointQ5_10>();
-    EXPECT_NEAR(x_grad_span[0].toFloat(), 1.083f, 0.01f);
-    EXPECT_NEAR(x_grad_span[1].toFloat(), 0.084f, 0.01f);
+    auto x_grad_span = x_grad.span<fixed_point_7pt8>();
+    EXPECT_NEAR(x_grad_span[0].to_float(), 1.083f, 0.01f);
+    EXPECT_NEAR(x_grad_span[1].to_float(), 0.084f, 0.01f);
 }
-*/
+/**/
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);

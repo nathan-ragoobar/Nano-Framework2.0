@@ -60,7 +60,7 @@ target_include_directories(test_fixed_point
     ${PROJECT_SOURCE_DIR}
     ${EIGEN3_INCLUDE_DIR}
 )
-#[[
+
 # Add test_tanh executable
 add_executable(test_tanh test_tanh.cpp)
 
@@ -75,7 +75,7 @@ target_include_directories(test_tanh
 target_link_libraries(test_tanh
     Eigen3::Eigen
 )
-]]
+
 # Enable testing
 enable_testing()
 add_test(NAME fixed_point_tests COMMAND test_fixed_point)
