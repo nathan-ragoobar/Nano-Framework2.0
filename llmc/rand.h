@@ -164,16 +164,16 @@ void uniform_(float* data, unsigned int numel, float from, float to, mt19937_sta
     }
 }
 
-void uniform_fixed(FixedPointQ5_10* data, unsigned int numel, 
-                  FixedPointQ5_10 from, FixedPointQ5_10 to, 
+void uniform_fixed(fixed_point_7pt8* data, unsigned int numel, 
+                  fixed_point_7pt8 from, fixed_point_7pt8 to, 
                   mt19937_state* state) {
     for (unsigned int t = 0; t < numel; t++) {
-        // Get random float and convert to FixedPointQ5_10
+        // Get random float and convert to fixed_point_7pt8
         float rand_val = randfloat32(state);
-        FixedPointQ5_10 rand_fixed(rand_val);
+        fixed_point_7pt8 rand_fixed(rand_val);
         
         // Calculate range with fixed-point arithmetic
-        FixedPointQ5_10 range = to - from;
+        fixed_point_7pt8 range = to - from;
         data[t] = (rand_fixed * range) + from;
     }
 }
@@ -235,20 +235,20 @@ void normal_(float* data, unsigned int numel, float mean, float std, mt19937_sta
     }
 }
 
-void normal_fixed(FixedPointQ5_10* data, unsigned int numel, 
-                 FixedPointQ5_10 mean, FixedPointQ5_10 std, 
+void normal_fixed(fixed_point_7pt8* data, unsigned int numel, 
+                 fixed_point_7pt8 mean, fixed_point_7pt8 std, 
                  mt19937_state* state) {
-    #define EPSILONE FixedPointQ5_10(1e-12f)
+    #define EPSILONE fixed_point_7pt8(1e-12f)
     
     if (numel >= 16) {
         // Convert to float, use existing fill, convert back
         std::vector<float> temp(numel);
-        normal_fill(temp.data(), numel, mean.toFloat(), std.toFloat(), state);
+        normal_fill(temp.data(), numel, mean.to_float(), std.to_float(), state);
         for(unsigned int i = 0; i < numel; i++) {
-            data[i] = FixedPointQ5_10(temp[i]);
+            data[i] = fixed_point_7pt8(temp[i]);
         }
     } else {
-        FixedPointQ5_10 next_normal_sample;
+        fixed_point_7pt8 next_normal_sample;
         int has_next_normal_sample = 0;
         
         for (unsigned int t = 0; t < numel; t++) {
@@ -258,21 +258,21 @@ void normal_fixed(FixedPointQ5_10* data, unsigned int numel,
                 continue;
             }
             
-            FixedPointQ5_10 u1(randfloat64(state));
-            FixedPointQ5_10 u2(randfloat64(state));
+            fixed_point_7pt8 u1(randfloat64(state));
+            fixed_point_7pt8 u2(randfloat64(state));
             
             // Box-Muller transform with fixed point
-            FixedPointQ5_10 radius = FixedPointQ5_10::sqrt(
-                FixedPointQ5_10(-2.0f) * 
-                FixedPointQ5_10::log(FixedPointQ5_10(1.0f) - u2 + EPSILONE)
+            fixed_point_7pt8 radius = sqrt(
+                fixed_point_7pt8(-2.0f) * 
+                log(fixed_point_7pt8(1.0f) - u2 + EPSILONE)
             );
             
-            FixedPointQ5_10 theta(2.0f * M_PI * u1.toFloat());
+            fixed_point_7pt8 theta(2.0f * M_PI * u1.to_float());
             
-            next_normal_sample = radius * FixedPointQ5_10::sin(theta);
+            next_normal_sample = radius * sin(theta);
             has_next_normal_sample = 1;
             
-            data[t] = (radius * FixedPointQ5_10::cos(theta) * std) + mean;
+            data[t] = (radius * cos(theta) * std) + mean;
         }
     }
 }

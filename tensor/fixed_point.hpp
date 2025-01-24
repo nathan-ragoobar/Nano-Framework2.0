@@ -8,11 +8,12 @@
 #ifndef FIXED_POINT_2011_02_22_H_
   #define FIXED_POINT_2011_02_22_H_
 
-  #define FIXED_POINT_DISABLE_IOSTREAM
+  //#define FIXED_POINT_DISABLE_IOSTREAM
 
   #include <cstddef>
   #include <cstdint>
   #include <limits>
+  
 
   #if !defined(FIXED_POINT_DISABLE_IOSTREAM)
     #include <istream>
@@ -265,7 +266,7 @@
       return *this;
     }
 
-    
+
     fixed_point& calculate_sqrt() {
         if (data < 0) {
             data = 0;
@@ -964,7 +965,7 @@
       static fixed_point quiet_NaN  () throw() { return fixed_point(internal(), signed_value_type(0)); }
     };
 
-    //#if !defined(FIXED_POINT_DISABLE_IOSTREAM)
+   #if !defined(FIXED_POINT_DISABLE_IOSTREAM)
 
     template<typename char_type, typename traits_type>
     friend std::basic_ostream<char_type, traits_type>& operator<<(std::basic_ostream<char_type, traits_type>& out,
@@ -1001,8 +1002,10 @@
       return in;
     }
 
-    //#endif // !FIXED_POINT_DISABLE_IOSTREAM
-  };
+    #endif // !FIXED_POINT_DISABLE_IOSTREAM
+    
+
+  }; //End of fixed_point class(I think).
 
   // Define the four scalable fixed_point types.
   typedef fixed_point<std::int8_t>  fixed_point_3pt4;

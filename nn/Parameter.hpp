@@ -99,22 +99,22 @@ inline void NormalFill(absl::Span<T> weight, T mean = 0.0,
 }
 
 //Implementation of the Kaiming uniform initialization for a weight tensor. The function fills the weight tensor with values sampled from a uniform distribution with bounds calculated based on the number of input features. The function has GPU and CPU implementations.
-inline void KaimingUniformFill(absl::Span<FixedPointQ5_10> weight, int in_features) {
-    const FixedPointQ5_10 one(1.0f);
-    const FixedPointQ5_10 in_features_fp(static_cast<float>(in_features));
-    const FixedPointQ5_10 bound = FixedPointQ5_10::sqrt(one / in_features_fp);
+inline void KaimingUniformFill(absl::Span<fixed_point_7pt8> weight, int in_features) {
+    const fixed_point_7pt8 one(1.0f);
+    const fixed_point_7pt8 in_features_fp(static_cast<float>(in_features));
+    const fixed_point_7pt8 bound = sqrt(one / in_features_fp);
 
 #ifdef EIGEN_USE_GPU
-    std::vector<FixedPointQ5_10> w(weight.size());
+    std::vector<fixed_point_7pt8> w(weight.size());
     uniform_fixed(w.data(), w.size(), -bound, bound, &g_mt19937_state);
     g_device.memcpyHostToDevice(weight.data(), w.data(),
-                               sizeof(FixedPointQ5_10) * w.size());
+                               sizeof(fixed_point_7pt8) * w.size());
 #else
     uniform_fixed(weight.data(), weight.size(), -bound, bound, &g_mt19937_state);
 #endif
 }
 
-
+/*
 //Creates upper triangle matrix, sets upper triangle to negative infinity, sets diagonal and lower triangle to zero
 inline void UpperTriangularWithNegativeInf(
     typename TTypes<FixedPointQ5_10>::Matrix matrix) {
@@ -403,7 +403,7 @@ struct Parameter {
     CHECK_EQ(dim0 * dim1 * dim2 * dim3, num_element_);
     return {grad<T>(), dim0, dim1, dim2, dim3};
   }
-  /**/
+  
 
  private:
   static void* Allocate(DataType dtype, int64_t num_element) {
@@ -506,7 +506,7 @@ struct NewGELU {
 };
 
 
-
+*/
 
 }  // namespace nn
 
