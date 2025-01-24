@@ -1,4 +1,6 @@
 #include <gtest/gtest.h>
+#include <Eigen/Core>
+#include <unsupported/Eigen/CXX11/Tensor>
 #include "fixed_point.hpp"
 #include <cmath>
 
@@ -49,6 +51,7 @@ TEST_F(FixedPointTest, FloatConstructor) {
     FixedPointQ5_10 fp5(-20.5f);  // Should clamp to -16
     EXPECT_NEAR(fp5.toFloat(), -16.0f, EPSILON);
 }
+
 
 // Arithmetic Operation Tests
 TEST_F(FixedPointTest, Addition) {
@@ -259,6 +262,53 @@ TEST_F(FixedPointTest, MathFunctions) {
     
     EXPECT_NEAR(FixedPointQ5_10::sin(x).toFloat(), std::sin(1.0f), EPSILON);
     EXPECT_NEAR(FixedPointQ5_10::cos(x).toFloat(), std::cos(1.0f), EPSILON);
+}
+
+class FixedPointTanhTest : public ::testing::Test {
+protected:
+    static constexpr float tolerance = 0.05f; // 5% tolerance for approximation
+};
+
+TEST_F(FixedPointTanhTest, HandlesZero) {
+    FixedPointQ5_10 x(0.0f);
+    EXPECT_FLOAT_EQ(x.tanh().toFloat(), 0.0f);
+}
+
+TEST_F(FixedPointTanhTest, HandlesPosValues) {
+    float test_values[] = {0.5f, 1.0f, 2.0f, 3.0f};
+    for(float val : test_values) {
+        FixedPointQ5_10 x(val);
+        float expected = std::tanh(val);
+        float actual = x.tanh().toFloat();
+        EXPECT_NEAR(actual, expected, std::abs(expected * tolerance))
+            << "Failed for value: " << val;
+    }
+}
+
+TEST_F(FixedPointTanhTest, HandlesNegValues) {
+    float test_values[] = {-0.5f, -1.0f, -2.0f, -3.0f};
+    for(float val : test_values) {
+        FixedPointQ5_10 x(val);
+        float expected = std::tanh(val);
+        float actual = x.tanh().toFloat();
+        EXPECT_NEAR(actual, expected, std::abs(expected * tolerance))
+            << "Failed for value: " << val;
+    }
+}
+
+TEST_F(FixedPointTanhTest, HandlesSaturation) {
+    FixedPointQ5_10 pos_large(4.0f);
+    FixedPointQ5_10 neg_large(-4.0f);
+    
+    EXPECT_NEAR(pos_large.tanh().toFloat(), 1.0f, tolerance);
+    EXPECT_NEAR(neg_large.tanh().toFloat(), -1.0f, tolerance);
+}
+
+TEST_F(FixedPointTanhTest, EigenIntegration) {
+    FixedPointQ5_10 x(1.5f);
+    float expected = std::tanh(1.5f);
+    float actual = Eigen::numext::tanh(x).toFloat();
+    EXPECT_NEAR(actual, expected, std::abs(expected * tolerance));
 }
 
 /*

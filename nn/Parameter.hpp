@@ -464,6 +464,48 @@ struct Residual {
   }
 };
 
+// Careful there are a few versions of GeLU, this one is the exact one used by
+// OpenAI
+struct NewGELU {
+  using T = FixedPointQ5_10;
+
+  static void Forward(typename TTypes<T>::ConstFlat x,
+                      typename TTypes<T>::Flat y) {
+    CHECK_EQ(x.size(), y.size());
+    const T sqrt_2_over_pi(std::sqrt(M_2_PI));
+
+    // y = 0.5 * x * (1.0 + tanh[sqrt(2/pi) * (x + 0.044715 * x^3)])
+    const T half(0.5f);
+    const T one(1.0f);
+    const T coeff(0.044715f);
+    
+    y.device(g_device) =
+        half * x * (one + ((sqrt_2_over_pi * (x + coeff * x * x * x)).tanh()));
+  }
+
+  static void Backward(typename TTypes<T>::ConstFlat x,
+                       typename TTypes<T>::ConstFlat y_grad,
+                       typename TTypes<T>::Flat x_grad) {
+    CHECK_EQ(x.size(), y_grad.size());
+    CHECK_EQ(x.size(), x_grad.size());
+
+    const T sqrt_2_over_pi(FixedPointQ5_10::sqrt(M_2_PI));
+    const T half(0.5f);
+    const T one(1.0f);
+    const T three(3.0f);
+    const T coeff(0.044715f);
+
+    auto cube = coeff * x * x * x;
+    auto tanh_arg = sqrt_2_over_pi * (x + cube);
+    auto tanh_out = tanh_arg.tanh();
+    auto dydx = half * (one + tanh_out) +
+                half * x * (one - tanh_out * tanh_out) *
+                    (sqrt_2_over_pi * (one + three * coeff * x * x));
+    x_grad.device(g_device) += y_grad * dydx;
+  }
+};
+
+
 
 
 }  // namespace nn

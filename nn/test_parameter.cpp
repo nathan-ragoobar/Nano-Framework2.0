@@ -493,6 +493,46 @@ TEST(ResidualTest, BackwardFixedPoint) {
     }
 }
 
+TEST(NewGELUTest, ForwardFixedPoint) {
+    Parameter x(DT_FIXED, 3);
+    Parameter y(DT_FIXED, 3);
+    
+    auto x_span = x.span<FixedPointQ5_10>();
+    x_span[0] = FixedPointQ5_10(1.0f);
+    x_span[1] = FixedPointQ5_10(0.0f);
+    x_span[2] = FixedPointQ5_10(-1.0f);
+    
+    NewGELU::Forward(x.const_flat<FixedPointQ5_10>(),
+                    y.flat<FixedPointQ5_10>());
+    
+    auto y_span = y.span<FixedPointQ5_10>();
+    EXPECT_NEAR(y_span[0].toFloat(), 0.841f, 0.01f);
+    EXPECT_NEAR(y_span[1].toFloat(), 0.0f, 0.01f);
+    EXPECT_NEAR(y_span[2].toFloat(), -0.159f, 0.01f);
+}
+
+TEST(NewGELUTest, BackwardFixedPoint) {
+    Parameter x(DT_FIXED, 2);
+    Parameter y_grad(DT_FIXED, 2);
+    Parameter x_grad(DT_FIXED, 2);
+    
+    auto x_span = x.span<FixedPointQ5_10>();
+    auto y_grad_span = y_grad.span<FixedPointQ5_10>();
+    
+    x_span[0] = FixedPointQ5_10(1.0f);
+    x_span[1] = FixedPointQ5_10(-1.0f);
+    y_grad_span[0] = FixedPointQ5_10(1.0f);
+    y_grad_span[1] = FixedPointQ5_10(1.0f);
+    
+    NewGELU::Backward(x.const_flat<FixedPointQ5_10>(),
+                     y_grad.const_flat<FixedPointQ5_10>(),
+                     x_grad.flat<FixedPointQ5_10>());
+    
+    auto x_grad_span = x_grad.span<FixedPointQ5_10>();
+    EXPECT_NEAR(x_grad_span[0].toFloat(), 1.083f, 0.01f);
+    EXPECT_NEAR(x_grad_span[1].toFloat(), 0.084f, 0.01f);
+}
+
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

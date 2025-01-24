@@ -1,9 +1,15 @@
 #ifndef FIXED_POINT_HPP
 #define FIXED_POINT_HPP
 
+// Add Eigen includes
+#include <Eigen/Core>
+#include <unsupported/Eigen/CXX11/Tensor>
+
 #include <iostream>
 #include <cmath>
 #include <cstdint>
+
+
 
 
 
@@ -164,22 +170,65 @@ public:
         return FixedPointQ5_10(std::cos(x.toFloat()));
     }
 
+    // Add tanh implementation using piecewise linear approximation
+    FixedPointQ5_10 tanh() const {
+    // Constants for the piece-wise linear approximation
+        static const FixedPointQ5_10 X1(1.0f);    // First breakpoint
+        static const FixedPointQ5_10 X2(2.0f);    // Second breakpoint
+        static const FixedPointQ5_10 A1(1.0f);    // Slope for |x| > 2
+        static const FixedPointQ5_10 A2(0.75f);   // Slope for 1 < |x| ≤ 2
+        static const FixedPointQ5_10 A3(0.6f);    // Slope for |x| ≤ 1
+        
+        FixedPointQ5_10 x = *this;
+        bool negative = x.value < 0;
+        if (negative) {
+            x.value = -x.value;
+        }
+        
+        FixedPointQ5_10 result(0);
+        
+        // Piece-wise linear approximation
+        if (x.value >= X2.value) {
+            result = FixedPointQ5_10(1.0f); // Saturate at 1.0
+        }
+        else if (x.value >= X1.value) {
+            // Linear interpolation between X1 and X2
+            FixedPointQ5_10 dx = x - X1;
+            result = X1 * A3 + dx * A2;
+        }
+        else {
+            // Linear approximation for small values
+            result = x * A3;
+        }
+        
+        // Apply sign
+        if (negative) {
+            result.value = -result.value;
+        }
+        
+        return result;
+}
+    
+    // Helper for absolute value
+    FixedPointQ5_10 abs() const {
+        return FixedPointQ5_10(value >= 0 ? value : -value);
+    }
+
+
 
 
 };
 
-/*
+// Then add Eigen specialization AFTER the complete class definition
 namespace Eigen {
 namespace numext {
 
 template<>
-inline FixedPointQ5_10 tanh(const FixedPointQ5_10& x) {
-    float temp = x.toFloat();
-    float result = std::tanh(temp);
-    return FixedPointQ5_10(result);
+EIGEN_DEVICE_FUNC inline FixedPointQ5_10 tanh<FixedPointQ5_10>(const FixedPointQ5_10& x) {
+    return x.tanh();
 }
 
 } // namespace numext
 } // namespace Eigen
-*/
+
 #endif // FIXED_POINT_HPP

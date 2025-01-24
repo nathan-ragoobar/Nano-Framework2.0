@@ -32,10 +32,11 @@ add_executable(test_tensor_util
     test_tensor_util.cpp
 )
 
-# Link against GTest
+# Link against GTest and Eigen
 target_link_libraries(test_fixed_point
     ${GTEST_LIBRARIES}
     pthread
+    Eigen3::Eigen
 )
 
 # Link tensor tests
@@ -48,6 +49,13 @@ target_link_libraries(test_tensor_util
 
 # Set include directories for tensor tests
 target_include_directories(test_tensor_util
+    PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${EIGEN3_INCLUDE_DIR}
+)
+
+# Set include directories for fixed point tests
+target_include_directories(test_fixed_point
     PRIVATE
     ${PROJECT_SOURCE_DIR}
     ${EIGEN3_INCLUDE_DIR}
