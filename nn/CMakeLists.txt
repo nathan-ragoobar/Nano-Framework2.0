@@ -46,5 +46,25 @@ target_link_libraries(test_parameter
     absl::span
 )
 
-# Add test
+# Add test for test_parameter
 add_test(NAME parameter_tests COMMAND test_parameter)
+
+# Add test executable for test_softmax
+add_executable(test_softmax
+    test_softmax.cpp
+)
+
+# Link libraries for test_softmax
+target_link_libraries(test_softmax
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_softmax
+add_test(NAME softmax_tests COMMAND test_softmax)

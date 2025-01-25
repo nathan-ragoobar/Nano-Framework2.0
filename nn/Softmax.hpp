@@ -11,7 +11,7 @@
 namespace nn {
 
 struct Softmax {
-  using T = floatX;
+  using T = fixed_point_7pt8;
 
   static void Forward(typename TTypes<T>::ConstMatrix x,
                       typename TTypes<T>::Matrix y) {
@@ -24,16 +24,15 @@ struct Softmax {
     Eigen::array<Eigen::Index, 2> batch_by_one = {batch_size, 1};
     Eigen::array<Eigen::Index, 2> one_by_class = {1, num_class};
 
-    y.device(g_device) = (x - x.maximum(along_class)
-                                  .eval()
-                                  .reshape(batch_by_one)
-                                  .broadcast(one_by_class))
-                             .exp();
-    y.device(g_device) = y * y.sum(along_class)
-                                 .inverse()
-                                 .eval()
-                                 .reshape(batch_by_one)
-                                 .broadcast(one_by_class);
+    // Compute the maximum value along the class dimension
+    auto max_val = x.maximum(along_class).eval().reshape(batch_by_one).broadcast(one_by_class);
+
+    // Compute the exponentials
+    y.device(g_device) = (x - max_val).exp();
+
+    // Normalize by the sum of exponentials
+    auto sum_exp = y.sum(along_class).inverse().eval().reshape(batch_by_one).broadcast(one_by_class);
+    y.device(g_device) = y * sum_exp;
   }
 
   static void Backward(typename TTypes<T>::ConstMatrix y,
@@ -51,15 +50,13 @@ struct Softmax {
     Eigen::array<Eigen::Index, 2> batch_by_one = {batch_size, 1};
     Eigen::array<Eigen::Index, 2> one_by_class = {1, num_class};
     Eigen::array<Eigen::Index, 1> along_class = {1};
+
     auto dyy = y_grad * y;
     auto sum = dyy.sum(along_class).reshape(batch_by_one);
     auto sub = y_grad - sum.broadcast(one_by_class);
     x_grad.device(g_device) += sub * y;
-
-    
   }
 };
-
 
 
 }  // namespace nn
