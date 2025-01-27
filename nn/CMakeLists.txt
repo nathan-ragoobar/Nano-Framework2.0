@@ -108,3 +108,23 @@ target_link_libraries(test_embedding
 
 # Add test for test_embedding
 add_test(NAME embedding_tests COMMAND test_embedding)
+
+# Add test executable for test_matmul
+add_executable(test_matmul
+    test_matmul.cpp
+)
+
+# Link libraries for test_matmul
+target_link_libraries(test_matmul
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_matmul
+add_test(NAME matmul_tests COMMAND test_matmul)
