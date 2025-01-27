@@ -88,3 +88,23 @@ target_link_libraries(test_loss
 
 # Add test for test_loss
 add_test(NAME loss_tests COMMAND test_loss)
+
+# Add test executable for test_embedding
+add_executable(test_embedding
+    test_embedding.cpp
+)
+
+# Link libraries for test_embedding
+target_link_libraries(test_embedding
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_embedding
+add_test(NAME embedding_tests COMMAND test_embedding)
