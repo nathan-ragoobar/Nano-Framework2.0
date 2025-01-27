@@ -68,3 +68,23 @@ target_link_libraries(test_softmax
 
 # Add test for test_softmax
 add_test(NAME softmax_tests COMMAND test_softmax)
+
+# Add test executable for test_loss
+add_executable(test_loss
+    test_loss.cpp
+)
+
+# Link libraries for test_loss
+target_link_libraries(test_loss
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_loss
+add_test(NAME loss_tests COMMAND test_loss)
