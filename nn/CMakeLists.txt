@@ -128,3 +128,24 @@ target_link_libraries(test_matmul
 
 # Add test for test_matmul
 add_test(NAME matmul_tests COMMAND test_matmul)
+
+
+# Add test executable for test_linear
+add_executable(test_linear
+    test_linear.cpp
+)
+
+# Link libraries for test_linear
+target_link_libraries(test_linear
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_linear
+add_test(NAME linear_tests COMMAND test_linear)
