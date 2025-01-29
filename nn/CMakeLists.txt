@@ -169,3 +169,23 @@ target_link_libraries(test_layernorm
 
 # Add test for test_layernorm
 add_test(NAME layernorm_tests COMMAND test_layernorm)
+
+# Add test executable for test_mlp
+add_executable(test_mlp
+    test_mlp.cpp
+)
+
+# Link libraries for test_mlp
+target_link_libraries(test_mlp
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_mlp
+add_test(NAME mlp_tests COMMAND test_mlp)
