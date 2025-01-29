@@ -149,3 +149,23 @@ target_link_libraries(test_linear
 
 # Add test for test_linear
 add_test(NAME linear_tests COMMAND test_linear)
+
+# Add test executable for test_layernorm
+add_executable(test_layernorm
+    test_layernorm.cpp
+)
+
+# Link libraries for test_layernorm
+target_link_libraries(test_layernorm
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_layernorm
+add_test(NAME layernorm_tests COMMAND test_layernorm)
