@@ -48,30 +48,38 @@ TEST_F(CausalSelfAttentionTest, Backward) {
     int n_embed = 8;
     gpt::CausalSelfAttention attention_layer(block_size, n_head, n_embed);
 
+    // Initialize tensors
     Eigen::Tensor<Type, 3> x_data(2, block_size, n_embed);
+    Eigen::Tensor<Type, 3> y_data(2, block_size, n_embed);  // Add y_data tensor
     Eigen::Tensor<Type, 3> y_grad_data(2, block_size, n_embed);
     Eigen::Tensor<Type, 3> x_grad_data(2, block_size, n_embed);
 
-    // Initialize input tensor x and gradient tensor y_grad
-    x_data.setRandom(); // Random initialization for testing
-    y_grad_data.setRandom(); // Random initialization for testing
+    // Initialize input tensor x
+    x_data.setRandom();
+    
+    // Create TensorMaps
+    TTypes<Type, 3>::ConstTensor x(x_data.data(), x_data.dimensions());
+    TTypes<Type, 3>::Tensor y(y_data.data(), y_data.dimensions());
+    
+    // Run Forward pass first to initialize activations
+    attention_layer.Forward(x, y);
 
-    // Initialize gradient tensor x_grad
+    // Initialize gradient tensors
+    y_grad_data.setRandom();
     x_grad_data.setZero();
 
-    // Create TensorMap for x, y_grad, and x_grad
-    TTypes<Type, 3>::ConstTensor x(x_data.data(), x_data.dimensions());
+    // Create TensorMaps for backward pass
     TTypes<Type, 3>::ConstTensor y_grad(y_grad_data.data(), y_grad_data.dimensions());
     TTypes<Type, 3>::Tensor x_grad(x_grad_data.data(), x_grad_data.dimensions());
 
-    // Call the Backward function
+    // Now run Backward pass
     attention_layer.Backward(x, y_grad, x_grad);
 
-    // Verify the output for x_grad (this is a placeholder check, replace with actual expected values)
+    // Verify gradients
     for (int i = 0; i < x_grad.dimension(0); ++i) {
         for (int j = 0; j < x_grad.dimension(1); ++j) {
             for (int k = 0; k < x_grad.dimension(2); ++k) {
-                EXPECT_NEAR(x_grad(i, j, k).to_float(), 0.0f, EPSILON); // Replace 0.0f with actual expected value
+                EXPECT_NEAR(x_grad(i, j, k).to_float(), 0.0f, EPSILON);
             }
         }
     }
