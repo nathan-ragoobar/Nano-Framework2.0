@@ -48,6 +48,56 @@ TEST_F(BlockTest, Forward) {
 }
 
 TEST_F(BlockTest, Backward) {
+        using Type = fixed_point_7pt8;
+        int block_size = 4;
+        int n_head = 2; 
+        int n_embed = 8;
+        gpt::Block block(block_size, n_head, n_embed);
+
+        Eigen::Tensor<Type, 3> x_data(2, block_size, n_embed);
+        Eigen::Tensor<Type, 3> y_data(2, block_size, n_embed);
+        Eigen::Tensor<Type, 3> y_grad_data(2, block_size, n_embed);
+        Eigen::Tensor<Type, 3> x_grad_data(2, block_size, n_embed);
+
+        // Initialize input tensors
+        x_data.setRandom();
+        y_grad_data.setRandom();
+        x_grad_data.setZero();
+
+        // Create TensorMaps
+        TTypes<Type, 3>::ConstTensor x(x_data.data(), x_data.dimensions());
+        TTypes<Type, 3>::Tensor y(y_data.data(), y_data.dimensions()); 
+        TTypes<Type, 3>::ConstTensor y_grad(y_grad_data.data(), y_grad_data.dimensions());
+        TTypes<Type, 3>::Tensor x_grad(x_grad_data.data(), x_grad_data.dimensions());
+
+        // First run forward pass
+        block.Forward(x, y);
+
+        // Then run backward pass
+        block.Backward(x, y_grad, x_grad);
+
+        // Verify gradients are non-zero
+        bool has_nonzero = false;
+        for (int i = 0; i < x_grad.dimension(0); ++i) {
+            for (int j = 0; j < x_grad.dimension(1); ++j) {
+                for (int k = 0; k < x_grad.dimension(2); ++k) {
+                    if (std::abs(x_grad(i,j,k).to_float()) > EPSILON) {
+                        has_nonzero = true;
+                        break;
+                    }
+                }
+            }
+        }
+        EXPECT_TRUE(has_nonzero) << "Expected non-zero gradients";
+
+        // Verify gradient dimensions
+        EXPECT_EQ(x_grad.dimension(0), x_data.dimension(0));
+        EXPECT_EQ(x_grad.dimension(1), x_data.dimension(1)); 
+        EXPECT_EQ(x_grad.dimension(2), x_data.dimension(2));
+    }
+
+/*
+TEST_F(BlockTest, Backward) {
     using Type = fixed_point_7pt8;
     int block_size = 4;
     int n_head = 2;
@@ -65,12 +115,7 @@ TEST_F(BlockTest, Backward) {
     // Initialize gradient tensor x_grad
     x_grad_data.setZero();
 
-    /*
-    // Create TensorMap for x, y_grad, and x_grad
-    Eigen::TensorMap<Eigen::Tensor<Type, 3>> x(x_data.data(), x_data.dimensions());
-    Eigen::TensorMap<Eigen::Tensor<Type, 3>> y_grad(y_grad_data.data(), y_grad_data.dimensions());
-    Eigen::TensorMap<Eigen::Tensor<Type, 3>> x_grad(x_grad_data.data(), x_grad_data.dimensions());
-*/
+    
     // Create TensorMap for x, y_grad, and x_grad
     TTypes<Type, 3>::ConstTensor x(x_data.data(), x_data.dimensions());
     TTypes<Type, 3>::ConstTensor y_grad(y_grad_data.data(), y_grad_data.dimensions());
@@ -88,6 +133,7 @@ TEST_F(BlockTest, Backward) {
         }
     }
 }
+*/
 
 TEST_F(BlockTest, NumParameters) {
     int block_size = 4;
