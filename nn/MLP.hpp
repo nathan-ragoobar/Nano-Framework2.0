@@ -40,6 +40,9 @@ struct MLP {
     CHECK_EQ(x.dimension(1), y.dimension(1));
 
     int BT = x.dimension(0);
+    LOG(INFO) << "fch forward parameters: " << fch_->size();
+    LOG(INFO) << "BT Forward: " << BT;
+    LOG(INFO) << "n_embed Forward: " << n_embed_;
     fch_->LazyAllocate(BT * 4 * n_embed_);
     fch_gelu_->LazyAllocate(BT * 4 * n_embed_);
 
@@ -59,6 +62,11 @@ struct MLP {
                 typename TTypes<T>::Matrix x_grad) {
     PROFILE_TRACE_FN("MLP");
 
+    LOG(INFO) << "MLP Backward called";
+    //LOG(INFO) << "fc1 parameters: " << fc1_->NumParameters();
+    //LOG(INFO) << "fc2 parameters: " << fc2_->NumParameters();
+    
+
     // x: [B*T, 4*n_embed], y_grad: [B*T, 4*n_embed]
     // x_grad: [B*T, 4*n_embed]
     CHECK_EQ(x.dimension(1), n_embed_);
@@ -70,7 +78,10 @@ struct MLP {
 
     // Lazily allocate the memory for activation
     int BT = x.dimension(0);
+    LOG(INFO) << "fch is about to be allocated";
+    LOG(INFO) << "fch parameters: " << fch_->size();
     fch_->LazyAllocateGradient();
+    LOG(INFO) << "fch_gelu is about to be allocated";
     fch_gelu_->LazyAllocateGradient();
     fch_->ZeroGrad();
     fch_gelu_->ZeroGrad();
