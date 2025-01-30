@@ -189,3 +189,63 @@ target_link_libraries(test_mlp
 
 # Add test for test_mlp
 add_test(NAME mlp_tests COMMAND test_mlp)
+
+# Add test executable for test_attentionlayer
+add_executable(test_attentionlayer
+    test_attentionlayer.cpp
+)
+
+# Link libraries for test_attentionlayer
+target_link_libraries(test_attentionlayer
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_attentionlayer
+add_test(NAME attentionlayer_tests COMMAND test_attentionlayer)
+
+# Add test executable for test_block
+add_executable(test_block
+    test_block.cpp
+)
+
+# Link libraries for test_block
+target_link_libraries(test_block
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_block
+add_test(NAME block_tests COMMAND test_block)
+
+# Add test executable for test_gpt
+add_executable(test_gpt
+    test_gpt.cpp
+)
+
+# Link libraries for test_gpt
+target_link_libraries(test_gpt
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test for test_gpt
+add_test(NAME gpt_tests COMMAND test_gpt)
