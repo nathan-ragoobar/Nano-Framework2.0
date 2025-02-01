@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.10)
 # Project name
 project(nn_tests)
 
+set(CMAKE_BUILD_TYPE Debug)
+add_compile_options(-g)
+
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -230,7 +233,7 @@ target_link_libraries(test_block
 # Add test for test_block
 add_test(NAME block_tests COMMAND test_block)
 
-#[[
+
 # Add test executable for test_gpt
 add_executable(test_gpt
     test_gpt.cpp
@@ -250,4 +253,3 @@ target_link_libraries(test_gpt
 
 # Add test for test_gpt
 add_test(NAME gpt_tests COMMAND test_gpt)
-]]
