@@ -277,6 +277,10 @@ struct Parameter {
     }
   }
 
+  bool HasGradient() const {
+      return grad_ != nullptr;
+  }
+
   template <typename T>
   T* data() const {
     return static_cast<T*>(data_);

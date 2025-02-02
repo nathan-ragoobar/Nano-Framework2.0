@@ -142,53 +142,7 @@ struct GPT {
     LOG(INFO) << "GPT destruction complete";
 }
 
-/*
-    ~GPT() {
-        // Clear raw pointers first
-        if (lm_head_) {
-            lm_head_ = nullptr; 
-        }
-        if (lm_head_grad_) {
-            lm_head_grad_ = nullptr;
-        }
 
-        // Clean activation tensors
-        logits_grad_.reset();
-        probs_.reset();
-        loss_mean_.reset();
-        loss_.reset();
-        scratch_.reset();
-        lnf_rstd_.reset();
-        lnf_mean_.reset();
-        lnf_y_.reset();
-        block_y_.reset();
-        encoded_.reset();
-        pos_emb_.reset();
-        tok_emb_.reset();
-
-        // Clean model components
-        softmax_cross_entropy_.reset();
-        lm_head_unused_.reset();
-        lnf_.reset();
-        
-        // Clear layers vector
-        for (auto& layer : h_) {
-            layer.reset();
-        }
-        h_.clear();
-
-        // Clean embeddings
-        wpe_.reset();
-        wte_.reset();
-
-        // Reset base parameters
-        block_size_ = 0;
-        vocab_size_ = 0;
-        padded_vocab_size_ = 0;
-        n_layer_ = 0;
-        n_embed_ = 0;
-    }
-*/
   void __Forward(typename TTypes<int>::ConstMatrix idx) {
     PROFILE_TRACE_FN("GPT");
 

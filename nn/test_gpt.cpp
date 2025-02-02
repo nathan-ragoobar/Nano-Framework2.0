@@ -95,3 +95,112 @@ TEST_F(GPTTest, EmbeddingInitialization) {
         EXPECT_EQ(wte_weight[i], Type(0));
     }
 }
+
+
+TEST_F(GPTTest, ForwardCPU) {
+    // 1. Setup model parameters
+    const int batch_size = 2;
+    const int seq_len = 4;
+    const int n_embed = 8;
+    const int vocab_size = 10;
+    const int padded_vocab_size = 16;
+    const int n_layer = 2;
+    const int n_head = 2;
+
+    // 2. Create model
+    gpt::GPT gpt(seq_len, vocab_size, padded_vocab_size, 
+                             n_layer, n_head, n_embed);
+
+    // 3. Setup input tokens [batch_size, seq_len]
+    Eigen::Tensor<int, 2> input_tokens(batch_size, seq_len);
+    input_tokens.setValues({
+        {1, 2, 3, 4},
+        {5, 6, 7, 8}
+    });
+
+    // 4. Setup logits tensor [batch_size, seq_len, vocab_size] 
+    Eigen::Tensor<fixed_point_7pt8, 3> logits(batch_size, seq_len, vocab_size);
+    logits.setZero();
+
+    // 5. Call Forward
+    typename TTypes<int>::ConstMatrix idx(input_tokens.data(), batch_size, seq_len);
+    typename TTypes<fixed_point_7pt8, 3>::Tensor logits_out(logits.data(), 
+        batch_size, seq_len, vocab_size);
+    gpt.Forward(idx, logits_out);
+
+    // 6. Verify outputs
+    EXPECT_EQ(logits.dimension(0), batch_size);
+    EXPECT_EQ(logits.dimension(1), seq_len); 
+    EXPECT_EQ(logits.dimension(2), vocab_size);
+    
+    // Values should not all be zero after forward pass
+    bool all_zero = true;
+    for(int i = 0; i < batch_size * seq_len * vocab_size; i++) {
+        if(logits.data()[i] != fixed_point_7pt8(0)) {
+            all_zero = false;
+            break;
+        }
+    }
+    EXPECT_FALSE(all_zero);
+}
+
+
+TEST_F(GPTTest, BackwardCPU) {
+    // 1. Setup small model
+    const int batch_size = 2;
+    const int seq_len = 4;
+    const int n_embed = 8;
+    const int vocab_size = 10;
+    const int padded_vocab_size = 16;
+    const int n_layer = 2;
+    const int n_head = 2;
+
+    gpt::GPT gpt(seq_len, vocab_size, padded_vocab_size, 
+                             n_layer, n_head, n_embed);
+
+    // 2. Create input and target data
+    Eigen::Tensor<int, 2> input_tokens(batch_size, seq_len);
+    input_tokens.setValues({
+        {1, 2, 3, 4},
+        {5, 6, 7, 8}
+    });
+
+    Eigen::Tensor<int, 2> target_tokens(batch_size, seq_len);
+    target_tokens.setValues({
+        {2, 3, 4, 5},
+        {6, 7, 8, 9}
+    });
+
+    // 3. Setup output tensors
+    Eigen::Tensor<fixed_point_7pt8, 3> logits(batch_size, seq_len, vocab_size);
+    logits.setZero();
+    float loss = 0.0f;
+
+    // 4. Forward pass
+    typename TTypes<int>::ConstMatrix idx(input_tokens.data(), batch_size, seq_len);
+    typename TTypes<int>::ConstMatrix targets(target_tokens.data(), batch_size, seq_len);
+    typename TTypes<fixed_point_7pt8, 3>::Tensor logits_out(logits.data(), 
+        batch_size, seq_len, vocab_size);
+
+    gpt.ForwardCPU(idx, targets, logits_out, &loss);
+
+    // 5. Backward pass
+    gpt.BackwardCPU(idx, targets);
+
+    // 6. Verify gradients exist and are non-zero
+    EXPECT_TRUE(gpt.wte_->weight_->HasGradient());
+    EXPECT_TRUE(gpt.wpe_->weight_->HasGradient());
+    
+    // Check embedding gradients
+    auto wte_grad = gpt.wte_->weight_->grad<fixed_point_7pt8>();
+    auto wpe_grad = gpt.wpe_->weight_->grad<fixed_point_7pt8>();
+    
+    bool has_grad = false;
+    for(int i = 0; i < padded_vocab_size * n_embed; i++) {
+        if(wte_grad[i] != fixed_point_7pt8(0)) {
+            has_grad = true;
+            break;
+        }
+    }
+    EXPECT_TRUE(has_grad);
+}
