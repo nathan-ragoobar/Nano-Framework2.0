@@ -32,7 +32,7 @@ struct GPT2 {
     freadCheck(model_header, sizeof(int), 256, model_file);
     if (model_header[0] != 20240326) {
       printf("Bad magic model file\n");
-      //exit(1);
+      exit(1);
     }
     if (model_header[1] != 3) {
       printf("Bad version in model file\n");
@@ -81,6 +81,39 @@ struct GPT2 {
   } //end BuildFromCheckpoint()
 
 
+void InitializeFromScratch(const GPT2Config& config) {
+    // Create GPT model with config params
+    gpt2_ = std::make_unique<gpt::GPT>(
+        config.max_seq_len,
+        config.vocab_size, 
+        config.padded_vocab_size,
+        config.num_layers,
+        config.num_heads,
+        config.channels
+    );
+
+    // Initialize weights using Kaiming initialization
+    auto init_fn = [&](nn::Parameter* p, const std::string& name) {
+      auto data = p->flat<Type>();
+      int fan_in = p->size() / data.dimension(0);
+      Type std_dev = Type(1.0f) / Type(sqrt(static_cast<float>(fan_in)));
+      
+      // Random initialization
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::normal_distribution<float> d(0.0f, std_dev.to_float());
+
+      for(int i = 0; i < p->size(); i++) {
+        data.data()[i] = Type(d(gen));
+      }
+    };
+
+    // Apply initialization to all parameters
+    ApplyFn(init_fn, config.num_layers);
+
+    // Store config
+    this->config = config;
+  } //end InitializeFromScratch()
 
 
   //SAVE MODEL
