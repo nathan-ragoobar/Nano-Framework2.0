@@ -9,8 +9,8 @@
 #include <memory>
 #include <random>
 
-#include "llmc/rand.h"
-#include "tensor/tensor_util.hpp"
+#include "./../llmc/rand.h"
+#include "./../tensor/tensor_util.hpp"
 
 
 /* #include "absl/algorithm/container.h"
@@ -18,11 +18,11 @@
 #include "absl/log/log.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h" */
-#include "abseil-cpp/absl/algorithm/container.h"
-#include "abseil-cpp/absl/log/check.h"
-#include "abseil-cpp/absl/log/log.h"
-#include "abseil-cpp/absl/strings/string_view.h"
-#include "abseil-cpp/absl/types/span.h"
+#include "./../abseil-cpp/absl/algorithm/container.h"
+#include "./../abseil-cpp/absl/log/check.h"
+#include "./../abseil-cpp/absl/log/log.h"
+#include "./../abseil-cpp/absl/strings/string_view.h"
+#include "./../abseil-cpp/absl/types/span.h"
 
 namespace nn {
 

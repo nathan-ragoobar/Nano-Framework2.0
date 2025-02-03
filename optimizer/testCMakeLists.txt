@@ -1,0 +1,117 @@
+cmake_minimum_required(VERSION 3.10)
+
+# Project name
+project(optimizer_tests)
+
+set(CMAKE_BUILD_TYPE Debug)
+add_compile_options(-g)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find required packages
+find_package(GTest REQUIRED)
+enable_testing()
+
+# Include directories
+include_directories(
+    ${CMAKE_SOURCE_DIR}/..
+    ${CMAKE_SOURCE_DIR}/../abseil-cpp
+    ${CMAKE_SOURCE_DIR}/../eigen
+)
+
+# Eigen setup
+set(EIGEN3_INCLUDE_DIR /eigen)
+add_definitions(-DEIGEN_DONT_PARALLELIZE)
+add_definitions(-DEIGEN_USE_THREADS)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
+# Add Abseil
+add_subdirectory(${CMAKE_SOURCE_DIR}/../abseil-cpp ${CMAKE_BINARY_DIR}/abseil-cpp)
+
+# Add test executable
+add_executable(test_optim
+    test_optim.cpp
+)
+
+# Link libraries
+target_link_libraries(test_optim
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+# Add test
+add_test(NAME optimizer_tests COMMAND test_optim)
+
+
+#[[
+cmake_minimum_required(VERSION 3.16)
+
+project(optimizer)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(GTest REQUIRED)
+find_package(absl REQUIRED)
+enable_testing()
+
+# Header-only library - use INTERFACE
+add_library(optim INTERFACE)
+target_include_directories(optim INTERFACE 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/../nn
+)
+
+
+# Include directories
+include_directories(
+    ${CMAKE_SOURCE_DIR}/..
+    ${CMAKE_SOURCE_DIR}/../abseil-cpp
+    ${CMAKE_SOURCE_DIR}/../eigen
+)
+# Eigen
+set(EIGEN3_INCLUDE_DIR /eigen)
+add_definitions(-DEIGEN_DONT_PARALLELIZE)
+#add_definitions(-DEIGEN_DONT_VECTORIZE)
+add_definitions(-DEIGEN_USE_THREADS)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
+# Add Abseil as subdirectory or find package
+add_subdirectory(${CMAKE_SOURCE_DIR}/../abseil-cpp ${CMAKE_BINARY_DIR}/abseil-cpp)
+
+
+
+#[[
+# Library
+add_library(optim optim.hpp)
+target_link_libraries(optim nn)
+
+
+# Test executable
+add_executable(test_optim test_optim.cpp)
+
+target_include_directories(test_optim
+    PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${EIGEN3_INCLUDE_DIR}
+)
+
+target_link_libraries(test_optim
+    optim
+    GTest::GTest
+    GTest::Main
+    pthread
+)
+
+# Add test
+add_test(NAME optimizer_tests COMMAND test_optim)
+]]

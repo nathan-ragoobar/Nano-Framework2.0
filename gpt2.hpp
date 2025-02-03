@@ -18,7 +18,7 @@ struct GPT2Config {
 //I want to be able to apply these functions to any model, not just GPT-2. -NR
 
 struct GPT2 {
-  using Type = floatX;
+  using Type = fixed_point_7pt8;
 
   void BuildFromCheckpoint(absl::string_view checkpoint_path) {
     // read in model from a checkpoint file
@@ -32,7 +32,7 @@ struct GPT2 {
     freadCheck(model_header, sizeof(int), 256, model_file);
     if (model_header[0] != 20240326) {
       printf("Bad magic model file\n");
-      exit(1);
+      //exit(1);
     }
     if (model_header[1] != 3) {
       printf("Bad version in model file\n");
@@ -62,7 +62,7 @@ struct GPT2 {
     // allocate space for all the parameters and read them in
     size_t num_parameters = gpt2_->NumParameters();
     printf("num_parameters: %zu(%zu MB)\n", num_parameters,
-           num_parameters * sizeof(floatX) / 1024 / 1024);
+           num_parameters * sizeof(Type) / 1024 / 1024);
 
     auto restore_fn = [&](nn::Parameter* p, const std::string& name) {
 #ifdef EIGEN_USE_GPU
@@ -147,43 +147,7 @@ struct GPT2 {
   void ApplyFn(
       const std::function<void(nn::Parameter*, const std::string&)>& apply_fn,
       int L) const {
-/*
-The provided code defines a method `ApplyFn` that applies a given function to various parameters of a GPT-2 model. The method takes two arguments: a function 
 
-apply_fn
-
- that operates on `nn::Parameter*` objects and their associated names, and an integer 
-
-L
-
- representing the number of layers in the model.
-
-The method starts by applying the function to the weights of the word and position embeddings (`wte` and `wpe`). It then defines a lambda function 
-
-name_with_layer
-
- to generate names for parameters that include the layer index.
-
-The method proceeds to iterate over each layer 
-
-l
-
- from 0 to 
-
-L-1
-
-, applying the function to various parameters within each layer. These parameters include:
-- `ln1w` and `ln1b`: weights and biases of the first layer normalization.
-- `qkvw` and `qkvb`: weights and biases of the query, key, and value projections in the attention mechanism.
-- `attprojw` and `attprojb`: weights and biases of the attention projection.
-- `ln2w` and `ln2b`: weights and biases of the second layer normalization.
-- `fcw` and `fcb`: weights and biases of the fully connected layer.
-- `fcprojw` and `fcprojb`: weights and biases of the projection layer in the multi-layer perceptron (MLP).
-
-Finally, the method applies the function to the weights and biases of the final layer normalization (`lnfw` and `lnfb`).
-
-This method is useful for tasks such as initializing, updating, or saving model parameters, as it provides a systematic way to apply operations to all relevant parameters of the GPT-2 model.
-*/
 
     apply_fn(gpt2_->wte_->weight_.get(), "wte");
     apply_fn(gpt2_->wpe_->weight_.get(), "wpe");

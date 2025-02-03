@@ -6,6 +6,7 @@
 //#include "llmc/dataloader.h"
 //#include "llmc/tokenizer.h"
 #include "nano.hpp"
+#include "tensor/fixed_point.hpp"
 
 // sampler
 
@@ -20,24 +21,28 @@ float random_f32(unsigned long long* state) {  // random float32 in [0,1)
   return (random_u32(state) >> 8) / 16777216.0f;
 }
 
-int sample_mult(float* probabilities, int n, float coin) {
-  // sample index from probabilities (they must sum to 1!)
-  // coin is a random number in [0, 1), usually from random_f32()
-  float cdf = 0.0f;
-  for (int i = 0; i < n; i++) {
-    cdf += probabilities[i];
-    if (coin < cdf) {
-      return i;
+int sample_mult(fixed_point_7pt8* probabilities, int n, fixed_point_7pt8 coin) {
+    fixed_point_7pt8 cdf(0.0f);
+    for (int i = 0; i < n; i++) {
+        cdf += probabilities[i];
+        if (coin < cdf) {
+            return i;
+        }
     }
-  }
-  return n - 1;  // in case of rounding errors
+    return n - 1;
+}
+
+fixed_point_7pt8 random_fixed(unsigned long long* state) {
+    return fixed_point_7pt8(random_f32(state));
 }
 
 bool USE_FAST_SOFTMAX = true;
 
+using Type = fixed_point_7pt8;
+
 int main(int argc, char** argv) {
   gpt2::GPT2 model;
-  model.BuildFromCheckpoint("./gpt2_124M.bin"); //Loads model
+  model.BuildFromCheckpoint("./fixed_point_weights.bin"); //Loads model
 
   // build the DataLoaders from tokens files. for now use tiny_shakespeare if
   // available, else tiny_stories
@@ -76,22 +81,27 @@ int main(int argc, char** argv) {
   // train
   struct timespec start, end;
   int V = model.config.vocab_size;
-  std::unique_ptr<float[]> logit = std::make_unique<float[]>(B * T * V);
-  std::unique_ptr<float[]> prob = std::make_unique<float[]>(B * T * V);
-  nn::Parameter label(nn::DT_FLOAT, B * T * V);
+  std::unique_ptr<fixed_point_7pt8[]> logit = std::make_unique<fixed_point_7pt8[]>(B * T * V);
+  std::unique_ptr<fixed_point_7pt8[]> prob = std::make_unique<fixed_point_7pt8[]>(B * T * V);
+  nn::Parameter label(nn::DT_FIXED, B * T * V);
   nn::Softmax softmax;
   std::vector<nn::Parameter*> parameters;
   model.Parameters(&parameters);
-  optim::AdamW optimizer(parameters, 1e-4f, 0.9f, 0.999f, 1e-8f, 0.0f); //defines the AdamW optimizer optimizer to be used
+  optim::AdamW<fixed_point_7pt8> optimizer(parameters, 
+    1e-4f,
+    0.9f, 
+    0.999f,
+    1e-8f,
+    0.0f); //defines the AdamW optimizer optimizer to be used
   std::vector<double> timings;
   for (int step = 0; step <= 100; step++) {
     // once in a while estimate the validation loss
     if (step % 10 == 0) {
-      float val_loss = 0.0f;
+      fixed_point_7pt8 val_loss(0.0f);
       dataloader_reset(&val_loader);
       for (int i = 0; i < val_num_batches; i++) {
         dataloader_next_batch(&val_loader);
-        float loss = 0.0f;
+        float loss(0.0f);
         auto idx = TTypes<int>::ConstMatrix(val_loader.inputs, B, T);
         if (USE_FAST_SOFTMAX) {
           auto target = TTypes<int>::ConstMatrix(val_loader.targets, B, T);
@@ -99,9 +109,9 @@ int main(int argc, char** argv) {
           model.gpt2_->ForwardCPU(idx, target, logit_3d, &loss);
         } else {
           label.ZeroData();
-          nn::OntHot(MakeConstFlat(val_loader.targets, B * T),
-                     label.matrix<float>(B * T, V));
-          auto label_3d = label.const_tensor_3d<float>(B, T, V);
+          nn::OneHot(MakeConstFlat(val_loader.targets, B * T),
+                     label.matrix<Type>(B * T, V));
+          auto label_3d = label.const_tensor_3d<Type>(B, T, V);
           auto logit_3d = Make3DTensor(logit.get(), B, T, V);
           model.gpt2_->ForwardGPU(idx, label_3d, logit_3d, &loss);
         }
@@ -114,7 +124,7 @@ int main(int argc, char** argv) {
         printf("num_activations: %zu(%zu MB)\n", num_activations,
                num_activations * sizeof(floatX) / 1024 / 1024);
       }
-      printf("val loss %f\n", val_loss);
+      printf("val loss %f\n", val_loss.to_float());
     }
 
     // once in a while do model inference to print generated text
@@ -140,8 +150,8 @@ int main(int argc, char** argv) {
         // rows we're in principle running B "inference streams" in parallel
         // here but only using position 0 get the Vp-dimensional vector probs[0,
         // t-1, :]
-        float* probs = prob.get() + (t - 1) * V;
-        float coin = random_f32(&rng_state);
+        fixed_point_7pt8* probs = prob.get() + (t - 1) * V;
+        fixed_point_7pt8 coin = random_fixed(&rng_state);
         // note we're only sampling from the first V elements, ignoring padding
         // (the probabilities in the padded region should be zero anyway)
         int next_token = sample_mult(probs, model.config.vocab_size, coin);
@@ -172,9 +182,9 @@ int main(int argc, char** argv) {
       model.gpt2_->BackwardCPU(idx, target);
     } else {
       label.ZeroData();
-      nn::OntHot(MakeConstFlat(train_loader.targets, B * T),
-                 label.matrix<float>(B * T, V));
-      auto label_3d = label.const_tensor_3d<float>(B, T, V);
+      nn::OneHot(MakeConstFlat(train_loader.targets, B * T),
+                 label.matrix<Type>(B * T, V));
+      auto label_3d = label.const_tensor_3d<Type>(B, T, V);
       auto logit_3d = Make3DTensor(logit.get(), B, T, V);
       model.gpt2_->ForwardGPU(idx, label_3d, logit_3d, &loss);
       optimizer.ZeroGrad();
@@ -184,8 +194,8 @@ int main(int argc, char** argv) {
     clock_gettime(CLOCK_MONOTONIC, &end);
     double time_elapsed_s =
         (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-    printf("step %d: train loss %f (took %f ms)\n", step, loss,
-           time_elapsed_s * 1000);
+    printf("step %d: train loss %f (took %f ms)\n", 
+    step, loss, time_elapsed_s * 1000);
     if (step) {
       timings.push_back(time_elapsed_s);
     }
