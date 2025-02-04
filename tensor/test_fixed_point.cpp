@@ -25,11 +25,11 @@ TEST_F(FixedPointTest, IntegerConstructor) {
     EXPECT_NEAR(fp2.to_float(), -5.0f, EPSILON);
 
    // Test clamping
-    //fixed_point_7pt8 fp3(129);  // Should clamp to max value
-    //EXPECT_NEAR(fp3.to_float(), fixed_point_7pt8::value_max().to_float(), EPSILON);
+    fixed_point_7pt8 fp3(129);  // Should clamp to max value
+    EXPECT_NEAR(fp3.to_float(), fixed_point_7pt8::value_max().to_float(), EPSILON);
 
-    //fixed_point_7pt8 fp4(-129);  // Should clamp to min value
-    //EXPECT_NEAR(fp4.to_float(), fixed_point_7pt8::value_min().to_float(), EPSILON);
+    fixed_point_7pt8 fp4(-129);  // Should clamp to min value
+    EXPECT_NEAR(fp4.to_float(), fixed_point_7pt8::value_min().to_float(), EPSILON);
 }
 
 TEST_F(FixedPointTest, FloatConstructor) {
@@ -44,12 +44,12 @@ TEST_F(FixedPointTest, FloatConstructor) {
     EXPECT_NEAR(fp3.to_float(), 0.125f, EPSILON);
 
     // Test clamping
-    //fixed_point_7pt8 fp4(20.5f);  // Should clamp to ~15.999
-    //EXPECT_LT(fp4.to_float(), 16.0f);
-   // EXPECT_GT(fp4.to_float(), 15.9f);
+    fixed_point_7pt8 fp4(129.0f);  // Should clamp to ~15.999
+    EXPECT_LT(fp4.to_float(), 127.0f);
+    EXPECT_GT(fp4.to_float(), 128.9f);
 
-    //fixed_point_7pt8 fp5(-20.5f);  // Should clamp to -16
-    //EXPECT_NEAR(fp5.to_float(), -16.0f, EPSILON);
+    fixed_point_7pt8 fp5(-129.0f);  // Should clamp to -16
+    EXPECT_NEAR(fp5.to_float(), fixed_point_7pt8::value_min().to_float(), EPSILON);
 }
 
 using fixed_point_7pt8 = fixed_point_7pt8;
@@ -271,12 +271,12 @@ protected:
     static constexpr float tolerance = 0.05f; // 5% tolerance for approximation
 };
 
-TEST_F(FixedPointTanhTest, HandlesZero) {
+TEST_F(FixedPointTanhTest, TanhHandlesZero) {
     fixed_point_7pt8 x(0.0f);
     EXPECT_FLOAT_EQ(tanh(x).to_float(), 0.0f);
 }
 
-TEST_F(FixedPointTanhTest, HandlesPosValues) {
+TEST_F(FixedPointTanhTest, TanhHandlesPosValues) {
     float test_values[] = {0.5f, 1.0f, 2.0f, 3.0f};
     for(float val : test_values) {
         fixed_point_7pt8 x(val);
@@ -287,7 +287,7 @@ TEST_F(FixedPointTanhTest, HandlesPosValues) {
     }
 }
 
-TEST_F(FixedPointTanhTest, HandlesNegValues) {
+TEST_F(FixedPointTanhTest, TanhHandlesNegValues) {
     float test_values[] = {-0.5f, -1.0f, -2.0f, -3.0f};
     for(float val : test_values) {
         fixed_point_7pt8 x(val);
@@ -298,7 +298,7 @@ TEST_F(FixedPointTanhTest, HandlesNegValues) {
     }
 }
 
-TEST_F(FixedPointTanhTest, HandlesSaturation) {
+TEST_F(FixedPointTanhTest, TanhHandlesSaturation) {
     fixed_point_7pt8 pos_large(4.0f);
     fixed_point_7pt8 neg_large(-4.0f);
     
@@ -306,7 +306,7 @@ TEST_F(FixedPointTanhTest, HandlesSaturation) {
     EXPECT_NEAR(tanh(neg_large).to_float(), -1.0f, tolerance);
 }
 
-TEST_F(FixedPointTanhTest, EigenIntegration) {
+TEST_F(FixedPointTanhTest, TanhEigenIntegration) {
     fixed_point_7pt8 x(1.5f);
     float expected = std::tanh(1.5f);
     float actual = Eigen::numext::tanh(x).to_float();

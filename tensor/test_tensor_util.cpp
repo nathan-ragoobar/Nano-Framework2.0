@@ -112,6 +112,16 @@ TEST_F(TensorUtilTest, ThreeDTensorCreation) {
     EXPECT_EQ(const_tensor3d.dimension(0), dim0);
     EXPECT_EQ(const_tensor3d.dimension(1), dim1);
     EXPECT_EQ(const_tensor3d.dimension(2), dim2);
+
+    for (int i = 0; i < dim0; ++i) {
+        for (int j = 0; j < dim1; ++j) {
+            for (int k = 0; k < dim2; ++k) {
+                int index = i * (dim1 * dim2) + j * dim2 + k;
+                EXPECT_FLOAT_EQ(const_tensor3d(i, j, k).to_float(), 
+                               floatX(index).to_float());
+            }
+        }
+    }
 }
 
 // 4D Tensor Tests

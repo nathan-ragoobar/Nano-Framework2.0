@@ -7,7 +7,7 @@ using namespace nn;
 TEST(ConstantFillTest, FixedPointFill) {
     // Setup
     std::vector<fixed_point_7pt8> data(10);
-    absl::Span<fixed_point_7pt8> span(data);
+    absl::Span<fixed_point_7pt8> span(data); //Provides a safe view into contiguous data without owning it
     
     // Test fill with 1.5
     ConstantFill(span, fixed_point_7pt8(1.5f));
@@ -96,8 +96,18 @@ TEST(NormalFillTest, FixedPointDistribution) {
         sum += val.to_float();
     }
     float empirical_mean = sum / span.size();
-    
+
+    // Calculate variance and standard deviation
+    float sum_squared_diff = 0.0f;
+    for(const auto& val : span) {
+        float diff = val.to_float() - empirical_mean;
+        sum_squared_diff += diff * diff;
+    }
+    float variance = sum_squared_diff / span.size();
+    float std_dev = std::sqrt(variance);
+
     EXPECT_NEAR(empirical_mean, 0.0f, 0.1f);
+    EXPECT_NEAR(std_dev, 1.0f, 0.1f);  // Standard normal distribution
 }
 
 TEST(KaimingUniformFillTest, FixedPointTest) {
@@ -107,12 +117,34 @@ TEST(KaimingUniformFillTest, FixedPointTest) {
     nn::ManualSeed(42);
     nn::KaimingUniformFill(span, 10);
     
-    fixed_point_7pt8 expected_bound = sqrt(fixed_point_7pt8(0.1f));
+    fixed_point_7pt8 expected_bound = sqrt(fixed_point_7pt8(0.2f)); //Kaiming fill follows a Gaussian distribution with std dev = sqrt(2 / in_features) 
     
     for(const auto& val : span) {
         EXPECT_TRUE(val >= -expected_bound);
         EXPECT_TRUE(val <= expected_bound);
     }
+    //This is the actual test for the Kaiming Uniform Fill. It currently uses a uniform distribution to fill the tensor..
+    //It should use a Gaussian distribution to fill the tensor.
+    /*
+    // Verify distribution properties
+    float sum = 0.0f;
+    for(const auto& val : span) {
+        sum += val.to_float();
+    }
+    float empirical_mean = sum / span.size();
+
+    // Calculate variance and standard deviation
+    float sum_squared_diff = 0.0f;
+    for(const auto& val : span) {
+        float diff = val.to_float() - empirical_mean;
+        sum_squared_diff += diff * diff;
+    }
+    float variance = sum_squared_diff / span.size();
+    float std_dev = std::sqrt(variance);
+
+    EXPECT_NEAR(empirical_mean, 0.0f, 0.1f);
+    EXPECT_NEAR(std_dev, std::sqrt(2.0f/10.0f), 0.1f);  // Standard normal distribution
+    */
 }
 
 //This test needs more refinement. I don't think this has any edge cases.
