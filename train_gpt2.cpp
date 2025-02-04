@@ -36,8 +36,20 @@ int sample_mult(float* probabilities, int n, float coin) {
 bool USE_FAST_SOFTMAX = true;
 
 int main(int argc, char** argv) {
+
+  gpt2::GPT2Config config;
+  config.max_seq_len = 1024;
+  config.vocab_size = 50257;
+  config.padded_vocab_size = 50304;
+  config.num_layers = 12;
+  config.num_heads = 12;
+  config.channels = 768;
+
   gpt2::GPT2 model;
-  model.BuildFromCheckpoint("./gpt2_124M.bin"); //Loads model
+  //model.InitializeFromScratch(config);
+
+  //gpt2::GPT2 model;
+  model.BuildFromCheckpoint("./gpt2_124M100Steps.bin"); //Loads model
 
   // build the DataLoaders from tokens files. for now use tiny_shakespeare if
   // available, else tiny_stories
