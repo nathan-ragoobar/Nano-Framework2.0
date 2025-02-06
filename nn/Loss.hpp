@@ -11,7 +11,7 @@
 namespace nn {
 
 struct CrossEntropy {
-  using T = fixed_point_7pt8;
+  using T = fixed_point_15pt16;
   enum Reduction { MEAN, SUM };
 
   CrossEntropy(Reduction reduction = Reduction::MEAN) : reduction_(reduction) {}

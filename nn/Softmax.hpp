@@ -11,7 +11,7 @@
 namespace nn {
 
 struct Softmax {
-  using T = fixed_point_7pt8;
+  using T = fixed_point_15pt16;
 
   static void Forward(typename TTypes<T>::ConstMatrix x,
                       typename TTypes<T>::Matrix y) {
@@ -61,7 +61,7 @@ struct Softmax {
 
 //From what I could see, this only uses the Eigen library ~NR
 struct SoftmaxCrossEntropy {
-  using T = fixed_point_7pt8;
+  using T = fixed_point_15pt16;
   enum Reduction { MEAN, SUM };
 
   explicit SoftmaxCrossEntropy(Reduction reduction = MEAN)
@@ -121,7 +121,7 @@ struct SoftmaxCrossEntropy {
                                  typename TTypes<T>::Flat loss,
                                  typename TTypes<T>::Matrix logit_grad) {
     // This version does a softmax in a single pass, then cross-entropy
-    // For fixed_point_7pt8, you must either define .exp() & .log()
+    // For fixed_point_15pt16, you must either define .exp() & .log()
     // or convert to/from float. Below does conversions to float.
 
     int B = logits.dimension(0), C = logits.dimension(1);

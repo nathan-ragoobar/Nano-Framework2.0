@@ -20,7 +20,7 @@ namespace gpt {
 
 
 struct GPT {
-  using Type = fixed_point_7pt8;
+  using Type = fixed_point_15pt16;
 
   GPT(int block_size, int vocab_size, int padded_vocab_size, int n_layer,
       int n_head, int n_embed)

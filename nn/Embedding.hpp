@@ -13,7 +13,7 @@
 namespace nn {
 
 struct Embedding {
-    using T = fixed_point_7pt8;
+    using T = fixed_point_15pt16;
 
   Embedding(int num_embeddings, int embedding_dim)
       : num_embeddings_(num_embeddings), embedding_dim_(embedding_dim) {

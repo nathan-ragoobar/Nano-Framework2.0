@@ -16,7 +16,7 @@
 namespace nn {
 
 struct LayerNorm {
-  using T = fixed_point_7pt8;
+  using T = fixed_point_15pt16;
 
   LayerNorm(int normalized_shape)
       : normalized_shape_(normalized_shape), eps_(1e-5) {
