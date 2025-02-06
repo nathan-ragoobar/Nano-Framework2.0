@@ -266,6 +266,45 @@ TEST_F(FixedPointTest, MathFunctions) {
     EXPECT_NEAR(cos(x).to_float(), std::cos(1.0f), 10*EPSILON);
 }
 
+TEST_F(FixedPointTest, LogFunction) {
+    static constexpr float EPSILON = 0.15f;
+    // Basic cases
+    fixed_point_7pt8 x(1.0f);
+    EXPECT_NEAR(log(x).to_float(), 0.0f, EPSILON);
+    
+    x = fixed_point_7pt8(2.718281828f);  // e
+    EXPECT_NEAR(log(x).to_float(), 1.0f, EPSILON);
+    
+    x = fixed_point_7pt8(2.0f);
+    EXPECT_NEAR(log(x).to_float(), 0.693147f, EPSILON);
+    
+    x = fixed_point_7pt8(0.5f);
+    EXPECT_NEAR(log(x).to_float(), -0.693147f, EPSILON);
+    
+    x = fixed_point_7pt8(10.0f);
+    EXPECT_NEAR(log(x).to_float(), 2.302585f, EPSILON);
+
+    // Edge cases
+    x = fixed_point_7pt8(0.1f);
+    EXPECT_NEAR(log(x).to_float(), -2.302585f, EPSILON);
+    
+    x = fixed_point_7pt8(100.0f);
+    EXPECT_NEAR(log(x).to_float(), 4.605170f, EPSILON);
+
+    // Small value test
+    x = fixed_point_7pt8(0.01f);
+    EXPECT_NEAR(log(x).to_float(), -4.605170f, EPSILON);
+
+    // Verify error handling for invalid inputs
+    #ifdef NDEBUG
+    x = fixed_point_7pt8(0.0f);
+    EXPECT_DEATH(log(x), "");
+    
+    x = fixed_point_7pt8(-1.0f);
+    EXPECT_DEATH(log(x), "");
+    #endif
+}
+
 class FixedPointTanhTest : public ::testing::Test {
 protected:
     static constexpr float tolerance = 0.05f; // 5% tolerance for approximation

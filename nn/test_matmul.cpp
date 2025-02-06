@@ -10,6 +10,47 @@ protected:
         // Setup code if needed
     }
 };
+/*
+TEST_F(MatMulTest, ForwardDebug) {
+    using T = fixed_point_7pt8;
+    
+    // Create smaller test case
+    Eigen::Tensor<T, 2> x1_data(2, 2);
+    Eigen::Tensor<T, 2> x2_data(2, 2);
+    Eigen::Tensor<T, 2> y_data(2, 2);
+
+    // Simple values to trace computation
+    x1_data(0,0) = T(1.0f); x1_data(0,1) = T(2.0f);
+    x1_data(1,0) = T(3.0f); x1_data(1,1) = T(4.0f);
+
+    x2_data(0,0) = T(1.0f); x2_data(0,1) = T(2.0f);
+    x2_data(1,0) = T(3.0f); x2_data(1,1) = T(4.0f);
+
+    TTypes<T>::ConstMatrix x1(x1_data.data(), x1_data.dimensions());
+    TTypes<T>::ConstMatrix x2(x2_data.data(), x2_data.dimensions());
+    TTypes<T>::Matrix y(y_data.data(), y_data.dimensions());
+
+    // Print inputs
+    std::cout << "x1 values:\n";
+    for(int i=0; i<2; i++) {
+        for(int j=0; j<2; j++) {
+            std::cout << x1(i,j).to_float() << " ";
+        }
+        std::cout << "\n";
+    }
+
+    nn::MatMul::Forward(x1, x2, y);
+
+    // Print outputs
+    std::cout << "Result values:\n";
+    for(int i=0; i<2; i++) {
+        for(int j=0; j<2; j++) {
+            std::cout << y(i,j).to_float() << " ";
+        }
+        std::cout << "\n";
+    }
+}
+*/
 
 TEST_F(MatMulTest, Forward) {
     using T = fixed_point_7pt8;

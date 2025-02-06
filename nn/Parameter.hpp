@@ -257,8 +257,8 @@ struct Parameter {
  
   void LazyAllocateGradient() {
     if (grad_ == nullptr) {
-      LOG(INFO) << "LazyAllocateGradient called with num_element_: " << num_element_;
-      LOG(INFO) << "Dtype: " << static_cast<int>(dtype_);
+      //LOG(INFO) << "LazyAllocateGradient called with num_element_: " << num_element_;
+      //LOG(INFO) << "Dtype: " << static_cast<int>(dtype_);
       CHECK_GT(num_element_, 0);
       grad_ = Allocate(dtype_, num_element_);
       Zero(grad_, dtype_, num_element_);

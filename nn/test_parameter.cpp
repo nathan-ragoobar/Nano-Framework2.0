@@ -125,6 +125,7 @@ TEST(KaimingUniformFillTest, FixedPointTest) {
     }
     //This is the actual test for the Kaiming Uniform Fill. It currently uses a uniform distribution to fill the tensor..
     //It should use a Gaussian distribution to fill the tensor.
+    //Wait this function might be correct since its a Uniform Fill
     /*
     // Verify distribution properties
     float sum = 0.0f;

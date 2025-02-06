@@ -70,77 +70,77 @@ struct GPT {
   }
 
 ~GPT() {
-    LOG(INFO) << "Starting GPT destruction";
+    //LOG(INFO) << "Starting GPT destruction";
 
-    LOG(INFO) << "Clearing raw pointers";
+    //LOG(INFO) << "Clearing raw pointers";
     lm_head_ = nullptr;
     lm_head_grad_ = nullptr;
 
-    LOG(INFO) << "Clearing activations";
+    //LOG(INFO) << "Clearing activations";
     logits_grad_.reset();
-    LOG(INFO) << "logits_grad_ cleared";
+    //LOG(INFO) << "logits_grad_ cleared";
     probs_.reset();
-    LOG(INFO) << "probs_ cleared";
+    //LOG(INFO) << "probs_ cleared";
     loss_mean_.reset();
-    LOG(INFO) << "loss_mean_ cleared";
+    //LOG(INFO) << "loss_mean_ cleared";
     loss_.reset();
-    LOG(INFO) << "loss_ cleared";
+    //LOG(INFO) << "loss_ cleared";
     scratch_.reset();
-    LOG(INFO) << "scratch_ cleared";
+    //LOG(INFO) << "scratch_ cleared";
     lnf_rstd_.reset();
-    LOG(INFO) << "lnf_rstd_ cleared";
+    //LOG(INFO) << "lnf_rstd_ cleared";
     lnf_mean_.reset();
-    LOG(INFO) << "lnf_mean_ cleared";
+    //LOG(INFO) << "lnf_mean_ cleared";
     lnf_y_.reset();
-    LOG(INFO) << "lnf_y_ cleared";
+    //LOG(INFO) << "lnf_y_ cleared";
     block_y_.reset();
-    LOG(INFO) << "block_y_ cleared";
+    //LOG(INFO) << "block_y_ cleared";
     encoded_.reset();
-    LOG(INFO) << "encoded_ cleared";
+    //LOG(INFO) << "encoded_ cleared";
     pos_emb_.reset();
-    LOG(INFO) << "pos_emb_ cleared";
+    //LOG(INFO) << "pos_emb_ cleared";
     tok_emb_.reset();
-    LOG(INFO) << "tok_emb_ cleared";
+    //LOG(INFO) << "tok_emb_ cleared";
 
     // 3. Clear independent components first
-    LOG(INFO) << "Clearing independent components";
+    //LOG(INFO) << "Clearing independent components";
     softmax_cross_entropy_.reset();
-    LOG(INFO) << "softmax_cross_entropy_ cleared";
+    //LOG(INFO) << "softmax_cross_entropy_ cleared";
 
     // Handle weight-tied components in correct order
-    LOG(INFO) << "Clearing weight-tied components";
+    //LOG(INFO) << "Clearing weight-tied components";
     if (lm_head_unused_) {
         lm_head_unused_->weight_.reset();  // Clear weights first
         lm_head_unused_.reset();           // Then clear the layer
     }
-    LOG(INFO) << "lm_head_unused_ cleared";
+    //LOG(INFO) << "lm_head_unused_ cleared";
 
 
     lnf_.reset();
-    LOG(INFO) << "lnf_ cleared";
+    //LOG(INFO) << "lnf_ cleared";
 
     // 4. Clear layers - protect against null
-    LOG(INFO) << "Clearing layers";
+    //LOG(INFO) << "Clearing layers";
     if (!h_.empty()) {
         for (auto& layer : h_) {
             if (layer) layer.reset();
         }
         h_.clear();
     }
-    LOG(INFO) << "h_ cleared";
+    //LOG(INFO) << "h_ cleared";
 
-    LOG(INFO) << "Clearing embeddings";
+    //LOG(INFO) << "Clearing embeddings";
     wpe_.reset();
     wte_.reset();
 
-    LOG(INFO) << "Resetting parameters";
+    //LOG(INFO) << "Resetting parameters";
     block_size_ = 0;
     vocab_size_ = 0;
     padded_vocab_size_ = 0;
     n_layer_ = 0;
     n_embed_ = 0;
 
-    LOG(INFO) << "GPT destruction complete";
+    //LOG(INFO) << "GPT destruction complete";
 }
 
 
@@ -330,6 +330,8 @@ struct GPT {
     PROFILE_TRACE_FN("GPT");
 
     int BT = targets.size();
+
+    
     logits_grad_->LazyAllocate(BT * vocab_size_);
     logits_grad_->ZeroData();
     auto probs_2d = MakeConstMatrix(probs_->data<Type>(), BT, vocab_size_);

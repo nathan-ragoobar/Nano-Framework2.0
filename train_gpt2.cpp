@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
   std::vector<nn::Parameter*> parameters;
   model.Parameters(&parameters);
   optim::AdamW<fixed_point_7pt8> optimizer(parameters, 
-    1e-4f,
+    10.0f,
     0.9f, 
     0.999f,
     1e-8f,
@@ -189,9 +189,36 @@ int main(int argc, char** argv) {
     if (USE_FAST_SOFTMAX) {
       auto target = TTypes<int>::ConstMatrix(train_loader.targets, B, T);
       auto logit_3d = Make3DTensor(logit.get(), B, T, V);
-      model.gpt2_->ForwardCPU(idx, target, logit_3d, &loss);  //This calls the forward pass on the model.gpt2_ object 
+
+      struct timespec Forwardstart, Forwardend;
+      clock_gettime(CLOCK_MONOTONIC, &Forwardstart);
+
+      //This calls the forward pass on the model.gpt2_ object 
+      model.gpt2_->ForwardCPU(idx, target, logit_3d, &loss);
+      
+      printf("Calculated loss is: %f\n", loss);
+        
+      clock_gettime(CLOCK_MONOTONIC, &Forwardend);
+      double Forward_time_elapsed_s =
+        (Forwardend.tv_sec - Forwardstart.tv_sec) + (Forwardend.tv_nsec - Forwardstart.tv_nsec) / 1e9;
+    printf("Time for Forward step %f ms)\n", 
+    Forward_time_elapsed_s * 1000);
+
       optimizer.ZeroGrad();
+
+      struct timespec Backwardstart, Backwardend;
+      clock_gettime(CLOCK_MONOTONIC, &Backwardstart);
+
+
       model.gpt2_->BackwardCPU(idx, target);
+      
+      
+      clock_gettime(CLOCK_MONOTONIC, &Backwardend);
+      double Backward_time_elapsed_s =
+        (Backwardend.tv_sec - Backwardstart.tv_sec) + (Backwardend.tv_nsec - Backwardstart.tv_nsec) / 1e9;
+    printf("Time for Backward step %f ms)\n", 
+    Backward_time_elapsed_s * 1000);
+
     } else {
       label.ZeroData();
       nn::OneHot(MakeConstFlat(train_loader.targets, B * T),
@@ -202,7 +229,18 @@ int main(int argc, char** argv) {
       optimizer.ZeroGrad();
       model.gpt2_->BackwardGPU(idx);
     }
+    struct timespec Optimizerstart, Optimizerend;
+    clock_gettime(CLOCK_MONOTONIC, &Optimizerstart);
+
+
     optimizer.Step(step + 1);
+
+    clock_gettime(CLOCK_MONOTONIC, &Optimizerend);
+      double Optimizer_time_elapsed_s =
+        (Optimizerend.tv_sec - Optimizerstart.tv_sec) + (Optimizerend.tv_nsec - Optimizerstart.tv_nsec) / 1e9;
+    printf("Time for Optimizer %f ms)\n", 
+    Optimizer_time_elapsed_s * 1000);
+
     clock_gettime(CLOCK_MONOTONIC, &end);
     double time_elapsed_s =
         (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
