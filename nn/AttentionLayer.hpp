@@ -26,7 +26,7 @@
 namespace gpt {
 
 struct CausalSelfAttention {
-  using Type = fixed_point_15pt16;
+  using Type = fixed_point_31pt32;
 
   CausalSelfAttention(int block_size, int n_head, int n_embed)
       : block_size_(block_size), n_head_(n_head), n_embed_(n_embed) {

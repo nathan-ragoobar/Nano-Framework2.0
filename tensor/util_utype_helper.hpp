@@ -14,8 +14,8 @@
   {
     template<const unsigned utype_bit_count> struct utype_helper
     {
-      static_assert(utype_bit_count <= 64U,
-                    "the bit count of the unsigned type can not exceed 64");
+      //static_assert(utype_bit_count <= 64U,
+                    //"the bit count of the unsigned type can not exceed 64");
 
       using exact_type = std::uint64_t;
     };

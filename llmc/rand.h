@@ -164,16 +164,16 @@ void uniform_(float* data, unsigned int numel, float from, float to, mt19937_sta
     }
 }
 
-void uniform_fixed(fixed_point_15pt16* data, unsigned int numel, 
-                  fixed_point_15pt16 from, fixed_point_15pt16 to, 
+void uniform_fixed(fixed_point_31pt32* data, unsigned int numel, 
+                  fixed_point_31pt32 from, fixed_point_31pt32 to, 
                   mt19937_state* state) {
     for (unsigned int t = 0; t < numel; t++) {
-        // Get random float and convert to fixed_point_15pt16
+        // Get random float and convert to fixed_point_31pt32
         float rand_val = randfloat32(state);
-        fixed_point_15pt16 rand_fixed(rand_val);
+        fixed_point_31pt32 rand_fixed(rand_val);
         
         // Calculate range with fixed-point arithmetic
-        fixed_point_15pt16 range = to - from;
+        fixed_point_31pt32 range = to - from;
         data[t] = (rand_fixed * range) + from;
     }
 }
@@ -235,20 +235,20 @@ void normal_(float* data, unsigned int numel, float mean, float std, mt19937_sta
     }
 }
 
-void normal_fixed(fixed_point_15pt16* data, unsigned int numel, 
-                 fixed_point_15pt16 mean, fixed_point_15pt16 std, 
+void normal_fixed(fixed_point_31pt32* data, unsigned int numel, 
+                 fixed_point_31pt32 mean, fixed_point_31pt32 std, 
                  mt19937_state* state) {
-    #define EPSILONE fixed_point_15pt16(1e-12f)
+    #define EPSILONE fixed_point_31pt32(1e-12f)
     
     if (numel >= 16) {
         // Convert to float, use existing fill, convert back
         std::vector<float> temp(numel);
         normal_fill(temp.data(), numel, mean.to_float(), std.to_float(), state);
         for(unsigned int i = 0; i < numel; i++) {
-            data[i] = fixed_point_15pt16(temp[i]);
+            data[i] = fixed_point_31pt32(temp[i]);
         }
     } else {
-        fixed_point_15pt16 next_normal_sample;
+        fixed_point_31pt32 next_normal_sample;
         int has_next_normal_sample = 0;
         
         for (unsigned int t = 0; t < numel; t++) {
@@ -258,16 +258,16 @@ void normal_fixed(fixed_point_15pt16* data, unsigned int numel,
                 continue;
             }
             
-            fixed_point_15pt16 u1(randfloat64(state));
-            fixed_point_15pt16 u2(randfloat64(state));
+            fixed_point_31pt32 u1(randfloat64(state));
+            fixed_point_31pt32 u2(randfloat64(state));
             
             // Box-Muller transform with fixed point
-            fixed_point_15pt16 radius = sqrt(
-                fixed_point_15pt16(-2.0f) * 
-                log(fixed_point_15pt16(1.0f) - u2 + EPSILONE)
+            fixed_point_31pt32 radius = sqrt(
+                fixed_point_31pt32(-2.0f) * 
+                log(fixed_point_31pt32(1.0f) - u2 + EPSILONE)
             );
             
-            fixed_point_15pt16 theta(2.0f * M_PI * u1.to_float());
+            fixed_point_31pt32 theta(2.0f * M_PI * u1.to_float());
             
             next_normal_sample = radius * sin(theta);
             has_next_normal_sample = 1;

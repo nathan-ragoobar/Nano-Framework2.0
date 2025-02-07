@@ -18,7 +18,7 @@ struct GPT2Config {
 //I want to be able to apply these functions to any model, not just GPT-2. -NR
 
 struct GPT2 {
-  using Type = fixed_point_15pt16;
+  using Type = fixed_point_31pt32;
 
   void BuildFromCheckpoint(absl::string_view checkpoint_path) {
     // read in model from a checkpoint file

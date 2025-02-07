@@ -14,7 +14,7 @@ namespace gpt {
 //This block consists of several components: layer normalization, self-attention, and a multi-layer perceptron (MLP)
 //struct handles both the forward and backward passes for these components
 struct Block {
-  using Type = fixed_point_15pt16;
+  using Type = fixed_point_31pt32;
 
   Block(int block_size, int n_head, int n_embed) {
     ln1_ = std::make_unique<nn::LayerNorm>(n_embed);
