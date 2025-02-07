@@ -296,13 +296,15 @@ TEST_F(FixedPointTest, LogFunction) {
     EXPECT_NEAR(log(x).to_float(), -4.605170f, EPSILON);
 
     // Verify error handling for invalid inputs
-    #ifdef NDEBUG
+    
     x = fixed_point_7pt8(0.0f);
+    printf("log(0.0) = %f\n", log(x).to_float());
     EXPECT_DEATH(log(x), "");
     
     x = fixed_point_7pt8(-1.0f);
+    printf("log(-1.0) = %f\n", log(x).to_float());
     EXPECT_DEATH(log(x), "");
-    #endif
+    
 }
 
 class FixedPointTanhTest : public ::testing::Test {
