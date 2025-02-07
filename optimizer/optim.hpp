@@ -60,7 +60,7 @@ struct AdamW {
       auto m = m_[i]->flat<Type>();
       auto v = v_[i]->flat<Type>();
 
-      printf("Parmeter values: %f\n", parameter(0).to_float());
+      //printf("Parmeter values: %f\n", parameter(0).to_float());
 
       // update first moment (momentum)
       m.device(nn::g_device) = Type(beta1_) * m + Type(1.0f - beta1_) * grad;

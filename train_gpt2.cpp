@@ -196,13 +196,13 @@ int main(int argc, char** argv) {
       //This calls the forward pass on the model.gpt2_ object 
       model.gpt2_->ForwardCPU(idx, target, logit_3d, &loss);
       
-      printf("Calculated loss is: %f\n", loss);
+      //printf("Calculated loss is: %f\n", loss);
         
       clock_gettime(CLOCK_MONOTONIC, &Forwardend);
       double Forward_time_elapsed_s =
         (Forwardend.tv_sec - Forwardstart.tv_sec) + (Forwardend.tv_nsec - Forwardstart.tv_nsec) / 1e9;
-    printf("Time for Forward step %f ms)\n", 
-    Forward_time_elapsed_s * 1000);
+    //printf("Time for Forward step %f ms)\n", 
+    //Forward_time_elapsed_s * 1000);
 
       optimizer.ZeroGrad();
 
@@ -216,8 +216,8 @@ int main(int argc, char** argv) {
       clock_gettime(CLOCK_MONOTONIC, &Backwardend);
       double Backward_time_elapsed_s =
         (Backwardend.tv_sec - Backwardstart.tv_sec) + (Backwardend.tv_nsec - Backwardstart.tv_nsec) / 1e9;
-    printf("Time for Backward step %f ms)\n", 
-    Backward_time_elapsed_s * 1000);
+    //printf("Time for Backward step %f ms)\n", 
+    //Backward_time_elapsed_s * 1000);
 
     } else {
       label.ZeroData();
@@ -238,14 +238,15 @@ int main(int argc, char** argv) {
     clock_gettime(CLOCK_MONOTONIC, &Optimizerend);
       double Optimizer_time_elapsed_s =
         (Optimizerend.tv_sec - Optimizerstart.tv_sec) + (Optimizerend.tv_nsec - Optimizerstart.tv_nsec) / 1e9;
-    printf("Time for Optimizer %f ms)\n", 
-    Optimizer_time_elapsed_s * 1000);
+    //printf("Time for Optimizer %f ms)\n", 
+    //Optimizer_time_elapsed_s * 1000);
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     double time_elapsed_s =
         (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-    printf("step %d: train loss %f (took %f ms)\n", 
+    printf("step %d:, train loss, %f, (took %f ms)\n", 
     step, loss, time_elapsed_s * 1000);
+    fflush(stdout);
     if (step) {
       timings.push_back(time_elapsed_s);
     }
