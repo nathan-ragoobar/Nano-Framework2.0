@@ -679,6 +679,26 @@ fixed<B, I, F, R> atan2(fixed<B, I, F, R> y, fixed<B, I, F, R> x) noexcept
     return ret;
 }
 
+template <typename B, typename I, unsigned int F, bool R>
+fixed<B, I, F, R> tanh(fixed<B, I, F, R> x) noexcept
+{
+    using Fixed = fixed<B, I, F, R>;
+    
+    // Handle edge cases for large values
+    if (x > Fixed(5)) {
+        return Fixed(1);
+    }
+    if (x < Fixed(-5)) {
+        return Fixed(-1);
+    }
+
+    // Calculate exp(2x)
+    const auto exp2x = exp(Fixed(2) * x);
+    
+    // Calculate tanh using the formula: (exp(2x) - 1)/(exp(2x) + 1)
+    return (exp2x - Fixed(1)) / (exp2x + Fixed(1));
+}
+
 }
 
 #endif
