@@ -52,6 +52,133 @@ TEST_F(FixedPointTest, FloatConstructor) {
     EXPECT_NEAR(fp5.to_float(), fixed_point_7pt8::value_min().to_float(), EPSILON);
 }
 
+//Conversion Tests
+TEST_F(FixedPointTest, ConversionOperations) {
+    // Test to_float
+    {
+        fixed_point_7pt8 x(1.5f);
+        EXPECT_NEAR(x.to_float(), 1.5f, EPSILON);
+        
+        x = fixed_point_7pt8(-1.5f);
+        EXPECT_NEAR(x.to_float(), -1.5f, EPSILON);
+        
+        x = fixed_point_7pt8(0.0f);
+        EXPECT_NEAR(x.to_float(), 0.0f, EPSILON);
+    }
+
+    // Test to_double
+    {
+        fixed_point_7pt8 x(1.5);
+        EXPECT_NEAR(x.to_double(), 1.5, EPSILON);
+        
+        x = fixed_point_7pt8(-1.5);
+        EXPECT_NEAR(x.to_double(), -1.5, EPSILON);
+        
+        x = fixed_point_7pt8(0.0);
+        EXPECT_NEAR(x.to_double(), 0.0, EPSILON);
+    }
+
+    // Test to_long_double
+    {
+        fixed_point_7pt8 x(1.5L);
+        EXPECT_NEAR(x.to_long_double(), 1.5L, EPSILON);
+        
+        x = fixed_point_7pt8(-1.5L);
+        EXPECT_NEAR(x.to_long_double(), -1.5L, EPSILON);
+        
+        x = fixed_point_7pt8(0.0L);
+        EXPECT_NEAR(x.to_long_double(), 0.0L, EPSILON);
+    }
+
+    // Test to_int
+    {
+        fixed_point_7pt8 x(1.7f);
+        EXPECT_EQ(x.to_int(), 1);
+        
+        x = fixed_point_7pt8(-1.7f);
+        EXPECT_EQ(x.to_int(), -1);
+        
+        x = fixed_point_7pt8(0.3f);
+        EXPECT_EQ(x.to_int(), 0);
+    }
+
+    // Test to_int8
+    {
+        fixed_point_7pt8 x(100.0f);
+        EXPECT_EQ(x.to_int8(), 100);
+        
+        x = fixed_point_7pt8(-100.0f);
+        EXPECT_EQ(x.to_int8(), -100);
+        
+        x = fixed_point_7pt8(0.0f);
+        EXPECT_EQ(x.to_int8(), 0);
+    }
+
+    // Test to_int16
+    {
+        fixed_point_7pt8 x(100.0f);
+        EXPECT_EQ(x.to_int16(), 100);
+        
+        x = fixed_point_7pt8(-100.0f);
+        EXPECT_EQ(x.to_int16(), -100);
+        
+        x = fixed_point_7pt8(0.0f);
+        EXPECT_EQ(x.to_int16(), 0);
+    }
+
+    // Test to_int32
+    {
+        fixed_point_7pt8 x(100.0f);
+        EXPECT_EQ(x.to_int32(), 100);
+        
+        x = fixed_point_7pt8(-100.0f);
+        EXPECT_EQ(x.to_int32(), -100);
+        
+        x = fixed_point_7pt8(0.0f);
+        EXPECT_EQ(x.to_int32(), 0);
+    }
+
+    // Test Edge Cases
+    {
+        // Test maximum values
+        fixed_point_7pt8 max_val = fixed_point_7pt8::value_max();
+        EXPECT_GT(max_val.to_float(), 0.0f);
+        
+        // Test minimum values
+        fixed_point_7pt8 min_val = fixed_point_7pt8::value_min();
+        EXPECT_LT(min_val.to_float(), 0.0f);
+        
+        // Test epsilon
+        fixed_point_7pt8 eps_val = fixed_point_7pt8::value_eps();
+        EXPECT_GT(eps_val.to_float(), 0.0f);
+        EXPECT_LT(eps_val.to_float(), 1.0f);
+    }
+
+    // Test Precision
+    {
+        fixed_point_7pt8 x(1.234567f);
+        EXPECT_NEAR(x.to_float(), 1.234567f, 0.01f);
+        EXPECT_NEAR(x.to_double(), 1.234567, 0.01);
+        EXPECT_EQ(x.to_int(), 1);
+    }
+
+    // Test Rounding
+    {
+        fixed_point_7pt8 x(1.5f);
+        EXPECT_EQ(x.to_int(), 1);  // Should truncate, not round
+        
+        x = fixed_point_7pt8(1.9f);
+        EXPECT_EQ(x.to_int(), 1);  // Should truncate, not round
+        
+        x = fixed_point_7pt8(-1.5f);
+        EXPECT_EQ(x.to_int(), -1); // Should truncate towards zero
+    }
+}
+
+
+
+
+
 using fixed_point_7pt8 = fixed_point_7pt8;
 
 // Arithmetic Operation Tests

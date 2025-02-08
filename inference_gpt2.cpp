@@ -7,6 +7,8 @@
 //#include "llmc/tokenizer.h"
 #include "nano.hpp"
 #include "llmc/tokenizer.hpp"
+#include "tensor/tensor_util.hpp"
+#include "tensor/fixed_point.hpp"
 
 
 // sampler
@@ -34,13 +36,27 @@ int sample_mult(float* probabilities, int n, float coin) {
   }
   return n - 1;  // in case of rounding errors
 }
+int sample_mult(fixed_point_7pt8* probabilities, int n, fixed_point_7pt8 coin) {
+  fixed_point_7pt8 cdf(0.0f);
+  for (int i = 0; i < n; i++) {
+      cdf += probabilities[i];
+      if (coin < cdf) {
+          return i;
+      }
+  }
+  return n - 1;
+}
+
+fixed_point_7pt8 random_fixed(unsigned long long* state) {
+  return fixed_point_7pt8(random_f32(state));
+}
 
 int main(int argc, char** argv) {
 
     struct timespec start, end;
 
     gpt2::GPT2 model;
-    model.BuildFromCheckpoint("./gpt2_124Mtest.bin"); //Loads model
+    model.BuildFromCheckpoint("./fixed_point_weights_7pt8v2.bin"); //Loads model
 
     int B = 4;   // batch size 4 (i.e. 4 independent token sequences will be
                // trained on)
@@ -63,8 +79,8 @@ int main(int argc, char** argv) {
     const int genT = 64;  // number of steps of inference we will do
 
     int V = model.config.vocab_size;
-    std::unique_ptr<float[]> logit = std::make_unique<float[]>(B * T * V);
-    std::unique_ptr<float[]> prob = std::make_unique<float[]>(B * T * V);
+    std::unique_ptr<fixed_point_7pt8[]> logit = std::make_unique<fixed_point_7pt8[]>(B * T * V);
+    std::unique_ptr<fixed_point_7pt8[]> prob = std::make_unique<fixed_point_7pt8[]>(B * T * V);
     //nn::Parameter label(nn::DT_FLOAT, B * T * V);
     nn::Softmax softmax;
 
@@ -112,8 +128,8 @@ int main(int argc, char** argv) {
         // rows we're in principle running B "inference streams" in parallel
         // here but only using position 0 get the Vp-dimensional vector probs[0,
         // t-1, :]
-        float* probs = prob.get() + (t - 1) * V;
-        float coin = random_f32(&rng_state);
+        fixed_point_7pt8* probs = prob.get() + (t - 1) * V;
+        fixed_point_7pt8 coin = random_f32(&rng_state);
         // note we're only sampling from the first V elements, ignoring padding
         // (the probabilities in the padded region should be zero anyway)
         int next_token = sample_mult(probs, model.config.vocab_size, coin);

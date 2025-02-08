@@ -51,6 +51,10 @@ add_executable(train_gpt2_cpu train_gpt2.cpp)
 target_link_libraries(train_gpt2_cpu gpt2 optim profiler)
 target_compile_options(train_gpt2_cpu PRIVATE -Ofast -march=native)
 
+add_executable(inference_gpt2_cpu inference_gpt2.cpp)
+target_link_libraries(inference_gpt2_cpu gpt2 optim profiler)
+target_compile_options(inference_gpt2_cpu PRIVATE -Ofast -march=native)
+
 
 #[[
 
