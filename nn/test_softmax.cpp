@@ -1,6 +1,7 @@
 #include "Softmax.hpp"
 #include <gtest/gtest.h>
 #include "./../tensor/fixed_point.hpp" // Include the fixed_point header if needed
+#include "./../tensor/fpm/fpm.hpp"
 
 constexpr float EPSILON = 0.01f;
 
@@ -12,7 +13,7 @@ protected:
 };
 
 TEST_F(SoftmaxTest, Forward) {
-    using T = fixed_point_7pt8;
+    using T = fpm::fixed_16_16;
     
     Eigen::Tensor<T, 2> x_data(2, 3);
     x_data(0, 0) = T(1.0f); x_data(0, 1) = T(2.0f); x_data(0, 2) = T(3.0f);
@@ -38,8 +39,8 @@ TEST_F(SoftmaxTest, Forward) {
     for (int i = 0; i < 2; ++i) {
         float row_sum = 0;
         for (int j = 0; j < 3; ++j) {
-            row_sum += y(i, j).to_float();
-            EXPECT_NEAR(y(i, j).to_float(), expected_y_data(i, j).to_float(), EPSILON);
+            row_sum += float(y(i, j));
+            EXPECT_NEAR(float(y(i, j)), float(expected_y_data(i, j)), EPSILON);
         }
         EXPECT_NEAR(row_sum, 1.0f, EPSILON);
     }
@@ -47,7 +48,7 @@ TEST_F(SoftmaxTest, Forward) {
 
 // 3. Modified Backward test
 TEST_F(SoftmaxTest, Backward) {
-    using T = fixed_point_7pt8;
+    using T = fpm::fixed_16_16;
     
     // Adjusted y values to match forward pass
     Eigen::Tensor<T, 2> y_data(2, 3);
@@ -77,7 +78,7 @@ TEST_F(SoftmaxTest, Backward) {
 
     for (int i = 0; i < 2; ++i) {
         for (int j = 0; j < 3; ++j) {
-            EXPECT_NEAR(x_grad(i, j).to_float(), expected_x_grad_data(i, j).to_float(), EPSILON);
+            EXPECT_NEAR(float(x_grad(i, j)), float(expected_x_grad_data(i, j)), EPSILON);
         }
     }
 }
@@ -175,7 +176,7 @@ protected:
 };
 
 TEST_F(SoftmaxCrossEntropyTest, Forward) {
-    using T = fixed_point_7pt8;
+    using T = fpm::fixed_16_16;
     Eigen::Tensor<T, 2> logits_data(2, 3);
     Eigen::Tensor<T, 2> probs_data(2, 3);
     std::vector<int> targets = {1, 2};
@@ -207,7 +208,7 @@ TEST_F(SoftmaxCrossEntropyTest, Forward) {
 }
 
 TEST_F(SoftmaxCrossEntropyTest, Backward) {
-    using T = fixed_point_7pt8;
+    using T = fpm::fixed_16_16;
     Eigen::Tensor<T, 2> probs_data(2, 3);
     Eigen::Tensor<T, 2> logits_grad_data(2, 3);
     std::vector<int> targets = {1, 2};
@@ -241,7 +242,7 @@ TEST_F(SoftmaxCrossEntropyTest, Backward) {
 
     for (int i = 0; i < 2; ++i) {
         for (int j = 0; j < 3; ++j) {
-            EXPECT_NEAR(logits_grad(i, j).to_float(), expected_logits_grad(i, j).to_float(), EPSILON);
+            EXPECT_NEAR(float(logits_grad(i, j)), float(expected_logits_grad(i, j)), EPSILON);
         }
     }
 }

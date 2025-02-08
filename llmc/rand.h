@@ -85,12 +85,15 @@ Both output:
 
 #include <math.h>
 #include "./../tensor/fixed_point.hpp"
+#include "./../tensor/fpm/fpm.hpp"
 
 #define MERSENNE_STATE_M 397u
 #define MERSENNE_STATE_N 624u
 
 #define LMASK 0x7ffffffful
 #define UMASK 0x80000000ul
+
+using Type = fpm::fixed_16_16;
 
 // Copyright(c) Makoto Matsumoto and Takuji Nishimura
 
@@ -164,16 +167,16 @@ void uniform_(float* data, unsigned int numel, float from, float to, mt19937_sta
     }
 }
 
-void uniform_fixed(fixed_point_7pt8* data, unsigned int numel, 
-                  fixed_point_7pt8 from, fixed_point_7pt8 to, 
+void uniform_fixed(Type* data, unsigned int numel, 
+                  Type from, Type to, 
                   mt19937_state* state) {
     for (unsigned int t = 0; t < numel; t++) {
-        // Get random float and convert to fixed_point_7pt8
+        // Get random float and convert to Type
         float rand_val = randfloat32(state);
-        fixed_point_7pt8 rand_fixed(rand_val);
+        Type rand_fixed(rand_val);
         
         // Calculate range with fixed-point arithmetic
-        fixed_point_7pt8 range = to - from;
+        Type range = to - from;
         data[t] = (rand_fixed * range) + from;
     }
 }
@@ -235,20 +238,20 @@ void normal_(float* data, unsigned int numel, float mean, float std, mt19937_sta
     }
 }
 
-void normal_fixed(fixed_point_7pt8* data, unsigned int numel, 
-                 fixed_point_7pt8 mean, fixed_point_7pt8 std, 
+void normal_fixed(Type* data, unsigned int numel, 
+                 Type mean, Type std, 
                  mt19937_state* state) {
-    #define EPSILONE fixed_point_7pt8(1e-12f)
+    #define EPSILONE Type(1e-12f)
     
     if (numel >= 16) {
         // Convert to float, use existing fill, convert back
         std::vector<float> temp(numel);
-        normal_fill(temp.data(), numel, mean.to_float(), std.to_float(), state);
+        normal_fill(temp.data(), numel, float(mean), float(std), state);
         for(unsigned int i = 0; i < numel; i++) {
-            data[i] = fixed_point_7pt8(temp[i]);
+            data[i] = Type(temp[i]);
         }
     } else {
-        fixed_point_7pt8 next_normal_sample;
+        Type next_normal_sample;
         int has_next_normal_sample = 0;
         
         for (unsigned int t = 0; t < numel; t++) {
@@ -258,16 +261,16 @@ void normal_fixed(fixed_point_7pt8* data, unsigned int numel,
                 continue;
             }
             
-            fixed_point_7pt8 u1(randfloat64(state));
-            fixed_point_7pt8 u2(randfloat64(state));
+            Type u1(randfloat64(state));
+            Type u2(randfloat64(state));
             
             // Box-Muller transform with fixed point
-            fixed_point_7pt8 radius = sqrt(
-                fixed_point_7pt8(-2.0f) * 
-                log(fixed_point_7pt8(1.0f) - u2 + EPSILONE)
+            Type radius = sqrt(
+                Type(-2.0f) * 
+                log(Type(1.0f) - u2 + EPSILONE)
             );
             
-            fixed_point_7pt8 theta(2.0f * M_PI * u1.to_float());
+            Type theta(2.0f * M_PI * float(u1));
             
             next_normal_sample = radius * sin(theta);
             has_next_normal_sample = 1;

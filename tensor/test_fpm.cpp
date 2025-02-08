@@ -63,11 +63,11 @@ class FixedPointTest : public ::testing::Test {
         EXPECT_NEAR(float(fp3), 0.125f, EPSILON);
     
         // Test clamping
-        Type fp4(32770.0f);  // Should clamp to ~15.999
+        Type fp4(33770.0f);  // Should clamp to ~15.999
         Type max_value = std::numeric_limits<Type>::max();
         EXPECT_NEAR(float(fp4), float(max_value), EPSILON);
     
-        Type fp5(-32770.0f);  // Should clamp to -16
+        Type fp5(-33770.0f);  // Should clamp to -16
         Type min_value = std::numeric_limits<Type>::min();
         EXPECT_NEAR(float(fp5), float(min_value), EPSILON);
     }
