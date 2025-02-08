@@ -30,21 +30,21 @@ TEST_F(TensorUtilTest, FlatTensorCreation) {
     auto flat = MakeFlat(test_data, length);
     EXPECT_EQ(flat.dimension(0), length);
     for (int i = 0; i < length; ++i) {
-        EXPECT_FLOAT_EQ(flat(i).to_float(), floatX(i).to_float());
+        EXPECT_FLOAT_EQ(float(flat(i)), float(floatX(i)));
     }
 
     // Test const flat from non-const pointer
     auto const_flat1 = MakeConstFlat(test_data, length);
     EXPECT_EQ(const_flat1.dimension(0), length);
     for (int i = 0; i < length; ++i) {
-        EXPECT_FLOAT_EQ(const_flat1(i).to_float(), floatX(i).to_float());
+        EXPECT_FLOAT_EQ(float(const_flat1(i)), float(floatX(i)));
     }
 
     // Test const flat from const pointer
     auto const_flat2 = MakeConstFlat(const_test_data, length);
     EXPECT_EQ(const_flat2.dimension(0), length);
     for (int i = 0; i < length; ++i) {
-        EXPECT_FLOAT_EQ(const_flat2(i).to_float(), floatX(i).to_float());
+        EXPECT_FLOAT_EQ(float(const_flat2(i)), float(floatX(i)));
     }
 }
 
@@ -59,8 +59,8 @@ TEST_F(TensorUtilTest, MatrixCreation) {
     EXPECT_EQ(matrix.dimension(1), cols);
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
-            EXPECT_FLOAT_EQ(matrix(i, j).to_float(), 
-                           floatX(i * cols + j).to_float());
+            EXPECT_FLOAT_EQ(float(matrix(i, j)), 
+                        float(floatX(i * cols + j)));
         }
     }
 
@@ -70,8 +70,8 @@ TEST_F(TensorUtilTest, MatrixCreation) {
     EXPECT_EQ(const_matrix1.dimension(1), cols);
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
-            EXPECT_FLOAT_EQ(const_matrix1(i, j).to_float(), 
-                           floatX(i * cols + j).to_float());
+            EXPECT_FLOAT_EQ(float(const_matrix1(i, j)), 
+                            float(floatX(i * cols + j)));
         }
     }
 
@@ -81,8 +81,8 @@ TEST_F(TensorUtilTest, MatrixCreation) {
     EXPECT_EQ(const_matrix2.dimension(1), cols);
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
-            EXPECT_FLOAT_EQ(const_matrix2(i, j).to_float(), 
-                           floatX(i * cols + j).to_float());
+            EXPECT_FLOAT_EQ(float(const_matrix2(i, j)), 
+                            float(floatX(i * cols + j)));
         }
     }
 }
@@ -101,8 +101,8 @@ TEST_F(TensorUtilTest, ThreeDTensorCreation) {
         for (int j = 0; j < dim1; ++j) {
             for (int k = 0; k < dim2; ++k) {
                 int index = i * (dim1 * dim2) + j * dim2 + k;
-                EXPECT_FLOAT_EQ(tensor3d(i, j, k).to_float(), 
-                               floatX(index).to_float());
+                EXPECT_FLOAT_EQ(float(tensor3d(i, j, k)), 
+                    float(floatX(index)));
             }
         }
     }
@@ -117,8 +117,8 @@ TEST_F(TensorUtilTest, ThreeDTensorCreation) {
         for (int j = 0; j < dim1; ++j) {
             for (int k = 0; k < dim2; ++k) {
                 int index = i * (dim1 * dim2) + j * dim2 + k;
-                EXPECT_FLOAT_EQ(const_tensor3d(i, j, k).to_float(), 
-                               floatX(index).to_float());
+                EXPECT_FLOAT_EQ(float(const_tensor3d(i, j, k)), 
+                                        float(floatX(index)));
             }
         }
     }
@@ -142,8 +142,8 @@ TEST_F(TensorUtilTest, FourDTensorCreation) {
                     int index = i * (dim1 * dim2 * dim3) + 
                                j * (dim2 * dim3) + 
                                k * dim3 + l;
-                    EXPECT_FLOAT_EQ(tensor4d(i, j, k, l).to_float(), 
-                                   floatX(index).to_float());
+                    EXPECT_FLOAT_EQ(float(tensor4d(i, j, k, l)), 
+                        float(floatX(index)));
                 }
             }
         }

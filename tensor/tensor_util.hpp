@@ -5,8 +5,10 @@
 #include "tensor_types.hpp"
 #include "./../eigen/Eigen/Core"
 #include "fixed_point.hpp"
+#include "fpm/fpm.hpp"
 
-using floatX = fixed_point_7pt8;
+//using floatX = fixed_point_7pt8;
+using floatX = fpm::fixed_16_16;
 
 // Raw pointer -> Flat
 template <typename T>
