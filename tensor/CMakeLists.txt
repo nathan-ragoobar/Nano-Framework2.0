@@ -80,7 +80,7 @@ target_link_libraries(test_tanh
 enable_testing()
 add_test(NAME fixed_point_tests COMMAND test_fixed_point)
 add_test(NAME tensor_tests COMMAND test_tensor_util)
-
+#[[
 
 add_executable(test_fpm test_fpm.cpp)
 target_link_libraries(test_fpm
@@ -90,4 +90,26 @@ target_link_libraries(test_fpm
     profiler
     #fpm
 )
+target_compile_options(test_fpm PRIVATE -Ofast -march=native)
+]]
+#Add test_fpm executable
+add_executable(test_fpm test_fpm.cpp)
+
+# Set include directories for test_fpm
+target_include_directories(test_fpm
+    PRIVATE
+    ${PROJECT_SOURCE_DIR}
+    ${EIGEN3_INCLUDE_DIR}
+)
+
+# Link libraries for test_fpm
+target_link_libraries(test_fpm
+    ${EIGEN3_INCLUDE_DIR}
+    ${GTEST_LIBRARIES}
+    pthread
+    absl::inlined_vector
+    profiler
+    #fpm
+)
+
 target_compile_options(test_fpm PRIVATE -Ofast -march=native)

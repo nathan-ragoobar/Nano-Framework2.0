@@ -1,6 +1,8 @@
 //#include <fpm/fixed.hpp>  // For fpm::fixed_16_16
 //#include <fpm/math.hpp>   // For fpm::cos
 //#include <fpm/ios.hpp>    // For fpm::operator<<
+//#include <Eigen/Core>
+//#include <unsupported/Eigen/CXX11/Tensor>
 #include "./fpm/fpm.hpp"
 #include <iostream>       // For std::cin, std::cout
 #include <gtest/gtest.h>
@@ -332,6 +334,44 @@ class FixedPointTanhTest : public ::testing::Test {
         EXPECT_FLOAT_EQ(float(result), 0.0f);
     }
 
+    TEST_F(FixedPointTanhTest, TanhHandlesPosValues) {
+        float test_values[] = {0.5f, 1.0f, 2.0f, 3.0f};
+        for(float val : test_values) {
+            Type x(val);
+            float expected = std::tanh(val);
+            float actual = float(tanh(x));
+            EXPECT_NEAR(actual, expected, std::abs(expected * tolerance))
+                << "Failed for value: " << val;
+        }
+    }
+    
+    TEST_F(FixedPointTanhTest, TanhHandlesNegValues) {
+        float test_values[] = {-0.5f, -1.0f, -2.0f, -3.0f};
+        for(float val : test_values) {
+            Type x(val);
+            float expected = std::tanh(val);
+            float actual = float(tanh(x));
+            EXPECT_NEAR(actual, expected, std::abs(expected * tolerance))
+                << "Failed for value: " << val;
+        }
+    }
+    
+    TEST_F(FixedPointTanhTest, TanhHandlesSaturation) {
+        Type pos_large(4.0f);
+        Type neg_large(-4.0f);
+        
+        EXPECT_NEAR(float(tanh(pos_large)), 1.0f, tolerance);
+        EXPECT_NEAR(float(tanh(neg_large)), -1.0f, tolerance);
+    }
+
+    /*
+    TEST_F(FixedPointTanhTest, TanhEigenIntegration) {
+        Type x(1.5f);
+        float expected = std::tanh(1.5f);
+        float actual = float(Eigen::numext::tanh(x));
+        EXPECT_NEAR(actual, expected, std::abs(expected * tolerance));
+    }
+*/
 
     
     int main(int argc, char** argv) {
