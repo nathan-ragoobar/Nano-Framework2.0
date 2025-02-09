@@ -12,7 +12,7 @@ protected:
 };
 
 TEST_F(LayerNormTest, Forward) {
-    using T = fixed_point_7pt8;
+    using T = float;
     int normalized_shape = 3;
     nn::LayerNorm layernorm_layer(normalized_shape);
 
@@ -37,13 +37,13 @@ TEST_F(LayerNormTest, Forward) {
     // Verify the output (this is a placeholder check, replace with actual expected values)
     for (int i = 0; i < y.dimension(0); ++i) {
         for (int j = 0; j < y.dimension(1); ++j) {
-            EXPECT_NEAR(y(i, j).to_float(), 0.0f, EPSILON); // Replace 0.0f with actual expected value
+            EXPECT_NEAR(y(i, j), 0.0f, EPSILON); // Replace 0.0f with actual expected value
         }
     }
 }
 
 TEST_F(LayerNormTest, Backward) {
-    using T = fixed_point_7pt8;
+    using T = float;
     int normalized_shape = 3;
     nn::LayerNorm layernorm_layer(normalized_shape);
 
@@ -76,7 +76,7 @@ TEST_F(LayerNormTest, Backward) {
     // Verify the output for x_grad (this is a placeholder check, replace with actual expected values)
     for (int i = 0; i < x_grad.dimension(0); ++i) {
         for (int j = 0; j < x_grad.dimension(1); ++j) {
-            EXPECT_NEAR(x_grad(i, j).to_float(), 0.0f, EPSILON); // Replace 0.0f with actual expected value
+            EXPECT_NEAR(x_grad(i, j), 0.0f, EPSILON); // Replace 0.0f with actual expected value
         }
     }
 }

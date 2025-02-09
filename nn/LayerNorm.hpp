@@ -1,8 +1,8 @@
 #ifndef LLM_CPP__LAYERNORM_HPP_
 #define LLM_CPP__LAYERNORM_HPP_
 
-#include "./../tensor/fixed_point.hpp"
-#include "./Parameter.hpp"
+
+#include "Parameter.hpp"
 
 #include <unistd.h>
 #include <memory>
@@ -16,17 +16,17 @@
 namespace nn {
 
 struct LayerNorm {
-  using T = fixed_point_7pt8;
+  using T = float;
 
   LayerNorm(int normalized_shape)
       : normalized_shape_(normalized_shape), eps_(1e-5) {
     auto dtype = DataTypeToEnum<T>::value;
     weight_ = std::make_unique<Parameter>(dtype, normalized_shape);
     auto w = weight_->span<T>();
-    ConstantFill(w, T(1.0f));
+    ConstantFill(w, 1.0f);
     bias_ = std::make_unique<Parameter>(dtype, normalized_shape);
     auto b = bias_->span<T>();
-    ConstantFill(b, T(0.0f));
+    ConstantFill(b, 0.0f);
 
     // activation gradient tensor
     norm_ = std::make_unique<Parameter>(dtype);             // [B, D]
@@ -168,7 +168,7 @@ struct LayerNorm {
   }
 
   int normalized_shape_;
-  T eps_;
+  float eps_;
   std::unique_ptr<Parameter> weight_;
   std::unique_ptr<Parameter> bias_;
 
