@@ -12,7 +12,7 @@ protected:
 };
 
 TEST_F(BlockTest, Forward) {
-    using Type = fixed_point_7pt8;
+    using Type = float;
     int block_size = 4;
     int n_head = 2;
     int n_embed = 8;
@@ -41,14 +41,14 @@ TEST_F(BlockTest, Forward) {
     for (int i = 0; i < y.dimension(0); ++i) {
         for (int j = 0; j < y.dimension(1); ++j) {
             for (int k = 0; k < y.dimension(2); ++k) {
-                EXPECT_NEAR(y(i, j, k).to_float(), 0.0f, EPSILON); // Replace 0.0f with actual expected value
+                EXPECT_NEAR(y(i, j, k), 0.0f, EPSILON); // Replace 0.0f with actual expected value
             }
         }
     }
 }
 
 TEST_F(BlockTest, Backward) {
-        using Type = fixed_point_7pt8;
+        using Type = float;
         int block_size = 4;
         int n_head = 2; 
         int n_embed = 8;
@@ -81,7 +81,7 @@ TEST_F(BlockTest, Backward) {
         for (int i = 0; i < x_grad.dimension(0); ++i) {
             for (int j = 0; j < x_grad.dimension(1); ++j) {
                 for (int k = 0; k < x_grad.dimension(2); ++k) {
-                    if (std::abs(x_grad(i,j,k).to_float()) > EPSILON) {
+                    if (std::abs(x_grad(i,j,k)) > EPSILON) {
                         has_nonzero = true;
                         break;
                     }

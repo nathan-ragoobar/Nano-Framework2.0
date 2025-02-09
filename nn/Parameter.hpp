@@ -494,7 +494,7 @@ struct Parameter {
 using Activation = Parameter;
 
 struct Residual {
-  using T = floatX;
+  using T = float;
 
   static void Forward(typename TTypes<T>::ConstFlat x,
                       typename TTypes<T>::ConstFlat Fx,
@@ -520,7 +520,7 @@ struct Residual {
 // Careful there are a few versions of GeLU, this one is the exact one used by
 // OpenAI
 struct NewGELU {
-  using T = Type;
+  using T = fpm::fixed_16_16;
 
   static void Forward(typename TTypes<Type>::ConstFlat x,
                       typename TTypes<Type>::Flat y) {

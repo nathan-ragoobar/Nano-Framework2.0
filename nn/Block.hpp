@@ -14,7 +14,7 @@ namespace gpt {
 //This block consists of several components: layer normalization, self-attention, and a multi-layer perceptron (MLP)
 //struct handles both the forward and backward passes for these components
 struct Block {
-  using Type = fixed_point_7pt8;
+  using Type = float;
 
   Block(int block_size, int n_head, int n_embed) {
     ln1_ = std::make_unique<nn::LayerNorm>(n_embed);
@@ -85,7 +85,29 @@ struct Block {
 
     // MLP
     auto mlp_y_2d = MakeMatrix(mlp_y_->data<Type>(), B * T, C);
-    mlp_->Forward(ln2_y_2d_const, mlp_y_2d);
+    
+    // Convert input from float to fixed
+    Eigen::Tensor<fpm::fixed_16_16, 2> ln2_y_2d_fixed(B * T, C);
+    Eigen::Tensor<fpm::fixed_16_16, 2> mlp_y_2d_fixed(B * T, C);
+    
+    // Convert each element
+    for(int i = 0; i < B * T; ++i) {
+        for(int j = 0; j < C; ++j) {
+            ln2_y_2d_fixed(i,j) = fpm::fixed_16_16(ln2_y_2d_const(i,j));
+        }
+    }
+    
+    // Call MLP forward with fixed-point tensors
+    auto ln2_fixed_const = MakeConstMatrix(ln2_y_2d_fixed.data(), B * T, C);
+    auto mlp_fixed = MakeMatrix(mlp_y_2d_fixed.data(), B * T, C);
+    mlp_->Forward(ln2_fixed_const, mlp_fixed);
+    
+    // Convert result back to float
+    for(int i = 0; i < B * T; ++i) {
+        for(int j = 0; j < C; ++j) {
+            mlp_y_2d(i,j) = static_cast<float>(mlp_y_2d_fixed(i,j));
+        }
+    }
 
     // Residual
     auto residual1_1d_const =
@@ -129,11 +151,43 @@ struct Block {
     auto mlp_y_grad_1d = MakeFlat(mlp_y_->grad<Type>(), mlp_y_->size());
     nn::Residual::Backward(y_grad_1d, residual1_grad_1d, mlp_y_grad_1d);
 
-    // backward MLP
+        // backward MLP
+    // Convert input data and gradients to fixed point
+    Eigen::Tensor<fpm::fixed_16_16, 2> ln2_y_2d_fixed(B * T, C);
+    Eigen::Tensor<fpm::fixed_16_16, 2> ln2_y_grad_2d_fixed(B * T, C);
+    Eigen::Tensor<fpm::fixed_16_16, 2> mlp_y_grad_2d_fixed(B * T, C);
+
+    // Convert input data to fixed point
     auto ln2_y_2d = MakeConstMatrix(ln2_y_->data<Type>(), B * T, C);
-    auto ln2_y_grad_2d = MakeMatrix(ln2_y_->grad<Type>(), B * T, C);
+    for(int i = 0; i < B * T; ++i) {
+        for(int j = 0; j < C; ++j) {
+            ln2_y_2d_fixed(i,j) = fpm::fixed_16_16(ln2_y_2d(i,j));
+        }
+    }
+
+    // Convert gradients to fixed point
     auto mlp_y_grad_2d = MakeConstMatrix(mlp_y_->grad<Type>(), B * T, C);
-    mlp_->Backward(ln2_y_2d, mlp_y_grad_2d, ln2_y_grad_2d);
+    for(int i = 0; i < B * T; ++i) {
+        for(int j = 0; j < C; ++j) {
+            mlp_y_grad_2d_fixed(i,j) = fpm::fixed_16_16(mlp_y_grad_2d(i,j));
+        }
+    }
+
+    // Create tensor maps for fixed point data
+    auto ln2_fixed_const = MakeConstMatrix(ln2_y_2d_fixed.data(), B * T, C);
+    auto ln2_grad_fixed = MakeMatrix(ln2_y_grad_2d_fixed.data(), B * T, C);
+    auto mlp_grad_fixed_const = MakeConstMatrix(mlp_y_grad_2d_fixed.data(), B * T, C);
+
+    // Call MLP backward with fixed-point tensors
+    mlp_->Backward(ln2_fixed_const, mlp_grad_fixed_const, ln2_grad_fixed);
+
+    // Convert result back to float
+    auto ln2_y_grad_2d = MakeMatrix(ln2_y_->grad<Type>(), B * T, C);
+    for(int i = 0; i < B * T; ++i) {
+        for(int j = 0; j < C; ++j) {
+            ln2_y_grad_2d(i,j) = static_cast<float>(ln2_y_grad_2d_fixed(i,j));
+        }
+    }
 
     // backward LN2
     auto ln2_mean_1d = MakeConstFlat(ln2_mean_->data<Type>(), B * T);

@@ -18,7 +18,7 @@ struct GPT2Config {
 //I want to be able to apply these functions to any model, not just GPT-2. -NR
 
 struct GPT2 {
-  using Type = fixed_point_7pt8;
+  using Type = float;
 
   void BuildFromCheckpoint(absl::string_view checkpoint_path) {
     // read in model from a checkpoint file
@@ -101,7 +101,7 @@ void InitializeFromScratch(const GPT2Config& config) {
       // Random initialization
       std::random_device rd;
       std::mt19937 gen(rd());
-      std::normal_distribution<float> d(0.0f, std_dev.to_float());
+      std::normal_distribution<float> d(0.0f, std_dev);
 
       for(int i = 0; i < p->size(); i++) {
         data.data()[i] = Type(d(gen));
