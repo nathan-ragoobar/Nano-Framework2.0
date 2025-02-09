@@ -13,37 +13,35 @@
 namespace nn {
 
 struct Linear {
-  using T = fpm::fixed_16_16;
+  using FixedT = fpm::fixed_16_16;
+  using T = float;
 
-  Linear(int in_features, int out_features, bool bias = true)
-      : in_features_(in_features),
-        out_features_(out_features),
-        has_bias_(bias) {
-    auto dtype = DataTypeToEnum<T>::value;
-    weight_ = std::make_unique<Parameter>(dtype, out_features * in_features);
-    KaimingUniformFill(weight_->span<T>(), in_features);
-    if (bias) {
-      bias_ = std::make_unique<Parameter>(dtype, out_features);
-      const float bound = 1.0f / std::sqrt(static_cast<float>(in_features));
-      const T bound_fp(bound);
-      UniformFill(bias_->span<T>(), -bound_fp, bound_fp);
-    }
+  // Constructor for fixed-point operations
+  static Linear Fixed(int in_features, int out_features, bool bias = true) {
+    return Linear(in_features, out_features, bias, UseFixedPoint{});
   }
 
-  void Forward(typename TTypes<T>::ConstMatrix x,
-               typename TTypes<T>::Matrix y) const {
+  // Constructor for floating-point operations
+  static Linear Float(int in_features, int out_features, bool bias = true) {
+    return Linear(in_features, out_features, bias, UseFloatingPoint{});
+  }
+
+  
+
+  void Forward(typename TTypes<FixedT>::ConstMatrix x,
+               typename TTypes<FixedT>::Matrix y) const {
     // x: [B, in_features], y: [B, out_features]
     CHECK_EQ(x.dimension(1), in_features_);
     CHECK_EQ(y.dimension(1), out_features_);
     CHECK_EQ(x.dimension(0), y.dimension(0));
     int B = x.dimension(0);
 
-    auto weight = MakeMatrix(weight_->data<T>(), out_features_, in_features_);
+    auto weight = MakeMatrix(weight_->data<FixedT>(), out_features_, in_features_);
     // y = x * w^T + b
     Eigen::array<Eigen::IndexPair<int>, 1> product_dims = {
         Eigen::IndexPair<int>(1, 1)};
     if (has_bias_) {
-      auto bias = MakeFlat(bias_->data<T>(), out_features_);
+      auto bias = MakeFlat(bias_->data<FixedT>(), out_features_);
       Eigen::array<int, 2> batch_by_one = {B, 1},
                            one_by_out = {1, out_features_};
       y.device(g_device) = x.contract(weight, product_dims) +
@@ -52,6 +50,70 @@ struct Linear {
       y.device(g_device) = x.contract(weight, product_dims);
     }
   }
+
+  void Forward(typename TTypes<T>::ConstMatrix x,
+                typename TTypes<T>::Matrix y) const {
+        // x: [B, in_features], y: [B, out_features]
+        CHECK_EQ(x.dimension(1), in_features_);
+        CHECK_EQ(y.dimension(1), out_features_);
+        CHECK_EQ(x.dimension(0), y.dimension(0));
+        int B = x.dimension(0);
+
+        auto weight = MakeMatrix(weight_->data<T>(), out_features_, in_features_);
+        // y = x * w^T + b
+        Eigen::array<Eigen::IndexPair<int>, 1> product_dims = {
+        Eigen::IndexPair<int>(1, 1)};
+        if (has_bias_) {
+        auto bias = MakeFlat(bias_->data<T>(), out_features_);
+        Eigen::array<int, 2> batch_by_one = {B, 1},
+                        one_by_out = {1, out_features_};
+        y.device(g_device) = x.contract(weight, product_dims) +
+                        bias.reshape(one_by_out).broadcast(batch_by_one);
+        } else {
+        y.device(g_device) = x.contract(weight, product_dims);
+        }
+  }
+
+  void Backward(typename TTypes<FixedT>::ConstMatrix x,
+                typename TTypes<FixedT>::ConstMatrix y_grad,
+                typename TTypes<FixedT>::Matrix x_grad) {
+    // x: [B, in_features], y_grad: [B, out_features], x_grad: [B, in_features]
+    CHECK_EQ(x.dimension(1), in_features_);
+    CHECK_EQ(y_grad.dimension(1), out_features_);
+    CHECK_EQ(x.dimension(0), y_grad.dimension(0));
+    CHECK_EQ(x.dimension(0), x_grad.dimension(0));
+
+    // Lazily allocate the memory for gradients
+    weight_->LazyAllocateGradient();
+    auto weight = MakeMatrix(weight_->data<FixedT>(), out_features_, in_features_);
+    auto weight_grad =
+        MakeMatrix(weight_->grad<FixedT>(), out_features_, in_features_);
+
+    // x_grad = dL/dy * dy/dx
+    //        = y_grad(B, out_features) * W(out_features, in_features)
+    //        = [B, in_features]
+    Eigen::array<Eigen::IndexPair<int>, 1> product_dims = {
+        Eigen::IndexPair<int>(1, 0)};
+    x_grad.device(g_device) += y_grad.contract(weight, product_dims);
+
+    // w_grad = dL/dy * dy/dw
+    //        = y_grad^T(out_features, B) * x(B, in_features)
+    //        = [out_features, in_features]
+    Eigen::array<Eigen::IndexPair<int>, 1> product_dims2 = {
+        Eigen::IndexPair<int>(0, 0)};
+    weight_grad.device(g_device) += y_grad.contract(x, product_dims2);
+
+    if (has_bias_) {
+      // b_grad = dL/dy * dy/db
+      //        = \sum_i^(B)(y_grad(B, out_features))
+      //        = [out_features,]
+      bias_->LazyAllocateGradient();
+      auto bias_grad = MakeFlat(bias_->grad<FixedT>(), out_features_);
+      Eigen::array<Eigen::Index, 1> along_batch = {0};
+      bias_grad.device(g_device) = y_grad.sum(along_batch);
+    }
+  }
+  
 
   void Backward(typename TTypes<T>::ConstMatrix x,
                 typename TTypes<T>::ConstMatrix y_grad,
@@ -93,6 +155,9 @@ struct Linear {
     }
   }
 
+
+
+
   size_t NumParameters() const {
     size_t num_parameters = out_features_ * in_features_;
     if (has_bias_) {
@@ -116,6 +181,44 @@ struct Linear {
   int out_features_;
   std::unique_ptr<Parameter> weight_;  // out_features x in_features
   std::unique_ptr<Parameter> bias_;    // out_features
+
+
+  private:
+  // Tag dispatching structures
+  struct UseFixedPoint {};
+  struct UseFloatingPoint {};
+
+  // Private constructor for fixed-point
+  Linear(int in_features, int out_features, bool bias, UseFixedPoint) 
+      : in_features_(in_features),
+        out_features_(out_features),
+        has_bias_(bias) {
+    auto dtype = DataTypeToEnum<FixedT>::value;
+    weight_ = std::make_unique<Parameter>(dtype, out_features * in_features);
+    KaimingUniformFill(weight_->span<FixedT>(), in_features);
+    if (bias) {
+      bias_ = std::make_unique<Parameter>(dtype, out_features);
+      const float bound = 1.0f / std::sqrt(static_cast<float>(in_features));
+      const FixedT bound_fp(bound);
+      UniformFill(bias_->span<FixedT>(), -bound_fp, bound_fp);
+    }
+  }
+
+  // Private constructor for floating-point
+  Linear(int in_features, int out_features, bool bias, UseFloatingPoint)
+      : in_features_(in_features),
+        out_features_(out_features),
+        has_bias_(bias) {
+    auto dtype = DataTypeToEnum<T>::value;
+    weight_ = std::make_unique<Parameter>(dtype, out_features * in_features);
+    KaimingUniformFill(weight_->span<T>(), in_features);
+    if (bias) {
+      bias_ = std::make_unique<Parameter>(dtype, out_features);
+      const float bound = 1.0f / std::sqrt(static_cast<float>(in_features));
+      const T bound_fp(bound);
+      UniformFill(bias_->span<T>(), -bound_fp, bound_fp);
+    }
+  }
 };
 
 

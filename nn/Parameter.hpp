@@ -29,6 +29,7 @@
 namespace nn {
 
 using Type = fpm::fixed_16_16;
+using TypeFloat = float;
 
 #ifdef EIGEN_USE_GPU
 Eigen::GpuStreamDevice g_stream;
@@ -113,6 +114,21 @@ inline void KaimingUniformFill(absl::Span<Type> weight, int in_features) {
                                sizeof(Type) * w.size());
 #else
     uniform_fixed(weight.data(), weight.size(), -bound, bound, &g_mt19937_state);
+#endif
+}
+
+inline void KaimingUniformFill(absl::Span<TypeFloat> weight, int in_features) {
+  const TypeFloat one(1.0f);
+  const TypeFloat in_features_fp(static_cast<float>(in_features));
+  const TypeFloat bound = sqrt(one / in_features_fp);
+
+#ifdef EIGEN_USE_GPU
+  std::vector<TypeFloat> w(weight.size());
+  uniform_fixed(w.data(), w.size(), -bound, bound, &g_mt19937_state);
+  g_device.memcpyHostToDevice(weight.data(), w.data(),
+                             sizeof(TypeFloat) * w.size());
+#else
+  uniform_(weight.data(), weight.size(), -bound, bound, &g_mt19937_state);
 #endif
 }
 

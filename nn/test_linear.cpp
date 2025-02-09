@@ -12,11 +12,11 @@ protected:
     }
 };
 
-TEST_F(LinearTest, Forward) {
+TEST_F(LinearTest, ForwardFixedPoint) {
     using T = fpm::fixed_16_16;
     int in_features = 3;
     int out_features = 2;
-    nn::Linear linear_layer(in_features, out_features);
+    auto linear_layer = nn::Linear::Fixed(in_features, out_features);
 
     Eigen::Tensor<T, 2> x_data(2, in_features);
     Eigen::Tensor<T, 2> y_data(2, out_features);
@@ -40,11 +40,39 @@ TEST_F(LinearTest, Forward) {
     }
 }
 
+TEST_F(LinearTest, ForwardFloat) {
+    using T = float;  // Changed from fpm::fixed_16_16 to float
+    int in_features = 3;
+    int out_features = 2;
+    auto linear_layer = nn::Linear::Float(in_features, out_features);  // Using Float constructor
+
+    Eigen::Tensor<T, 2> x_data(2, in_features);
+    Eigen::Tensor<T, 2> y_data(2, out_features);
+
+    // Initialize input tensor x (removed T() conversion)
+    x_data(0, 0) = 1.0f; x_data(0, 1) = 2.0f; x_data(0, 2) = 3.0f;
+    x_data(1, 0) = 4.0f; x_data(1, 1) = 5.0f; x_data(1, 2) = 6.0f;
+
+    // Create TensorMap for x and y
+    TTypes<T>::ConstMatrix x(x_data.data(), x_data.dimensions());
+    TTypes<T>::Matrix y(y_data.data(), y_data.dimensions());
+
+    // Call the Forward function
+    linear_layer.Forward(x, y);
+
+    // Verify the output
+    for (int i = 0; i < y.dimension(0); ++i) {
+        for (int j = 0; j < y.dimension(1); ++j) {
+            EXPECT_NEAR(y(i, j), 0.0f, EPSILON);  // Removed float conversion
+        }
+    }
+}
+
 TEST_F(LinearTest, Backward) {
     using T = fpm::fixed_16_16;
     int in_features = 3;
     int out_features = 2;
-    nn::Linear linear_layer(in_features, out_features);
+    auto linear_layer = nn::Linear::Fixed(in_features, out_features);
 
     Eigen::Tensor<T, 2> x_data(2, in_features);
     Eigen::Tensor<T, 2> y_grad_data(2, out_features);
@@ -79,7 +107,7 @@ TEST_F(LinearTest, Backward) {
 TEST_F(LinearTest, NumParameters) {
     int in_features = 3;
     int out_features = 2;
-    nn::Linear linear_layer(in_features, out_features);
+    auto linear_layer = nn::Linear::Fixed(in_features, out_features);
 
     size_t num_parameters = linear_layer.NumParameters();
     EXPECT_EQ(num_parameters, in_features * out_features + out_features); // Including bias
@@ -88,7 +116,7 @@ TEST_F(LinearTest, NumParameters) {
 TEST_F(LinearTest, NumActivations) {
     int in_features = 3;
     int out_features = 2;
-    nn::Linear linear_layer(in_features, out_features);
+    auto linear_layer = nn::Linear::Fixed(in_features, out_features);
 
     size_t num_activations = linear_layer.NumActivations();
     EXPECT_EQ(num_activations, 0);
@@ -97,7 +125,7 @@ TEST_F(LinearTest, NumActivations) {
 TEST_F(LinearTest, Parameters) {
     int in_features = 3;
     int out_features = 2;
-    nn::Linear linear_layer(in_features, out_features);
+    auto linear_layer = nn::Linear::Fixed(in_features, out_features);
 
     std::vector<nn::Parameter*> parameters;
     linear_layer.Parameters(&parameters);
