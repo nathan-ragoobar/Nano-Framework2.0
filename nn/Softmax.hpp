@@ -6,13 +6,12 @@
 #include "absl/log/check.h"
 #include "absl/types/span.h"
 #include "Parameter.hpp"
-#include "./../tensor/fpm/fpm.hpp"
 
 
 namespace nn {
 
 struct Softmax {
-  using T = fpm::fixed_16_16;
+  using T = float;
 
   static void Forward(typename TTypes<T>::ConstMatrix x,
                       typename TTypes<T>::Matrix y) {
@@ -25,15 +24,16 @@ struct Softmax {
     Eigen::array<Eigen::Index, 2> batch_by_one = {batch_size, 1};
     Eigen::array<Eigen::Index, 2> one_by_class = {1, num_class};
 
-    // Compute the maximum value along the class dimension
-    auto max_val = x.maximum(along_class).eval().reshape(batch_by_one).broadcast(one_by_class);
-
-    // Compute the exponentials
-    y.device(g_device) = (x - max_val).exp();
-
-    // Normalize by the sum of exponentials
-    auto sum_exp = y.sum(along_class).inverse().eval().reshape(batch_by_one).broadcast(one_by_class);
-    y.device(g_device) = y * sum_exp;
+    y.device(g_device) = (x - x.maximum(along_class)
+                                  .eval()
+                                  .reshape(batch_by_one)
+                                  .broadcast(one_by_class))
+                             .exp();
+    y.device(g_device) = y * y.sum(along_class)
+                                 .inverse()
+                                 .eval()
+                                 .reshape(batch_by_one)
+                                 .broadcast(one_by_class);
   }
 
   static void Backward(typename TTypes<T>::ConstMatrix y,
@@ -51,21 +51,49 @@ struct Softmax {
     Eigen::array<Eigen::Index, 2> batch_by_one = {batch_size, 1};
     Eigen::array<Eigen::Index, 2> one_by_class = {1, num_class};
     Eigen::array<Eigen::Index, 1> along_class = {1};
-
     auto dyy = y_grad * y;
     auto sum = dyy.sum(along_class).reshape(batch_by_one);
     auto sub = y_grad - sum.broadcast(one_by_class);
     x_grad.device(g_device) += sub * y;
+
+    /*
+    // dy_j / dx_i = S_i(1 - S_j) for i==j
+    //             = -S_j*S_i     for i!=j
+    // dL/dx_i = \sum_j dL/dy_j * dy_j / dx_i
+    auto fn = [D, &x_grad, &y_grad, &y](int begin, int end) {
+      for (int b = begin; b < end; ++b) {
+        float* x_grad_b = x_grad.data() + b * D;
+        float* y_grad_b = y_grad.data() + b * D;
+        float* y_b = y.data() + b * D;
+        for (int i = 0; i < D; ++i) {
+          for (int j = 0; j < D; ++j) {
+            float indicator = i == j ? 1.0f : 0.0f;
+            //            x_grad(b, i) += y_grad(b, j) * y(b, i) * (indicator -
+            //            y(b, j));
+            x_grad_b[i] += y_grad_b[j] * y_b[i] * (indicator - y_b[j]);
+          }
+        }
+      }
+    };
+
+    int thread_num = g_cpu_device.numThreads();
+    Eigen::Barrier barrier(thread_num);
+    for (int t = 0; t < thread_num; ++t) {
+      auto range = SplitRange(B, t, thread_num);
+      g_cpu_device.enqueue_with_barrier(&barrier, fn, range.first,
+                                        range.second);
+    }
+    barrier.Wait();
+    */
   }
 };
 
-
 //From what I could see, this only uses the Eigen library ~NR
 struct SoftmaxCrossEntropy {
-  using T = fpm::fixed_16_16;
+  using T = float;
   enum Reduction { MEAN, SUM };
 
-  explicit SoftmaxCrossEntropy(Reduction reduction = MEAN)
+  SoftmaxCrossEntropy(Reduction reduction = Reduction::MEAN)
       : reduction_(reduction) {}
 
   void Forward(typename TTypes<T>::ConstMatrix logits,
@@ -73,7 +101,7 @@ struct SoftmaxCrossEntropy {
                float* loss) {
     // logits: [B, C], targets: [B,], probs:[B, C], loss: scalar
     int B = logits.dimension(0), C = logits.dimension(1);
-    CHECK(B == static_cast<int>(targets.size()) && B == probs.dimension(0));
+    CHECK(B == targets.size() && B == probs.dimension(0));
     CHECK_EQ(C, probs.dimension(1));
 
     // apply softmax to convert logits to (normalized) probabilities
@@ -81,11 +109,9 @@ struct SoftmaxCrossEntropy {
 
     // targets: [B,]
     *loss = 0.0f;
-    for (int i = 0; i < B; ++i) {
+    for (int i = 0; i < targets.size(); ++i) {
       int ix = targets[i];
-      // Convert probs(i, ix) to float, do log, accumulate
-      float p = float(probs(i, ix));
-      *loss += -std::log(p > 0.0f ? p : 1e-12f); 
+      *loss += -std::log(probs(i, ix));
     }
 
     if (reduction_ == Reduction::MEAN) {
@@ -99,19 +125,17 @@ struct SoftmaxCrossEntropy {
     // probs: [B, C], targets: [B,]
     // logits_grad: [B, C]
     int B = probs.dimension(0), C = probs.dimension(1);
-    CHECK(B == static_cast<int>(targets.size()) && B == logits_grad.dimension(0));
+    CHECK(B == targets.size() && B == logits_grad.dimension(0));
     CHECK_EQ(C, logits_grad.dimension(1));
 
-    float factor = (reduction_ == Reduction::MEAN) ? (1.0f / static_cast<float>(B)) : 1.0f;
+    float factor =
+        reduction_ == Reduction::MEAN ? 1.0f / static_cast<float>(B) : 1.0f;
 
     for (int b = 0; b < B; ++b) {
       int ix = targets[b];
       for (int c = 0; c < C; ++c) {
-        // Convert everything to float, do the subtract, convert back
-        float p   = float(probs(b, c));
-        float ind = (c == ix) ? 1.0f : 0.0f;
-        float grad_float = (p - ind) * factor;
-        logits_grad(b, c) += T(grad_float);
+        float indicator = c == ix ? 1.0f : 0.0f;
+        logits_grad(b, c) += (probs(b, c) - indicator) * factor;
       }
     }
   }
@@ -121,45 +145,46 @@ struct SoftmaxCrossEntropy {
                                  typename TTypes<T>::Flat scratch,
                                  typename TTypes<T>::Flat loss,
                                  typename TTypes<T>::Matrix logit_grad) {
-    // This version does a softmax in a single pass, then cross-entropy
-    // For fixed_point_7pt8, you must either define .exp() & .log()
-    // or convert to/from float. Below does conversions to float.
-
+    // logits: [B, C], targets: [B,], probs:[B, C], loss: scalar
     int B = logits.dimension(0), C = logits.dimension(1);
     CHECK(B == labels.dimension(0) && C == labels.dimension(1));
     CHECK(B == logit_grad.dimension(0) && C == logit_grad.dimension(1));
     CHECK_EQ(B, scratch.size());
     CHECK_EQ(B, loss.size());
 
+    const int batch_size = B, num_class = C;
     Eigen::array<Eigen::Index, 1> along_class = {1};
-    Eigen::array<Eigen::Index, 2> batch_by_one = {B, 1};
-    Eigen::array<Eigen::Index, 2> one_by_class = {1, C};
+    Eigen::array<Eigen::Index, 2> batch_by_one = {batch_size, 1};
+    Eigen::array<Eigen::Index, 2> one_by_class = {1, num_class};
 
-    // 1) Compute stable logits = logits - max along each row
+    // max_logits along classes.
     scratch.device(g_device) = logits.maximum(along_class);
+
+    // logits - max_logits.
     logit_grad.device(g_device) =
         logits - scratch.reshape(batch_by_one).broadcast(one_by_class);
 
-    // 2) sum(exp(stable_logits)) along classes
+    // sum(exp(logits - max_logits)) along classes.
     scratch.device(g_device) = logit_grad.exp().sum(along_class);
 
-    // 3) negative log likelihood
-    //    loss = sum(labels * ( - log softmax ))
-    //    or any variation that matches your equation
+    // NOTE: Eigen on GPU dispatches to an optimized implementation
+    // for an expression of the form lhs = rhs.sum().
+    // lhs = -rhs.sum() doesn't match the above pattern, so folding in the
+    // negation before calling sum().
+    //  sum(-labels *
+    //     ((logits - max_logits) - log(sum(exp(logits - max_logits)))))
+    //  along classes
     loss.device(g_device) =
         (labels * (scratch.log().reshape(batch_by_one).broadcast(one_by_class) -
                    logit_grad))
             .sum(along_class);
 
-    // 4) final gradient wrt logits
-    //    logit_grad = softmax(logits) - labels
+    // backprop: prob - labels, where
+    //   prob = exp(logits - max_logits) / sum(exp(logits - max_logits))
     logit_grad.device(g_device) =
         (logit_grad.exp() /
-         scratch.reshape(batch_by_one).broadcast(one_by_class))
-        - labels;
-
-    // NOTE: If your T doesn’t have .exp() / .log(), do conversions, e.g.:
-    // logit_grad(i,j) = T(std::exp(logit_grad(i,j).to_float()));
+         scratch.reshape(batch_by_one).broadcast(one_by_class)) -
+        labels;
   }
 
   Reduction reduction_;
