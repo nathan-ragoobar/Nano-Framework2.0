@@ -88,9 +88,9 @@ inline void UniformFill(absl::Span<float> weight, float from = 0.0,     // For t
 
 //function fills a weight tensor with values sampled from a normal (Gaussian) distribution with specified mean and standard deviation. The function has GPU and CPU implementations.
 // Add template for type flexibility
-template <typename T>
-inline void NormalFill(absl::Span<T> weight, T mean = 0.0,
-                       T std = 1.0) {
+//template <typename T>
+inline void NormalFill(absl::Span<Type> weight, Type mean = Type(0.0),
+                       Type std = Type(1.0)) {
 #ifdef EIGEN_USE_GPU
   std::vector<float> w(weight.size());
   normal_fixed(w.data(), w.size(), mean, std, &g_mt19937_state);
@@ -98,6 +98,18 @@ inline void NormalFill(absl::Span<T> weight, T mean = 0.0,
                               sizeof(float) * w.size());
 #else
   normal_fixed(weight.data(), weight.size(), mean, std, &g_mt19937_state);
+#endif
+}
+
+inline void NormalFill(absl::Span<TypeFloat> weight, TypeFloat mean = 0.0,
+  TypeFloat std = 1.0) {
+#ifdef EIGEN_USE_GPU
+std::vector<float> w(weight.size());
+normal_fixed(w.data(), w.size(), mean, std, &g_mt19937_state);
+g_device.memcpyHostToDevice(weight.data(), w.data(),
+         sizeof(float) * w.size());
+#else
+normal_(weight.data(), weight.size(), mean, std, &g_mt19937_state);
 #endif
 }
 

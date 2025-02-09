@@ -12,7 +12,7 @@ protected:
 };
 
 TEST_F(EmbeddingTest, Forward) {
-    using T = fixed_point_7pt8;
+    using T = float;
     int num_embeddings = 3;
     int embedding_dim = 2;
     nn::Embedding embedding_layer(num_embeddings, embedding_dim);
@@ -28,12 +28,12 @@ TEST_F(EmbeddingTest, Forward) {
 
     // Verify the output (this is a placeholder check, replace with actual expected values)
     for (size_t i = 0; i < embedding.size(); ++i) {
-        EXPECT_NEAR(embedding[i].to_float(), 0.0f, EPSILON); // Replace 0.0f with actual expected value
+        EXPECT_NEAR(embedding[i], 0.0f, EPSILON); // Replace 0.0f with actual expected value
     }
 }
 
 TEST_F(EmbeddingTest, Backward) {
-    using T = fixed_point_7pt8;
+    using T = float;
     int num_embeddings = 3;
     int embedding_dim = 2;
     nn::Embedding embedding_layer(num_embeddings, embedding_dim);
@@ -49,7 +49,7 @@ TEST_F(EmbeddingTest, Backward) {
 
     // Verify the output (this is a placeholder check, replace with actual expected values)
     for (size_t i = 0; i < grad_embedding.size(); ++i) {
-        EXPECT_NEAR(grad_embedding[i].to_float(), 1.0f, EPSILON); // Replace 1.0f with actual expected value
+        EXPECT_NEAR(grad_embedding[i], 1.0f, EPSILON); // Replace 1.0f with actual expected value
     }
 }
 
