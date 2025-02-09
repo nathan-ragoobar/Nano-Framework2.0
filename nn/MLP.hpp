@@ -3,6 +3,7 @@
 
 #include "./Parameter.hpp"
 #include "./Linear.hpp"
+#include "./../tensor/fpm/fpm.hpp"
 
 
 #ifdef EIGEN_USE_GPU
@@ -15,8 +16,91 @@
 namespace gpt {
 
 struct MLP {
-  using T = fixed_point_7pt8;
+  using TypeFixed = fpm::fixed_16_16;
 
+  //I think this is the structure for the class/structure?
+  explicit MLP(int n_embed) : n_embed_(n_embed) {
+    c_fc_ = std::make_unique<nn::Linear>(nn::Linear::Fixed(n_embed, 4 * n_embed));
+    c_proj_ = std::make_unique<nn::Linear>(nn::Linear::Fixed(4 * n_embed, n_embed));
+    
+    // activation
+    auto dtype = nn::DataTypeToEnum<TypeFixed>::value;
+    fch_ = std::make_unique<nn::Activation>(dtype);
+    fch_gelu_ = std::make_unique<nn::Activation>(dtype);
+}
+
+  //This is the forward pass for the MLP
+  void Forward(typename TTypes<TypeFixed>::ConstMatrix x,
+               typename TTypes<TypeFixed>::Matrix y) {
+    PROFILE_TRACE_FN("MLP");
+
+    // x: [B*T, 4*n_embed], y: [B*T, 4*n_embed]
+    CHECK_EQ(x.dimension(1), n_embed_);
+    // x.shape == y.shape
+    CHECK_EQ(x.dimension(0), y.dimension(0));
+    CHECK_EQ(x.dimension(1), y.dimension(1));
+
+    int BT = x.dimension(0);
+    //LOG(INFO) << "fch forward parameters: " << fch_->size();
+    //LOG(INFO) << "BT Forward: " << BT;
+    //LOG(INFO) << "n_embed Forward: " << n_embed_;
+    fch_->LazyAllocate(BT * 4 * n_embed_);
+    fch_gelu_->LazyAllocate(BT * 4 * n_embed_);
+
+    // forward
+    auto fch = fch_->matrix<TypeFixed>(BT, 4 * n_embed_);
+    auto fch_gelu = fch_gelu_->matrix<TypeFixed>(BT, 4 * n_embed_);
+    c_fc_->Forward(x, fch);
+    nn::NewGELU::Forward(MakeConstFlat(fch.data(), fch.size()),
+                         MakeFlat(fch_gelu.data(), fch_gelu.size()));
+    auto fch_gelu_const = fch_gelu_->const_matrix<TypeFixed>(BT, 4 * n_embed_);
+    c_proj_->Forward(fch_gelu_const, y);
+  }
+
+  //Backward pass for the MLP
+  void Backward(typename TTypes<TypeFixed>::ConstMatrix x,
+                typename TTypes<TypeFixed>::ConstMatrix y_grad,
+                typename TTypes<TypeFixed>::Matrix x_grad) {
+    PROFILE_TRACE_FN("MLP");
+
+    //LOG(INFO) << "MLP Backward called";
+    //LOG(INFO) << "fc1 parameters: " << fc1_->NumParameters();
+    //LOG(INFO) << "fc2 parameters: " << fc2_->NumParameters();
+    
+
+    // x: [B*T, 4*n_embed], y_grad: [B*T, 4*n_embed]
+    // x_grad: [B*T, 4*n_embed]
+    CHECK_EQ(x.dimension(1), n_embed_);
+    // x.shape == y_grad.shape == x_grad.shape
+    CHECK_EQ(x.dimension(0), y_grad.dimension(0));
+    CHECK_EQ(x.dimension(1), y_grad.dimension(1));
+    CHECK_EQ(x.dimension(0), x_grad.dimension(0));
+    CHECK_EQ(x.dimension(1), x_grad.dimension(1));
+
+    // Lazily allocate the memory for activation
+    int BT = x.dimension(0);
+    //LOG(INFO) << "fch is about to be allocated";
+    //LOG(INFO) << "fch parameters: " << fch_->size();
+    fch_->LazyAllocateGradient();
+    //LOG(INFO) << "fch_gelu is about to be allocated";
+    fch_gelu_->LazyAllocateGradient();
+    fch_->ZeroGrad();
+    fch_gelu_->ZeroGrad();
+
+    auto fch_gelu = fch_gelu_->const_matrix<TypeFixed>(BT, 4 * n_embed_);
+    auto fch_gelu_grad = fch_gelu_->matrix_grad<TypeFixed>(BT, 4 * n_embed_);
+    c_proj_->Backward(fch_gelu, y_grad, fch_gelu_grad);
+
+    auto fch = fch_->const_flat<TypeFixed>();
+    auto fch_gelu_grad_flat = fch_gelu_->const_flat_grad<TypeFixed>();
+    auto fch_grad = fch_->flat_grad<TypeFixed>();
+    nn::NewGELU::Backward(fch, fch_gelu_grad_flat, fch_grad);
+
+    auto fch_grad_2d = fch_->const_matrix_grad<TypeFixed>(BT, 4 * n_embed_);
+    c_fc_->Backward(x, fch_grad_2d, x_grad);
+  }
+
+  /*
   //I think this is the structure for the class/structure?
   explicit MLP(int n_embed) : n_embed_(n_embed) {
     c_fc_ = std::make_unique<nn::Linear>(n_embed, 4 * n_embed);
@@ -98,6 +182,7 @@ struct MLP {
     auto fch_grad_2d = fch_->const_matrix_grad<T>(BT, 4 * n_embed_);
     c_fc_->Backward(x, fch_grad_2d, x_grad);
   }
+*/
 
   size_t NumParameters() const {
     return c_fc_->NumParameters() + c_proj_->NumParameters();
