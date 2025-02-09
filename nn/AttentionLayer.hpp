@@ -7,14 +7,9 @@
 #include "tensor/tensor_util.hpp"
 #include "absl/log/check.h"
 #include "absl/types/span.h"
-//#include "nn.hpp"  // Include the Parameter header
+#include "nn.hpp"  // Include the Parameter header
 //#include "nnhead.hpp"
-#include "./Linear.hpp"
-#include "./../tensor/fixed_point.hpp"
-#include "./Parameter.hpp"
-#include "./Linear.hpp"
-#include "./MatMul.hpp"
-#include "./Softmax.hpp"
+//#include "Linear.hpp"
 
 #ifdef EIGEN_USE_GPU
 #include "cuda_profile_util.hpp"
@@ -26,17 +21,17 @@
 namespace gpt {
 
 struct CausalSelfAttention {
-  using Type = fixed_point_7pt8;
+  using Type = float;
 
   CausalSelfAttention(int block_size, int n_head, int n_embed)
       : block_size_(block_size), n_head_(n_head), n_embed_(n_embed) {
     CHECK_EQ(n_embed % n_head, 0);
 
     // key, query, value projections for all heads, but in a batch
-    c_attn_ = std::make_unique<nn::Linear>(n_embed, 3 * n_embed);
+    c_attn_ = std::make_unique<nn::Linear>(nn::Linear::Float(n_embed, 3 * n_embed));
 
     // output projection
-    c_proj_ = std::make_unique<nn::Linear>(n_embed, n_embed);
+    c_proj_ = std::make_unique<nn::Linear>(nn::Linear::Float(n_embed, n_embed));
 
     // mask
     auto dtype = nn::DataTypeToEnum<Type>::value;
@@ -109,7 +104,7 @@ struct CausalSelfAttention {
                                     .shuffle(shuffle_qv)  //  [B, NH, T, HS]
         ;
 
-    const Type factor = Type(1.0f / std::sqrt(static_cast<float>(HS)));
+    const float factor = 1.0f / std::sqrt(static_cast<float>(HS));
     for (int b = 0; b < B; ++b) {
       for (int h = 0; h < NH; ++h) {
         auto q2d =
@@ -200,7 +195,7 @@ struct CausalSelfAttention {
         att2_grad.shuffle(shuffle_att);  // [B, NH, T, HS]
 
     // attention backward
-    Type factor = Type(1.0f / std::sqrt(static_cast<float>(HS)));
+    float factor = 1.0f / std::sqrt(static_cast<float>(HS));
     for (int b = 0; b < B; ++b) {
       for (int h = 0; h < NH; ++h) {
         auto q2d =

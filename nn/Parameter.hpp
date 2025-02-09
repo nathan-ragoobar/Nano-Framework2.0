@@ -167,6 +167,21 @@ inline void UpperTriangularWithNegativeInf(
 #endif
 }
 
+inline void UpperTriangularWithNegativeInf(
+  typename TTypes<float>::Matrix matrix) {
+using MatrixXf =
+    Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+MatrixXf m = MatrixXf::Zero(matrix.dimension(0), matrix.dimension(1));
+m.triangularView<Eigen::StrictlyUpper>().setConstant(
+    -std::numeric_limits<float>::infinity());
+#ifdef EIGEN_USE_GPU
+g_device.memcpyHostToDevice(matrix.data(), m.data(),
+                            sizeof(float) * matrix.size());
+#else
+g_device.memcpy(matrix.data(), m.data(), sizeof(float) * matrix.size());
+#endif
+}
+
 //Performs OneHot encoding of target tensor 
 inline void OneHot(typename TTypes<int>::ConstFlat target,
                        typename TTypes<Type>::Matrix label) {
