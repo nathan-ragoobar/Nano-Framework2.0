@@ -1,6 +1,7 @@
 #include "./Linear.hpp"
 #include <gtest/gtest.h>
 #include "./../tensor/fixed_point.hpp" // Include the fixed_point header if needed
+#include "./../tensor/fpm/fpm.hpp"
 
 constexpr float EPSILON = 1e-4;
 
@@ -12,7 +13,7 @@ protected:
 };
 
 TEST_F(LinearTest, Forward) {
-    using T = fixed_point_7pt8;
+    using T = fpm::fixed_16_16;
     int in_features = 3;
     int out_features = 2;
     nn::Linear linear_layer(in_features, out_features);
@@ -34,13 +35,13 @@ TEST_F(LinearTest, Forward) {
     // Verify the output (this is a placeholder check, replace with actual expected values)
     for (int i = 0; i < y.dimension(0); ++i) {
         for (int j = 0; j < y.dimension(1); ++j) {
-            EXPECT_NEAR(y(i, j).to_float(), 0.0f, EPSILON); // Replace 0.0f with actual expected value
+            EXPECT_NEAR(float(y(i, j)), 0.0f, EPSILON); // Replace 0.0f with actual expected value
         }
     }
 }
 
 TEST_F(LinearTest, Backward) {
-    using T = fixed_point_7pt8;
+    using T = fpm::fixed_16_16;
     int in_features = 3;
     int out_features = 2;
     nn::Linear linear_layer(in_features, out_features);
@@ -70,7 +71,7 @@ TEST_F(LinearTest, Backward) {
     // Verify the output for x_grad (this is a placeholder check, replace with actual expected values)
     for (int i = 0; i < x_grad.dimension(0); ++i) {
         for (int j = 0; j < x_grad.dimension(1); ++j) {
-            EXPECT_NEAR(x_grad(i, j).to_float(), 0.0f, EPSILON); // Replace 0.0f with actual expected value
+            EXPECT_NEAR(float(x_grad(i, j)), 0.0f, EPSILON); // Replace 0.0f with actual expected value
         }
     }
 }

@@ -8,11 +8,12 @@
 #include "absl/types/span.h"
 #include "Parameter.hpp"  // Include the Parameter header
 #include "./../tensor/fixed_point.hpp"
+#include "./../tensor/fpm/fpm.hpp"
 
 namespace nn {
 
 struct Linear {
-  using T = fixed_point_7pt8;
+  using T = fpm::fixed_16_16;
 
   Linear(int in_features, int out_features, bool bias = true)
       : in_features_(in_features),
