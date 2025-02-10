@@ -363,6 +363,7 @@ struct Parameter {
  
   template <typename T>
   typename TTypes<T>::Flat flat() const {
+    
     // Add debug logging
     LOG(INFO) << "Attempting to access Parameter as type: " << typeid(T).name();
     LOG(INFO) << "Parameter's actual dtype: " << dtype_;

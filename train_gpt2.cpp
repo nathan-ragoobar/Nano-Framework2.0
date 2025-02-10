@@ -1,11 +1,23 @@
 #include <unistd.h>
 #include <iostream>
 #include <memory>
+#include <fstream>
+#include <ctime>
+#include <string>
 
 #include "gpt2.hpp"
 //#include "llmc/dataloader.h"
 //#include "llmc/tokenizer.h"
 #include "nano.hpp"
+
+inline void print_to_file(const std::string& message, const std::string& filename = "trainoutput.txt") {
+  std::ofstream file(filename, std::ios::app);  // Open in append mode
+  if (file.is_open()) {
+      time_t now = time(nullptr);
+      file << "[" << std::string(ctime(&now)).substr(0, 24) << "], " << message << std::endl;
+      file.close();
+  }
+}
 
 // sampler
 
@@ -39,6 +51,7 @@ int main(int argc, char** argv) {
 
     signal(SIGABRT, nn::signal_handler);//For debugging
 
+
   gpt2::GPT2Config config;
   config.max_seq_len = 1024;
   config.vocab_size = 50257;
@@ -51,7 +64,7 @@ int main(int argc, char** argv) {
   model.InitializeFromScratch(config);
 
   //gpt2::GPT2 model;
-  //model.BuildFromCheckpoint("./gpt2_124M100Steps.bin"); //Loads model
+  //model.BuildFromCheckpoint("./fixed_point_weights_16pt16.bin"); //Loads model
 
   // build the DataLoaders from tokens files. for now use tiny_shakespeare if
   // available, else tiny_stories
@@ -96,9 +109,9 @@ int main(int argc, char** argv) {
   nn::Softmax softmax;
   std::vector<nn::Parameter*> parameters;
   model.Parameters(&parameters);
-  auto optimizer = optim::AdamW<float>(parameters, 1e-4f, 0.9f, 0.999f, 1e-8f, 0.0f); //defines the AdamW optimizer optimizer to be used
+  auto optimizer = optim::AdamW<float>(parameters, 1e-5f, 0.9f, 0.999f, 1e-8f, 0.0f); //defines the AdamW optimizer optimizer to be used
   std::vector<double> timings;
-  for (int step = 0; step <= 100; step++) {
+  for (int step = 0; step <= 1000; step++) {
     // once in a while estimate the validation loss
     if (step % 10 == 0) {
       float val_loss = 0.0f;
@@ -132,7 +145,7 @@ int main(int argc, char** argv) {
     }
 
     // once in a while do model inference to print generated text
-    if (step > 0 && step % 20 == 0) {
+    if(step == 1000){//if (step > 0 && step % 20 == 0) {
       // fill up gen_tokens with the GPT2_EOT, which kicks off the generation
       for (int i = 0; i < B * T; ++i) {
         gen_tokens[i] = tokenizer.eot_token;
@@ -200,6 +213,10 @@ int main(int argc, char** argv) {
         (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     printf("step %d: train loss %f (took %f ms)\n", step, loss,
            time_elapsed_s * 1000);
+    
+    // print to file
+    std::string message = "step " + std::to_string(step) + ": train loss, " + std::to_string(loss) + ", (took " + std::to_string(time_elapsed_s * 1000) + " ms)";
+    print_to_file(message);
     if (step) {
       timings.push_back(time_elapsed_s);
     }
@@ -220,4 +237,6 @@ int main(int argc, char** argv) {
   tokenizer_free(&tokenizer);
   free(gen_tokens);
   return 0;
+
+  
 }
