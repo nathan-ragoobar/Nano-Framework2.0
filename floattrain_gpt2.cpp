@@ -1,0 +1,269 @@
+#include <unistd.h>
+#include <iostream>
+#include <memory>
+
+#include "gpt2.hpp"
+//#include "llmc/dataloader.h"
+//#include "llmc/tokenizer.h"
+#include "nano.hpp"
+#include "tensor/fixed_point.hpp"
+
+// sampler
+
+unsigned int random_u32(unsigned long long* state) {
+  // xorshift rng: https://en.wikipedia.org/wiki/Xorshift#xorshift.2A
+  *state ^= *state >> 12;
+  *state ^= *state << 25;
+  *state ^= *state >> 27;
+  return (*state * 0x2545F4914F6CDD1Dull) >> 32;
+}
+float random_f32(unsigned long long* state) {  // random float32 in [0,1)
+  return (random_u32(state) >> 8) / 16777216.0f;
+}
+
+int sample_mult(fixed_point_7pt8* probabilities, int n, fixed_point_7pt8 coin) {
+    fixed_point_7pt8 cdf(0.0f);
+    for (int i = 0; i < n; i++) {
+        cdf += probabilities[i];
+        if (coin < cdf) {
+            return i;
+        }
+    }
+    return n - 1;
+}
+
+fixed_point_7pt8 random_fixed(unsigned long long* state) {
+    return fixed_point_7pt8(random_f32(state));
+}
+
+bool USE_FAST_SOFTMAX = true;
+
+using Type = float;
+
+int main(int argc, char** argv) {
+
+  gpt2::GPT2Config config;
+  config.max_seq_len = 1024;
+  config.vocab_size = 50257;
+  config.padded_vocab_size = 50304;
+  config.num_layers = 12;
+  config.num_heads = 12;
+  config.channels = 768;
+
+  gpt2::GPT2 model;
+  model.InitializeFromScratch(config);
+
+  //gpt2::GPT2 model;
+  //model.BuildFromCheckpoint("./fixed_point_weights.bin"); //Loads model
+
+  // build the DataLoaders from tokens files. for now use tiny_shakespeare if
+  // available, else tiny_stories
+  const char* tiny_stories_train = "dev/data/tinystories/TinyStories_train.bin";
+  const char* tiny_stories_val = "dev/data/tinystories/TinyStories_val.bin";
+  const char* tiny_shakespeare_train =
+      "dev/data/tinyshakespeare/tiny_shakespeare_train.bin";
+  const char* tiny_shakespeare_val =
+      "dev/data/tinyshakespeare/tiny_shakespeare_val.bin";
+  const char* train_tokens = access(tiny_shakespeare_train, F_OK) != -1
+                                 ? tiny_shakespeare_train
+                                 : tiny_stories_train;
+  const char* val_tokens = access(tiny_shakespeare_val, F_OK) != -1
+                               ? tiny_shakespeare_val
+                               : tiny_stories_val;
+  int B = 4;   // batch size 4 (i.e. 4 independent token sequences will be
+               // trained on)
+  int T = 64;  // sequence length 64 (i.e. each sequence is 64 tokens long).
+               // must be <= maxT, which is 1024 for GPT-2
+  DataLoader train_loader, val_loader; //Create DataLoader for training and validation
+  dataloader_init(&train_loader, train_tokens, B, T, 0, 1, 0);
+  dataloader_init(&val_loader, val_tokens, B, T, 0, 1, 0);
+  printf("train dataset num_batches: %zu\n", train_loader.num_tokens / (B * T));
+  printf("val dataset num_batches: %zu\n", val_loader.num_tokens / (B * T));
+  int val_num_batches = 5;
+
+  // build the Tokenizer
+  Tokenizer tokenizer;
+  tokenizer_init(&tokenizer, "gpt2_tokenizer.bin");
+
+  // some memory for generating samples from the model
+  unsigned long long rng_state = 1337;
+  int* gen_tokens = (int*)mallocCheck(B * T * sizeof(int));
+  const int genT = 64;  // number of steps of inference we will do
+
+  // train
+  struct timespec start, end;
+  int V = model.config.vocab_size;
+  std::unique_ptr<float[]> logit = std::make_unique<float[]>(B * T * V);
+  std::unique_ptr<float[]> prob = std::make_unique<float[]>(B * T * V);
+  nn::Parameter label(nn::DT_FIXED, B * T * V);
+  nn::Softmax softmax;
+  std::vector<nn::Parameter*> parameters;
+  model.Parameters(&parameters);
+  optim::AdamW<float> optimizer(parameters, 
+    10.0f,
+    0.9f, 
+    0.999f,
+    1e-8f,
+    0.0f); //defines the AdamW optimizer optimizer to be used
+  std::vector<double> timings;
+  for (int step = 0; step <= 100; step++) {
+    // once in a while estimate the validation loss
+    if (step % 10 == 0) {
+      float val_loss(0.0f);
+      dataloader_reset(&val_loader);
+      for (int i = 0; i < val_num_batches; i++) {
+        dataloader_next_batch(&val_loader);
+        float loss(0.0f);
+        auto idx = TTypes<int>::ConstMatrix(val_loader.inputs, B, T);
+        if (USE_FAST_SOFTMAX) {
+          auto target = TTypes<int>::ConstMatrix(val_loader.targets, B, T);
+          auto logit_3d = Make3DTensor(logit.get(), B, T, V);
+          model.gpt2_->ForwardCPU(idx, target, logit_3d, &loss);
+        } else {
+          label.ZeroData();
+          nn::OneHot(MakeConstFlat(val_loader.targets, B * T),
+                     label.matrix<Type>(B * T, V));
+          auto label_3d = label.const_tensor_3d<Type>(B, T, V);
+          auto logit_3d = Make3DTensor(logit.get(), B, T, V);
+          model.gpt2_->ForwardGPU(idx, label_3d, logit_3d, &loss);
+        }
+        val_loss += loss;
+      }
+      val_loss /= val_num_batches;
+
+      if (step == 0) {
+        size_t num_activations = model.gpt2_->NumActivations();
+        printf("num_activations: %zu(%zu MB)\n", num_activations,
+               num_activations * sizeof(floatX) / 1024 / 1024);
+      }
+      printf("val loss %f\n", val_loss.to_float());
+    }
+
+    // once in a while do model inference to print generated text
+    if (step > 0 && step % 20 == 0) {
+      // fill up gen_tokens with the GPT2_EOT, which kicks off the generation
+      for (int i = 0; i < B * T; ++i) {
+        gen_tokens[i] = tokenizer.eot_token;
+      }
+      // now sample from the model autoregressively
+      printf("generating:\n---\n");
+      for (int t = 1; t < genT; t++) {
+        // note that inference is very wasteful here because for each token
+        // we re-calculate the forward pass for all of (B,T) positions from
+        // scratch but the inference here is just for sanity checking anyway and
+        // we can maybe optimize a bit more later, with careful tests
+        auto gen_tokens_2d = TTypes<int>::ConstMatrix(gen_tokens, B, T);
+        auto logit_3d = Make3DTensor(logit.get(), B, T, V);
+        model.gpt2_->Forward(gen_tokens_2d, logit_3d);
+        auto logit_2d = MakeConstMatrix(logit.get(), B * T, V);
+        auto prob_2d = MakeMatrix(prob.get(), B * T, V);
+        softmax.Forward(logit_2d, prob_2d);
+        // furthermore, below we're only using b=0 (i.e. the first row) of all B
+        // rows we're in principle running B "inference streams" in parallel
+        // here but only using position 0 get the Vp-dimensional vector probs[0,
+        // t-1, :]
+        float* probs = prob.get() + (t - 1) * V;
+        float coin = random_fixed(&rng_state);
+        // note we're only sampling from the first V elements, ignoring padding
+        // (the probabilities in the padded region should be zero anyway)
+        int next_token = sample_mult(probs, model.config.vocab_size, coin);
+        gen_tokens[t] = next_token;
+        // print the generated token, either using the Tokenizer or a fallback
+        if (tokenizer.init_ok) {
+          const char* token_str = tokenizer_decode(&tokenizer, next_token);
+          safe_printf(token_str);
+        } else {
+          // fall back to printing the token id
+          printf("%d ", next_token);
+        }
+        fflush(stdout);
+      }
+      printf("\n---\n");
+    }
+
+    // do a training step
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    dataloader_next_batch(&train_loader);
+    float loss = 0.0f;
+    auto idx = TTypes<int>::ConstMatrix(train_loader.inputs, B, T);
+    if (USE_FAST_SOFTMAX) {
+      auto target = TTypes<int>::ConstMatrix(train_loader.targets, B, T);
+      auto logit_3d = Make3DTensor(logit.get(), B, T, V);
+
+      struct timespec Forwardstart, Forwardend;
+      clock_gettime(CLOCK_MONOTONIC, &Forwardstart);
+
+      //This calls the forward pass on the model.gpt2_ object 
+      model.gpt2_->ForwardCPU(idx, target, logit_3d, &loss);
+      
+      printf("Calculated loss is: %f\n", loss);
+        
+      clock_gettime(CLOCK_MONOTONIC, &Forwardend);
+      double Forward_time_elapsed_s =
+        (Forwardend.tv_sec - Forwardstart.tv_sec) + (Forwardend.tv_nsec - Forwardstart.tv_nsec) / 1e9;
+    printf("Time for Forward step %f ms)\n", 
+    Forward_time_elapsed_s * 1000);
+
+      optimizer.ZeroGrad();
+
+      struct timespec Backwardstart, Backwardend;
+      clock_gettime(CLOCK_MONOTONIC, &Backwardstart);
+
+
+      model.gpt2_->BackwardCPU(idx, target);
+      
+      
+      clock_gettime(CLOCK_MONOTONIC, &Backwardend);
+      double Backward_time_elapsed_s =
+        (Backwardend.tv_sec - Backwardstart.tv_sec) + (Backwardend.tv_nsec - Backwardstart.tv_nsec) / 1e9;
+    printf("Time for Backward step %f ms)\n", 
+    Backward_time_elapsed_s * 1000);
+
+    } else {
+      label.ZeroData();
+      nn::OneHot(MakeConstFlat(train_loader.targets, B * T),
+                 label.matrix<Type>(B * T, V));
+      auto label_3d = label.const_tensor_3d<Type>(B, T, V);
+      auto logit_3d = Make3DTensor(logit.get(), B, T, V);
+      model.gpt2_->ForwardGPU(idx, label_3d, logit_3d, &loss);
+      optimizer.ZeroGrad();
+      model.gpt2_->BackwardGPU(idx);
+    }
+    struct timespec Optimizerstart, Optimizerend;
+    clock_gettime(CLOCK_MONOTONIC, &Optimizerstart);
+
+
+    optimizer.Step(step + 1);
+
+    clock_gettime(CLOCK_MONOTONIC, &Optimizerend);
+      double Optimizer_time_elapsed_s =
+        (Optimizerend.tv_sec - Optimizerstart.tv_sec) + (Optimizerend.tv_nsec - Optimizerstart.tv_nsec) / 1e9;
+    printf("Time for Optimizer %f ms)\n", 
+    Optimizer_time_elapsed_s * 1000);
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    double time_elapsed_s =
+        (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    printf("step %d: train loss %f (took %f ms)\n", 
+    step, loss, time_elapsed_s * 1000);
+    if (step) {
+      timings.push_back(time_elapsed_s);
+    }
+  }
+
+  double sum = std::accumulate(timings.begin(), timings.end(), 0.0);
+  if (!timings.empty()) {
+    printf("final %zu iters avg: %.3f ms\n", timings.size(),
+           1000 * sum / timings.size());
+  }
+
+  //Save model
+  model.SaveModel("gpt2_124M100Steps.bin");
+
+  // free
+  dataloader_free(&train_loader);
+  dataloader_free(&val_loader);
+  tokenizer_free(&tokenizer);
+  free(gen_tokens);
+  return 0;
+}

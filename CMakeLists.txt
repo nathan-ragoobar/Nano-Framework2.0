@@ -5,6 +5,12 @@ project(nano LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic") #Also for debugging
+
+# Add debug symbols
+set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
+
 # Add the Abseil library
 add_subdirectory(abseil-cpp)
 
@@ -29,8 +35,8 @@ add_definitions(-DEIGEN_USE_THREADS)
 include_directories(${EIGEN3_INCLUDE_DIR})
 
 # Add the fpm library
-add_subdirectory(fpm)
-include_directories(${CMAKE_SOURCE_DIR}/fpm/include)
+#add_subdirectory(fpm)
+#include_directories(${CMAKE_SOURCE_DIR}/fpm/include)
 
 # Source files
 
@@ -52,7 +58,14 @@ target_link_libraries(gpt2 gpt)
 #target_link_libraries(optim nn)
 
 add_executable(train_gpt2_cpu train_gpt2.cpp)
-target_link_libraries(train_gpt2_cpu gpt2 optim profiler)
+#target_link_libraries(train_gpt2_cpu gpt2 optim profiler)
+target_link_libraries(train_gpt2_cpu 
+    gpt2 
+    optim 
+    profiler
+    dl      # Add these
+    pthread # two lines
+)
 target_compile_options(train_gpt2_cpu PRIVATE -Ofast -march=native)
 
 add_executable(inference_gpt2_cpu inference_gpt2.cpp)
@@ -70,14 +83,3 @@ target_link_libraries(test_gpt2
 )
 target_compile_options(test_gpt2 PRIVATE -Ofast -march=native)
 
-add_executable(test_fpm test_fpm.cpp)
-target_link_libraries(test_fpm
-    ${GTEST_LIBRARIES}
-    pthread
-    absl::inlined_vector
-    gpt2
-    optim
-    profiler
-    fpm
-)
-target_compile_options(test_fpm PRIVATE -Ofast -march=native)

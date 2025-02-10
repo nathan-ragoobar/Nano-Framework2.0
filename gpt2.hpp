@@ -80,7 +80,55 @@ struct GPT2 {
     fcloseCheck(model_file);
   } //end BuildFromCheckpoint()
 
+  void InitializeFromScratch(const GPT2Config& config) {
+    gpt2_ = std::make_unique<gpt::GPT>(
+        config.max_seq_len,
+        config.vocab_size, 
+        config.padded_vocab_size,
+        config.num_layers,
+        config.num_heads,
+        config.channels
+    );
+    
+    auto init_fn = [&](nn::Parameter* p, const std::string& name) {
+      // Check if parameter is part of the MLP/feedforward layer
+      bool is_mlp = name.find("fc") != std::string::npos; // fc, fcproj are MLP parameters
+      
+      if (is_mlp) {
+        // Initialize MLP layers with fixed point
+        auto data = p->flat<fpm::fixed_16_16>();
+        int fan_in = p->size() / data.dimension(0);
+        float std_dev = 1.0f / sqrt(static_cast<float>(fan_in));
+        
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::normal_distribution<float> d(0.0f, std_dev);
 
+        for(int i = 0; i < p->size(); i++) {
+          data.data()[i] = fpm::fixed_16_16(d(gen));
+        }
+      } else {
+        // Initialize all other layers with floating point
+        auto data = p->flat<float>();
+        int fan_in = p->size() / data.dimension(0);
+        float std_dev = 1.0f / sqrt(static_cast<float>(fan_in));
+        
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::normal_distribution<float> d(0.0f, std_dev);
+
+        for(int i = 0; i < p->size(); i++) {
+          data.data()[i] = d(gen);
+        }
+      }
+    };
+
+    ApplyFn(init_fn, config.num_layers);
+    this->config = config;
+}
+
+
+/*
 void InitializeFromScratch(const GPT2Config& config) {
     // Create GPT model with config params
     gpt2_ = std::make_unique<gpt::GPT>(
@@ -94,17 +142,30 @@ void InitializeFromScratch(const GPT2Config& config) {
 
     // Initialize weights using Kaiming initialization
     auto init_fn = [&](nn::Parameter* p, const std::string& name) {
-      auto data = p->flat<Type>();
-      int fan_in = p->size() / data.dimension(0);
-      Type std_dev = Type(1.0f) / Type(sqrt(static_cast<float>(fan_in)));
-      
-      // Random initialization
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      std::normal_distribution<float> d(0.0f, std_dev);
+      if (p->dtype() == nn::DT_FIXED) {
+        auto data = p->flat<fpm::fixed_16_16>();
+        int fan_in = p->size() / data.dimension(0);
+        float std_dev = 1.0f / sqrt(static_cast<float>(fan_in));
+        
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::normal_distribution<float> d(0.0f, std_dev);
 
-      for(int i = 0; i < p->size(); i++) {
-        data.data()[i] = Type(d(gen));
+        for(int i = 0; i < p->size(); i++) {
+          data.data()[i] = fpm::fixed_16_16(d(gen));
+        }
+      } else {
+        auto data = p->flat<float>();
+        int fan_in = p->size() / data.dimension(0);
+        float std_dev = 1.0f / sqrt(static_cast<float>(fan_in));
+        
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::normal_distribution<float> d(0.0f, std_dev);
+
+        for(int i = 0; i < p->size(); i++) {
+          data.data()[i] = d(gen);
+        }
       }
     };
 
@@ -114,7 +175,7 @@ void InitializeFromScratch(const GPT2Config& config) {
     // Store config
     this->config = config;
   } //end InitializeFromScratch()
-
+*/
 
   //SAVE MODEL
   void SaveModel(absl::string_view model_path) {

@@ -1,12 +1,10 @@
 #ifndef LLM_CPP__GPT_HPP_
 #define LLM_CPP__GPT_HPP_
 
-//#include "nn.hpp"
+#include "nn.hpp"
 #include "MLP.hpp"
 #include "AttentionLayer.hpp"
 #include "Block.hpp"
-#include "./../tensor/fixed_point.hpp"
-#include "Embedding.hpp"
 
 #ifdef EIGEN_USE_GPU
 #include "cuda_profile_util.hpp"
@@ -20,7 +18,7 @@ namespace gpt {
 
 
 struct GPT {
-  using Type = fixed_point_7pt8;
+  using Type = float;
 
   GPT(int block_size, int vocab_size, int padded_vocab_size, int n_layer,
       int n_head, int n_embed)
@@ -41,14 +39,14 @@ struct GPT {
     }
     lnf_ = std::make_unique<nn::LayerNorm>(n_embed);
 
-    lm_head_unused_ = std::make_unique<nn::Linear>(n_embed, vocab_size);
+    lm_head_unused_ = std::make_unique<nn::Linear>(nn::Linear::Float(n_embed, vocab_size));
     // https://paperswithcode.com/method/weight-tying
     nn::g_device.memcpy(wte_->weight_->data<Type>(),
                         lm_head_unused_->weight_->template data<Type>(),
-                        sizeof(Type) * vocab_size * n_embed);
+                        sizeof(float) * vocab_size * n_embed);
     nn::g_device.memset(
         wte_->weight_->data<Type>() + vocab_size * n_embed, 0,
-        sizeof(Type) * (padded_vocab_size - vocab_size) * n_embed);
+        sizeof(float) * (padded_vocab_size - vocab_size) * n_embed);
     lm_head_ = wte_->weight_->data<Type>();
     softmax_cross_entropy_ = std::make_unique<nn::SoftmaxCrossEntropy>();
 
@@ -68,81 +66,6 @@ struct GPT {
     logits_grad_ =
         std::make_unique<nn::Activation>(dtype);  // [B*T, vocab_size]
   }
-
-~GPT() {
-    //LOG(INFO) << "Starting GPT destruction";
-
-    //LOG(INFO) << "Clearing raw pointers";
-    lm_head_ = nullptr;
-    lm_head_grad_ = nullptr;
-
-    //LOG(INFO) << "Clearing activations";
-    logits_grad_.reset();
-    //LOG(INFO) << "logits_grad_ cleared";
-    probs_.reset();
-    //LOG(INFO) << "probs_ cleared";
-    loss_mean_.reset();
-    //LOG(INFO) << "loss_mean_ cleared";
-    loss_.reset();
-    //LOG(INFO) << "loss_ cleared";
-    scratch_.reset();
-    //LOG(INFO) << "scratch_ cleared";
-    lnf_rstd_.reset();
-    //LOG(INFO) << "lnf_rstd_ cleared";
-    lnf_mean_.reset();
-    //LOG(INFO) << "lnf_mean_ cleared";
-    lnf_y_.reset();
-    //LOG(INFO) << "lnf_y_ cleared";
-    block_y_.reset();
-    //LOG(INFO) << "block_y_ cleared";
-    encoded_.reset();
-    //LOG(INFO) << "encoded_ cleared";
-    pos_emb_.reset();
-    //LOG(INFO) << "pos_emb_ cleared";
-    tok_emb_.reset();
-    //LOG(INFO) << "tok_emb_ cleared";
-
-    // 3. Clear independent components first
-    //LOG(INFO) << "Clearing independent components";
-    softmax_cross_entropy_.reset();
-    //LOG(INFO) << "softmax_cross_entropy_ cleared";
-
-    // Handle weight-tied components in correct order
-    //LOG(INFO) << "Clearing weight-tied components";
-    if (lm_head_unused_) {
-        lm_head_unused_->weight_.reset();  // Clear weights first
-        lm_head_unused_.reset();           // Then clear the layer
-    }
-    //LOG(INFO) << "lm_head_unused_ cleared";
-
-
-    lnf_.reset();
-    //LOG(INFO) << "lnf_ cleared";
-
-    // 4. Clear layers - protect against null
-    //LOG(INFO) << "Clearing layers";
-    if (!h_.empty()) {
-        for (auto& layer : h_) {
-            if (layer) layer.reset();
-        }
-        h_.clear();
-    }
-    //LOG(INFO) << "h_ cleared";
-
-    //LOG(INFO) << "Clearing embeddings";
-    wpe_.reset();
-    wte_.reset();
-
-    //LOG(INFO) << "Resetting parameters";
-    block_size_ = 0;
-    vocab_size_ = 0;
-    padded_vocab_size_ = 0;
-    n_layer_ = 0;
-    n_embed_ = 0;
-
-    //LOG(INFO) << "GPT destruction complete";
-}
-
 
   void __Forward(typename TTypes<int>::ConstMatrix idx) {
     PROFILE_TRACE_FN("GPT");
@@ -252,7 +175,7 @@ struct GPT {
     nn::SoftmaxCrossEntropy::ForwardAndBackward(
         logits, labels, scratch_->template flat<Type>(),
         loss_->template flat<Type>(), logits_grad);
-    logits_grad.device(nn::g_device) = logits_grad * Type(1.0f / BT);
+    logits_grad.device(nn::g_device) = logits_grad * (1.0f / BT);
 
 #ifdef EIGEN_USE_GPU
     TTypes<Type>::UnalignedScalar loss_mean(loss_mean_->data<Type>());
@@ -330,8 +253,6 @@ struct GPT {
     PROFILE_TRACE_FN("GPT");
 
     int BT = targets.size();
-
-    
     logits_grad_->LazyAllocate(BT * vocab_size_);
     logits_grad_->ZeroData();
     auto probs_2d = MakeConstMatrix(probs_->data<Type>(), BT, vocab_size_);

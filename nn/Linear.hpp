@@ -195,6 +195,7 @@ struct Linear {
         has_bias_(bias) {
     auto dtype = DataTypeToEnum<FixedT>::value;
     weight_ = std::make_unique<Parameter>(dtype, out_features * in_features);
+    CHECK_EQ(weight_->dtype(), dtype) << "Parameter dtype mismatch";
     KaimingUniformFill(weight_->span<FixedT>(), in_features);
     if (bias) {
       bias_ = std::make_unique<Parameter>(dtype, out_features);

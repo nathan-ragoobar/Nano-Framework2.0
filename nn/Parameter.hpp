@@ -25,8 +25,23 @@
 #include "./../abseil-cpp/absl/strings/string_view.h"
 #include "./../abseil-cpp/absl/types/span.h"
 
+//These three are for debugging
+#include <execinfo.h> // For backtrace
+#include <signal.h>  // For signal handling
+#include <cstdlib>   // For exit
+
+
 
 namespace nn {
+
+  // Used for debugging 
+  void signal_handler(int sig) {
+      void* array[128];
+      size_t size = backtrace(array, 128);
+      fprintf(stderr, "Error: signal %d:\n", sig);
+      backtrace_symbols_fd(array, size, STDERR_FILENO);
+      exit(1);
+    }
 
 using Type = fpm::fixed_16_16;
 using TypeFloat = float;
@@ -183,20 +198,16 @@ g_device.memcpy(matrix.data(), m.data(), sizeof(float) * matrix.size());
 }
 
 //Performs OneHot encoding of target tensor 
-inline void OneHot(typename TTypes<int>::ConstFlat target,
-                       typename TTypes<Type>::Matrix label) {
-    int batch_size = target.size();
-    int num_class = label.dimension(1);
-    
-    CHECK_EQ(batch_size, label.dimension(0));
-    
-    for (int i = 0; i < batch_size; ++i) {
-        int ix = target(i);
-        CHECK_LT(ix, num_class);
-        label(i, ix) = Type(1.0f);
-    }
-}
-
+inline void OntHot(typename TTypes<int>::ConstFlat target,
+                    typename TTypes<float>::Matrix label) {
+      int batch_size = target.size(), num_class = label.dimension(1);
+      CHECK_EQ(batch_size, label.dimension(0));
+      for (int i = 0; i < batch_size; ++i) {
+      int ix = target(i);
+      CHECK_LT(ix, num_class);
+      label(i, ix) = 1.0f;
+      }
+  }
 
 //Splits a range into n parts and returns the start and end index of the i-th part
 //Used for parallel processing of data
@@ -290,6 +301,8 @@ struct Parameter {
 
   int64_t size() const { return num_element_; }
 
+  DataType dtype() const { return dtype_; }
+
   void LazyAllocate(int num_element) {
     if (data_ == nullptr) {
       data_ = Allocate(dtype_, num_element);
@@ -350,6 +363,21 @@ struct Parameter {
  
   template <typename T>
   typename TTypes<T>::Flat flat() const {
+    // Add debug logging
+    LOG(INFO) << "Attempting to access Parameter as type: " << typeid(T).name();
+    LOG(INFO) << "Parameter's actual dtype: " << dtype_;
+    LOG(INFO) << "Stack trace:";
+    void* callstack[128];
+    int frames = backtrace(callstack, 128);
+    char** symbols = backtrace_symbols(callstack, frames);
+    for (int i = 0; i < frames; i++) {
+        LOG(INFO) << symbols[i];
+    }
+    free(symbols);
+
+    //LOG(INFO) << "Requested type: " << DataTypeToEnum<T>::value;
+    //LOG(INFO) << "Actual dtype: " << dtype_;
+
     CHECK_EQ(DataTypeToEnum<T>::value, dtype_);
     return {data<T>(), num_element_};
   }
