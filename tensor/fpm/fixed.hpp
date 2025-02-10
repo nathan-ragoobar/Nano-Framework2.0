@@ -177,7 +177,13 @@ public:
 
     inline fixed& operator/=(const fixed& y) noexcept
     {
-        assert(y.m_value != 0);
+        //If devide by zero, return max value
+        //This follows the behavior of floating point division
+        if (y.m_value == 0) {
+            m_value = std::numeric_limits<BaseType>::max();
+            return *this;
+        }
+        //assert(y.m_value != 0);
 	if (EnableRounding){
 	    // Normal fixed-point division is: x * 2**FractionBits / y.
 	    // To correctly round the last bit in the result, we need one more bit of information.
