@@ -80,6 +80,24 @@
     fixed_point(const double& d)        : data(signed_value_type(d * decimal_split_value)) { }
     fixed_point(const long double& l)   : data(signed_value_type(l * decimal_split_value)) { }
     fixed_point(const fixed_point& fp)  : data(fp.data) { }
+
+    /*
+    Suggested way to intialize the floating point values:
+    fixed_point(const float& f) {
+    double scaled = static_cast<double>(f) * decimal_split_value;
+    
+    // Check range
+    if (scaled > value_max().data) {
+        data = value_max().data;  // Clamp to maximum
+    }
+    else if (scaled < value_min().data) {
+        data = value_min().data;  // Clamp to minimum
+    }
+    else {
+        data = signed_value_type(scaled);
+    }
+}
+    */
   /*
     // Modify constructors to use clamp functions
     fixed_point() : data(0) {}
