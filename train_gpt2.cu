@@ -115,12 +115,6 @@ int main(int argc, char** argv) {
         nn::OntHot(MakeConstFlat(val_loader.targets, B * T),
                    MakeMatrix(label.get(), B * T, V));
 
-        // Add this debug code before the cudaMemcpy
-        printf("Device ptr: %p, Host ptr: %p, Size: %zu bytes\n", 
-            d_label.data<float>(), 
-            label.get(), 
-            sizeof(float) * B * T * V);
-
         cudaCheck(cudaMemcpy(d_label.data<float>(), label.get(),
                              sizeof(float) * B * T * V,
                              cudaMemcpyHostToDevice));
