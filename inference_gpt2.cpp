@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
     struct timespec start, end;
 
     gpt2::GPT2 model;
-    model.BuildFromCheckpoint("./gpt2_124Mtest.bin"); //Loads model
+    model.BuildFromCheckpoint("./gpt2_124M_quantized_to_00000005.bin"); //Loads model
 
     int B = 4;   // batch size 4 (i.e. 4 independent token sequences will be
                // trained on)

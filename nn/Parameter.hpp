@@ -9,6 +9,7 @@
 
 #include "llmc/rand.h"
 #include "tensor/tensor_util.hpp"
+#include <eigen/unsupported/Eigen/CXX11/Tensor>
 
 
 /* #include "absl/algorithm/container.h"
