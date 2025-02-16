@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
     struct timespec start, end;
 
     gpt2::GPT2 model;
-    model.BuildFromCheckpoint("./gpt2_124M_quantized_to_00000005.bin"); //Loads model
+    model.BuildFromCheckpoint("./gpt2_124M_quantized_to_0.005.bin"); //Loads model
 
     int B = 4;   // batch size 4 (i.e. 4 independent token sequences will be
                // trained on)
@@ -144,6 +144,61 @@ int main(int argc, char** argv) {
         (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     printf("Inference took: %f ms)\n",
            time_elapsed_s * 1000);
+    
+    const char* tiny_stories_val = "dev/data/tinystories/TinyStories_val.bin";
+  
+    const char* tiny_shakespeare_val =
+           "dev/data/tinyshakespeare/tiny_shakespeare_val.bin";
+    const char* val_tokens = access(tiny_shakespeare_val, F_OK) != -1
+           ? tiny_shakespeare_val
+           : tiny_stories_val;
+    
+    nn::Parameter label(nn::DT_FLOAT, B * T * V);
+    DataLoader val_loader;
+    dataloader_init(&val_loader, val_tokens, B, T, 0, 1, 0);
+    // Add initialization here
+    //if (!dataloader_init(&val_loader, "val.bin", B, T)) {  // Make sure val.bin exists
+      //fprintf(stderr, "Failed to initialize validation dataloader\n");
+      //return 1;
+  //}
+    int val_num_batches = 5;
+    bool USE_FAST_SOFTMAX = true;
+
+    for (int step = 0; step <= 10; step++) {
+    
+      float val_loss = 0.0f;
+      dataloader_reset(&val_loader);
+      for (int i = 0; i < val_num_batches; i++) {
+        dataloader_next_batch(&val_loader);
+        float loss = 0.0f;
+        auto idx = TTypes<int>::ConstMatrix(val_loader.inputs, B, T);
+        if (USE_FAST_SOFTMAX) {
+          auto target = TTypes<int>::ConstMatrix(val_loader.targets, B, T);
+          auto logit_3d = Make3DTensor(logit.get(), B, T, V);
+          model.gpt2_->ForwardCPU(idx, target, logit_3d, &loss);
+        } else {
+          label.ZeroData();
+          nn::OntHot(MakeConstFlat(val_loader.targets, B * T),
+                      label.matrix<float>(B * T, V));
+          auto label_3d = label.const_tensor_3d<float>(B, T, V);
+          auto logit_3d = Make3DTensor(logit.get(), B, T, V);
+          model.gpt2_->ForwardGPU(idx, label_3d, logit_3d, &loss);
+        }
+        val_loss += loss;
+      }
+      val_loss /= val_num_batches;
+
+      if (step == 0) {
+        size_t num_activations = model.gpt2_->NumActivations();
+        printf("num_activations: %zu(%zu MB)\n", num_activations,
+                num_activations * sizeof(floatX) / 1024 / 1024);
+      }
+      printf("val loss %f\n", val_loss);
+    }
+
+    // Add cleanup
+    dataloader_free(&val_loader);
+    return 0;
       
 
 }

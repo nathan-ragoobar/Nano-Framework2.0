@@ -162,6 +162,13 @@ struct GPT {
                          float* loss) {
     PROFILE_TRACE_FN("GPT");
 
+    //For the sake of debugging, print out whether the GPU code path is active
+    #ifdef EIGEN_USE_GPU
+        printf("GPU code path active\n");
+    #else
+        printf("GPU code path NOT active\n");
+    #endif
+
     int BT = logits.dimension(0);
     CHECK_EQ(BT, labels.dimension(0));
     CHECK_EQ(vocab_size_, logits.dimension(1));

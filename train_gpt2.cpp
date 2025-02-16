@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
   //model.InitializeFromScratch(config);
 
   //gpt2::GPT2 model;
-  model.BuildFromCheckpoint("./gpt2_124M100Steps.bin"); //Loads model
+  model.BuildFromCheckpoint("./gpt2_124M.bin"); //Loads model
 
   // build the DataLoaders from tokens files. for now use tiny_shakespeare if
   // available, else tiny_stories

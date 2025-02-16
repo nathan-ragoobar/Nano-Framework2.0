@@ -92,8 +92,38 @@ int main(int argc, char** argv) {
   int V = model.config.vocab_size;
   std::unique_ptr<float[]> prob = std::make_unique<float[]>(B * T * V);
   std::unique_ptr<float[]> label = std::make_unique<float[]>(B * T * V);
+
+  // After Parameter creation
+    printf("Device memory info before allocation:\n");
+    size_t free_mem, total_mem;
+    cudaCheck(cudaMemGetInfo(&free_mem, &total_mem));
+    printf("Free: %zu MB, Total: %zu MB\n", free_mem/(1024*1024), total_mem/(1024*1024));
+
+
+
   nn::Parameter d_label(nn::DT_FLOAT, B * T * V),
       d_logit(nn::DT_FLOAT, B * T * V), d_prob(nn::DT_FLOAT, B * T * V);
+
+    // Verify each Parameter's memory
+    printf("d_label ptr: %p, size: %zu bytes\n", 
+        (void*)d_label.data<float>(), 
+        d_label.size() * sizeof(float));
+    printf("d_logit ptr: %p, size: %zu bytes\n",
+        (void*)d_logit.data<float>(),
+        d_logit.size() * sizeof(float));
+    printf("d_prob ptr: %p, size: %zu bytes\n",
+        (void*)d_prob.data<float>(),
+        d_prob.size() * sizeof(float));
+
+
+  // Add after Parameter creation
+  //Check if memory allocation is successful
+   if (!d_label.data<float>() || !d_logit.data<float>() || !d_prob.data<float>()) {
+    printf("GPU memory allocation failed\n");
+    exit(1);
+}    
+
+
   nn::Softmax softmax;
   std::vector<nn::Parameter*> parameters;
   model.Parameters(&parameters);
@@ -115,9 +145,66 @@ int main(int argc, char** argv) {
         nn::OntHot(MakeConstFlat(val_loader.targets, B * T),
                    MakeMatrix(label.get(), B * T, V));
 
+
+                   
+
+        // Before cudaMemcpy, add synchronization and validation
+        cudaCheck(cudaDeviceSynchronize());
+        if (!label.get()) {
+            printf("Host memory is null\n");
+            exit(1);
+        }
+        printf("Debug: Copying %zu bytes from host(%p) to device(%p)\n", 
+            sizeof(float) * B * T * V, 
+            (void*)label.get(), 
+            (void*)d_label.data<float>());
+
+        // Before the cudaMemcpy, verify alignment
+        if ((reinterpret_cast<std::uintptr_t>(d_label.data<float>()) % 16) != 0) {
+            printf("Warning: Device pointer not 16-byte aligned\n");
+        }
+        if ((reinterpret_cast<std::uintptr_t>(label.get()) % 16) != 0) {
+            printf("Warning: Host pointer not 16-byte aligned\n");
+}
+
+
+    // Before the problematic cudaMemcpy
+    //cudaCheck(cudaDeviceReset());  // Reset device state
+    //cudaCheck(cudaSetDevice(0));   // Ensure we're on the right device
+
+    // Add error checking before memcpy
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("CUDA error before memcpy: %s\n", cudaGetErrorString(err));
+    }
+
+    // Try pinned memory for the host
+    float* pinned_label;
+    cudaCheck(cudaMallocHost(&pinned_label, sizeof(float) * B * T * V));
+    std::memcpy(pinned_label, label.get(), sizeof(float) * B * T * V);
+
+    // Copy from pinned memory to device (correct direction)
+    cudaCheck(cudaMemcpy(d_label.data<float>(),  // destination (device)
+    pinned_label,            // source (host)
+    sizeof(float) * B * T * V,
+    cudaMemcpyHostToDevice));
+
+    // Free pinned memory
+    cudaCheck(cudaFreeHost(pinned_label));
+
+/*
+        cudaCheck(cudaMemcpy(d_label.data<float>(), label.get(),
+                            sizeof(float) * B * T * V,
+                            cudaMemcpyHostToDevice));
+        cudaCheck(cudaDeviceSynchronize());
+*/
+
+
+            /*
         cudaCheck(cudaMemcpy(d_label.data<float>(), label.get(),
                              sizeof(float) * B * T * V,
                              cudaMemcpyHostToDevice));
+                             */
         auto label_3d = d_label.const_tensor_3d<float>(B, T, V);
         auto logit_3d = d_logit.tensor_3d<float>(B, T, V);
         model.gpt2_->ForwardGPU(idx, label_3d, logit_3d, &loss);
