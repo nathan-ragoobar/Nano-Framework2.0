@@ -7,9 +7,10 @@
 #include <regex>
 #include <climits>
 #include "json.hpp"
-
+#include "tokenizer.hpp"
+/*
 using json = nlohmann::json;
-
+ 
 class GPT2Tokenizer {
 private:
     std::unordered_map<std::string, int> encoder;  // Token → ID
@@ -121,9 +122,9 @@ public:
         return result.str();
     }
 };
-
+*/
 int main() {
-    GPT2Tokenizer tokenizer("vocab.bpe", "encoder.json");
+    nano::GPT2Tokenizer tokenizer("vocab.bpe", "encoder.json");
 
     std::string text = "Hello, world! My name is Nathan";
     std::vector<int> tokens = tokenizer.encode(text);

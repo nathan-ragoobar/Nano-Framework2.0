@@ -118,19 +118,65 @@ namespace nano {
                 }
                 return tokenIDs;
             }
-        
-            // Decode token IDs back into text
+
             std::string decode(const std::vector<int>& tokenIDs) {
                 std::ostringstream result;
                 for (int id : tokenIDs) {
                     if (decoder.find(id) != decoder.end()) {
-                        result << decoder[id] << " ";
+                        std::string token = decoder[id];
+                        if (!token.empty()) {
+                            // Check for Unicode characters
+                            unsigned char first_byte = static_cast<unsigned char>(token[0]);
+                            if (first_byte == 0xC4 && token.length() > 1) {  // UTF-8 prefix for Ġ
+                                if (static_cast<unsigned char>(token[1]) == 0xA0) {  // Ġ (U+0120)
+                                    result << ' ' << token.substr(2);
+                                }
+                            } else if (first_byte == 0xC4 && token.length() > 1) {  // UTF-8 prefix for Ċ
+                                if (static_cast<unsigned char>(token[1]) == 0x82) {  // Ċ (U+0102)
+                                    result << '\n' << token.substr(2);
+                                }
+                            } else if (token == "<|endoftext|>") {
+                                result << "\n[END]\n";
+                            } else {
+                                result << token;
+                            }
+                        }
                     } else {
                         std::cerr << "Warning: ID not found in decoder: " << id << std::endl;
                     }
                 }
                 return result.str();
             }
+
+/*        
+            // Decode token IDs back into text
+            std::string decode(const std::vector<int>& tokenIDs) {
+                std::ostringstream result;
+                for (int id : tokenIDs) {
+                    if (decoder.find(id) != decoder.end()) {
+                        std::string token = decoder[id];
+                        // Handle special characters
+                        if (!token.empty()) {
+                            // Replace Ġ with space
+                            if (token[0] == 'Ġ') {
+                                result << ' ' << token.substr(1);
+                            }
+                            // Replace Ċ with newline
+                            else if (token[0] == 'Ċ') {
+                                result << '\n' << token.substr(1);
+                            }
+                            // Regular token
+                            else {
+                                result << token;
+                            }
+                        }
+                    } else {
+                        std::cerr << "Warning: ID not found in decoder: " << id << std::endl;
+                    }
+                }
+                return result.str();
+            }
+                */
         };
 
 

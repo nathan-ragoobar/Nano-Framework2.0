@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
     struct timespec start, end;
 
     gpt2::GPT2 model;
-    model.BuildFromCheckpoint("./gpt2_124M_quantized_to_0.005.bin"); //Loads model
+    model.BuildFromCheckpoint("./gpt2_124M100Steps.bin"); //Loads model
 
     int B = 4;   // batch size 4 (i.e. 4 independent token sequences will be
                // trained on)
@@ -54,6 +54,8 @@ int main(int argc, char** argv) {
     //build the Nano Tokenizer. This has encoding and decoding functions
     nano::Tokenizer tokenizer_nano;
     tokenizer_nano.init();
+
+    nano::GPT2Tokenizer tokenizer_gpt2("vocab.bpe", "encoder.json");
 
 
 
@@ -77,7 +79,8 @@ int main(int argc, char** argv) {
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     //Tokenize the input
-    std::vector<uint32_t> input_tokens = tokenizer_nano.encode_string(input);
+    //std::vector<uint32_t> input_tokens = tokenizer_nano.encode_string(input);
+    std::vector<int> input_tokens = tokenizer_gpt2.encode(input);
 
     //Print the tokens
     for (int i = 0; i < input_tokens.size(); i++) {
@@ -119,17 +122,34 @@ int main(int argc, char** argv) {
         int next_token = sample_mult(probs, model.config.vocab_size, coin);
         gen_tokens[t] = next_token;
         // print the generated token, either using the Tokenizer or a fallback
+        // Replace the token printing section with this:
+        // Replace the token printing section with this:
         if (tokenizer.init_ok) {
-          //const char* token_str = tokenizer_decode(&tokenizer, next_token);
-          //safe_printf(token_str);
-          std::string nano_token_str = tokenizer_nano.decode(next_token);
-            //print Nano token
-            std::cout << nano_token_str << "\n";
+          static std::vector<int> tokens_buffer;  // Make static to persist between iterations
+          tokens_buffer.push_back(next_token);
           
+          // Decode the accumulated tokens
+          std::string decoded_text = tokenizer_gpt2.decode(tokens_buffer);
           
+          // Clear previous output (number of chars printed in last iteration)
+          static size_t last_printed = 0;
+          if (last_printed > 0) {
+              std::cout << std::string(last_printed, '\b');  // Backspace
+          }
+          
+          // Print full text so far
+          std::cout << decoded_text;
+          last_printed = decoded_text.length();
+          
+          // Flush at natural breaks
+          if (decoded_text.find('.') != std::string::npos || 
+              decoded_text.find('\n') != std::string::npos || 
+              next_token == tokenizer.eot_token) {
+              std::cout.flush();
+          }
         } else {
-          // fall back to printing the token id
           printf("%d ", next_token);
+          fflush(stdout);
         }
         fflush(stdout);
       }
