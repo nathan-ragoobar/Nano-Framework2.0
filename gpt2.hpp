@@ -102,9 +102,16 @@ void InitializeFromScratch(const GPT2Config& config) {
       std::mt19937 gen(rd());
       std::normal_distribution<float> d(0.0f, std_dev);
 
+      std::vector<Type> cpu_data(p->size());
       for(int i = 0; i < p->size(); i++) {
-        data.data()[i] = Type(d(gen));
+        cpu_data[i] = Type(d(gen));
       }
+
+#ifdef EIGEN_USE_GPU
+      nn::g_device.memcpyHostToDevice(p->data<Type>(), cpu_data.data(), sizeof(Type) * p->size());
+#else
+      std::copy(cpu_data.begin(), cpu_data.end(), data.data());
+#endif
     };
 
     // Apply initialization to all parameters

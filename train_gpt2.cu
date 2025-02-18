@@ -50,7 +50,17 @@ void cudaCheck(cudaError_t error, const char* file, int line) {
 #define cudaCheck(err) (cudaCheck(err, __FILE__, __LINE__))
 
 int main(int argc, char** argv) {
+
+  gpt2::GPT2Config config;
+  config.max_seq_len = 1024;
+  config.vocab_size = 50257;
+  config.padded_vocab_size = 50304;
+  config.num_layers = 12;
+  config.num_heads = 12;
+  config.channels = 768;
+
   gpt2::GPT2 model;
+  //model.InitializeFromScratch(config);
   model.BuildFromCheckpoint("gpt2_124M.bin");
 
   // build the DataLoaders from tokens files. for now use tiny_shakespeare if
@@ -94,16 +104,16 @@ int main(int argc, char** argv) {
   std::unique_ptr<float[]> label = std::make_unique<float[]>(B * T * V);
 
   // After Parameter creation
-    printf("Device memory info before allocation:\n");
-    size_t free_mem, total_mem;
-    cudaCheck(cudaMemGetInfo(&free_mem, &total_mem));
-    printf("Free: %zu MB, Total: %zu MB\n", free_mem/(1024*1024), total_mem/(1024*1024));
+    //printf("Device memory info before allocation:\n");
+    //size_t free_mem, total_mem;
+    //cudaCheck(cudaMemGetInfo(&free_mem, &total_mem));
+    //printf("Free: %zu MB, Total: %zu MB\n", free_mem/(1024*1024), total_mem/(1024*1024));
 
 
 
   nn::Parameter d_label(nn::DT_FLOAT, B * T * V),
       d_logit(nn::DT_FLOAT, B * T * V), d_prob(nn::DT_FLOAT, B * T * V);
-
+/*
     // Verify each Parameter's memory
     printf("d_label ptr: %p, size: %zu bytes\n", 
         (void*)d_label.data<float>(), 
@@ -114,7 +124,7 @@ int main(int argc, char** argv) {
     printf("d_prob ptr: %p, size: %zu bytes\n",
         (void*)d_prob.data<float>(),
         d_prob.size() * sizeof(float));
-
+*/
 
   // Add after Parameter creation
   //Check if memory allocation is successful
@@ -154,11 +164,12 @@ int main(int argc, char** argv) {
             printf("Host memory is null\n");
             exit(1);
         }
+        /*
         printf("Debug: Copying %zu bytes from host(%p) to device(%p)\n", 
             sizeof(float) * B * T * V, 
             (void*)label.get(), 
             (void*)d_label.data<float>());
-
+          */
         // Before the cudaMemcpy, verify alignment
         if ((reinterpret_cast<std::uintptr_t>(d_label.data<float>()) % 16) != 0) {
             printf("Warning: Device pointer not 16-byte aligned\n");
@@ -299,6 +310,9 @@ int main(int argc, char** argv) {
     printf("final %zu iters avg: %.3f ms\n", timings.size(),
            1000 * sum / timings.size());
   }
+
+  //Save model
+  model.SaveModel("gpt2_124M100Steps.bin");
 
   // free
   dataloader_free(&train_loader);
