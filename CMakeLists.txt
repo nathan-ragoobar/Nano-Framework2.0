@@ -52,7 +52,7 @@ target_link_libraries(gpt2 gpt)
 # Add CUDA support
 find_package(CUDA REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
-#add_definitions(-DEIGEN_USE_GPU)  # Add this line to define the macro
+add_definitions(-DEIGEN_USE_GPU)  # Add this line to define the macro
 
 
 # Add CUDA executable

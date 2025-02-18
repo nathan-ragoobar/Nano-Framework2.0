@@ -75,6 +75,9 @@ int main(int argc, char** argv) {
     std::cout << "Enter a prompt: ";
     std::getline(std::cin, input);
 
+    // Variable to keep track of the last printed length
+    size_t last_printed = 0;
+
     //Start the timer for inference
     clock_gettime(CLOCK_MONOTONIC, &start);
 
@@ -125,32 +128,30 @@ int main(int argc, char** argv) {
         // Replace the token printing section with this:
         // Replace the token printing section with this:
         if (tokenizer.init_ok) {
-          static std::vector<int> tokens_buffer;  // Make static to persist between iterations
-          tokens_buffer.push_back(next_token);
+          // Keep track of last token's position
+          static std::string current_output;
           
-          // Decode the accumulated tokens
-          std::string decoded_text = tokenizer_gpt2.decode(tokens_buffer);
+          // Get just the new token
+          std::vector<int> new_token{next_token};
+          std::string new_text = tokenizer_gpt2.decode(new_token);
           
-          // Clear previous output (number of chars printed in last iteration)
-          static size_t last_printed = 0;
-          if (last_printed > 0) {
-              std::cout << std::string(last_printed, '\b');  // Backspace
-          }
+          // Add to current output
+          current_output += new_text;
           
-          // Print full text so far
-          std::cout << decoded_text;
-          last_printed = decoded_text.length();
+          // Clear line and print current state
+          std::cout << "\r" << std::string(last_printed, ' ') << "\r" << current_output << std::flush;
+          last_printed = current_output.length();
           
-          // Flush at natural breaks
-          if (decoded_text.find('.') != std::string::npos || 
-              decoded_text.find('\n') != std::string::npos || 
+          // Extra newline at natural breaks
+          if (new_text.find('.') != std::string::npos || 
+              new_text.find('\n') != std::string::npos || 
               next_token == tokenizer.eot_token) {
-              std::cout.flush();
+              std::cout << std::endl;
           }
-        } else {
+      } else {
           printf("%d ", next_token);
           fflush(stdout);
-        }
+      }
         fflush(stdout);
       }
         //std::string nano_token_str = tokenizer_nano.decode_string(gen_tokens,genT);
