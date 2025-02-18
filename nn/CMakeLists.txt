@@ -50,3 +50,20 @@ target_link_libraries(testsigmoid
 
 # Add test
 add_test(NAME SigmoidTest COMMAND testsigmoid)
+
+add_executable(test_fastfeedforward
+    test_fastfeedforward.cpp
+)
+
+target_link_libraries(test_fastfeedforward
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
+
+add_test(NAME FastFeedforwardTest COMMAND test_fastfeedforward)

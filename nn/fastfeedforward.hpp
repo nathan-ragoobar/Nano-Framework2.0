@@ -2,6 +2,7 @@
 #define LLM_CPP__FASTFEEDFORWARD_HPP_
 
 #include "nn.hpp"
+#include "./sigmoid.hpp"  // Ensure this header file is included
 
 namespace gpt {
 
@@ -43,7 +44,7 @@ struct FastFeedforward {
     // Decision forward pass
     auto decision = decision_act_->matrix<T>(BT, 1);
     decision_fc_->Forward(x, decision);
-    nn::Sigmoid::Forward(MakeConstFlat(decision.data(), decision.size()),
+    nn::Sigmoid::Forward<float>(MakeConstFlat(decision.data(), decision.size()),
                         MakeFlat(decision.data(), decision.size()));
 
     // Leaf networks forward pass
@@ -99,14 +100,24 @@ struct FastFeedforward {
         decision_grad(i,0) += y_grad(i,j) * (right_out(i,j) - left_out(i,j));
       }
     }
-
+    /*
     // Backward passes through components
     left_fc_->Backward(x, left_grad, x_grad);
     right_fc_->Backward(x, right_grad, x_grad);
     
     auto decision_grad_flat = decision_act_->const_flat_grad<T>();
     auto temp_grad = decision_act_->flat_grad<T>();
-    nn::Sigmoid::Backward(decision, decision_grad_flat, temp_grad);
+    nn::Sigmoid::Backward<float>(decision, decision_grad_flat, temp_grad);
+*/
+    // Fix 1: Convert gradients to const matrices when passing to Backward
+    left_fc_->Backward(x, left_act_->const_matrix_grad<T>(BT, n_embed_), x_grad);
+    right_fc_->Backward(x, right_act_->const_matrix_grad<T>(BT, n_embed_), x_grad);
+    
+    // Fix 2: Convert decision tensor to flat format for Sigmoid
+    auto decision_flat = MakeConstFlat(decision.data(), decision.size());
+    auto decision_grad_flat = decision_act_->const_flat_grad<T>();
+    auto temp_grad = decision_act_->flat_grad<T>();
+    nn::Sigmoid::Backward<float>(decision_flat, decision_grad_flat, temp_grad);
     
     typename TTypes<T>::Matrix temp_x_grad = x_grad;
     decision_fc_->Backward(x, decision_act_->const_matrix_grad<T>(BT, 1), temp_x_grad);
