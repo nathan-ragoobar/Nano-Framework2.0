@@ -100,6 +100,82 @@ TEST_F(FastFeedforwardTest, ActivationCount) {
     EXPECT_GT(network.NumActivations(), 0);
 }
 
+TEST_F(FastFeedforwardTest, Training) {
+    // Setup network
+    FastFeedforward network(4);  // embed_dim = 4
+    
+    // Create training data
+    Parameter x(DT_FLOAT, 8);  // batch_size * embed_dim = 2 * 4
+    Parameter y_target(DT_FLOAT, 8);
+    Parameter y_pred(DT_FLOAT, 8);
+    Parameter grad_y(DT_FLOAT, 8);
+    Parameter grad_x(DT_FLOAT, 8);
+    
+    // Set input values
+    auto x_span = x.span<float>();
+    for(int i = 0; i < 8; i++) {
+        x_span[i] = i * 0.1f;  // Simple increasing sequence
+    }
+    
+    // Set target values (let's say we want to learn a simple transformation)
+    auto y_target_span = y_target.span<float>();
+    for(int i = 0; i < 8; i++) {
+        y_target_span[i] = x_span[i] * 2.0f;  // Target is 2x the input
+    }
+    
+    // Training loop
+    const float learning_rate = 0.01f;
+    const int num_epochs = 100;
+    
+    std::vector<nn::Parameter*> params;
+    network.Parameters(&params);
+    
+    for(int epoch = 0; epoch < num_epochs; epoch++) {
+        // Forward pass
+        network.Forward(x.const_matrix<float>(2, 4),
+                       y_pred.matrix<float>(2, 4));
+        
+        // Compute MSE loss gradient
+        auto y_pred_span = y_pred.span<float>();
+        auto grad_y_span = grad_y.span<float>();
+        float loss = 0.0f;
+        for(int i = 0; i < 8; i++) {
+            float diff = y_pred_span[i] - y_target_span[i];
+            loss += diff * diff;
+            grad_y_span[i] = 2.0f * diff;  // MSE loss gradient
+        }
+        loss /= 8.0f;
+        
+        // Backward pass
+        network.Backward(x.const_matrix<float>(2, 4),
+                        grad_y.const_matrix<float>(2, 4),
+                        grad_x.matrix<float>(2, 4));
+        
+        // Update parameters
+        for(auto param : params) {
+            auto param_data = param->span<float>();
+            auto param_grad = param->span_grad<float>();
+            for(int i = 0; i < param->size(); i++) {
+                param_data[i] -= learning_rate * param_grad[i];
+            }
+        }
+        
+        // Print progress every 10 epochs
+        if(epoch % 10 == 0) {
+            printf("Epoch %d, Loss: %f\n", epoch, loss);
+        }
+    }
+    
+    // Verify final predictions are close to targets
+    network.Forward(x.const_matrix<float>(2, 4),
+                   y_pred.matrix<float>(2, 4));
+                   
+    auto final_pred_span = y_pred.span<float>();
+    for(int i = 0; i < 8; i++) {
+        EXPECT_NEAR(final_pred_span[i], y_target_span[i], 0.1f);
+    }
+}
+
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
