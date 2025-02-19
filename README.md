@@ -20,7 +20,7 @@ NB: The following instructions are for Linux based systems. If you're on windows
 1.3 Change to the inference branch.
 
 ```sh
-git clone --mirror https://github.com/yourusername/Nano-Framework2.0.git
+git clone --mirror https://github.com/nathan-ragoobar/Nano-Framework2.0.git
 cd Nano-Framework2.0
 git switch inference
 ```
