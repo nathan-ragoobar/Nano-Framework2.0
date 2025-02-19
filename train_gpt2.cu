@@ -39,6 +39,11 @@ int sample_mult(float* probabilities, int n, float coin) {
   return n - 1;  // in case of rounding errors
 }
 
+float cosine_learning_rate(int step, int total_steps, float initial_lr) {
+  float pi = 3.14159265358979323846;
+  return initial_lr * 0.5 * (1 + cos(pi * step / total_steps));
+}
+
 // CUDA error checking
 void cudaCheck(cudaError_t error, const char* file, int line) {
   if (error != cudaSuccess) {
@@ -60,8 +65,8 @@ int main(int argc, char** argv) {
   config.channels = 768;
 
   gpt2::GPT2 model;
-  //model.InitializeFromScratch(config);
-  model.BuildFromCheckpoint("gpt2_124M.bin");
+  model.InitializeFromScratch(config);
+  //model.BuildFromCheckpoint("gpt2_124M.bin");
 
   // build the DataLoaders from tokens files. for now use tiny_shakespeare if
   // available, else tiny_stories
@@ -137,10 +142,19 @@ int main(int argc, char** argv) {
   nn::Softmax softmax;
   std::vector<nn::Parameter*> parameters;
   model.Parameters(&parameters);
-  optim::AdamW optimizer(parameters, 1e-4f, 0.9f, 0.999f, 1e-8f, 0.0f);
+  optim::AdamW optimizer(parameters, 1e-3f, 0.9f, 0.999f, 1e-8f, 0.0f);
   std::vector<double> timings;
-  for (int step = 0; step <= 40; step++) {
+
+  // Define total training steps and initial learning rate
+  int total_steps = 1000;
+  float initial_lr = 1e-3f;
+
+  for (int step = 0; step <= 1000; step++) {
     NvtxRange step_range("Train step", step);
+
+    // Calculate the current learning rate using the cosine schedule
+    float current_lr = cosine_learning_rate(step, total_steps, initial_lr);
+
 
     // once in a while estimate the validation loss
     if (step % 10 == 0) {
@@ -293,7 +307,7 @@ int main(int argc, char** argv) {
     model.gpt2_->ForwardGPU(idx, label_3d, logit_3d, &loss);
     optimizer.ZeroGrad();
     model.gpt2_->BackwardGPU(idx);
-    optimizer.Step(step + 1);
+    optimizer.Step(step + 1, current_lr);
     clock_gettime(CLOCK_MONOTONIC, &end);
     double time_elapsed_s =
         (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;

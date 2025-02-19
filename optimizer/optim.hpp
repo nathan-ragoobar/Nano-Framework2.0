@@ -51,7 +51,7 @@ struct AdamW {
     }
   }
 
-  void Step(int t) {
+  void Step(int t,float lr) {
     for (size_t i = 0; i < parameters_.size(); ++i) {
       auto parameter = parameters_[i]->flat<float>();
       auto grad = parameters_[i]->flat_grad<float>();
