@@ -5,6 +5,8 @@
 #include <QtCharts>
 #include <QVBoxLayout>
 
+QT_CHARTS_USE_NAMESPACE    // Add this line if not already in header
+
 std::unique_ptr<QApplication> TrainingVisualizer::app;
 
 struct TrainingVisualizer::Private {
@@ -27,8 +29,8 @@ struct TrainingVisualizer::Private {
         auto layout = new QVBoxLayout(centralWidget);
 
         // Create chart
-        auto chart = new QChart();
-        series = new QLineSeries(chart);
+        auto chart = new QtCharts::QChart();
+        series = new QtCharts::QLineSeries(chart);
         chart->addSeries(series);
         chart->setTitle("Training Accuracy Over Time");
 

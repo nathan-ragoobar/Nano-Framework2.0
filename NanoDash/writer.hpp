@@ -1,4 +1,4 @@
-#pragma once  // Include guard
+#pragma once
 
 #include <string>
 #include <map>
@@ -30,11 +30,29 @@ private:
     void writerLoop() {
         std::ofstream file(filename_, std::ios::app);
         
+        // Write CSV header if file is empty
+        if (file.tellp() == 0) {
+            file << "Timestamp,";
+            // Write metric names as headers
+            size_t max_pos = 0;
+            for (const auto& metric : metric_positions_) {
+                max_pos = std::max(max_pos, metric.second);
+            }
+            std::vector<std::string> headers(max_pos + 1);
+            for (const auto& metric : metric_positions_) {
+                headers[metric.second] = metric.first;
+            }
+            for (size_t i = 0; i < headers.size(); ++i) {
+                file << headers[i];
+                if (i < headers.size() - 1) file << ",";
+            }
+            file << "\n";
+        }
+        
         while (running_ || !write_queue_.empty()) {
             std::unique_lock<std::mutex> lock(queue_mutex_);
             
             if (write_queue_.empty()) {
-                // Wait for new data or shutdown signal
                 queue_cv_.wait_for(lock, std::chrono::seconds(1), 
                     [this]() { return !write_queue_.empty() || !running_; });
                 continue;
@@ -51,17 +69,15 @@ private:
             timestamp_ss << std::put_time(&tm, "%Y-%m-%dT%H:%M:%S");
 
             // Create array of placeholder values
-            std::vector<std::string> values(metric_positions_.size(), "*");
+            std::vector<std::string> values(metric_positions_.size(), "");
             values[metric_positions_[data.name]] = stringifyValue(data.value);
 
-            // Write line to file
-            std::string line = timestamp_ss.str() + " ";
+            // Write CSV line
+            file << timestamp_ss.str();
             for (const auto& value : values) {
-                line += value + " ";
+                file << "," << (value.empty() ? "NA" : value);
             }
-            line += "\n";
-
-            file << line;
+            file << "\n";
             file.flush();
         }
     }
@@ -75,7 +91,7 @@ private:
 public:
     MetricWriter(const std::string& filename, 
                 const std::vector<std::string>& metric_names) 
-        : filename_(filename), running_(true) {
+        : filename_(filename + ".csv"), running_(true) {  // Add .csv extension
         
         // Initialize metric positions
         for (size_t i = 0; i < metric_names.size(); ++i) {

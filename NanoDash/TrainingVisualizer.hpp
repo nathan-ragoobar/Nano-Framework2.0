@@ -4,11 +4,14 @@
 
 #include <memory>
 #include <string>
+#include <QtCharts/QChartView>    // Add this include
+
+QT_CHARTS_USE_NAMESPACE          // Add this line
 
 // Forward declarations to avoid Qt dependencies in header
 class QApplication;
 class QMainWindow;
-class QChartView;
+//class QChartView; // Remove the QChartView forward declaration since we're including it now
 class QPushButton;
 
 class TrainingVisualizer {
