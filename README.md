@@ -15,13 +15,20 @@ NB: The following instructions are for Linux based systems. If you're on windows
 ## Installation
 
 ### Step 1: Clone the Repository
-1.1 Clone all branchs of the repo using the `--mirror` flag.\
+1.1 Clone master branch of the repo.\
 1.2 Change to the Nano-Framework directory.\
-1.3 Change to the inference branch.
+1.3 Set up branches locally to track remote branches.\
+1.4 Pull all remote branches.\
+1.5 Change to the inference branch.
 
 ```sh
-git clone --mirror https://github.com/nathan-ragoobar/Nano-Framework2.0.git
+git clone https://github.com/nathan-ragoobar/Nano-Framework2.0.git
 cd Nano-Framework2.0
+git fetch --all
+for branch in $(git branch -r | grep -v '\->'); do
+    git branch --track ${branch#origin/} $branch
+done
+git pull --all
 git switch inference
 ```
 
