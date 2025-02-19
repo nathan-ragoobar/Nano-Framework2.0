@@ -68,7 +68,8 @@ struct AdamW {
 
       // update
       parameter.device(nn::g_device) -=
-          lr_ * (m_hat / (v_hat.sqrt() + eps_) + weight_decay_ * parameter);
+          lr * (m_hat / (v_hat.sqrt() + eps_) + weight_decay_ * parameter);
+          printf("lr: %f\n",lr);
     }
   }
 

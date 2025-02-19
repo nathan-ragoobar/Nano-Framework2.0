@@ -146,10 +146,10 @@ int main(int argc, char** argv) {
   std::vector<double> timings;
 
   // Define total training steps and initial learning rate
-  int total_steps = 1000;
+  int total_steps = 100;
   float initial_lr = 1e-3f;
 
-  for (int step = 0; step <= 1000; step++) {
+  for (int step = 0; step <= total_steps; step++) {
     NvtxRange step_range("Train step", step);
 
     // Calculate the current learning rate using the cosine schedule
@@ -326,7 +326,7 @@ int main(int argc, char** argv) {
   }
 
   //Save model
-  model.SaveModel("gpt2_124M100Steps.bin");
+  model.SaveModel("gpt2_124M30000StepsTinyStories.bin");
 
   // free
   dataloader_free(&train_loader);
