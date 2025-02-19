@@ -15,9 +15,10 @@ NB: The following instructions are for Linux based systems. If you're on windows
 ## Installation
 
 ### Step 1: Clone the Repository
-1.1 Clone all branchs of the repo using the `--mirror` flag.
-1.2 Change to the Nano-Framework directory.
-1.3 Change to the inference branch.
+1.1 Clone all branchs of the repo using the `--mirror` flag.\
+1.2 Change to the Nano-Framework directory.\
+1.3 Change to the inference branch.\
+
 ```sh
 git clone --mirror https://github.com/yourusername/Nano-Framework2.0.git
 cd Nano-Framework2.0
