@@ -39,6 +39,11 @@ int sample_mult(float* probabilities, int n, float coin) {
   return n - 1;  // in case of rounding errors
 }
 
+float cosine_learning_rate(int step, int total_steps, float initial_lr) {
+  float pi = 3.14159265358979323846;
+  return initial_lr * 0.5 * (1 + cos(pi * step / total_steps));
+}
+
 bool USE_FAST_SOFTMAX = true;
 
 int main(int argc, char** argv) {
@@ -52,10 +57,10 @@ int main(int argc, char** argv) {
   config.channels = 768;
 
   gpt2::GPT2 model;
-  //model.InitializeFromScratch(config);
+  model.InitializeFromScratch(config);
 
   //gpt2::GPT2 model;
-  model.BuildFromCheckpoint("./gpt2_124M.bin"); //Loads model
+  //model.BuildFromCheckpoint("./gpt2_124M.bin"); //Loads model
 
   // build the DataLoaders from tokens files. for now use tiny_stories if
   // available, else tiny_shakespeare
@@ -102,7 +107,16 @@ int main(int argc, char** argv) {
   model.Parameters(&parameters);
   optim::AdamW optimizer(parameters, 1e-4f, 0.9f, 0.999f, 1e-8f, 0.0f); //defines the AdamW optimizer optimizer to be used
   std::vector<double> timings;
-  for (int step = 0; step <= 100; step++) {
+
+ // Define total training steps and initial learning rate
+ int total_steps = 35000;
+ float initial_lr = 1e-3f;
+
+  for (int step = 0; step <= total_steps; step++) {
+
+    // Calculate the current learning rate using the cosine schedule
+    float current_lr = cosine_learning_rate(step, total_steps, initial_lr);
+
     // once in a while estimate the validation loss
     if (step % 10 == 0) {
       float val_loss = 0.0f;
@@ -198,7 +212,7 @@ int main(int argc, char** argv) {
       optimizer.ZeroGrad();
       model.gpt2_->BackwardGPU(idx);
     }
-    optimizer.Step(step + 1,1e-3);
+    optimizer.Step(step + 1,current_lr);
     clock_gettime(CLOCK_MONOTONIC, &end);
     double time_elapsed_s =
         (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
