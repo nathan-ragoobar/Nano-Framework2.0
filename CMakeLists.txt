@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.16)
-project(nano LANGUAGES CXX CUDA)
+project(nano LANGUAGES CXX)
 
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Threads REQUIRED)
+# Add MSVC-specific compiler options
+if(MSVC)
+    add_compile_options(/bigobj)
+endif()
+
+#find_package(Threads REQUIRED)
 
 # Add the Abseil library
 add_subdirectory(abseil-cpp)
@@ -45,41 +50,46 @@ target_link_libraries(nano nn)
 #target_link_libraries(gpt nn)
 
 # GPT2 library
-add_library(gpt2 gpt2.hpp)
-target_link_libraries(gpt2 gpt)
+add_library(gpt2 INTERFACE)
+target_link_libraries(gpt2 INTERFACE gpt)
 
 #add_library(optim optim.hpp)
 #target_link_libraries(optim nn)
 
-find_package(CUDA REQUIRED)
+
 
 add_executable(train_gpt2_cpu train_gpt2.cpp)
-target_link_libraries(train_gpt2_cpu gpt2 optim profiler)
+target_link_libraries(train_gpt2_cpu gpt2 optim)
 target_compile_options(train_gpt2_cpu PRIVATE -Ofast -march=native)
 
 add_executable(inference_gpt2_cpu inference_gpt2.cpp)
-target_link_libraries(inference_gpt2_cpu gpt2 optim profiler)
+target_link_libraries(inference_gpt2_cpu gpt2 optim)
 target_compile_options(inference_gpt2_cpu PRIVATE -Ofast -march=native)
 
+option(USE_CUDA "Enable CUDA for GPU acceleration" OFF)
+
+if(USE_CUDA)
+    enable_language(CUDA)
+    find_package(CUDA REQUIRED)
 # Add CUDA support
 # GPU specific configuration
-if(CUDA_FOUND)
-    include_directories(${CUDA_INCLUDE_DIRS})
-    
-    # Add CUDA executable
-    add_executable(train_gpt2_gpu train_gpt2.cu)
+    if(CUDA_FOUND)
+        include_directories(${CUDA_INCLUDE_DIRS})
+        
+        # Add CUDA executable
+        add_executable(train_gpt2_gpu train_gpt2.cu)
 
-    # Add GPU definition only for the GPU target
-    target_compile_definitions(train_gpt2_gpu PRIVATE -DEIGEN_USE_GPU)
-    
-    target_link_libraries(train_gpt2_gpu 
-        PRIVATE 
-        gpt2 
-        optim 
-        profiler 
-        ${CUDA_LIBRARIES}
-    )
-    set_target_properties(train_gpt2_gpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-    target_compile_options(train_gpt2_gpu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-O3> $<$<COMPILE_LANGUAGE:CXX>:-Ofast -march=native>)
+        # Add GPU definition only for the GPU target
+        target_compile_definitions(train_gpt2_gpu PRIVATE -DEIGEN_USE_GPU)
+        
+        target_link_libraries(train_gpt2_gpu 
+            PRIVATE 
+            gpt2 
+            optim 
+            ${CUDA_LIBRARIES}
+        )
+        set_target_properties(train_gpt2_gpu PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+        target_compile_options(train_gpt2_gpu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-O3> $<$<COMPILE_LANGUAGE:CXX>:-Ofast -march=native>)
+    endif()
 endif()
 

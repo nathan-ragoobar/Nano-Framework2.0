@@ -7,7 +7,12 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <unistd.h>
+#ifdef _WIN32
+#include "./unistd.h"  // Include Windows implementation
+#else
+#include <unistd.h>     // Include POSIX implementation
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

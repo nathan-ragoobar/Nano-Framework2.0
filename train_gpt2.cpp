@@ -1,4 +1,10 @@
-#include <unistd.h>
+
+#ifdef _WIN32
+#include "./llmc/unistd.h"  // Include Windows implementation
+#else
+#include <unistd.h>     // Include POSIX implementation
+#endif
+
 #include <iostream>
 #include <memory>
 
@@ -192,7 +198,7 @@ int main(int argc, char** argv) {
       optimizer.ZeroGrad();
       model.gpt2_->BackwardGPU(idx);
     }
-    optimizer.Step(step + 1);
+    optimizer.Step(step + 1, 1e-3);
     clock_gettime(CLOCK_MONOTONIC, &end);
     double time_elapsed_s =
         (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;

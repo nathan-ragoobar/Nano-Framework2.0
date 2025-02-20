@@ -19,9 +19,17 @@ Implements:
 
 // ----------------------------------------------------------------------------
 // implementation of glob for Windows is in dev/unistd.h
+
+#ifdef _WIN32
+#include "./unistd.h"  // Include Windows implementation
+#else
+#include <glob.h>      // Include POSIX implementation
+#endif
+/*
 #ifndef _WIN32
 #include <glob.h>
 #endif
+*/
 // ----------------------------------------------------------------------------
 // Distributed Data Loader
 #define HEADER_SIZE 256
