@@ -6,7 +6,10 @@ Nano-Framework2.0 is a lightweight framework designed for efficient and scalable
 ## Prerequisites
 - **Python 3.8+**
 - **CUDA Toolkit** (for GPU support)
-- **CMake** (for building the project)
+- **CMake** (for building the project)\
+        -For Windows: <https://cmake.org/download>/
+        -For Ubuntu: `sudo apt install cmake`
+
 - **GCC** (for compiling C++ code)
 - **Python Libraries**: Install the required Python libraries using `requirements.txt`.
 
