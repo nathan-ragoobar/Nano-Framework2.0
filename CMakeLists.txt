@@ -47,14 +47,14 @@ target_link_libraries(nano nn)
 #add_library(gpt gpt.hpp)
 #target_link_libraries(gpt nn)
 
-add_library(gpt2 gpt2.hpp)
-target_link_libraries(gpt2 gpt)
+add_library(gpt2 INTERFACE)
+target_link_libraries(gpt2 INTERFACE gpt)
 
 #add_library(optim optim.hpp)
 #target_link_libraries(optim nn)
 
 add_executable(train_gpt2_cpu train_gpt2.cpp)
-target_link_libraries(train_gpt2_cpu gpt2 optim profiler)
+target_link_libraries(train_gpt2_cpu gpt2 optim)
 
 
 # Platform-specific settings
