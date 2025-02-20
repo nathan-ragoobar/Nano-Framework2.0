@@ -4,7 +4,7 @@
 
 #include "Parameter.hpp"
 
-#include <unistd.h>
+//#include <unistd.h>
 #include <memory>
 #include <cmath>
 //#include "../tensor/tensor_util.hpp"

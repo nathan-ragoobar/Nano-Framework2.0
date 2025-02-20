@@ -1,4 +1,8 @@
-#include <unistd.h>
+#ifdef _WIN32
+#include "./llmc/unistd.h"  // Include Windows implementation
+#else
+#include <unistd.h>     // Include POSIX implementation
+#endif
 #include <iostream>
 #include <memory>
 
