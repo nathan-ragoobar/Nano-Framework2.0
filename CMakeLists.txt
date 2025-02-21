@@ -60,11 +60,20 @@ target_link_libraries(train_gpt2_cpu gpt2 optim)
 # Platform-specific settings
 if (WIN32)
     target_compile_definitions(train_gpt2_cpu PRIVATE _CRT_SECURE_NO_WARNINGS)
-    #target_compile_options(train_gpt2_cpu PRIVATE 
-    #    /O2     # Maximum optimization
-    #    /arch:AVX2  # Use Advanced Vector Extensions 2
-    #    /GL     # Whole program optimization
-    #)
+    
+    # Debug configuration
+    target_compile_options(train_gpt2_cpu PRIVATE 
+        $<$<CONFIG:Debug>:/Od>    # Disable optimization for debug
+    )
+    
+    # Release configuration
+    target_compile_options(train_gpt2_cpu PRIVATE 
+        $<$<CONFIG:Release>:/O2>     # Maximum optimization
+        $<$<CONFIG:Release>:/arch:AVX2>  # Use Advanced Vector Extensions 2
+        #$<$<CONFIG:Release>:/GL>     # Whole program optimization
+        $<$<CONFIG:Release>:/fp:fast> # Fast floating point model
+        $<$<CONFIG:Release>:/favor:AMD64>  # AMD-specific optimizations
+    )
     target_link_libraries(train_gpt2_cpu ws2_32)
 else()
     target_compile_options(train_gpt2_cpu PRIVATE -Ofast -march=native)
