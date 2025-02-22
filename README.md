@@ -6,7 +6,7 @@ Even after it compiles it still trains slower than on Ubuntu on WSL\
 ### Compiling in Windows using GitBash/MSYS2
 NB: I used these instructions on GitBash but it **should** work for MSYS2 as well\
 
-1.1 Install [GitBash](https://git-scm.com/downloads) or [MSYS2](https://www.msys2.org/#installation)\
+1.1 Install  [MSYS2](https://www.msys2.org/#installation)\
 1.2 Verify that g++ and cmake are installed\
 ```bash
 g++ --version
@@ -27,7 +27,8 @@ cd build
 1.4 Generate make files with cmake and compile\
     - To build for debugging, run build command without the Release flag
 ```bash
-cmake ..
+
+cmake -G "MinGW Makefiles" ..
 cmake --build .
 cmake --build . --config Release
 ```

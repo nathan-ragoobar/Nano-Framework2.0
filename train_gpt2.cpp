@@ -1,4 +1,4 @@
-#ifdef _WIN32
+#ifdef _MSC_VER
 #include "./llmc/unistd.h"  // Include Windows implementation
 #else
 #include <unistd.h>     // Include POSIX implementation

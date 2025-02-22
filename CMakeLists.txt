@@ -1,9 +1,20 @@
 cmake_minimum_required(VERSION 3.16)
 project(nano LANGUAGES CXX)
 
+# Print the compiler ID and path
+message("Compiler ID: ${CMAKE_CXX_COMPILER_ID}")
+message("Compiler Path: ${CMAKE_CXX_COMPILER}")
+
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+#Static linking
+if(MINGW)
+    # Enable static linking
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
+endif()
 
 # Add MSVC-specific compiler options
 #This is for compiling on windows I think
@@ -56,9 +67,30 @@ target_link_libraries(gpt2 INTERFACE gpt)
 add_executable(train_gpt2_cpu train_gpt2.cpp)
 target_link_libraries(train_gpt2_cpu gpt2 optim)
 
+#[[
+# Static linking
+if(MINGW)
+    # Get MinGW DLL directory
+    execute_process(
+        COMMAND where g++
+        OUTPUT_VARIABLE MINGW_PATH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    get_filename_component(MINGW_BIN_DIR ${MINGW_PATH} DIRECTORY)
+
+    # Copy required DLLs
+    add_custom_command(TARGET train_gpt2_cpu POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${MINGW_BIN_DIR}/libgcc_s_seh-1.dll"
+            "${MINGW_BIN_DIR}/libstdc++-6.dll"
+            "${MINGW_BIN_DIR}/libwinpthread-1.dll"
+            $<TARGET_FILE_DIR:train_gpt2_cpu>
+    )
+endif()
+]]
 
 # Platform-specific settings
-if (WIN32)
+if (MSVC)
     target_compile_definitions(train_gpt2_cpu PRIVATE _CRT_SECURE_NO_WARNINGS)
     
     # Debug configuration

@@ -1,7 +1,7 @@
 #ifndef LLM_CPP__NN_HPP_
 #define LLM_CPP__NN_HPP_
 #define _USE_MATH_DEFINES
-#ifdef _WIN32
+#ifdef _MSC_VER
 #include <io.h>
 #else
 #include <unistd.h> //Can't see any functions that need the unistd.h file. But still leaving it here.

@@ -2,9 +2,38 @@
 #ifndef UNISTD_H
 #define UNISTD_H
 
-#define _CRT_SECURE_NO_WARNINGS
-#define _USE_MATH_DEFINES
-#define WIN32_LEAN_AND_MEAN
+// Only define these for MSVC
+#ifdef _MSC_VER
+    #ifndef _CRT_SECURE_NO_WARNINGS
+        #define _CRT_SECURE_NO_WARNINGS
+    #endif
+    #define _USE_MATH_DEFINES
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+
+    // MSVC-specific clock_gettime implementation
+    #define CLOCK_MONOTONIC 0
+    static inline int clock_gettime(int ignore_variable, struct timespec* tv) {
+        static LARGE_INTEGER frequency;
+        static BOOL initialized = FALSE;
+        if (!initialized) {
+            QueryPerformanceFrequency(&frequency);
+            initialized = TRUE;
+        }
+        
+        LARGE_INTEGER counts;
+        if (!QueryPerformanceCounter(&counts)) {
+            return -1;
+        }
+        
+        tv->tv_sec = counts.QuadPart / frequency.QuadPart;
+        tv->tv_nsec = (long)((counts.QuadPart % frequency.QuadPart) * 1000000000ll / frequency.QuadPart);
+        return 0;
+    }
+#else
+    // For MinGW, use its built-in POSIX headers
+    #include <time.h>
+#endif
 
 #include <stdio.h>
 #include <math.h>
@@ -13,14 +42,39 @@
 #include <string.h>
 #include <direct.h> // for _mkdir and _stat
 #include <io.h> // needed for _access below and _findfirst, _findnext, _findclose
-#pragma comment(lib, "Ws2_32.lib")  // Link Ws2_32.lib for socket functions
 #include <winsock2.h>
+#pragma comment(lib, "Ws2_32.lib")  // Link Ws2_32.lib for socket functions
 
-#define CLOCK_MONOTONIC 0
+
+
+/*
 static inline int clock_gettime(int ignore_variable, struct timespec* tv){
     return timespec_get(tv, TIME_UTC); // TODO: not sure this is the best solution. Need to review.
 }
 
+static inline int clock_gettime(int ignore_variable, struct timespec* tv) {
+#ifdef _MSC_VER
+#define CLOCK_MONOTONIC 0
+    static LARGE_INTEGER frequency;
+    static BOOL initialized = FALSE;
+    if (!initialized) {
+        QueryPerformanceFrequency(&frequency);
+        initialized = TRUE;
+    }
+    
+    LARGE_INTEGER counts;
+    if (!QueryPerformanceCounter(&counts)) {
+        return -1;
+    }
+    
+    tv->tv_sec = counts.QuadPart / frequency.QuadPart;
+    tv->tv_nsec = (long)((counts.QuadPart % frequency.QuadPart) * 1000000000ll / frequency.QuadPart);
+    return 0;
+#else
+    clock_gettime(ignore_variable, tv);
+#endif
+}
+*/
 #define OMP /* turn it on */
 #define F_OK 0
 #define access _access
