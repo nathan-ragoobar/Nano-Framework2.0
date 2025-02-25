@@ -9,12 +9,17 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Point to Qt installation
-set(CMAKE_PREFIX_PATH "C:/Qt/6.8.0/mingw_64")
-#Static linking
-#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+# Point to Qt installation only on Windows
+if(WIN32)
+    set(CMAKE_PREFIX_PATH "C:/Qt/6.8.0/mingw_64")
+endif()
 
+#[[
+# Point to Qt installation only on Linux
+if(UNIX AND NOT APPLE)
+    set(CMAKE_PREFIX_PATH "/usr/lib/qt6")  # or your custom Qt installation path
+endif()
+]]
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Charts)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Charts)
@@ -92,75 +97,50 @@ if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(Dashboard)
 endif()
 
-#[[
-# Copy the Dashboard.exe and any needed Qt DLLs to the build folder
-add_custom_command(TARGET Dashboard
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:Dashboard>
-        $<TARGET_FILE_DIR:Dashboard>/Dashboard.exe
-
-    # Example for copying QtCore, QtGui, QtWidgets, QtCharts dlls (adjust if needed)
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:Qt6::Core>
-        $<TARGET_FILE_DIR:Dashboard>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:Qt6::Gui>
-        $<TARGET_FILE_DIR:Dashboard>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:Qt6::Widgets>
-        $<TARGET_FILE_DIR:Dashboard>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:Qt6::Charts>
-        $<TARGET_FILE_DIR:Dashboard>
-
- #This is statically linked at the top so remove this
-    # Also copy the GCC runtime DLL (adjust path if needed)
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/msys64/mingw64/bin/libgcc_s_seh-1.dll"
-        $<TARGET_FILE_DIR:Dashboard>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/msys64/mingw64/bin/libwinpthread-1.dll"
-        $<TARGET_FILE_DIR:Dashboard>
-
-
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-        $<TARGET_FILE_DIR:Dashboard>/platforms
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/Qt/6.8.0/mingw_64/plugins/platforms/qwindows.dll"
-        $<TARGET_FILE_DIR:Dashboard>/platforms/
-
-    # Add style plugins
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-        $<TARGET_FILE_DIR:Dashboard>/styles
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/Qt/6.8.0/mingw_64/plugins/styles/qwindowsvistastyle.dll"
-        $<TARGET_FILE_DIR:Dashboard>/styles/
-
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/msys64/mingw64/bin/libstdc++-6.dll"
-        $<TARGET_FILE_DIR:Dashboard>
-            
-)
-   ]] 
-
    
-# Remove all previous copy commands and replace with just windeployqt
-add_custom_command(TARGET Dashboard POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/msys64/mingw64/bin/libgcc_s_seh-1.dll"
-        $<TARGET_FILE_DIR:Dashboard>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/msys64/mingw64/bin/libwinpthread-1.dll"
-        $<TARGET_FILE_DIR:Dashboard>
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "C:/msys64/mingw64/bin/libstdc++-6.dll"
-        $<TARGET_FILE_DIR:Dashboard>
-    COMMAND C:/Qt/6.8.0/mingw_64/bin/windeployqt.exe 
-        --verbose 1
-        --no-compiler-runtime
-        --no-translations
-        --no-opengl-sw
-        $<TARGET_FILE:Dashboard>
-    COMMENT "Deploying Qt dependencies..."
-)
+# Platform-specific deployment
+if(WIN32)
+    # Check if we're using MSYS2
+    if(MINGW)
+        add_custom_command(TARGET Dashboard POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "C:/msys64/mingw64/bin/libgcc_s_seh-1.dll"
+                $<TARGET_FILE_DIR:Dashboard>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "C:/msys64/mingw64/bin/libwinpthread-1.dll"
+                $<TARGET_FILE_DIR:Dashboard>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "C:/msys64/mingw64/bin/libstdc++-6.dll"
+                $<TARGET_FILE_DIR:Dashboard>
+            COMMAND C:/Qt/6.8.0/mingw_64/bin/windeployqt.exe 
+                --verbose 1
+                --no-compiler-runtime
+                --no-translations
+                --no-opengl-sw
+                $<TARGET_FILE:Dashboard>
+            COMMENT "Deploying Qt dependencies for Windows/MSYS2..."
+        )
+    endif()
+elseif(UNIX AND NOT APPLE)
+    # Ubuntu/Linux deployment
+    find_program(DEPLOY_QT_TOOL qt6-deploy)
+    if(NOT DEPLOY_QT_TOOL)
+        message(WARNING "qt6-deploy not found. Install with: sudo apt install qt6-tools-dev")
+    else()
+        add_custom_command(TARGET Dashboard POST_BUILD
+            # Copy Qt plugins and libraries
+            COMMAND ${DEPLOY_QT_TOOL} 
+                $<TARGET_FILE:Dashboard>
+                --appimage
+            # Set RPATH
+            COMMAND patchelf 
+                --set-rpath '$ORIGIN/lib' 
+                $<TARGET_FILE:Dashboard>
+            COMMENT "Deploying Qt dependencies for Linux..."
+        )
+    endif()
+
+    # Install dependencies on Ubuntu if needed
+    message(STATUS "Make sure required packages are installed:")
+    message(STATUS "sudo apt install qt6-tools-dev qt6-base-dev libqt6charts6-dev patchelf")
+endif()
