@@ -106,16 +106,22 @@ public:
     : filename_(filename + ".csv"), running_(true), current_step_(0) {
 
     // Initialize metric positions
-    // Ensure "loss" is included in metrics
-    bool has_loss = false;
+    // Ensure both training and validation loss are included
+    bool has_train_loss = false;
+    bool has_val_loss = false;
+
     for (size_t i = 0; i < metric_names.size(); ++i) {
-    metric_positions_[metric_names[i]] = i;
-    if (metric_names[i] == "loss") has_loss = true;
+        metric_positions_[metric_names[i]] = i;
+        if (metric_names[i] == "train_loss") has_train_loss = true;
+        if (metric_names[i] == "val_loss") has_val_loss = true;
     }
 
     // Add loss metric if not present
-    if (!has_loss) {
-    metric_positions_["loss"] = metric_positions_.size();
+    if (!has_train_loss) {
+        metric_positions_["train_loss"] = metric_positions_.size();
+    }
+    if (!has_val_loss) {
+        metric_positions_["val_loss"] = metric_positions_.size();
     }
 
     writer_thread_ = std::thread(&MetricWriter::writerLoop, this);
@@ -123,6 +129,15 @@ public:
 
     ~MetricWriter() {
         close();
+    }
+
+    // Helper methods for training and validation loss
+    void addTrainingLoss(double value, int64_t step = -1) {
+        addScalar("train_loss", value, step);
+    }
+
+    void addValidationLoss(double value, int64_t step = -1) {
+        addScalar("val_loss", value, step);
     }
 
     void addScalar(const std::string& name, double value, int64_t step = -1) {
