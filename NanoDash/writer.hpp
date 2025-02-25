@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <sstream>
 #include <condition_variable>
+#include <iostream>
 
 class MetricWriter {
 private:
@@ -30,11 +31,19 @@ struct MetricData {
     int64_t current_step_;
 
     void writerLoop() {
-        std::ofstream file(filename_, std::ios::app);
+        // Open with both flags to create file if it doesn't exist
+        std::ofstream file(filename_, std::ios::out | std::ios::app);
+
+        if (!file.is_open()) {
+            std::cerr << "Error: Could not open file " << filename_ << std::endl;
+            running_ = false;
+            return;
+        }
         
         // Write CSV header if file is empty
         if (file.tellp() == 0) {
-            file << "Timestamp,";
+            file << "Timestamp,Step,"; // Add Step column explicitly
+
             // Write metric names as headers
             size_t max_pos = 0;
             for (const auto& metric : metric_positions_) {
@@ -49,6 +58,7 @@ struct MetricData {
                 if (i < headers.size() - 1) file << ",";
             }
             file << "\n";
+            file.flush();
         }
         
         while (running_ || !write_queue_.empty()) {

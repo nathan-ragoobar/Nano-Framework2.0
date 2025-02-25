@@ -343,10 +343,11 @@ TEST_F(MetricWriterTest, GenerateVisualizationData) {
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
-    int result = RUN_ALL_TESTS();
+    //int result = RUN_ALL_TESTS();
     
-    std::cout << "\nPress Enter to exit...";
-    std::cin.get();
+    //std::cout << "\nPress Enter to exit...";
+    //std::cin.get();
     
-    return result;
+    //return result;
+    return RUN_ALL_TESTS();
 }

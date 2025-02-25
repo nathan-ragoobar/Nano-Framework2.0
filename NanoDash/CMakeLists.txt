@@ -10,27 +10,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(metric_writer INTERFACE)
 target_include_directories(metric_writer INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Include FetchContent for downloading GTest
-include(FetchContent)
+find_package(GTest REQUIRED)
 
-# Download and configure Google Test
-FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG release-1.12.1
-)
-
-# For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
 
 # Enable testing
 enable_testing()
 
-# Add test executable
+# Add test executables
 add_executable(test_writer test_writer.cpp)
+add_executable(test_writerv2 test_writerv2.cpp)
 
-# Link test executable with Google Test and our library
+# Link test executables with Google Test and our library
 target_link_libraries(test_writer
     PRIVATE
         metric_writer
@@ -39,6 +29,13 @@ target_link_libraries(test_writer
         pthread
 )
 
+target_link_libraries(test_writerv2
+    PRIVATE
+        metric_writer
+        pthread
+)
+
 # Register tests
 include(GoogleTest)
 gtest_discover_tests(test_writer)
+#gtest_discover_tests(test_writerv2)
