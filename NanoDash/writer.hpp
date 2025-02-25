@@ -13,11 +13,12 @@
 
 class MetricWriter {
 private:
-    struct MetricData {
-        std::string name;
-        double value;
-        std::chrono::system_clock::time_point timestamp;
-    };
+struct MetricData {
+    std::string name;
+    double value;
+    std::chrono::system_clock::time_point timestamp;
+    int64_t step;  // Add step number
+};
 
     std::string filename_;
     std::thread writer_thread_;
@@ -26,6 +27,7 @@ private:
     std::condition_variable queue_cv_;
     bool running_;
     std::map<std::string, size_t> metric_positions_;
+    int64_t current_step_;
 
     void writerLoop() {
         std::ofstream file(filename_, std::ios::app);
@@ -73,7 +75,7 @@ private:
             values[metric_positions_[data.name]] = stringifyValue(data.value);
 
             // Write CSV line
-            file << timestamp_ss.str();
+            file << timestamp_ss.str() << "," << data.step;  // Add step to output
             for (const auto& value : values) {
                 file << "," << (value.empty() ? "NA" : value);
             }
@@ -90,32 +92,43 @@ private:
 
 public:
     MetricWriter(const std::string& filename, 
-                const std::vector<std::string>& metric_names) 
-        : filename_(filename + ".csv"), running_(true) {  // Add .csv extension
-        
-        // Initialize metric positions
-        for (size_t i = 0; i < metric_names.size(); ++i) {
-            metric_positions_[metric_names[i]] = i;
-        }
+        const std::vector<std::string>& metric_names) 
+    : filename_(filename + ".csv"), running_(true), current_step_(0) {
 
-        // Start writer thread
-        writer_thread_ = std::thread(&MetricWriter::writerLoop, this);
+    // Initialize metric positions
+    // Ensure "loss" is included in metrics
+    bool has_loss = false;
+    for (size_t i = 0; i < metric_names.size(); ++i) {
+    metric_positions_[metric_names[i]] = i;
+    if (metric_names[i] == "loss") has_loss = true;
+    }
+
+    // Add loss metric if not present
+    if (!has_loss) {
+    metric_positions_["loss"] = metric_positions_.size();
+    }
+
+    writer_thread_ = std::thread(&MetricWriter::writerLoop, this);
     }
 
     ~MetricWriter() {
         close();
     }
 
-    void addScalar(const std::string& name, double value) {
+    void addScalar(const std::string& name, double value, int64_t step = -1) {
         if (metric_positions_.find(name) == metric_positions_.end()) {
             throw std::runtime_error("Unknown metric name: " + name);
         }
 
         std::unique_lock<std::mutex> lock(queue_mutex_);
+        if (step == -1) {
+            step = ++current_step_;
+        }
         write_queue_.push({
             name,
             value,
-            std::chrono::system_clock::now()
+            std::chrono::system_clock::now(),
+            step
         });
         lock.unlock();
         queue_cv_.notify_one();
