@@ -60,11 +60,32 @@ target_link_libraries(gpt2 INTERFACE gpt)
 
 add_executable(train_gpt2_cpu train_gpt2.cpp)
 target_link_libraries(train_gpt2_cpu gpt2 optim)
-target_compile_options(train_gpt2_cpu PRIVATE -Ofast -march=native)
+#target_compile_options(train_gpt2_cpu PRIVATE -Ofast -march=native)
 
 add_executable(inference_gpt2_cpu inference_gpt2.cpp)
 target_link_libraries(inference_gpt2_cpu gpt2 optim)
-target_compile_options(inference_gpt2_cpu PRIVATE -Ofast -march=native)
+#target_compile_options(inference_gpt2_cpu PRIVATE -Ofast -march=native)
+
+
+# Platform-specific settings
+if (WIN32)
+    target_compile_definitions(train_gpt2_cpu PRIVATE _CRT_SECURE_NO_WARNINGS)
+    #target_compile_options(train_gpt2_cpu PRIVATE 
+    #    /O2     # Maximum optimization
+    #    /arch:AVX2  # Use Advanced Vector Extensions 2
+    #    /GL     # Whole program optimization
+    #)
+    target_link_libraries(train_gpt2_cpu ws2_32)
+else()
+    target_compile_options(train_gpt2_cpu PRIVATE 
+        -Ofast 
+        -march=native 
+        -g3             # Maximum debug info
+        -fno-omit-frame-pointer  # Better stack traces
+        )
+endif()
+
+
 
 option(USE_CUDA "Enable CUDA for GPU acceleration" OFF)
 
