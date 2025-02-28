@@ -62,6 +62,8 @@ mkdir build
 cd build
 cmake ..
 make
+#Uses the entire CPU to speed up compile time
+make -j$(nproc)
 ```
 
 ### Step 4: Running
