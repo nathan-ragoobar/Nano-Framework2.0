@@ -77,7 +77,12 @@ if (WIN32)
     #)
     target_link_libraries(train_gpt2_cpu ws2_32)
 else()
-    target_compile_options(train_gpt2_cpu PRIVATE -Ofast -march=native)
+    target_compile_options(train_gpt2_cpu PRIVATE 
+        -Ofast 
+        -march=native 
+        -g3             # Maximum debug info
+        -fno-omit-frame-pointer  # Better stack traces
+        )
 endif()
 
 

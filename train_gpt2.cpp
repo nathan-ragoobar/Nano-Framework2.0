@@ -49,6 +49,14 @@ float cosine_learning_rate(int step, int total_steps, float initial_lr) {
   return initial_lr * 0.5 * (1 + cos(pi * step / total_steps));
 }
 
+void save_model_checkpoint(gpt2::GPT2& model, int step) {
+  char filename[100];
+  snprintf(filename, sizeof(filename), "gpt2_124M_step_%d.bin", step);
+  model.SaveModel(filename);
+  printf("Saved model checkpoint: %s\n", filename);
+}
+
+// Update the print_usage function to include the new parameter
 void print_usage() {
   printf("Usage: train_gpt2 [options]\n");
   printf("Options:\n");
@@ -56,6 +64,7 @@ void print_usage() {
   printf("  --seq_len N               Sequence length (default: 64)\n");
   printf("  --learning_rate N         Initial learning rate (default: 1e-3)\n");
   printf("  --steps N                 Total training steps (default: 35000)\n");
+  printf("  --checkpoint_steps N      Save model checkpoint every N steps (default: 5000)\n");
   printf("  --help                    Display this help message\n");
 }
 
@@ -69,9 +78,10 @@ int main(int argc, char** argv) {
   // Define total training steps and initial learning rate
   int total_steps = 35000;
   float initial_lr = 1e-3f;
+  int checkpoint_steps = 5000;  // New default value
 
 
-  // Parse command line arguments
+  // Add the checkpoint_steps parameter to the argument parser
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--help") == 0) {
         print_usage();
@@ -100,19 +110,26 @@ int main(int argc, char** argv) {
             fprintf(stderr, "Error: Steps must be positive\n");
             return 1;
         }
+    } else if (strcmp(argv[i], "--checkpoint_steps") == 0 && i + 1 < argc) {
+        checkpoint_steps = atoi(argv[++i]);
+        if (checkpoint_steps <= 0) {
+            fprintf(stderr, "Error: Checkpoint steps must be positive\n");
+            return 1;
+        }
     } else {
         fprintf(stderr, "Unknown option: %s\n", argv[i]);
         print_usage();
         return 1;
     }
-}
+  }
 
-// Print training configuration
-printf("Configuration:\n");
-printf("  Batch size: %d\n", B);
-printf("  Sequence length: %d\n", T);
-printf("  Learning rate: %g\n", initial_lr);
-printf("  Training steps: %d\n\n", total_steps);
+  // Add checkpoint interval to the configuration output
+  printf("Configuration:\n");
+  printf("  Batch size: %d\n", B);
+  printf("  Sequence length: %d\n", T);
+  printf("  Learning rate: %g\n", initial_lr);
+  printf("  Training steps: %d\n", total_steps);
+  printf("  Checkpoint every: %d steps\n\n", checkpoint_steps);
 
 
   // Initialize the MetricWriter object
@@ -141,24 +158,22 @@ printf("  Training steps: %d\n\n", total_steps);
 
   // build the DataLoaders from tokens files. for now use tiny_stories if
   // available, else tiny_shakespeare
-  const char* tiny_stories_train = "/tinystories/TinyStories_train.bin";
-  const char* tiny_stories_val = "/tinystories/TinyStories_val.bin";
-  const char* tiny_shakespeare_train =
-      "dev/data/tinyshakespeare/tiny_shakespeare_train.bin";
-  const char* tiny_shakespeare_val =
-      "dev/data/tinyshakespeare/tiny_shakespeare_val.bin";
-  const char* train_tokens = access(tiny_stories_train, F_OK) != -1
-                              ? tiny_stories_train
-                              : tiny_shakespeare_train;
-  const char* val_tokens = access(tiny_stories_val, F_OK) != -1
-                            ? tiny_stories_val
-                            : tiny_shakespeare_val;
+  // Only use edu_fineweb dataset
+  const char* train_tokens = "edu_fineweb10B/edu_fineweb_train_*.bin";
+  const char* val_tokens = "edu_fineweb10B/edu_fineweb_val_*.bin";
 
+  // Check if directory exists and print the paths we're trying to use
+  printf("Using training data path: %s\n", train_tokens);
+  printf("Using validation data path: %s\n", val_tokens);
 
-
-  DataLoader train_loader, val_loader; //Create DataLoader for training and validation
+  // Initialize dataloaders - glob will handle the wildcard patterns
+  printf("Initializing training dataloader...\n");
+  DataLoader train_loader, val_loader;
   dataloader_init(&train_loader, train_tokens, B, T, 0, 1, 0);
+
+  printf("Initializing validation dataloader...\n");
   dataloader_init(&val_loader, val_tokens, B, T, 0, 1, 0);
+
   printf("train dataset num_batches: %zu\n", train_loader.num_tokens / (B * T));
   printf("val dataset num_batches: %zu\n", val_loader.num_tokens / (B * T));
   int val_num_batches = 5;
@@ -307,6 +322,14 @@ printf("  Training steps: %d\n\n", total_steps);
     if (step) {
       timings.push_back(time_elapsed_s);
     }
+
+    // Save model checkpoint
+    
+    //Save model checkpoint
+    if (step % checkpoint_steps == 0 && step > 0) {
+      save_model_checkpoint(model, step);
+    }
+
   }
 
   double sum = std::accumulate(timings.begin(), timings.end(), 0.0);
@@ -316,7 +339,7 @@ printf("  Training steps: %d\n\n", total_steps);
   }
 
   //Save model
-  model.SaveModel("gpt2_124M100Steps.bin");
+  model.SaveModel("gpt2_124MFinal.bin");
 
   writer.close(); //Close the writer
 
