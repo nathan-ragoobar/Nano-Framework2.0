@@ -1,303 +1,378 @@
-#ifndef LLM_CPP__FASTFEEDFORWARD_HPP_
-#define LLM_CPP__FASTFEEDFORWARD_HPP_
+#ifndef LLM_CPP__FAST_FEEDFORWARD_NETWORK_HPP_
+#define LLM_CPP__FAST_FEEDFORWARD_NETWORK_HPP_
 
 #include "nn.hpp"
-#include "./sigmoid.hpp"  // Ensure this header file is included
+#include "sigmoid.hpp"
+
+#ifdef EIGEN_USE_GPU
+#include "cuda_profile_util.hpp"
+#define PROFILE_TRACE_FN(prefix) NVTX_RANGE_FN(prefix)
+#else
+#define PROFILE_TRACE_FN(prefix)
+#endif
 
 namespace gpt {
 
-struct FastFeedforward {
+// Decision node that determines routing between leaves
+struct DecisionNode {
   using T = floatX;
-
-  explicit FastFeedforward(int input_width, int leaf_width, int output_width, int depth) 
-    : input_width_(input_width),
-      leaf_width_(leaf_width),
-      output_width_(output_width),
-      depth_(depth),
-      num_leaves_(1 << depth) {  // 2^depth leaves
+  
+  explicit DecisionNode(int input_size) {
+    // Decision layer is a single output linear layer
+    decision_ = std::make_unique<nn::Linear>(input_size, 1);
     
-    // Initialize decision nodes for each level
-    decision_fcs_.reserve(depth);
-    for(int level = 0; level < depth; level++) {
-      decision_fcs_.push_back(std::make_unique<nn::Linear>(input_width, 1));
-    }
-    
-    // Initialize leaf networks
-    leaf_fcs_.reserve(num_leaves_);
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-      leaf_fcs_.push_back(std::make_unique<nn::Linear>(input_width, leaf_width));
-    }
-    
-    // Output projection
-    output_fc_ = std::make_unique<nn::Linear>(leaf_width, output_width);
-
-    // Activation tensors
+    // For storing intermediate values
     auto dtype = nn::DataTypeToEnum<T>::value;
-    
-    // Decision activations for each level
-    decision_acts_.reserve(depth);
-    for(int level = 0; level < depth; level++) {
-      decision_acts_.push_back(std::make_unique<nn::Activation>(dtype));
-    }
-    
-    // Leaf activations
-    leaf_acts_.reserve(num_leaves_);
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-      leaf_acts_.push_back(std::make_unique<nn::Activation>(dtype));
-    }
-    
-    output_act_ = std::make_unique<nn::Activation>(dtype);
+    decision_output_ = std::make_unique<nn::Activation>(dtype);
+    sigmoid_output_ = std::make_unique<nn::Activation>(dtype);
   }
-
+  
   void Forward(typename TTypes<T>::ConstMatrix x,
-    typename TTypes<T>::Matrix y) {
-    PROFILE_TRACE_FN("FastFeedforward");
-
-    CHECK_EQ(x.dimension(1), input_width_);
-    CHECK_EQ(x.dimension(0), y.dimension(0));
-    CHECK_EQ(y.dimension(1), output_width_);
-
+               typename TTypes<T>::Matrix choice) {
+    PROFILE_TRACE_FN("DecisionNode");
+    
     int BT = x.dimension(0);
-
-    // Lazy allocation for activations
-    for(auto& act : decision_acts_) {
-    act->LazyAllocate(BT);
+    decision_output_->LazyAllocate(BT);
+    sigmoid_output_->LazyAllocate(BT);
+    
+    // Linear projection to scalar
+    auto decision_out = decision_output_->matrix<T>(BT, 1);
+    decision_->Forward(x, decision_out);
+    
+    // Apply sigmoid for soft routing decision
+    auto sigmoid_out = sigmoid_output_->matrix<T>(BT, 1);
+    nn::Sigmoid::Forward<T>(MakeConstFlat(decision_out.data(), decision_out.size()),
+                         MakeFlat(sigmoid_out.data(), sigmoid_out.size()));
+    
+    // Copy to output
+    for (int b = 0; b < BT; ++b) {
+      choice(b, 0) = sigmoid_out(b, 0);
     }
-    for(auto& act : leaf_acts_) {
-    act->LazyAllocate(BT * leaf_width_);
-    }
-    output_act_->LazyAllocate(BT * output_width_);
-
-    // Decision forward passes at each level
-    std::vector<typename TTypes<T>::Matrix> decisions;
-    decisions.reserve(depth_);
-
-    for(int level = 0; level < depth_; level++) {
-    auto decision = decision_acts_[level]->matrix<T>(BT, 1);
-    decision_fcs_[level]->Forward(x, decision);
-    nn::Sigmoid::Forward<float>(MakeConstFlat(decision.data(), decision.size()),
-                            MakeFlat(decision.data(), decision.size()));
-    decisions.push_back(decision);
-    }
-
-    // Leaf networks forward pass
-    std::vector<typename TTypes<T>::Matrix> leaf_outputs;
-    leaf_outputs.reserve(num_leaves_);
-
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-    auto leaf_out = leaf_acts_[leaf]->matrix<T>(BT, leaf_width_);
-    leaf_fcs_[leaf]->Forward(x, leaf_out);
-    leaf_outputs.push_back(leaf_out);
-    }
-
-    // Compute routing probabilities for each leaf
-    std::vector<std::vector<T>> routing_probs(BT, std::vector<T>(num_leaves_));
-
-    for(int b = 0; b < BT; b++) {
-    // Initialize with probability 1
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-        routing_probs[b][leaf] = T(1.0);
-    }
-
-    // Apply decision probabilities level by level
-    for(int level = 0; level < depth_; level++) {
-        int level_stride = 1 << (depth_ - level - 1);
-        auto decision_val = decisions[level](b, 0);
-        
-        for(int leaf = 0; leaf < num_leaves_; leaf++) {
-            bool go_right = (leaf / level_stride) % 2 == 1;
-            routing_probs[b][leaf] *= go_right ? decision_val : (T(1.0) - decision_val);
-        }
-    }
-    }
-
-    // Compute weighted sum of leaf outputs
-    auto output = output_act_->matrix<T>(BT, leaf_width_);
-    output.setZero();
-
-    for(int b = 0; b < BT; b++) {
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-        for(int j = 0; j < leaf_width_; j++) {
-            output(b,j) += routing_probs[b][leaf] * leaf_outputs[leaf](b,j);
-        }
-    }
-    }
-
-    // Final projection to output dimension
-    output_fc_->Forward(output.template cast<typename TTypes<T>::ConstMatrix>(), y);
-    }
-
-    void Backward(typename TTypes<T>::ConstMatrix x,
-        typename TTypes<T>::ConstMatrix y_grad,
-        typename TTypes<T>::Matrix x_grad) {
-    PROFILE_TRACE_FN("FastFeedforward");
-
+  }
+  
+  void Backward(typename TTypes<T>::ConstMatrix x,
+                typename TTypes<T>::ConstMatrix choice_grad,
+                typename TTypes<T>::Matrix x_grad) {
+    PROFILE_TRACE_FN("DecisionNode");
+    
     int BT = x.dimension(0);
-
-    // Lazy allocate gradients
-    for(auto& act : decision_acts_) {
-    act->LazyAllocateGradient();
+    decision_output_->LazyAllocateGradient();
+    sigmoid_output_->LazyAllocateGradient();
+    decision_output_->ZeroGrad();
+    sigmoid_output_->ZeroGrad();
+    
+    // Backprop through sigmoid
+    auto sigmoid_out = sigmoid_output_->const_matrix<T>(BT, 1);
+    auto sigmoid_grad = sigmoid_output_->matrix_grad<T>(BT, 1);
+    
+    for (int b = 0; b < BT; ++b) {
+      sigmoid_grad(b, 0) = choice_grad(b, 0);
     }
-    for(auto& act : leaf_acts_) {
-    act->LazyAllocateGradient();
-    }
-    output_act_->LazyAllocateGradient();
-
-    // First backprop through output projection
-    auto output = output_act_->const_matrix<T>(BT, leaf_width_);
-    auto output_grad = output_act_->matrix_grad<T>(BT, leaf_width_);
-    output_fc_->Backward(output, y_grad, output_grad);
-
-    // Get all decisions and leaf outputs from forward pass
-    std::vector<typename TTypes<T>::ConstMatrix> decisions;
-    std::vector<typename TTypes<T>::ConstMatrix> leaf_outputs;
-
-    for(int level = 0; level < depth_; level++) {
-    decisions.push_back(decision_acts_[level]->const_matrix<T>(BT, 1));
-    }
-
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-    leaf_outputs.push_back(leaf_acts_[leaf]->const_matrix<T>(BT, leaf_width_));
-    }
-
-    // Compute routing gradients
-    std::vector<typename TTypes<T>::Matrix> decision_grads;
-    std::vector<typename TTypes<T>::Matrix> leaf_grads;
-
-    for(int level = 0; level < depth_; level++) {
-    decision_grads.push_back(decision_acts_[level]->matrix_grad<T>(BT, 1));
-    }
-
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-    leaf_grads.push_back(leaf_acts_[leaf]->matrix_grad<T>(BT, leaf_width_));
-    }
-
-    // Backpropagate through routing structure
-    for(int b = 0; b < BT; b++) {
-    std::vector<T> routing_probs(num_leaves_);
-
-    // Compute current routing probabilities
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-        routing_probs[leaf] = T(1.0);
-        for(int level = 0; level < depth_; level++) {
-            int level_stride = 1 << (depth_ - level - 1);
-            bool go_right = (leaf / level_stride) % 2 == 1;
-            auto decision_val = decisions[level](b, 0);
-            routing_probs[leaf] *= go_right ? decision_val : (T(1.0) - decision_val);
-        }
-    }
-
-    // Compute leaf gradients
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-        for(int j = 0; j < leaf_width_; j++) {
-            leaf_grads[leaf](b,j) = output_grad(b,j) * routing_probs[leaf];
-        }
-    }
-
-    // Compute decision gradients
-    for(int level = 0; level < depth_; level++) {
-        T level_grad = T(0.0);
-        int level_stride = 1 << (depth_ - level - 1);
-        
-        for(int leaf = 0; leaf < num_leaves_; leaf++) {
-            bool go_right = (leaf / level_stride) % 2 == 1;
-            T leaf_contribution = T(0.0);
-            
-            for(int j = 0; j < leaf_width_; j++) {
-                leaf_contribution += output_grad(b,j) * leaf_outputs[leaf](b,j);
-            }
-            
-            if(go_right) {
-                level_grad += leaf_contribution * routing_probs[leaf] / decisions[level](b,0);
-            } else {
-                level_grad -= leaf_contribution * routing_probs[leaf] / (T(1.0) - decisions[level](b,0));
-            }
-        }
-        
-        decision_grads[level](b,0) = level_grad;
-    }
-    }
-
-    // Backpropagate through leaf networks
-    x_grad.setZero();
-    typename TTypes<T>::Matrix temp_grad = x_grad;
-
-    for(int leaf = 0; leaf < num_leaves_; leaf++) {
-    leaf_fcs_[leaf]->Backward(x, leaf_acts_[leaf]->const_matrix_grad<T>(BT, leaf_width_), temp_grad);
-    }
-
-    // Backpropagate through decision networks
-    for(int level = 0; level < depth_; level++) {
-    auto decision = decisions[level];
-    auto decision_grad_flat = decision_acts_[level]->const_flat_grad<T>();
-    auto temp_grad = decision_acts_[level]->flat_grad<T>();
-
-    nn::Sigmoid::Backward<float>(
-        MakeConstFlat(decision.data(), decision.size()),
-        decision_grad_flat,
-        temp_grad
-    );
-
-    decision_fcs_[level]->Backward(
-        x,
-        decision_acts_[level]->const_matrix_grad<T>(BT, 1),
-        x_grad
-    );
-    }
-    }
-
+    
+    auto decision_out = decision_output_->const_flat<T>();
+    auto sigmoid_grad_flat = sigmoid_output_->const_flat_grad<T>();
+    auto decision_grad = decision_output_->flat_grad<T>();
+    
+    nn::Sigmoid::Backward<T>(decision_out, sigmoid_grad_flat, decision_grad);
+    
+    // Backprop through linear
+    auto decision_grad_2d = decision_output_->const_matrix_grad<T>(BT, 1);
+    decision_->Backward(x, decision_grad_2d, x_grad);
+  }
+  
   size_t NumParameters() const {
-    size_t total = 0;
-    for(const auto& fc : decision_fcs_) {
-      total += fc->NumParameters();
-    }
-    for(const auto& fc : leaf_fcs_) {
-      total += fc->NumParameters();
-    }
-    total += output_fc_->NumParameters();
-    return total;
+    return decision_->NumParameters();
   }
-
+  
   size_t NumActivations() const {
-    size_t total = 0;
-    for(const auto& act : decision_acts_) {
-      total += act->size();
-    }
-    for(const auto& act : leaf_acts_) {
-      total += act->size();
-    }
-    total += output_act_->size();
-    return total;
+    return decision_->NumActivations() + 
+           decision_output_->size() + 
+           sigmoid_output_->size();
   }
-
+  
   void Parameters(std::vector<nn::Parameter*>* parameters) const {
-    for(const auto& fc : decision_fcs_) {
-      fc->Parameters(parameters);
-    }
-    for(const auto& fc : leaf_fcs_) {
-      fc->Parameters(parameters);
-    }
-    output_fc_->Parameters(parameters);
+    decision_->Parameters(parameters);
   }
-
-  // Network configuration
-  int input_width_;
-  int leaf_width_;
-  int output_width_;
-  int depth_;
-  int num_leaves_;
-
-  // Network components
-  std::vector<std::unique_ptr<nn::Linear>> decision_fcs_;
-  std::vector<std::unique_ptr<nn::Linear>> leaf_fcs_;
-  std::unique_ptr<nn::Linear> output_fc_;
-
+  
+  // Linear projection for decision
+  std::unique_ptr<nn::Linear> decision_;
+  
   // Activation tensors
-  std::vector<std::unique_ptr<nn::Activation>> decision_acts_;
-  std::vector<std::unique_ptr<nn::Activation>> leaf_acts_;
-  std::unique_ptr<nn::Activation> output_act_;
+  std::unique_ptr<nn::Activation> decision_output_;
+  std::unique_ptr<nn::Activation> sigmoid_output_;
+};
+
+// Leaf network (standard MLP)
+struct LeafNetwork {
+  using T = floatX;
+  
+  explicit LeafNetwork(int input_size, int output_size) {
+    // Standard linear layers
+    fc_ = std::make_unique<nn::Linear>(input_size, output_size);
+    
+    // For storing activations
+    auto dtype = nn::DataTypeToEnum<T>::value;
+    output_ = std::make_unique<nn::Activation>(dtype);
+  }
+  
+  void Forward(typename TTypes<T>::ConstMatrix x,
+               typename TTypes<T>::Matrix y) {
+    PROFILE_TRACE_FN("LeafNetwork");
+    
+    int BT = x.dimension(0);
+    int output_size = y.dimension(1);
+    output_->LazyAllocate(BT * output_size);
+    
+    // Linear projection
+    auto leaf_out = output_->matrix<T>(BT, output_size);
+    fc_->Forward(x, leaf_out);
+    
+    // Copy to output matrix
+    for (int b = 0; b < BT; ++b) {
+      for (int j = 0; j < output_size; ++j) {
+        y(b, j) = leaf_out(b, j);
+      }
+    }
+  }
+  
+  void Backward(typename TTypes<T>::ConstMatrix x,
+                typename TTypes<T>::ConstMatrix y_grad,
+                typename TTypes<T>::Matrix x_grad) {
+    PROFILE_TRACE_FN("LeafNetwork");
+    
+    int BT = x.dimension(0);
+    int output_size = y_grad.dimension(1);
+    output_->LazyAllocateGradient();
+    output_->ZeroGrad();
+    
+    auto output_grad = output_->matrix_grad<T>(BT, output_size);
+    
+    // Copy gradients to output tensor
+    for (int b = 0; b < BT; ++b) {
+      for (int j = 0; j < output_size; ++j) {
+        output_grad(b, j) = y_grad(b, j);
+      }
+    }
+    
+    // Backprop through linear layer
+    auto output_grad_const = output_->const_matrix_grad<T>(BT, output_size);
+    fc_->Backward(x, output_grad_const, x_grad);
+  }
+  
+  size_t NumParameters() const {
+    return fc_->NumParameters();
+  }
+  
+  size_t NumActivations() const {
+    return fc_->NumActivations() + output_->size();
+  }
+  
+  void Parameters(std::vector<nn::Parameter*>* parameters) const {
+    fc_->Parameters(parameters);
+  }
+  
+  // Linear projection
+  std::unique_ptr<nn::Linear> fc_;
+  
+  // Activation tensor
+  std::unique_ptr<nn::Activation> output_;
+};
+
+// Fast Feedforward Network (1 decision node + 2 leaf networks)
+struct FastFeedforwardNetwork {
+  using T = floatX;
+  
+  explicit FastFeedforwardNetwork(int n_embed, int output_size) 
+      : n_embed_(n_embed), output_size_(output_size) {
+    
+    // Create decision node and leaf networks
+    decision_ = std::make_unique<DecisionNode>(n_embed);
+    left_leaf_ = std::make_unique<LeafNetwork>(n_embed, output_size);
+    right_leaf_ = std::make_unique<LeafNetwork>(n_embed, output_size);
+    
+    // Allocate tensors for intermediate results
+    auto dtype = nn::DataTypeToEnum<T>::value;
+    choice_ = std::make_unique<nn::Activation>(dtype);
+    left_output_ = std::make_unique<nn::Activation>(dtype);
+    right_output_ = std::make_unique<nn::Activation>(dtype);
+  }
+  
+  void Forward(typename TTypes<T>::ConstMatrix x,
+               typename TTypes<T>::Matrix y) {
+    PROFILE_TRACE_FN("FastFeedforwardNetwork");
+    
+    CHECK_EQ(x.dimension(1), n_embed_);
+    CHECK_EQ(y.dimension(1), output_size_);
+    CHECK_EQ(x.dimension(0), y.dimension(0));
+    
+    int BT = x.dimension(0);
+    
+    // Allocate tensors
+    choice_->LazyAllocate(BT);
+    left_output_->LazyAllocate(BT * output_size_);
+    right_output_->LazyAllocate(BT * output_size_);
+    
+    // Compute the routing decision
+    auto choice_matrix = choice_->matrix<T>(BT, 1);
+    decision_->Forward(x, choice_matrix);
+    
+    // Compute outputs from both leaves
+    auto left_out = left_output_->matrix<T>(BT, output_size_);
+    auto right_out = right_output_->matrix<T>(BT, output_size_);
+    
+    left_leaf_->Forward(x, left_out);
+    right_leaf_->Forward(x, right_out);
+    
+    // Mix outputs according to routing decision
+    for (int b = 0; b < BT; ++b) {
+      float choice_val = choice_matrix(b, 0);
+      for (int j = 0; j < output_size_; ++j) {
+        y(b, j) = choice_val * right_out(b, j) + (1.0f - choice_val) * left_out(b, j);
+      }
+    }
+  }
+  
+  void Backward(typename TTypes<T>::ConstMatrix x,
+                typename TTypes<T>::ConstMatrix y_grad,
+                typename TTypes<T>::Matrix x_grad) {
+    PROFILE_TRACE_FN("FastFeedforwardNetwork");
+    
+    CHECK_EQ(x.dimension(1), n_embed_);
+    CHECK_EQ(y_grad.dimension(1), output_size_);
+    CHECK_EQ(x.dimension(0), y_grad.dimension(0));
+    CHECK_EQ(x.dimension(0), x_grad.dimension(0));
+    CHECK_EQ(x.dimension(1), x_grad.dimension(1));
+    
+    int BT = x.dimension(0);
+    
+    // Allocate gradients
+    choice_->LazyAllocateGradient();
+    left_output_->LazyAllocateGradient();
+    right_output_->LazyAllocateGradient();
+    choice_->ZeroGrad();
+    left_output_->ZeroGrad();
+    right_output_->ZeroGrad();
+    
+    auto choice_val = choice_->const_matrix<T>(BT, 1);
+    auto choice_grad = choice_->matrix_grad<T>(BT, 1);
+    auto left_out = left_output_->const_matrix<T>(BT, output_size_);
+    auto right_out = right_output_->const_matrix<T>(BT, output_size_);
+    auto left_grad = left_output_->matrix_grad<T>(BT, output_size_);
+    auto right_grad = right_output_->matrix_grad<T>(BT, output_size_);
+    
+    // Calculate gradients for leaf outputs and routing decision
+    for (int b = 0; b < BT; ++b) {
+      float c = choice_val(b, 0);
+      choice_grad(b, 0) = 0;
+      
+      for (int j = 0; j < output_size_; ++j) {
+        // Gradient w.r.t decision
+        choice_grad(b, 0) += y_grad(b, j) * (right_out(b, j) - left_out(b, j));
+        
+        // Gradient w.r.t leaf outputs
+        right_grad(b, j) = y_grad(b, j) * c;
+        left_grad(b, j) = y_grad(b, j) * (1.0f - c);
+      }
+    }
+    
+    // Zero out input gradients
+    for (int b = 0; b < BT; ++b) {
+      for (int j = 0; j < n_embed_; ++j) {
+        x_grad(b, j) = 0;
+      }
+    }
+    
+    // Create temporary gradient buffers
+    auto dtype = nn::DataTypeToEnum<T>::value;
+    nn::Parameter temp_grad(dtype, BT * n_embed_);
+    
+    // Backprop through leaves
+    auto right_grad_const = right_output_->const_matrix_grad<T>(BT, output_size_);
+    auto left_grad_const = left_output_->const_matrix_grad<T>(BT, output_size_);
+    
+    auto temp_grad_matrix = temp_grad.matrix<T>(BT, n_embed_);
+    right_leaf_->Backward(x, right_grad_const, temp_grad_matrix);
+    
+    // Add right leaf gradients to x_grad
+    for (int b = 0; b < BT; ++b) {
+      for (int j = 0; j < n_embed_; ++j) {
+        x_grad(b, j) += temp_grad_matrix(b, j);
+      }
+    }
+    
+    // Reset temp gradients
+    temp_grad.ZeroData();
+    left_leaf_->Backward(x, left_grad_const, temp_grad_matrix);
+    
+    // Add left leaf gradients to x_grad
+    for (int b = 0; b < BT; ++b) {
+      for (int j = 0; j < n_embed_; ++j) {
+        x_grad(b, j) += temp_grad_matrix(b, j);
+      }
+    }
+    
+    // Reset temp gradients
+    temp_grad.ZeroData();
+    auto choice_grad_const = choice_->const_matrix_grad<T>(BT, 1);
+    decision_->Backward(x, choice_grad_const, temp_grad_matrix);
+    
+    // Add decision gradients to x_grad
+    for (int b = 0; b < BT; ++b) {
+      for (int j = 0; j < n_embed_; ++j) {
+        x_grad(b, j) += temp_grad_matrix(b, j);
+      }
+    }
+  }
+  
+  size_t NumParameters() const {
+    return decision_->NumParameters() + 
+           left_leaf_->NumParameters() + 
+           right_leaf_->NumParameters();
+  }
+  
+  size_t NumActivations() const {
+    return decision_->NumActivations() + 
+           left_leaf_->NumActivations() + 
+           right_leaf_->NumActivations() + 
+           choice_->size() + 
+           left_output_->size() + 
+           right_output_->size();
+  }
+  
+  void Parameters(std::vector<nn::Parameter*>* parameters) const {
+    decision_->Parameters(parameters);
+    left_leaf_->Parameters(parameters);
+    right_leaf_->Parameters(parameters);
+  }
+  
+  int n_embed_;
+  int output_size_;
+  
+  // Network components
+  std::unique_ptr<DecisionNode> decision_;
+  std::unique_ptr<LeafNetwork> left_leaf_;
+  std::unique_ptr<LeafNetwork> right_leaf_;
+  
+  // Activation tensors
+  std::unique_ptr<nn::Activation> choice_;
+  std::unique_ptr<nn::Activation> left_output_;
+  std::unique_ptr<nn::Activation> right_output_;
 };
 
 }  // namespace gpt
+#endif  // LLM_CPP__FAST_FEEDFORWARD_NETWORK_HPP_
 
-#endif  // LLM_CPP__FASTFEEDFORWARD_HPP_
+
+
+/*
+// In your GPT2 implementation where you currently use MLP:
+
+// Before:
+std::unique_ptr<gpt::MLP> mlp_ = std::make_unique<gpt::MLP>(n_embed);
+
+// After:
+std::unique_ptr<gpt::FastFeedforwardNetwork> mlp_ = 
+    std::make_unique<gpt::FastFeedforwardNetwork>(n_embed, n_embed);
+
+
+*/

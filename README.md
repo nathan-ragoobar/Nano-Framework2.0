@@ -79,4 +79,9 @@ cp build/train_gpt2_gpu ..
 ./inference_gpt2_cpu
 ./train_gpt2_cpu
 ./train_gpt2_gpu
+
+
+
+
+./train_gpt2_cpu --finetune --grammar_dataset ./jfleg/jfleg_train.txt --finetune_lr 5e-5 --steps 2000 --checkpoint_steps 500 --batch_size 8 --seq_len 64
 ```
