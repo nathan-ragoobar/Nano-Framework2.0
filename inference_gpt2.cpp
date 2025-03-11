@@ -6,6 +6,8 @@
 
 #include <iostream>
 #include <memory>
+#include <condition_variable>
+#include <queue>
 
 #include "gpt2.hpp"
 //#include "llmc/dataloader.h"
@@ -13,6 +15,62 @@
 #include "nano.hpp"
 #include "llmc/tokenizer.hpp"
 
+// Forward declaration of the TokenizerCache class we'll define later
+//class TokenizerCache;
+
+// Add this class before your main() function
+class TokenizerCache {
+  public:
+      TokenizerCache(nano::GPT2Tokenizer& base_tokenizer) : tokenizer(base_tokenizer) {}
+      
+      std::string decode(int token) {
+          auto it = cache.find(token);
+          if (it != cache.end())
+              return it->second;
+              
+          std::vector<int> token_vec{token};
+          std::string result = tokenizer.decode(token_vec);
+          cache[token] = result;
+          return result;
+      }
+      
+  private:
+      nano::GPT2Tokenizer& tokenizer;
+      std::unordered_map<int, std::string> cache;
+  };
+
+TokenizerCache* tokenizer_cache_ptr = nullptr;
+
+// Thread and synchronization variables
+std::thread decode_thread;
+std::mutex token_mutex;
+std::condition_variable cv;
+std::queue<int> token_queue;
+bool done = false;
+
+// Function to start the decoder thread
+void start_decoder_thread() {
+    decode_thread = std::thread([]() {
+        while (!done) {
+            std::unique_lock<std::mutex> lock(token_mutex);
+            cv.wait(lock, [&]{ return !token_queue.empty() || done; });
+            
+            if (!token_queue.empty()) {
+                int token = token_queue.front();
+                token_queue.pop();
+                lock.unlock();
+                
+                // Decode and print in background
+                if (tokenizer_cache_ptr) {
+                    std::string text = tokenizer_cache_ptr->decode(token);
+                    std::cout << text << std::flush;
+                } else {
+                    std::cout << "[" << token << "]" << std::flush;
+                }
+            }
+        }
+    });
+}
 
 // sampler
 
@@ -40,34 +98,80 @@ int sample_mult(float* probabilities, int n, float coin) {
   return n - 1;  // in case of rounding errors
 }
 
+
+
+void print_usage(const char* program_name) {
+  printf("Usage: %s [options]\n", program_name);
+  printf("Options:\n");
+  printf("  --model PATH      Path to model weights file (default: gpt2_124M.bin)\n");
+  printf("  --genlen N        Number of tokens to generate (default: 64)\n");
+  printf("  --help            Display this help message\n");
+}
+
 int main(int argc, char** argv) {
+
+    // Default model path
+    const char* model_path = "./gpt2_124M100Steps.bin";
+    int genT = 64;  // Default generation length
+    
+    // Parse command line arguments
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "--model") == 0 && i + 1 < argc) {
+            model_path = argv[++i];
+        } else if (strcmp(argv[i], "--genlen") == 0 && i + 1 < argc) {
+            genT = atoi(argv[++i]);
+            if (genT <= 0 || genT > 1024) {
+                fprintf(stderr, "Error: Generation length must be between 1 and 1024\n");
+                return 1;
+            }
+        } else if (strcmp(argv[i], "--help") == 0) {
+            print_usage(argv[0]);
+            return 0;
+        } else {
+            fprintf(stderr, "Unknown option: %s\n", argv[i]);
+            print_usage(argv[0]);
+            return 1;
+        }
+    }
 
     struct timespec start, end;
 
-    gpt2::GPT2 model;
-    model.BuildFromCheckpoint("./gpt2_124M100Steps.bin"); //Loads model
+    // Print configuration
+    printf("Configuration:\n");
+    printf("  Model path: %s\n", model_path);
+    printf("  Generation length: %d tokens\n\n", genT);
 
-    int B = 4;   // batch size 4 (i.e. 4 independent token sequences will be
-               // trained on)
-    int T = 64;  // sequence length 64 (i.e. each sequence is 64 tokens long).
-               // must be <= maxT, which is 1024 for GPT-2
+    // Load the model using the path from command line
+    gpt2::GPT2 model;
+    printf("Loading model from %s...\n", model_path);
+    if (model.BuildFromCheckpoint(model_path) == false) {
+        fprintf(stderr, "Error: Failed to load model from %s\n", model_path);
+        return 1;
+    }
+    printf("Model loaded successfully\n");
+
+    // Rest of the code remains the same
+    int B = 4;
+    int T = 64;
 
     // build the Tokenizer
     Tokenizer tokenizer;
     tokenizer_init(&tokenizer, "gpt2_tokenizer.bin");
 
-    //build the Nano Tokenizer. This has encoding and decoding functions
-    nano::Tokenizer tokenizer_nano;
-    tokenizer_nano.init();
-
+    
     nano::GPT2Tokenizer tokenizer_gpt2("vocab.bpe", "encoder.json");
 
+    // Initialize the tokenizer cache and set the global pointer
+    TokenizerCache tokenizer_cache(tokenizer_gpt2);
+    tokenizer_cache_ptr = &tokenizer_cache;
 
+    // Start the decoder thread
+    start_decoder_thread();
 
     // some memory for generating samples from the model
     unsigned long long rng_state = 1337;
     int* gen_tokens = (int*)mallocCheck(B * T * sizeof(int));
-    const int genT = 64;  // number of steps of inference we will do
+    //const int genT = 64;  // number of steps of inference we will do
 
     int V = model.config.vocab_size;
     std::unique_ptr<float[]> logit = std::make_unique<float[]>(B * T * V);
@@ -91,9 +195,11 @@ int main(int argc, char** argv) {
     std::vector<int> input_tokens = tokenizer_gpt2.encode(input);
 
     //Print the tokens
+    std::cout << "Input tokens: ";
     for (int i = 0; i < input_tokens.size(); i++) {
         std::cout << input_tokens[i] << " ";
     }
+    std::cout << "\n";
     
     // fill up gen_tokens with the GPT2_EOT, which kicks off the generation
     // Initialize gen_tokens with the input tokens and pad with EOT token
@@ -129,40 +235,33 @@ int main(int argc, char** argv) {
         // (the probabilities in the padded region should be zero anyway)
         int next_token = sample_mult(probs, model.config.vocab_size, coin);
         gen_tokens[t] = next_token;
-        // print the generated token, either using the Tokenizer or a fallback
-        // Replace the token printing section with this:
-        // Replace the token printing section with this:
-        if (tokenizer.init_ok) {
-          // Keep track of last token's position
-          static std::string current_output;
-          
-          // Get just the new token
-          std::vector<int> new_token{next_token};
-          std::string new_text = tokenizer_gpt2.decode(new_token);
-          
-          // Add to current output
-          current_output += new_text;
-          
-          // Clear line and print current state
-          std::cout << "\r" << std::string(last_printed, ' ') << "\r" << current_output << std::flush;
-          last_printed = current_output.length();
-          
-          // Extra newline at natural breaks
-          if (new_text.find('.') != std::string::npos || 
-              new_text.find('\n') != std::string::npos || 
-              next_token == tokenizer.eot_token) {
-              std::cout << std::endl;
-          }
-      } else {
-          printf("%d ", next_token);
-          fflush(stdout);
+        
+        // Push token to queue for background processing
+        {
+          std::lock_guard<std::mutex> lock(token_mutex);
+          token_queue.push(next_token);
       }
-        fflush(stdout);
+      cv.notify_one();
+  }
+  
+  // Wait for decoder thread to finish processing the queue
+  {
+      std::unique_lock<std::mutex> lock(token_mutex);
+      while (!token_queue.empty()) {
+          lock.unlock();
+          std::this_thread::sleep_for(std::chrono::milliseconds(10));
+          lock.lock();
       }
-        //std::string nano_token_str = tokenizer_nano.decode_string(gen_tokens,genT);
-        //print Nano token
-        //std::cout << "Nano Tokenizer: "<< nano_token_str;
-      printf("\n---\n");
+  }
+  
+  // Clean up when done
+  done = true;
+  cv.notify_all();
+  if (decode_thread.joinable()) {
+      decode_thread.join();
+  }
+  
+  printf("\n---\n");
 
       clock_gettime(CLOCK_MONOTONIC, &end);
 
@@ -171,6 +270,10 @@ int main(int argc, char** argv) {
     printf("Inference took: %f ms)\n",
            time_elapsed_s * 1000);
     
+
+
+// START OF VALIDATION CODE
+//---------------------------------------------------------------------------------
     const char* tiny_stories_val = "dev/data/tinystories/TinyStories_val.bin";
   
     const char* tiny_shakespeare_val =
@@ -223,6 +326,7 @@ int main(int argc, char** argv) {
     }
 
     // Add cleanup
+    tokenizer_cache_ptr = nullptr;
     dataloader_free(&val_loader);
     return 0;
       

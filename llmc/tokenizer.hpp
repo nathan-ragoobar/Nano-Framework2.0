@@ -26,6 +26,7 @@ namespace nano {
             std::unordered_map<std::string, int> encoder;  // Token → ID
             std::unordered_map<int, std::string> decoder;  // ID → Token
             std::unordered_map<std::string, int> bpeRanks;
+            int eot_token_id;
         
             // Load BPE merges from file
             void loadBPE(const std::string& filename) {
@@ -91,10 +92,30 @@ namespace nano {
             }
         
         public:
-            // Constructor
-            GPT2Tokenizer(const std::string& bpeFile, const std::string& encoderFile) {
-                loadBPE(bpeFile);
-                loadEncoder(encoderFile);
+           // Constructor
+           GPT2Tokenizer(const std::string& bpeFile, const std::string& encoderFile) {
+            loadBPE(bpeFile);
+            loadEncoder(encoderFile);
+            
+            // Initialize the EOT token ID
+            if (encoder.find("<|endoftext|>") != encoder.end()) {
+                eot_token_id = encoder["<|endoftext|>"];
+            } else {
+                // Fallback value if not found
+                eot_token_id = 50256; // Standard GPT-2 EOT token ID
+                std::cerr << "Warning: <|endoftext|> token not found in encoder. Using default value: " 
+                          << eot_token_id << std::endl;
+            }
+        }
+
+            // Getter for EOT token
+            int eot_token() const {
+                return eot_token_id;
+            }
+
+            // Check if the tokenizer is properly initialized
+            bool is_initialized() const {
+                return !encoder.empty() && !decoder.empty() && !bpeRanks.empty();
             }
         
             // Tokenize input text into token IDs
@@ -124,59 +145,44 @@ namespace nano {
                 for (int id : tokenIDs) {
                     if (decoder.find(id) != decoder.end()) {
                         std::string token = decoder[id];
-                        if (!token.empty()) {
-                            // Check for Unicode characters
-                            unsigned char first_byte = static_cast<unsigned char>(token[0]);
-                            if (first_byte == 0xC4 && token.length() > 1) {  // UTF-8 prefix for Ġ
-                                if (static_cast<unsigned char>(token[1]) == 0xA0) {  // Ġ (U+0120)
-                                    result << ' ' << token.substr(2);
-                                }
-                            } else if (first_byte == 0xC4 && token.length() > 1) {  // UTF-8 prefix for Ċ
-                                if (static_cast<unsigned char>(token[1]) == 0x82) {  // Ċ (U+0102)
-                                    result << '\n' << token.substr(2);
-                                }
-                            } else if (token == "<|endoftext|>") {
-                                result << "\n[END]\n";
-                            } else {
-                                result << token;
-                            }
-                        }
-                    } else {
-                        std::cerr << "Warning: ID not found in decoder: " << id << std::endl;
-                    }
-                }
-                return result.str();
-            }
-
-/*        
-            // Decode token IDs back into text
-            std::string decode(const std::vector<int>& tokenIDs) {
-                std::ostringstream result;
-                for (int id : tokenIDs) {
-                    if (decoder.find(id) != decoder.end()) {
-                        std::string token = decoder[id];
                         // Handle special characters
                         if (!token.empty()) {
-                            // Replace Ġ with space
-                            if (token[0] == 'Ġ') {
+                            // Check for UTF-8 encoding of 'Ġ' (unicode character U+0120)
+                            // Usually appears as a special space token in GPT-2
+                            if (token.length() >= 2 && 
+                                (unsigned char)token[0] == 0xC4 && 
+                                (unsigned char)token[1] == 0xA0) {
+                                result << ' ' << token.substr(2);  // Space followed by the rest
+                            }
+                            // Check for UTF-8 encoding of 'Ċ' (unicode character U+010A)
+                            // Usually represents newline
+                            else if (token.length() >= 2 && 
+                                     (unsigned char)token[0] == 0xC4 && 
+                                     (unsigned char)token[1] == 0x8A) {
+                                result << '\n' << token.substr(2);  // Newline followed by rest
+                            }
+                            else if (token == "<|endoftext|>") {
+                                result << "\n[END]\n";
+                            }
+                            // Try to handle BPE token formats
+                            else if (token[0] == 'Ġ') {  // Special GPT-2 space token
                                 result << ' ' << token.substr(1);
                             }
-                            // Replace Ċ with newline
-                            else if (token[0] == 'Ċ') {
+                            else if (token[0] == 'Ċ') {  // Special GPT-2 newline token
                                 result << '\n' << token.substr(1);
                             }
-                            // Regular token
                             else {
-                                result << token;
+                                result << token;  // Regular token
                             }
                         }
                     } else {
-                        std::cerr << "Warning: ID not found in decoder: " << id << std::endl;
+                        // Handle unknown tokens
+                        result << "[UNK:" << id << "]";
                     }
                 }
                 return result.str();
             }
-                */
+               
         };
 
 

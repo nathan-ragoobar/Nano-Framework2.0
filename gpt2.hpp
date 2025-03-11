@@ -20,7 +20,7 @@ struct GPT2Config {
 struct GPT2 {
   using Type = floatX;
 
-  void BuildFromCheckpoint(absl::string_view checkpoint_path) {
+  bool BuildFromCheckpoint(absl::string_view checkpoint_path) {
     // read in model from a checkpoint file
     FILE* model_file = fopenCheck(checkpoint_path.data(), "rb"); //"rb" opens the binary file in read mode only. To open in read and write you need to do "rb+"
     if (model_file == nullptr) {
@@ -78,6 +78,8 @@ struct GPT2 {
     
     ApplyFn(restore_fn, L);
     fcloseCheck(model_file);
+
+    return true;
   } //end BuildFromCheckpoint()
 
 void InitializeFromScratch(const GPT2Config& config) {

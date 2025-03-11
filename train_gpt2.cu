@@ -159,9 +159,14 @@ int main(int argc, char** argv) {
   config.max_seq_len = 1024;
   config.vocab_size = 50257;
   config.padded_vocab_size = 50304;
+  /*
   config.num_layers = 12;
   config.num_heads = 12;
   config.channels = 768;
+  */
+  config.num_layers = 8;
+  config.num_heads = 8;
+  config.channels = 64;
 
   gpt2::GPT2 model;
   model.InitializeFromScratch(config);
@@ -170,8 +175,8 @@ int main(int argc, char** argv) {
   // build the DataLoaders from tokens files. for now use tiny_stories if
   // available, else tiny_shakespeare
   // Only use edu_fineweb dataset
-  const char* train_tokens = "edu_fineweb10B/edu_fineweb_train_*.bin";
-  const char* val_tokens = "edu_fineweb10B/edu_fineweb_val_*.bin";
+  const char* train_tokens = "tinystories/TinyStories_train.bin";
+  const char* val_tokens = "tinystories/TinyStories_val.bin";
 
   // Check if directory exists and print the paths we're trying to use
   printf("Using training data path: %s\n", train_tokens);
