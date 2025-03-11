@@ -87,7 +87,7 @@ endif()
 
 
 
-option(USE_CUDA "Enable CUDA for GPU acceleration" ON)
+option(USE_CUDA "Enable CUDA for GPU acceleration" OFF)
 
 if(USE_CUDA)
     enable_language(CUDA)
