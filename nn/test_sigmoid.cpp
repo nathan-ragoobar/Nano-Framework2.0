@@ -4,7 +4,7 @@
 #endif
 
 #include <gtest/gtest.h>
-#include "./sigmoid.hpp"
+#include "./activation.hpp"
 #include "./Parameter.hpp"
 #include <vector>
 #include <cmath>
