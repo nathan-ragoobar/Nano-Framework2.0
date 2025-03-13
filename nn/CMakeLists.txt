@@ -100,3 +100,18 @@ target_link_libraries(test_fastfeedforward_training PRIVATE
     absl::strings
     absl::span
 )
+
+# Add MLP training test executable
+add_executable(test_mlp_training
+    test_MLP_training.cpp
+)
+
+# Link libraries for MLP training test
+target_link_libraries(test_mlp_training PRIVATE
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
