@@ -1,43 +1,102 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.10)
 
-# Make sure CUDA is enabled for this subdirectory
-#enable_language(CUDA)
+# Project name
+project(nn_tests)
 
-add_library(nn INTERFACE)
+set(CMAKE_BUILD_TYPE Debug)
+add_compile_options(-g)
 
-set(NN_DEPENDENCIES
-    absl::strings 
-    absl::log 
-    absl::check
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Find required packages
+find_package(GTest REQUIRED)
+enable_testing()
+
+# Include directories
+include_directories(
+    ${CMAKE_SOURCE_DIR}/..
+    ${CMAKE_SOURCE_DIR}/../abseil-cpp
+    ${CMAKE_SOURCE_DIR}/../eigen
+)
+# Eigen
+set(EIGEN3_INCLUDE_DIR /eigen)
+add_definitions(-DEIGEN_DONT_PARALLELIZE)
+#add_definitions(-DEIGEN_DONT_VECTORIZE)
+add_definitions(-DEIGEN_USE_THREADS)
+include_directories(${EIGEN3_INCLUDE_DIR})
+
+# Add Abseil as subdirectory or find package
+add_subdirectory(${CMAKE_SOURCE_DIR}/../abseil-cpp ${CMAKE_BINARY_DIR}/abseil-cpp)
+
+
+# Add test executable
+add_executable(testsigmoid 
+    test_sigmoid.cpp
 )
 
-if(UNIX)
-    list(APPEND NN_DEPENDENCIES pthread)
-endif()
+# Link libraries
+target_link_libraries(testsigmoid
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
 
-target_link_libraries(nn INTERFACE ${NN_DEPENDENCIES})
+# Add test
+add_test(NAME SigmoidTest COMMAND testsigmoid)
 
-add_library(gpt INTERFACE)
-target_link_libraries(gpt INTERFACE nn)
+add_executable(test_fastfeedforward
+    test_fastfeedforward.cpp
+)
 
+target_link_libraries(test_fastfeedforward PRIVATE
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
 
-#[[
+add_test(NAME FastFeedforwardTest COMMAND test_fastfeedforward)
 
-cmake_minimum_required(VERSION 3.16)
+# Add test_activations executable
+add_executable(test_activation
+    test_activation.cpp
+)
 
-# Make sure CUDA is enabled for this subdirectory
-enable_language(CUDA)
+# Link libraries for test_activations
+target_link_libraries(test_activation PRIVATE
+    GTest::GTest
+    GTest::Main
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)
 
-# Add libraries
-add_library(nn STATIC nn.cpp nn.hpp)  # Change to actual source file
-target_link_libraries(nn
-    absl::strings absl::log absl::check pthread)
+# Add activation tests to test suite
+add_test(NAME ActivationsTest COMMAND test_activation)
 
-add_library(gpt STATIC gpt.cpp gpt.hpp)  # Change to actual source file
-target_link_libraries(gpt nn)
+add_executable(test_fastfeedforward_training
+    test_fastfeedforward_training.cpp
+)
 
-# Make sure headers are visible
-target_include_directories(nn PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(gpt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-]]
+target_link_libraries(test_fastfeedforward_training PRIVATE
+    pthread
+    absl::log
+    absl::log_internal_message
+    absl::log_internal_check_op
+    absl::strings
+    absl::span
+)

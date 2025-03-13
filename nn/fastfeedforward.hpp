@@ -35,6 +35,10 @@ struct DecisionNode {
     PROFILE_TRACE_FN("DecisionNode");
     
     int BT = x.dimension(0);
+    // Clear prior allocations to avoid size mismatch
+    decision_output_ = std::make_unique<nn::Activation>(nn::DataTypeToEnum<T>::value);
+    sigmoid_output_ = std::make_unique<nn::Activation>(nn::DataTypeToEnum<T>::value);
+    
     decision_output_->LazyAllocate(BT);
     sigmoid_output_->LazyAllocate(BT);
     
@@ -132,6 +136,11 @@ struct LeafNetwork {
     int BT = x.dimension(0);
     int hidden_size = fc1_->out_features_;
     int output_size = y.dimension(1);
+    
+    // Clear prior allocations to avoid size mismatch
+    hidden_ = std::make_unique<nn::Activation>(nn::DataTypeToEnum<T>::value);
+    activated_ = std::make_unique<nn::Activation>(nn::DataTypeToEnum<T>::value);
+    output_ = std::make_unique<nn::Activation>(nn::DataTypeToEnum<T>::value);
     
     // Allocate activation tensors
     hidden_->LazyAllocate(BT * hidden_size);
@@ -287,38 +296,34 @@ struct FastFeedforwardNetwork {
   
   // Use your existing Forward method with minimal changes for depth=1
   void ForwardDepth1(typename TTypes<T>::ConstMatrix x,
-                     typename TTypes<T>::Matrix y) {
-    PROFILE_TRACE_FN("FastFeedforwardNetwork::ForwardDepth1");
-    
-    CHECK_EQ(x.dimension(1), input_width_);
-    CHECK_EQ(y.dimension(1), output_width_);
-    CHECK_EQ(x.dimension(0), y.dimension(0));
-    
-    int BT = x.dimension(0);
-    
-    // Allocate tensors
-    choice_->LazyAllocate(BT);
-    
-    // Allocate for all leaf outputs (only need 2 for depth=1)
-    leaf_outputs_->LazyAllocate(BT * output_width_ * 2);
-    
-    // Compute the routing decision
-    auto choice_matrix = choice_->matrix<T>(BT, 1);
-    decision_nodes_[0]->Forward(x, choice_matrix);
-    
-    // Compute outputs from both leaves
-  // Fix: Use proper tensor slicing for left and right outputs
-  auto leaf_outputs_data = leaf_outputs_->matrix<T>(BT, output_width_ * 2);
+                 typename TTypes<T>::Matrix y) {
+  PROFILE_TRACE_FN("FastFeedforwardNetwork::ForwardDepth1");
   
-  // Create proper views for left and right outputs
-  auto left_out = leaf_outputs_->matrix<T>(BT, output_width_);
+  CHECK_EQ(x.dimension(1), input_width_);
+  CHECK_EQ(y.dimension(1), output_width_);
+  CHECK_EQ(x.dimension(0), y.dimension(0));
   
-  // Create a temporary buffer for the right output
-  auto dtype = nn::DataTypeToEnum<T>::value;
-  nn::Activation right_buffer(dtype);
-  right_buffer.LazyAllocate(BT * output_width_);
-  auto right_out = right_buffer.matrix<T>(BT, output_width_);
+  int BT = x.dimension(0);
   
+  // Allocate tensors
+  choice_->LazyAllocate(BT);
+  
+  // Allocate for all leaf outputs (only need 2 for depth=1)
+  leaf_outputs_->LazyAllocate(BT * output_width_ * 2);
+  
+  // Compute the routing decision
+  auto choice_matrix = choice_->matrix<T>(BT, 1);
+  decision_nodes_[0]->Forward(x, choice_matrix);
+  
+  // Create left view the same way you create right view
+  auto left_view_start = leaf_outputs_->data<T>();
+  auto left_out = TTypes<T>::Matrix(left_view_start, BT, output_width_);
+  
+  // Right output uses the second half of the buffer
+  auto right_view_start = leaf_outputs_->data<T>() + (BT * output_width_);
+  auto right_out = TTypes<T>::Matrix(right_view_start, BT, output_width_);
+  
+  // Compute outputs from both leaves
   leaf_networks_[0]->Forward(x, left_out);
   leaf_networks_[1]->Forward(x, right_out);
   
@@ -760,27 +765,52 @@ void BackwardDepth1(typename TTypes<T>::ConstMatrix x,
   
   // We need to recreate the temporary buffer for right outputs since they're not stored
   auto dtype = nn::DataTypeToEnum<T>::value;
+  nn::Activation left_buffer(dtype);
   nn::Activation right_buffer(dtype);
+
+  left_buffer.LazyAllocate(BT * output_width_);
   right_buffer.LazyAllocate(BT * output_width_);
+  /*
   auto right_out = right_buffer.matrix<T>(BT, output_width_);
   
   // First, we need to re-compute the forward pass to get the leaf outputs
   auto choice_matrix = choice_->const_matrix<T>(BT, 1);
   auto left_out = leaf_outputs_->matrix<T>(BT, output_width_);
+  */
+
+  // Use direct tensor views with proper dimensions
+  auto left_view_start = leaf_outputs_->data<T>();
+  auto left_out = TTypes<T>::Matrix(left_view_start, BT, output_width_);
   
+  auto right_view_start = leaf_outputs_->data<T>() + (BT * output_width_);
+  auto right_out = TTypes<T>::Matrix(right_view_start, BT, output_width_);
+
+
   // Re-compute leaf outputs
   leaf_networks_[0]->Forward(x, left_out);
   leaf_networks_[1]->Forward(x, right_out);
   
   // Create gradient tensors for leaf networks
-  right_buffer.LazyAllocateGradient();
-  right_buffer.ZeroGrad();
+  //right_buffer.LazyAllocateGradient();
+  //right_buffer.ZeroGrad();
   
   auto choice_val = choice_->const_matrix<T>(BT, 1);
   auto choice_grad = choice_->matrix_grad<T>(BT, 1);
+  /*
   auto left_grad = leaf_outputs_->matrix_grad<T>(BT, output_width_);
   auto right_grad = right_buffer.matrix_grad<T>(BT, output_width_);
-  
+  */
+  // With these lines that use direct tensor views:
+
+  left_buffer.LazyAllocateGradient();
+  right_buffer.LazyAllocateGradient();
+  left_buffer.ZeroGrad();
+  right_buffer.ZeroGrad();
+
+  auto left_grad = left_buffer.matrix_grad<T>(BT, output_width_);
+  auto right_grad = right_buffer.matrix_grad<T>(BT, output_width_);
+
+
   // Calculate gradients for leaf outputs and routing decision
   for (int b = 0; b < BT; ++b) {
     float c = choice_val(b, 0);
@@ -813,7 +843,7 @@ void BackwardDepth1(typename TTypes<T>::ConstMatrix x,
   }
   
   // Backprop through left leaf
-  auto left_grad_const = leaf_outputs_->const_matrix_grad<T>(BT, output_width_);
+  auto left_grad_const = left_buffer.const_matrix_grad<T>(BT, output_width_);
   temp_grad.ZeroData();
   leaf_networks_[0]->Backward(x, left_grad_const, temp_grad_matrix);
   
