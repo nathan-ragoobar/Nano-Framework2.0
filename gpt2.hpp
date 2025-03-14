@@ -240,51 +240,56 @@ void InitializeFromScratch(const GPT2Config& config) {
     }
 
     // ln2w
-    for (int l = 0; l < L; ++l) {
-      const auto& block = gpt2_->h_[l];
-      nn::Parameter* p = block->ln2_->weight_.get();
-      apply_fn(p, name_with_layer("ln2w", l));
-    }
+  for (int l = 0; l < L; ++l) {
+    const auto& block = gpt2_->h_[l];
+    nn::Parameter* p = block->ln2_->weight_.get();
+    apply_fn(p, name_with_layer("ln2w", l));
+  }
 
-    // ln2b
-    for (int l = 0; l < L; ++l) {
-      const auto& block = gpt2_->h_[l];
-      nn::Parameter* p = block->ln2_->bias_.get();
-      apply_fn(p, name_with_layer("ln2b", l));
-    }
+  // ln2b
+  for (int l = 0; l < L; ++l) {
+    const auto& block = gpt2_->h_[l];
+    nn::Parameter* p = block->ln2_->bias_.get();
+    apply_fn(p, name_with_layer("ln2b", l));
+  }
 
-    // fcw
-    for (int l = 0; l < L; ++l) {
-      const auto& block = gpt2_->h_[l];
-      nn::Parameter* p = block->mlp_->c_fc_->weight_.get();
-      apply_fn(p, name_with_layer("fcw", l));
+  // Replace the FC/FCPROJ sections with FastFeedforward parameters
+  for (int l = 0; l < L; ++l) {
+    const auto& block = gpt2_->h_[l];
+    
+    // Decision node parameters
+    for (int i = 0; i < block->ffn_->n_nodes_; ++i) {
+      // Decision node weights
+      nn::Parameter* p = block->ffn_->decision_nodes_[i]->decision_->weight_.get();
+      apply_fn(p, name_with_layer("ffn_decision_" + std::to_string(i) + "_w", l));
+      
+      // Decision node biases
+      p = block->ffn_->decision_nodes_[i]->decision_->bias_.get();
+      apply_fn(p, name_with_layer("ffn_decision_" + std::to_string(i) + "_b", l));
     }
-
-    // fcb
-    for (int l = 0; l < L; ++l) {
-      const auto& block = gpt2_->h_[l];
-      nn::Parameter* p = block->mlp_->c_fc_->bias_.get();
-      apply_fn(p, name_with_layer("fcb", l));
+    
+    // Leaf network parameters
+    for (int i = 0; i < block->ffn_->n_leaves_; ++i) {
+      // First layer (replaces c_fc_)
+      nn::Parameter* p = block->ffn_->leaf_networks_[i]->fc1_->weight_.get();
+      apply_fn(p, name_with_layer("ffn_leaf_" + std::to_string(i) + "_fc1_w", l));
+      
+      p = block->ffn_->leaf_networks_[i]->fc1_->bias_.get();
+      apply_fn(p, name_with_layer("ffn_leaf_" + std::to_string(i) + "_fc1_b", l));
+      
+      // Second layer (replaces c_proj_)
+      p = block->ffn_->leaf_networks_[i]->fc2_->weight_.get();
+      apply_fn(p, name_with_layer("ffn_leaf_" + std::to_string(i) + "_fc2_w", l));
+      
+      p = block->ffn_->leaf_networks_[i]->fc2_->bias_.get();
+      apply_fn(p, name_with_layer("ffn_leaf_" + std::to_string(i) + "_fc2_b", l));
     }
+  }
 
-    // fcprojw
-    for (int l = 0; l < L; ++l) {
-      const auto& block = gpt2_->h_[l];
-      nn::Parameter* p = block->mlp_->c_proj_->weight_.get();
-      apply_fn(p, name_with_layer("fcprojw", l));
-    }
-
-    // fcprojb
-    for (int l = 0; l < L; ++l) {
-      const auto& block = gpt2_->h_[l];
-      nn::Parameter* p = block->mlp_->c_proj_->bias_.get();
-      apply_fn(p, name_with_layer("fcprojb", l));
-    }
-
-    // lnfw
-    apply_fn(gpt2_->lnf_->weight_.get(), "lnfw");
-    // lnfb
-    apply_fn(gpt2_->lnf_->bias_.get(), "lnfb");
+  // lnfw
+  apply_fn(gpt2_->lnf_->weight_.get(), "lnfw");
+  // lnfb
+  apply_fn(gpt2_->lnf_->bias_.get(), "lnfb");
   }
 
   GPT2Config config;

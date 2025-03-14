@@ -61,9 +61,9 @@ float calculate_loss(const std::vector<std::vector<float>>& outputs,
 int main() {
   // Parameters
   const int input_dim = 4;
-  const int hidden_dim = 16;
+  const int hidden_dim = 4;
   const int output_dim = 2;
-  const int depth = 1;  // Use depth=2 (4 leaves) for more capacity
+  const int depth = 2;  // Use depth=2 (4 leaves) for more capacity
   const int num_train_samples = 1000;
   const int num_test_samples = 200;
   const int batch_size = 32;

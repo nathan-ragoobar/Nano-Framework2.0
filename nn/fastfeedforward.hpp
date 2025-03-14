@@ -244,11 +244,13 @@ struct LeafNetwork {
 // Fast Feedforward Network (1 decision node + 2 leaf networks)
 struct FastFeedforwardNetwork {
   using T = floatX;
+
+  //leaf_width = (hidden_width / 2**depth)
   
-  explicit FastFeedforwardNetwork(int input_width, int hidden_width, int output_width, int depth = 1,
+  explicit FastFeedforwardNetwork(int input_width, int leaf_width, int output_width, int depth = 1,
                                   bool train_hardened = false, float region_leak = 0.0f) 
       : input_width_(input_width), 
-        hidden_width_(hidden_width),
+        leaf_width_(leaf_width),
         output_width_(output_width), 
         depth_(depth),
         train_hardened_(train_hardened),
@@ -269,7 +271,7 @@ struct FastFeedforwardNetwork {
     
     // Create leaf networks
     for (int i = 0; i < n_leaves_; ++i) {
-      leaf_networks_.push_back(std::make_unique<LeafNetwork>(input_width, hidden_width, output_width, i));
+      leaf_networks_.push_back(std::make_unique<LeafNetwork>(input_width, leaf_width, output_width, i));
     }
     
     // Allocate tensors for intermediate results
@@ -920,7 +922,7 @@ void Parameters(std::vector<nn::Parameter*>* parameters) const {
 }
   
   int input_width_;
-  int hidden_width_;
+  int leaf_width_;
   int output_width_;
   int depth_;
   bool train_hardened_;
