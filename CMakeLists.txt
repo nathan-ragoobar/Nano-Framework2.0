@@ -83,11 +83,17 @@ else()
         -g3             # Maximum debug info
         -fno-omit-frame-pointer  # Better stack traces
         )
+    target_compile_options(inference_gpt2_cpu PRIVATE 
+        -Ofast 
+        -march=native 
+        -g3
+        -fno-omit-frame-pointer
+        )
 endif()
 
 
 
-option(USE_CUDA "Enable CUDA for GPU acceleration" ON)
+option(USE_CUDA "Enable CUDA for GPU acceleration" OFF)
 
 if(USE_CUDA)
     enable_language(CUDA)

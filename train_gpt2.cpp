@@ -448,12 +448,28 @@ int main(int argc, char** argv) {
     }
 
     // once in a while do model inference to print generated text
-    if (0) {
+    if (step % 10 == 0) {
+
+      // Ask the user for input
+      std::string input;
+      std::cout << "Enter a prompt: ";
+      std::getline(std::cin, input);
+
+      //Tokenize  the input 
+      std::vector<int> input_tokens = tokenizer_gpt2.encode(input);
+
       // fill up gen_tokens with the GPT2_EOT, which kicks off the generation
-      for (int i = 0; i < B * T; ++i) {
-        gen_tokens[i] = tokenizer.eot_token;
+    // Initialize gen_tokens with the input tokens and pad with EOT token
+    for (int i = 0; i < B * T; ++i) {
+      if (i < input_tokens.size()) {
+          gen_tokens[i] = input_tokens[i];
+      } else {
+          gen_tokens[i] = tokenizer.eot_token;
       }
+  }
       // now sample from the model autoregressively
+
+      clock_gettime(CLOCK_MONOTONIC, &start);
       printf("generating:\n---\n");
       for (int t = 1; t < genT; t++) {
         // note that inference is very wasteful here because for each token
@@ -487,6 +503,14 @@ int main(int argc, char** argv) {
         fflush(stdout);
       }
       printf("\n---\n");
+      // Add after the generation loop:
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    double time_elapsed_s = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    int tokens_generated = genT - 1;  // Exclude the EOT token
+    printf("Generated %d tokens in %.3f seconds (%.1f tokens/sec)\n", 
+          tokens_generated, time_elapsed_s, tokens_generated/time_elapsed_s);
+
+
     }
 
     if (finetune_mode) {
