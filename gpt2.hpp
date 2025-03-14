@@ -82,47 +82,84 @@ struct GPT2 {
     return true;
   } //end BuildFromCheckpoint()
 
-void InitializeFromScratch(const GPT2Config& config) {
-    // Create GPT model with config params
-    gpt2_ = std::make_unique<gpt::GPT>(
-        config.max_seq_len,
-        config.vocab_size, 
-        config.padded_vocab_size,
-        config.num_layers,
-        config.num_heads,
-        config.channels
-    );
+  void InitializeFromScratch(const GPT2Config& config) {
+      // Create GPT model with config params
+      gpt2_ = std::make_unique<gpt::GPT>(
+          config.max_seq_len,
+          config.vocab_size, 
+          config.padded_vocab_size,
+          config.num_layers,
+          config.num_heads,
+          config.channels
+      );
 
-    // Initialize weights using Kaiming initialization
-    auto init_fn = [&](nn::Parameter* p, const std::string& name) {
-      auto data = p->flat<Type>();
-      int fan_in = p->size() / data.dimension(0);
-      float std_dev = 1.0f / std::sqrt(static_cast<float>(fan_in));
-      
-      // Random initialization
-      std::random_device rd;
-      std::mt19937 gen(rd());
-      std::normal_distribution<float> d(0.0f, std_dev);
+      // Store config first so it's available for ApplyFn
+      this->config = config;
 
-      std::vector<Type> cpu_data(p->size());
-      for(int i = 0; i < p->size(); i++) {
-        cpu_data[i] = Type(d(gen));
+      // Add debugging to verify memory allocation
+      printf("[GPT-2] Initializing model from scratch\n");
+      printf("max_seq_len: %d\n", config.max_seq_len);
+      printf("vocab_size: %d\n", config.vocab_size);
+      printf("padded_vocab_size: %d\n", config.padded_vocab_size);
+      printf("num_layers: %d\n", config.num_layers);
+      printf("num_heads: %d\n", config.num_heads);
+      printf("channels: %d\n", config.channels);
+
+      size_t num_parameters = gpt2_->NumParameters();
+      printf("num_parameters: %zu (%zu MB)\n", num_parameters,
+            num_parameters * sizeof(Type) / 1024 / 1024);
+
+      // Initialize weights using Kaiming initialization
+      auto init_fn = [&](nn::Parameter* p, const std::string& name) {
+          if (!p) {
+              printf("ERROR: Null parameter encountered during initialization: %s\n", name.c_str());
+              return;
+          }
+          
+          printf("Initializing parameter: %s (size: %zu)\n", name.c_str(), p->size());
+          
+          // Handle empty parameters gracefully
+          if (p->size() == 0) {
+              printf("WARNING: Parameter %s has size 0, skipping initialization\n", name.c_str());
+              return;
+          }
+          
+          auto data = p->flat<Type>();
+          // Safe fan_in calculation
+          int fan_in = data.dimension(0) > 0 ? p->size() / data.dimension(0) : 1;
+          if (fan_in <= 0) fan_in = 1; // Safeguard
+          
+          float std_dev = 1.0f / std::sqrt(static_cast<float>(fan_in));
+          
+          // Random initialization
+          std::random_device rd;
+          std::mt19937 gen(rd());
+          std::normal_distribution<float> d(0.0f, std_dev);
+
+          std::vector<Type> cpu_data(p->size());
+          for(int i = 0; i < p->size(); i++) {
+              cpu_data[i] = Type(d(gen));
+          }
+
+  #ifdef EIGEN_USE_GPU
+          nn::g_device.memcpyHostToDevice(p->data<Type>(), cpu_data.data(), sizeof(Type) * p->size());
+  #else
+          std::copy(cpu_data.begin(), cpu_data.end(), data.data());
+  #endif
+      };
+
+      // Apply initialization to all parameters
+      try {
+          ApplyFn(init_fn, config.num_layers);
+          printf("Initialization complete!\n");
+      } catch (const std::exception& e) {
+          printf("Exception during initialization: %s\n", e.what());
+          throw;
+      } catch (...) {
+          printf("Unknown exception during initialization\n");
+          throw;
       }
-
-#ifdef EIGEN_USE_GPU
-      nn::g_device.memcpyHostToDevice(p->data<Type>(), cpu_data.data(), sizeof(Type) * p->size());
-#else
-      std::copy(cpu_data.begin(), cpu_data.end(), data.data());
-#endif
-    };
-
-    // Apply initialization to all parameters
-    ApplyFn(init_fn, config.num_layers);
-
-    // Store config
-    this->config = config;
-  } //end InitializeFromScratch()
-
+  }
 
   //SAVE MODEL
   void SaveModel(absl::string_view model_path) {

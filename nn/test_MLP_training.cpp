@@ -4,6 +4,7 @@
 #include "../nn/MLP.hpp"
 #include "../optimizer/optim.hpp"
 #include <chrono>
+#include "../NanoDashWriter/writer.hpp"
 
 // Reuse the same XOR dataset creation function
 void create_xor_dataset(int num_samples, int dim,
@@ -52,6 +53,9 @@ float calculate_loss(const std::vector<std::vector<float>>& outputs,
   return total_loss / (num_samples * output_dim);
 }
 
+
+
+
 int main() {
   // Use identical parameters as FastFeedforward test
   const int input_dim = 4;
@@ -62,6 +66,10 @@ int main() {
   const int batch_size = 32;
   const int epochs = 1000;
   const float learning_rate = 0.01f;
+
+  // Initialize metric writer
+  std::vector<std::string> metrics = {"train_loss", "val_loss"};
+  MetricWriter writer("mlp_training_metrics", metrics);
   
   std::cout << "Creating MLP network with:"
             << "\n - Input dimension: " << input_dim
@@ -170,6 +178,9 @@ int main() {
     }
     
     epoch_loss /= num_batches;
+
+    // Add training loss to metrics
+    writer.addTrainingLoss(epoch_loss, epoch);
     
     // Evaluate on test set every 10 epochs
     if (epoch % 10 == 0 || epoch == epochs - 1) {
@@ -210,14 +221,23 @@ int main() {
       }
       
       float test_loss = calculate_loss(test_outputs, test_targets);
+
+      // Add validation loss to metrics
+      writer.addValidationLoss(test_loss, epoch);
+
       std::cout << "Epoch " << epoch << ", Train Loss: " << epoch_loss
                 << ", Test Loss: " << test_loss << std::endl;
     } else {
       std::cout << "Epoch " << epoch << ", Train Loss: " << epoch_loss << std::endl;
     }
   }
+
+  // Close the writer to ensure all metrics are properly saved
+  writer.close();
   
   std::cout << "Training completed successfully!" << std::endl;
+  std::cout << "Training metrics saved to mlp_training_metrics.csv" << std::endl;
+  
   
   // Inference timing
   const int num_inference_samples = 1000;

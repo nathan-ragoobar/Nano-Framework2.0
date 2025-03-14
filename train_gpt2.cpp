@@ -87,6 +87,17 @@ std::vector<GrammarExample> load_grammar_dataset(const char* filename, nano::GPT
   return examples;
 }
 
+// This is a utility function that will be used in our tests
+float calculate_perplexity(const std::vector<float>& losses) {
+  float avg_loss = 0.0f;
+  for (float loss : losses) {
+      avg_loss += loss;
+  }
+  avg_loss /= losses.size();
+  
+  // Perplexity is exp(average_loss)
+  return std::exp(avg_loss);
+}
 
 // Load a batch of grammar examples for fine-tuning
 void load_grammar_batch(std::vector<GrammarExample>& examples, int* inputs, int* targets,
@@ -331,6 +342,7 @@ int main(int argc, char** argv) {
   std::vector<std::string> metrics = {
     "train_loss", 
     "val_loss",
+    "perplexity",
     "time_ms",
     "tokens_per_second",  // Add this
     "learning_rate"       // Add this
@@ -415,6 +427,7 @@ int main(int argc, char** argv) {
     // once in a while estimate the validation loss
     if (step % 10 == 0) {
       float val_loss = 0.0f;
+      std::vector<float> val_losses;
       dataloader_reset(&val_loader);
       for (int i = 0; i < val_num_batches; i++) {
         dataloader_next_batch(&val_loader);
@@ -435,6 +448,9 @@ int main(int argc, char** argv) {
         val_loss += loss;
       }
       val_loss /= val_num_batches;
+
+      // Calculate perplexity from losses
+      float perplexity = calculate_perplexity(val_losses);
 
       if (step == 0) {
         size_t num_activations = model.gpt2_->NumActivations();
@@ -605,12 +621,17 @@ int main(int argc, char** argv) {
     
     // Calculate tokens per second
     float tokens_per_second = (B * T) / time_elapsed_s;
-    
-     printf("step %d: train loss %f | tokens/sec %f (took %f ms)\n", step, loss, tokens_per_second,
-           time_elapsed_s * 1000);
+
+    // Calculate perplexity from the current batch loss
+    std::vector<float> batch_loss = {loss};
+    float perplexity = calculate_perplexity(batch_loss);
+
+    printf("step %d: train loss %f | perplexity %f | tokens/sec %f (took %f ms)\n", 
+          step, loss, perplexity, tokens_per_second, time_elapsed_s * 1000);
 
     // Add metrics to the writer
     writer.addTrainingLoss(loss, step);
+    writer.addScalar("perplexity", perplexity, step);
     writer.addScalar("time_ms", time_elapsed_s * 1000, step);
     writer.addScalar("tokens_per_second", tokens_per_second, step);  // Add this
     writer.addScalar("learning_rate", current_lr, step); 

@@ -209,7 +209,9 @@ struct FFFBlock {
     // Calculate leaf_width according to the formula: hidden_width / 2^depth
     // For a hidden width of n_embed and depth of 2, leaf_width should be n_embed/4
     int depth = 2;
-    int leaf_width = n_embed / (1 << depth);  // n_embed / 4
+    int test_depth = 2;
+    int leaf_width = n_embed / (1 << test_depth);  // n_embed / 4
+    //leaf_width = n_embed;
     
     // Replace MLP with FastFeedForward
     // Parameters:
