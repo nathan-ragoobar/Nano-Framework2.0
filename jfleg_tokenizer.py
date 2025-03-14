@@ -175,4 +175,11 @@ if __name__ == "__main__":
     '''
     To run this script, use the following command:
     python jfleg_tokenizer.py --output_dir jfleg --train_fraction 0.8 --sample_limit 1000
+
+
+    Instruction format:
+    ### Instruction: Correct the grammar in this text
+    ### Input: [incorrect sentence]
+    ### Output: [corrected sentence]
+    ### End
     '''

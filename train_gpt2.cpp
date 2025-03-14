@@ -362,8 +362,8 @@ int main(int argc, char** argv) {
   // build the DataLoaders from tokens files. for now use tiny_stories if
   // available, else tiny_shakespeare
   // Only use edu_fineweb dataset
-  const char* train_tokens = "tinystories/TinyStories_train.bin";
-  const char* val_tokens = "tinystories/TinyStories_val.bin";
+  const char* train_tokens = "jfleg/jfleg_train.bin";
+  const char* val_tokens = "jfleg/jfleg_val.bin";
 
   // Check if directory exists and print the paths we're trying to use
   printf("Using training data path: %s\n", train_tokens);
