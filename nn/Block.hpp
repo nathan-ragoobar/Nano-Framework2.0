@@ -285,7 +285,7 @@ struct FFFBlock {
     // FastFeedForward (replacing MLP)
     auto ffn_y_2d = MakeMatrix(ffn_y_->data<Type>(), B * T, C);
     // Using training=true since we're in training mode during forward pass
-    ffn_->Forward(ln2_y_2d_const, ffn_y_2d, true);
+    ffn_->Forward(ln2_y_2d_const, ffn_y_2d, false);
 
     // Residual
     auto residual1_1d_const =

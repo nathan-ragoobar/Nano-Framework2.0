@@ -83,6 +83,12 @@ else()
         -g3             # Maximum debug info
         -fno-omit-frame-pointer  # Better stack traces
         )
+    target_compile_options(inference_gpt2_cpu PRIVATE 
+        -Ofast 
+        -march=native 
+        -g3
+        -fno-omit-frame-pointer
+        )
 endif()
 
 

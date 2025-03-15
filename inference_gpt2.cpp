@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
         }
     }
       
-     if(0){
+     if(1){
       //New Decoder
       // now sample from the model autoregressively
       printf("generating:\n---\n");
@@ -285,42 +285,61 @@ else{
   //Original decoder
   // now sample from the model autoregressively
   printf("generating:\n---\n");
-  for (int t = 1; t < genT; t++) {
-    // note that inference is very wasteful here because for each token
-    // we re-calculate the forward pass for all of (B,T) positions from
-    // scratch but the inference here is just for sanity checking anyway and
-    // we can maybe optimize a bit more later, with careful tests
-    auto gen_tokens_2d = TTypes<int>::ConstMatrix(gen_tokens, B, T);
-    auto logit_3d = Make3DTensor(logit.get(), B, T, V);
-    model.gpt2_->Forward(gen_tokens_2d, logit_3d);
-    auto logit_2d = MakeConstMatrix(logit.get(), B * T, V);
-    auto prob_2d = MakeMatrix(prob.get(), B * T, V);
-    softmax.Forward(logit_2d, prob_2d);
-    // furthermore, below we're only using b=0 (i.e. the first row) of all B
-    // rows we're in principle running B "inference streams" in parallel
-    // here but only using position 0 get the Vp-dimensional vector probs[0,
-    // t-1, :]
-    float* probs = prob.get() + (t - 1) * V;
-    float coin = random_f32(&rng_state);
-    // note we're only sampling from the first V elements, ignoring padding
-    // (the probabilities in the padded region should be zero anyway)
-    int next_token = sample_mult(probs, model.config.vocab_size, coin);
-    gen_tokens[t] = next_token;
-    // print the generated token, either using the Tokenizer or a fallback
-    if (tokenizer.init_ok) {
-      const char* token_str = tokenizer_decode(&tokenizer, next_token);
-      safe_printf(token_str);
-    } else {
-      // fall back to printing the token id
-      printf("%d ", next_token);
+
+    // Print the input prompt first
+    for (size_t i = 0; i < input_tokens.size(); i++) {
+      if (tokenizer.init_ok) {
+        const char* token_str = tokenizer_decode(&tokenizer, input_tokens[i]);
+        safe_printf(token_str);
+      } else {
+        // fall back to printing the token id
+        printf("%d ", input_tokens[i]);
+      }
     }
     fflush(stdout);
-  }
-  printf("\n---\n");
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    // Start generation from the end of the input
+    for (int t = input_tokens.size(); t < genT; t++) {
+      auto gen_tokens_2d = TTypes<int>::ConstMatrix(gen_tokens, B, T);
+      auto logit_3d = Make3DTensor(logit.get(), B, T, V);
+      model.gpt2_->Forward(gen_tokens_2d, logit_3d);
+      auto logit_2d = MakeConstMatrix(logit.get(), B * T, V);
+      auto prob_2d = MakeMatrix(prob.get(), B * T, V);
+      softmax.Forward(logit_2d, prob_2d);
+      
+      // Get probabilities for the current position
+      float* probs = prob.get() + (t - 1) * V;
+      float coin = random_f32(&rng_state);
+      
+      int next_token = sample_mult(probs, model.config.vocab_size, coin);
+      gen_tokens[t] = next_token;
+      
+      // print the generated token
+      if (tokenizer.init_ok) {
+        const char* token_str = tokenizer_decode(&tokenizer, next_token);
+        safe_printf(token_str);
+      } else {
+        // fall back to printing the token id
+        printf("%d ", next_token);
+      }
+      fflush(stdout);
+    }
+    printf("\n---\n");
+
+    // Add after the generation loop:
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    double time_elapsed_s = (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    int tokens_generated = genT - input_tokens.size();
+    printf("Generated %d tokens in %.3f seconds (%.1f tokens/sec)\n", 
+          tokens_generated, time_elapsed_s, tokens_generated/time_elapsed_s);
 }
 
+return 0;
 }
 
+/*
 // START OF VALIDATION CODE
 //---------------------------------------------------------------------------------
     const char* tiny_stories_val = "dev/data/tinystories/TinyStories_val.bin";
@@ -381,3 +400,5 @@ else{
       
 
 }
+
+*/
