@@ -67,6 +67,9 @@ target_link_libraries(gpt2 INTERFACE gpt)
 add_executable(train_gpt2_cpu train_gpt2.cpp)
 target_link_libraries(train_gpt2_cpu gpt2 optim)
 
+add_executable(inference_gpt2_cpu inference_gpt2.cpp)
+target_link_libraries(inference_gpt2_cpu gpt2 optim)
+
 #[[
 # Static linking
 if(MINGW)
