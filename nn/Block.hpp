@@ -210,7 +210,7 @@ struct FFFBlock {
     // For a hidden width of n_embed and depth of 2, leaf_width should be n_embed/4
     int depth = 2;
     int test_depth = 2;
-    int leaf_width = n_embed / (1 << test_depth);  // n_embed / 4
+    int leaf_width = n_embed; // (1 << test_depth);  // n_embed / 4
     //leaf_width = n_embed;
     
     // Replace MLP with FastFeedForward
@@ -285,7 +285,7 @@ struct FFFBlock {
     // FastFeedForward (replacing MLP)
     auto ffn_y_2d = MakeMatrix(ffn_y_->data<Type>(), B * T, C);
     // Using training=true since we're in training mode during forward pass
-    ffn_->Forward(ln2_y_2d_const, ffn_y_2d, false);
+    ffn_->Forward(ln2_y_2d_const, ffn_y_2d, true);
 
     // Residual
     auto residual1_1d_const =

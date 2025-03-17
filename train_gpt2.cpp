@@ -361,15 +361,15 @@ int main(int argc, char** argv) {
   /*
   config.num_layers = 8;
   config.num_heads = 8;
-  config.channels = 64;*/
- 
+  config.channels = 64;
+ */
   
 
   gpt2::GPT2 model;
-  //model.InitializeFromScratch(config);
+  model.InitializeFromScratch(config);
 
   //gpt2::GPT2 model;
-  model.BuildFromCheckpoint("./gpt2_124M.bin"); //Loads model
+  //model.BuildFromCheckpoint("./gpt2_124M.bin"); //Loads model
 
   // build the DataLoaders from tokens files. for now use tiny_stories if
   // available, else tiny_shakespeare
