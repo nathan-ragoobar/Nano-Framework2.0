@@ -10,6 +10,7 @@
 #include <numeric>
 #include <cstring>
 #include <string>
+#include <cmath> 
 #include "NanoDashWriter/writer.hpp" // Add this include
 
 #include <nvtx3/nvToolsExt.h>
@@ -56,7 +57,7 @@ float cosine_learning_rate(int step, int total_steps, float initial_lr) {
 
 void save_model_checkpoint(gpt2::GPT2& model, int step) {
   char filename[100];
-  snprintf(filename, sizeof(filename), "gpt2_124M_step_%d.bin", step);
+  snprintf(filename, sizeof(filename), "c4_gpt2_124M_step_%d.bin", step);
   model.SaveModel(filename);
   printf("Saved model checkpoint: %s\n", filename);
 }
@@ -149,6 +150,7 @@ int main(int argc, char** argv) {
   std::vector<std::string> metrics = {
     "train_loss", 
     "val_loss",
+    "perplexity",
     "time_ms",
     "tokens_per_second",  // Add this
     "learning_rate"       // Add this
@@ -159,24 +161,24 @@ int main(int argc, char** argv) {
   config.max_seq_len = 1024;
   config.vocab_size = 50257;
   config.padded_vocab_size = 50304;
-  /*
+  
   config.num_layers = 12;
   config.num_heads = 12;
   config.channels = 768;
-  */
+  /*
   config.num_layers = 8;
   config.num_heads = 8;
   config.channels = 64;
-
+*/
   gpt2::GPT2 model;
-  model.InitializeFromScratch(config);
-  //model.BuildFromCheckpoint("gpt2_124M.bin");
+  //model.InitializeFromScratch(config);
+  model.BuildFromCheckpoint("jfleg_attempt3.bin");
 
   // build the DataLoaders from tokens files. for now use tiny_stories if
   // available, else tiny_shakespeare
   // Only use edu_fineweb dataset
-  const char* train_tokens = "tinystories/TinyStories_train.bin";
-  const char* val_tokens = "tinystories/TinyStories_val.bin";
+  const char* train_tokens = "c4_tokenized/train_tokenized_output_*.bin";
+  const char* val_tokens = "c4_tokenized/val_tokenized_output_*.bin";
 
   // Check if directory exists and print the paths we're trying to use
   printf("Using training data path: %s\n", train_tokens);
@@ -346,7 +348,7 @@ int main(int argc, char** argv) {
     }
 
     // once in a while do model inference to print generated text
-    if (0) {
+    if (step % 100 == 0) {
       NvtxRange generation_range("generation");
       // fill up gen_tokens with the GPT2_EOT, which kicks off the generation
       for (int i = 0; i < B * T; ++i) {
@@ -410,17 +412,21 @@ int main(int argc, char** argv) {
     optimizer.Step(step + 1, current_lr);
     clock_gettime(CLOCK_MONOTONIC, &end);
     double time_elapsed_s =
-        (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
+    (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
     // Calculate tokens per second
     float tokens_per_second = (B * T) / time_elapsed_s;
 
-    printf("step %d: train loss %f | tokens/sec %f (took %f ms)\n", step, loss, tokens_per_second,
-           time_elapsed_s * 1000);
+    // Calculate perplexity (e^loss for cross-entropy loss)
+    float perplexity = exp(loss);
+
+    printf("step %d: train loss %f | perplexity %f | tokens/sec %f (took %f ms)\n", 
+          step, loss, perplexity, tokens_per_second, time_elapsed_s * 1000);
 
     // Add metrics to the writer
     writer.addTrainingLoss(loss, step);
+    writer.addScalar("perplexity", perplexity, step);  // Add perplexity metric
     writer.addScalar("time_ms", time_elapsed_s * 1000, step);
-    writer.addScalar("tokens_per_second", tokens_per_second, step);  // Add this
+    writer.addScalar("tokens_per_second", tokens_per_second, step);
     writer.addScalar("learning_rate", current_lr, step); 
     
     if (step) {
@@ -441,7 +447,7 @@ int main(int argc, char** argv) {
   }
 
   //Save model
-  model.SaveModel("gpt2_124MFinal.bin");
+  model.SaveModel("c4_gpt2_124MFinal.bin");
 
   writer.close(); //Close the writer
 
