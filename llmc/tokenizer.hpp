@@ -57,9 +57,29 @@ namespace nano {
         
             // BPE Merge function (returns tokenized word in BPE format)
             std::vector<std::string> bpe(const std::string& word) {
+                std::string processed_word = word;
+                if (!word.empty() && word[0] == ' ') {
+                    // Replace leading space with Ġ (U+0120) using correct UTF-8 bytes (0xC4 0xA0)
+                    processed_word = "\xC4\xA0" + word.substr(1);
+                }
+                
+                // Instead of character-by-character, we need to properly handle UTF-8
                 std::vector<std::string> tokens;
-                for (char c : word) {
-                    tokens.push_back(std::string(1, c));
+                size_t i = 0;
+                while (i < processed_word.length()) {
+                    // Check for UTF-8 multi-byte sequences
+                    if ((processed_word[i] & 0xE0) == 0xC0) { // 2-byte UTF-8
+                        if (i + 1 < processed_word.length()) {
+                            tokens.push_back(processed_word.substr(i, 2));
+                            i += 2;
+                        } else {
+                            tokens.push_back(std::string(1, processed_word[i]));
+                            i++;
+                        }
+                    } else {
+                        tokens.push_back(std::string(1, processed_word[i]));
+                        i++;
+                    }
                 }
         
                 while (tokens.size() > 1) {
@@ -120,7 +140,7 @@ namespace nano {
         
             // Tokenize input text into token IDs
             std::vector<int> encode(const std::string& text) {
-                std::regex wordRegex(R"(\S+)");
+                std::regex wordRegex(R"('s|'t|'re|'ve|'m|'ll|'d| ?[[:alpha:]]+| ?[[:digit:]]+| ?[^\s[:alpha:][:digit:]]+|\s+)");
                 std::sregex_iterator iter(text.begin(), text.end(), wordRegex);
                 std::sregex_iterator end;
         

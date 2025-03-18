@@ -113,6 +113,7 @@ int main(int argc, char** argv) {
     // Default model path
     const char* model_path = "./gpt2_124M100Steps.bin";
     int genT = 64;  // Default generation length
+    float temperature = 1.0f;  // Default temperature
     
     // Parse command line arguments
     for (int i = 1; i < argc; i++) {
@@ -124,7 +125,14 @@ int main(int argc, char** argv) {
                 fprintf(stderr, "Error: Generation length must be between 1 and 1024\n");
                 return 1;
             }
-        } else if (strcmp(argv[i], "--help") == 0) {
+        } 
+        else if (strcmp(argv[i], "--temp") == 0 && i + 1 < argc) {
+          temperature = atof(argv[++i]);
+          if (temperature <= 0.0f) {
+              fprintf(stderr, "Error: Temperature must be positive\n");
+              return 1;
+          }
+      } else if (strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
             return 0;
         } else {
@@ -149,6 +157,11 @@ int main(int argc, char** argv) {
         return 1;
     }
     printf("Model loaded successfully\n");
+
+    // Add after model loading
+    printf("Model config: layers=%d, heads=%d, hidden_size=%d, vocab_size=%d\n",
+      model.config.num_layers, model.config.num_heads, 
+      model.config.channels, model.config.vocab_size);
 
     // Rest of the code remains the same
     int B = 4;
@@ -194,6 +207,9 @@ int main(int argc, char** argv) {
     //std::vector<uint32_t> input_tokens = tokenizer_nano.encode_string(input);
     std::vector<int> input_tokens = tokenizer_gpt2.encode(input);
 
+    //Hardcoded "Hello, I am" to see of I'm getting the same token output
+    //input_tokens = {15496, 11, 314, 716};
+
     //Print the tokens
     std::cout << "Input tokens: ";
     for (int i = 0; i < input_tokens.size(); i++) {
@@ -223,6 +239,12 @@ int main(int argc, char** argv) {
         auto gen_tokens_2d = TTypes<int>::ConstMatrix(gen_tokens, B, T);
         auto logit_3d = Make3DTensor(logit.get(), B, T, V);
         model.gpt2_->Forward(gen_tokens_2d, logit_3d);
+        if (temperature != 1.0f) {
+          // Scale logits by temperature
+          for (int i = 0; i < B * T * V; i++) {
+              logit[i] /= temperature;
+          }
+      }
         auto logit_2d = MakeConstMatrix(logit.get(), B * T, V);
         auto prob_2d = MakeMatrix(prob.get(), B * T, V);
         softmax.Forward(logit_2d, prob_2d);
@@ -237,12 +259,15 @@ int main(int argc, char** argv) {
         int next_token = sample_mult(probs, model.config.vocab_size, coin);
         gen_tokens[t] = next_token;
         
+        // Print the raw token ID
+        //printf("[Token %d: %d] ", t, next_token);
+
         // Push token to queue for background processing
         {
           std::lock_guard<std::mutex> lock(token_mutex);
           token_queue.push(next_token);
-      }
-      cv.notify_one();
+        }
+        cv.notify_one();
   }
   
   // Wait for decoder thread to finish processing the queue
@@ -316,6 +341,9 @@ else{
       int next_token = sample_mult(probs, model.config.vocab_size, coin);
       gen_tokens[t] = next_token;
       
+      // First print the raw token ID
+      printf("[Token %d] ", next_token);
+
       // print the generated token
       if (tokenizer.init_ok) {
         const char* token_str = tokenizer_decode(&tokenizer, next_token);
