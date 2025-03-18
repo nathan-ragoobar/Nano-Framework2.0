@@ -81,6 +81,7 @@ void print_usage() {
   printf("  --learning_rate N         Initial learning rate (default: 1e-3)\n");
   printf("  --steps N                 Total training steps (default: 35000)\n");
   printf("  --checkpoint_steps N      Save model checkpoint every N steps (default: 5000)\n");
+  printf("  --inference_steps N        Generate text every N steps (default: 100)\n");
   printf("  --help                    Display this help message\n");
 }
 
@@ -94,6 +95,7 @@ int main(int argc, char** argv) {
   int total_steps = 100;
   float initial_lr = 1e-3f;
   int checkpoint_steps = 5000;  // New default value
+  int inference_steps = 100;
 
   // Add the checkpoint_steps parameter to the argument parser
   for (int i = 1; i < argc; i++) {
@@ -130,7 +132,13 @@ int main(int argc, char** argv) {
             fprintf(stderr, "Error: Checkpoint steps must be positive\n");
             return 1;
         }
-    } else {
+    }else if (strcmp(argv[i], "--inference_steps") == 0 && i + 1 < argc) {
+      inference_steps = atoi(argv[++i]);
+      if (inference_steps <= 0) {
+          fprintf(stderr, "Error: Inference steps must be positive\n");
+          return 1;
+      } 
+    }else {
         fprintf(stderr, "Unknown option: %s\n", argv[i]);
         print_usage();
         return 1;
@@ -144,6 +152,7 @@ int main(int argc, char** argv) {
   printf("  Learning rate: %g\n", initial_lr);
   printf("  Training steps: %d\n", total_steps);
   printf("  Checkpoint every: %d steps\n\n", checkpoint_steps);
+  printf("  Inference every: %d steps\n\n", inference_steps);
 
 
   // Initialize the MetricWriter object
@@ -348,7 +357,7 @@ int main(int argc, char** argv) {
     }
 
     // once in a while do model inference to print generated text
-    if (step % 100 == 0) {
+    if (step % inference_steps == 0) {
       NvtxRange generation_range("generation");
       // fill up gen_tokens with the GPT2_EOT, which kicks off the generation
       for (int i = 0; i < B * T; ++i) {
