@@ -140,19 +140,29 @@ namespace nano {
         
             // Tokenize input text into token IDs
             std::vector<int> encode(const std::string& text) {
-                std::regex wordRegex(R"('s|'t|'re|'ve|'m|'ll|'d| ?[[:alpha:]]+| ?[[:digit:]]+| ?[^\s[:alpha:][:digit:]]+|\s+)");
+                // Modified regex to treat consecutive special characters as a single token
+                std::regex wordRegex(R"('s|'t|'re|'ve|'m|'ll|'d| ?[[:alpha:]]+| ?[[:digit:]]+|[#]+|[^\s[:alpha:][:digit:]]+|\s+)");
                 std::sregex_iterator iter(text.begin(), text.end(), wordRegex);
                 std::sregex_iterator end;
-        
+            
                 std::vector<int> tokenIDs;
                 while (iter != end) {
                     std::string word = iter->str();
-                    std::vector<std::string> bpeTokens = bpe(word);
-                    for (const auto& token : bpeTokens) {
-                        if (encoder.find(token) != encoder.end()) {
-                            tokenIDs.push_back(encoder[token]);
-                        } else {
-                            std::cerr << "Warning: Token not found in encoder: " << token << std::endl;
+                    
+                    // Check if this is a special sequence like "###" that should be treated as a single token
+                    auto directIt = encoder.find(word);
+                    if (directIt != encoder.end()) {
+                        // If the entire sequence is a token, use it directly
+                        tokenIDs.push_back(directIt->second);
+                    } else {
+                        // Otherwise use BPE
+                        std::vector<std::string> bpeTokens = bpe(word);
+                        for (const auto& token : bpeTokens) {
+                            if (encoder.find(token) != encoder.end()) {
+                                tokenIDs.push_back(encoder[token]);
+                            } else {
+                                std::cerr << "Warning: Token not found in encoder: " << token << std::endl;
+                            }
                         }
                     }
                     ++iter;
