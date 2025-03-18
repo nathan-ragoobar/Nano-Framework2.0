@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """
 Downloads, processes, and tokenizes part of the C4_200M dataset for grammar correction.
-- Streams data from HuggingFace datasets
+- First downloads the entire dataset portion
+- Uses multiprocessing for efficient parallel tokenization
 - Formats examples into the instruction style:
     ### Instruction: Correct the grammar in this text
     ### Input: [incorrect sentence]
@@ -10,8 +11,7 @@ Downloads, processes, and tokenizes part of the C4_200M dataset for grammar corr
 - Tokenizes using tiktoken with GPT‑2 encoding
 - Splits the data into training (80%) and validation (20%) splits
 - Places examples continuously one after another, separated by EOT_TOKEN
-- Outputs each split in the TinyStories binary format
-- Processes data in batches to avoid memory issues
+- Outputs each split in the TinyStories binary format with fixed file sizes
 """
 
 import os
@@ -20,6 +20,10 @@ import numpy as np
 import tiktoken
 from tqdm import tqdm
 from datasets import load_dataset
+import multiprocessing as mp
+from functools import partial
+import time
+import math
 
 # -----------------------------------------------------------------------------
 # Constants and configuration
@@ -67,196 +71,130 @@ def write_tokenized_data(tokens, output_path, file_idx=0, total_files=1):
     print(f"Successfully wrote tokenized data to {output_path}")
 
 def concatenate_examples(tokenized_examples):
-    """
-    Concatenate tokenized examples into one continuous sequence.
-    
-    Args:
-        tokenized_examples: List of tokenized examples, each ending with an EOT_TOKEN
-        
-    Returns:
-        List of tokens with examples concatenated
-    """
-    # Flatten the list of examples into a single list of tokens
+    """Concatenate tokenized examples into one continuous sequence."""
     return [token for example in tokenized_examples for token in example]
+
+def process_example(item):
+    """Process a single example (format text and tokenize)."""
+    incorrect = item["input"].strip()
+    corrected = item["output"].strip()
+    
+    # Format using the instruction template
+    formatted_text = f"{INSTRUCTION_PREFIX}{incorrect}{INSTRUCTION_SEPARATOR}{corrected}{TASK_COMPLETE}"
+    
+    # Tokenize the formatted text
+    tokens = encode(formatted_text)
+    # Append the end-of-text token
+    tokens.append(EOT_TOKEN)
+    
+    return tokens
+
+def chunk_list(input_list, chunk_size):
+    """Split a list into chunks of specified size."""
+    return [input_list[i:i + chunk_size] for i in range(0, len(input_list), chunk_size)]
 
 # -----------------------------------------------------------------------------
 # Main processing function
 # -----------------------------------------------------------------------------
 def main(args):
-    print("Tokenizing C4_200M dataset with continuous examples...")
+    print("Starting C4_200M dataset processing for grammar correction...")
+    start_time = time.time()
 
     ensure_dir_exists(args.output_dir)
     
-    # Load the C4_200M dataset in streaming mode
-    print("Loading C4_200M dataset in streaming mode...")
-    ds = load_dataset("liweili/c4_200m", streaming=True)
-    ds_train = ds["train"]
-
-    # Total number of examples to process
-    max_examples = args.sample_limit
+    # Step 1: Download the dataset
+    print(f"Downloading {args.sample_limit} examples from the C4_200M dataset...")
+    ds = load_dataset("liweili/c4_200m", split=f"train[:{args.sample_limit}]")
+    print(f"Downloaded {len(ds)} examples")
     
-    # Batch processing setup
+    # Print a few examples for verification
+    print_count = min(3, len(ds))
+    for i in range(print_count):
+        print(f"\nExample {i+1}:")
+        print(f"Input: {ds[i]['input']}")
+        print(f"Output: {ds[i]['output']}")
+    
+    # Step 2: Split data into train/val
+    train_ratio = 0.8
+    train_size = int(len(ds) * train_ratio)
+    
+    train_ds = ds[:train_size]
+    val_ds = ds[train_size:]
+    
+    print(f"\nSplit dataset into {len(train_ds)} training and {len(val_ds)} validation examples")
+    
+    # Step 3: Process training data with multiprocessing
+    print("\nProcessing training data in parallel...")
+    num_processes = min(mp.cpu_count(), args.num_processes)
+    print(f"Using {num_processes} processes for tokenization")
+    
+    # Process in parallel
+    with mp.Pool(processes=num_processes) as pool:
+        all_train_tokens = list(tqdm(
+            pool.imap(process_example, train_ds, chunksize=100),
+            total=len(train_ds),
+            desc="Tokenizing training examples"
+        ))
+    
+    # Step 4: Process validation data with multiprocessing
+    print("\nProcessing validation data in parallel...")
+    with mp.Pool(processes=num_processes) as pool:
+        all_val_tokens = list(tqdm(
+            pool.imap(process_example, val_ds, chunksize=100),
+            total=len(val_ds),
+            desc="Tokenizing validation examples"
+        ))
+    
+    # Step 5: Calculate token counts and file divisions
+    train_token_count = sum(len(tokens) for tokens in all_train_tokens)
+    val_token_count = sum(len(tokens) for tokens in all_val_tokens)
+    
+    print(f"\nTotal train tokens: {train_token_count:,}")
+    print(f"Total validation tokens: {val_token_count:,}")
+    
     max_tokens_per_file = args.max_tokens_per_file
     
-    # Track examples and files
-    processed_examples = 0
-    train_examples_count = 0
-    val_examples_count = 0
-    train_file_idx = 0
-    val_file_idx = 0
+    # Calculate number of files needed
+    train_files_needed = max(1, math.ceil(train_token_count / max_tokens_per_file))
+    val_files_needed = max(1, math.ceil(val_token_count / max_tokens_per_file))
     
-    # Print a few examples in the desired formatted style before tokenization
-    print("\nPrinting a few formatted examples:\n")
-    print_count = min(3, max_examples)
+    print(f"Will create {train_files_needed} training files and {val_files_needed} validation files")
     
-    # Process examples from the dataset
-    examples = ds_train
+    # Step 6: Organize examples into evenly-sized files
+    # Distribute examples to get approximately equal sized files
+    train_examples_per_file = math.ceil(len(all_train_tokens) / train_files_needed)
+    val_examples_per_file = math.ceil(len(all_val_tokens) / val_files_needed)
     
-    # Split ratio (80% train, 20% val)
-    train_ratio = 0.8
-    train_limit = int(max_examples * train_ratio)
+    # Split into chunks
+    train_batches = chunk_list(all_train_tokens, train_examples_per_file)
+    val_batches = chunk_list(all_val_tokens, val_examples_per_file)
     
-    # Initialize batch storage
-    train_batch = []
-    val_batch = []
+    print(f"\nDistributed training examples into {len(train_batches)} batches")
+    print(f"Distributed validation examples into {len(val_batches)} batches")
     
-    with tqdm(total=max_examples, desc="Processing examples") as pbar:
-        for i, item in enumerate(examples):
-            # Each item has 'input' and 'output'
-            incorrect = item["input"].strip()
-            corrected = item["output"].strip()
-            
-            # Format using the instruction template
-            formatted_text = f"{INSTRUCTION_PREFIX}{incorrect}{INSTRUCTION_SEPARATOR}{corrected}{TASK_COMPLETE}"
-            
-            # Tokenize the formatted text
-            tokens = encode(formatted_text)
-            # Append the end-of-text token
-            tokens.append(EOT_TOKEN)
-            
-            # Print a few example formats with token information
-            if processed_examples < print_count:
-                print(f"Example {processed_examples+1}:\n{formatted_text}\n")
-                print(f"Token count: {len(tokens)}")
-                print(f"First 10 tokens: {tokens[:10]}")
-                print(f"Last 10 tokens: {tokens[-10:] if len(tokens) >= 10 else tokens}")
-                
-                # Optionally display token-to-text mapping for better understanding
-                print("\nSample token-to-text mapping:")
-                sample_size = min(5, len(tokens))
-                for i in range(sample_size):
-                    token_id = tokens[i]
-                    token_bytes = enc.decode_single_token_bytes(token_id)
-                    token_text = token_bytes.decode('utf-8', errors='replace')
-                    print(f"Token {i}: ID={token_id}, Text='{token_text}'")
-                
-                print(f"{'-'*50}\n")
-            
-            # Determine if this example goes to training or validation
-            # 80% for training, 20% for validation
-            if processed_examples < train_limit:
-                train_batch.append(tokens)
-                train_examples_count += 1
-                
-                # Check if train batch is large enough to write
-                train_token_count = sum(len(ex) for ex in train_batch)
-                if train_token_count >= max_tokens_per_file:
-                    print(f"\nProcessing train batch {train_file_idx + 1}...")
-                    train_tokens = concatenate_examples(train_batch)
-                    
-                    # Write training batch to file
-                    train_output_path = os.path.join(
-                        args.output_dir, 
-                        f"train_tokenized_output_{train_file_idx+1:03d}.bin"
-                    )
-                    
-                    # We don't know total files yet, but we'll update this in post-processing
-                    write_tokenized_data(train_tokens, train_output_path, 
-                                        file_idx=train_file_idx, total_files=1)
-                    
-                    # Clear batch to free memory
-                    train_batch = []
-                    train_file_idx += 1
-            else:
-                val_batch.append(tokens)
-                val_examples_count += 1
-                
-                # Check if val batch is large enough to write
-                val_token_count = sum(len(ex) for ex in val_batch)
-                if val_token_count >= max_tokens_per_file:
-                    print(f"\nProcessing validation batch {val_file_idx + 1}...")
-                    val_tokens = concatenate_examples(val_batch)
-                    
-                    # Write validation batch to file
-                    val_output_path = os.path.join(
-                        args.output_dir, 
-                        f"val_tokenized_output_{val_file_idx+1:03d}.bin"
-                    )
-                    
-                    # We don't know total files yet, but we'll update this in post-processing
-                    write_tokenized_data(val_tokens, val_output_path, 
-                                       file_idx=val_file_idx, total_files=1)
-                    
-                    # Clear batch to free memory
-                    val_batch = []
-                    val_file_idx += 1
-            
-            processed_examples += 1
-            pbar.update(1)
-            
-            # Stop once we have enough examples
-            if processed_examples >= max_examples:
-                break
+    # Step 7: Write training files
+    print("\nWriting training files...")
+    for i, batch in enumerate(train_batches):
+        tokens = concatenate_examples(batch)
+        output_path = os.path.join(args.output_dir, f"train_tokenized_output_{i+1:03d}.bin")
+        write_tokenized_data(tokens, output_path, file_idx=i, total_files=len(train_batches))
     
-    # Process any remaining examples in the batches
-    if train_batch:
-        print(f"\nProcessing final train batch...")
-        train_tokens = concatenate_examples(train_batch)
-        train_output_path = os.path.join(
-            args.output_dir, 
-            f"train_tokenized_output_{train_file_idx+1:03d}.bin"
-        )
-        write_tokenized_data(train_tokens, train_output_path, 
-                           file_idx=train_file_idx, total_files=train_file_idx+2)
-        train_file_idx += 1
+    # Step 8: Write validation files
+    print("\nWriting validation files...")
+    for i, batch in enumerate(val_batches):
+        tokens = concatenate_examples(batch)
+        output_path = os.path.join(args.output_dir, f"val_tokenized_output_{i+1:03d}.bin")
+        write_tokenized_data(tokens, output_path, file_idx=i, total_files=len(val_batches))
     
-    if val_batch:
-        print(f"\nProcessing final validation batch...")
-        val_tokens = concatenate_examples(val_batch)
-        val_output_path = os.path.join(
-            args.output_dir, 
-            f"val_tokenized_output_{val_file_idx+1:03d}.bin"
-        )
-        write_tokenized_data(val_tokens, val_output_path, 
-                           file_idx=val_file_idx, total_files=val_file_idx+2)
-        val_file_idx += 1
-    
-    # Update file headers with correct total file count
-    print("\nUpdating file headers with correct total counts...")
-    
-    # Update train file headers
-    for i in range(train_file_idx):
-        train_path = os.path.join(args.output_dir, f"train_tokenized_output_{i+1:03d}.bin")
-        with open(train_path, 'rb+') as f:
-            header = np.fromfile(f, dtype=np.int32, count=256)
-            header[3] = train_file_idx  # Update total files
-            f.seek(0)
-            header.tofile(f)
-    
-    # Update validation file headers
-    for i in range(val_file_idx):
-        val_path = os.path.join(args.output_dir, f"val_tokenized_output_{i+1:03d}.bin")
-        with open(val_path, 'rb+') as f:
-            header = np.fromfile(f, dtype=np.int32, count=256)
-            header[3] = val_file_idx  # Update total files
-            f.seek(0)
-            header.tofile(f)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
     
     print("\nTokenization complete!")
-    print(f"Training examples processed: {train_examples_count}")
-    print(f"Training files created: {train_file_idx}")
-    print(f"Validation examples processed: {val_examples_count}")
-    print(f"Validation files created: {val_file_idx}")
+    print(f"Training examples processed: {len(train_ds)}")
+    print(f"Training files created: {len(train_batches)}")
+    print(f"Validation examples processed: {len(val_ds)}")
+    print(f"Validation files created: {len(val_batches)}")
+    print(f"Total processing time: {elapsed_time:.2f} seconds")
 
 # -----------------------------------------------------------------------------
 # Entry point
@@ -265,14 +203,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Tokenize part of the C4_200M dataset for grammar correction with continuous examples."
     )
-    parser.add_argument("--output_dir", type=str, default="c4_tokenized", 
+    parser.add_argument("--output_dir", type=str, default="c4_tokenizedv2", 
                         help="Output directory for tokenized files")
     parser.add_argument("--sample_limit", type=int, default=100, 
                         help="Total number of examples to process from the dataset")
     parser.add_argument("--max_tokens_per_file", type=int, default=100000000, 
                         help="Maximum number of tokens per output file (default: 100M tokens)")
-    parser.add_argument("--batch_size", type=int, default=10000,
-                        help="Number of examples to process before checking for file writing")
+    parser.add_argument("--num_processes", type=int, default=mp.cpu_count(),
+                        help=f"Number of processes to use (default: all available cores, {mp.cpu_count()})")
     
     args = parser.parse_args()
     main(args)
