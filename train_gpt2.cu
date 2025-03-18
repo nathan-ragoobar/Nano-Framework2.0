@@ -159,18 +159,18 @@ int main(int argc, char** argv) {
   config.max_seq_len = 1024;
   config.vocab_size = 50257;
   config.padded_vocab_size = 50304;
-  /*
+ 
   config.num_layers = 12;
   config.num_heads = 12;
   config.channels = 768;
-  */
+   /*
   config.num_layers = 8;
   config.num_heads = 8;
-  config.channels = 64;
+  config.channels = 64;*/
 
   gpt2::GPT2 model;
-  model.InitializeFromScratch(config);
-  //model.BuildFromCheckpoint("gpt2_124M.bin");
+  //model.InitializeFromScratch(config);
+  model.BuildFromCheckpoint("gpt2_124M_edited.bin");
 
   // build the DataLoaders from tokens files. for now use tiny_stories if
   // available, else tiny_shakespeare
@@ -441,7 +441,7 @@ int main(int argc, char** argv) {
   }
 
   //Save model
-  model.SaveModel("gpt2_124MFinal.bin");
+  model.SaveModel("gpt2_124MFinal_FFF_Gpu.bin");
 
   writer.close(); //Close the writer
 

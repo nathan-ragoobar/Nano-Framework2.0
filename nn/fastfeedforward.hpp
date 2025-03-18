@@ -138,7 +138,14 @@ struct LeafNetwork {
     int output_size = y.dimension(1);
     
     // Clear prior allocations to avoid size mismatch
-    hidden_ = std::make_unique<nn::Activation>(nn::DataTypeToEnum<T>::value);
+    // Instead, reuse the existing object:
+    if (hidden_) {
+      hidden_->ZeroData();
+      hidden_->LazyAllocate(BT * hidden_size);
+    } else {
+      hidden_ = std::make_unique<nn::Activation>(nn::DataTypeToEnum<T>::value);
+      hidden_->LazyAllocate(BT * hidden_size);
+    }
     activated_ = std::make_unique<nn::Activation>(nn::DataTypeToEnum<T>::value);
     output_ = std::make_unique<nn::Activation>(nn::DataTypeToEnum<T>::value);
     
@@ -772,21 +779,17 @@ void BackwardDepth1(typename TTypes<T>::ConstMatrix x,
 
   left_buffer.LazyAllocate(BT * output_width_);
   right_buffer.LazyAllocate(BT * output_width_);
-  /*
+  
+  auto left_out = left_buffer.matrix<T>(BT, output_width_);
   auto right_out = right_buffer.matrix<T>(BT, output_width_);
   
-  // First, we need to re-compute the forward pass to get the leaf outputs
-  auto choice_matrix = choice_->const_matrix<T>(BT, 1);
-  auto left_out = leaf_outputs_->matrix<T>(BT, output_width_);
-  */
-
-  // Use direct tensor views with proper dimensions
-  auto left_view_start = leaf_outputs_->data<T>();
-  auto left_out = TTypes<T>::Matrix(left_view_start, BT, output_width_);
+  // First recompute forward outputs
+  leaf_networks_[0]->Forward(x, left_out);
+  leaf_networks_[1]->Forward(x, right_out);
   
-  auto right_view_start = leaf_outputs_->data<T>() + (BT * output_width_);
-  auto right_out = TTypes<T>::Matrix(right_view_start, BT, output_width_);
-
+  // Then setup gradients with the same buffers
+  left_buffer.LazyAllocateGradient();
+  right_buffer.LazyAllocateGradient();
 
   // Re-compute leaf outputs
   leaf_networks_[0]->Forward(x, left_out);
