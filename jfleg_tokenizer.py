@@ -182,4 +182,7 @@ if __name__ == "__main__":
     ### Input: [incorrect sentence]
     ### Output: [corrected sentence]
     ### End
+
+    ### Instruction: Correct the grammar in this text ### Input: I think they have to get skill on it . ### Output: I think they have to get skilled in it . ### End
+
     '''
