@@ -21,8 +21,8 @@ float random_f32(unsigned long long* state) {  // random float32 in [0,1)
   return (random_u32(state) >> 8) / 16777216.0f;
 }
 
-int sample_mult(fixed_point_31pt32* probabilities, int n, fixed_point_31pt32 coin) {
-    fixed_point_31pt32 cdf(0.0f);
+int sample_mult(float* probabilities, int n, float coin) {
+    float cdf(0.0f);
     for (int i = 0; i < n; i++) {
         cdf += probabilities[i];
         if (coin < cdf) {
@@ -32,13 +32,13 @@ int sample_mult(fixed_point_31pt32* probabilities, int n, fixed_point_31pt32 coi
     return n - 1;
 }
 
-fixed_point_31pt32 random_fixed(unsigned long long* state) {
-    return fixed_point_31pt32(random_f32(state));
+float random_fixed(unsigned long long* state) {
+    return float(random_f32(state));
 }
 
 bool USE_FAST_SOFTMAX = true;
 
-using Type = fixed_point_31pt32;
+using Type = float;
 
 int main(int argc, char** argv) {
 
@@ -51,10 +51,10 @@ int main(int argc, char** argv) {
   config.channels = 768;
 
   gpt2::GPT2 model;
-  model.InitializeFromScratch(config);
+  //model.InitializeFromScratch(config);
 
   //gpt2::GPT2 model;
-  //model.BuildFromCheckpoint("./fixed_point_weights.bin"); //Loads model
+  model.BuildFromCheckpoint("./gpt2_124M.bin"); //Loads model
 
   // build the DataLoaders from tokens files. for now use tiny_shakespeare if
   // available, else tiny_stories
@@ -93,13 +93,13 @@ int main(int argc, char** argv) {
   // train
   struct timespec start, end;
   int V = model.config.vocab_size;
-  std::unique_ptr<fixed_point_31pt32[]> logit = std::make_unique<fixed_point_31pt32[]>(B * T * V);
-  std::unique_ptr<fixed_point_31pt32[]> prob = std::make_unique<fixed_point_31pt32[]>(B * T * V);
+  std::unique_ptr<float[]> logit = std::make_unique<float[]>(B * T * V);
+  std::unique_ptr<float[]> prob = std::make_unique<float[]>(B * T * V);
   nn::Parameter label(nn::DT_FIXED, B * T * V);
   nn::Softmax softmax;
   std::vector<nn::Parameter*> parameters;
   model.Parameters(&parameters);
-  optim::AdamW<fixed_point_31pt32> optimizer(parameters, 
+  optim::AdamW<float> optimizer(parameters, 
     1e-4f,
     0.9f, 
     0.999f,
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
   for (int step = 0; step <= 100; step++) {
     // once in a while estimate the validation loss
     if (step % 10 == 0) {
-      fixed_point_31pt32 val_loss(0.0f);
+      float val_loss(0.0f);
       dataloader_reset(&val_loader);
       for (int i = 0; i < val_num_batches; i++) {
         dataloader_next_batch(&val_loader);
@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
         printf("num_activations: %zu(%zu MB)\n", num_activations,
                num_activations * sizeof(floatX) / 1024 / 1024);
       }
-      printf("val loss %f\n", val_loss.to_float());
+      printf("val loss %f\n", val_loss);
     }
 
     // once in a while do model inference to print generated text
@@ -162,8 +162,8 @@ int main(int argc, char** argv) {
         // rows we're in principle running B "inference streams" in parallel
         // here but only using position 0 get the Vp-dimensional vector probs[0,
         // t-1, :]
-        fixed_point_31pt32* probs = prob.get() + (t - 1) * V;
-        fixed_point_31pt32 coin = random_fixed(&rng_state);
+        float* probs = prob.get() + (t - 1) * V;
+        float coin = random_fixed(&rng_state);
         // note we're only sampling from the first V elements, ignoring padding
         // (the probabilities in the padded region should be zero anyway)
         int next_token = sample_mult(probs, model.config.vocab_size, coin);

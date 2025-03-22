@@ -94,52 +94,57 @@ inline void NormalFill(absl::Span<T> weight, T mean = 0.0,
   g_device.memcpyHostToDevice(weight.data(), w.data(),
                               sizeof(float) * w.size());
 #else
-  normal_fixed(weight.data(), weight.size(), mean, std, &g_mt19937_state);
+  //Need to setup some kind of check to see if data type is float of fixed
+  //normal_fixed(weight.data(), weight.size(), mean, std, &g_mt19937_state);//use this for fixed point
+  normal_(weight.data(), weight.size(), mean, std, &g_mt19937_state);//use this for float
 #endif
 }
 
 //Implementation of the Kaiming uniform initialization for a weight tensor. The function fills the weight tensor with values sampled from a uniform distribution with bounds calculated based on the number of input features. The function has GPU and CPU implementations.
-inline void KaimingUniformFill(absl::Span<fixed_point_31pt32> weight, int in_features) {
-    const fixed_point_31pt32 one(1.0f);
-    const fixed_point_31pt32 in_features_fp(static_cast<float>(in_features));
-    const fixed_point_31pt32 bound = sqrt(one / in_features_fp);
+inline void KaimingUniformFill(absl::Span<floatX> weight, int in_features) {
+    const floatX one(1.0f);
+    const floatX in_features_fp(static_cast<float>(in_features));
+    const floatX bound = sqrt(one / in_features_fp);
 
 #ifdef EIGEN_USE_GPU
-    std::vector<fixed_point_31pt32> w(weight.size());
+    std::vector<floatX> w(weight.size());
     uniform_fixed(w.data(), w.size(), -bound, bound, &g_mt19937_state);
     g_device.memcpyHostToDevice(weight.data(), w.data(),
-                               sizeof(fixed_point_31pt32) * w.size());
+                               sizeof(floatX) * w.size());
 #else
-    uniform_fixed(weight.data(), weight.size(), -bound, bound, &g_mt19937_state);
+    //Need to setup some kind of check to see if data type is float of fixed
+    
+    //uniform_fixed(weight.data(), weight.size(), -bound, bound, &g_mt19937_state);//use this for fixed point
+    uniform_(weight.data(), weight.size(), -bound, bound, &g_mt19937_state);//use this for float
 #endif
 }
 
 
 //Creates upper triangle matrix, sets upper triangle to negative infinity, sets diagonal and lower triangle to zero
 inline void UpperTriangularWithNegativeInf(
-    typename TTypes<fixed_point_31pt32>::Matrix matrix) {
+    typename TTypes<floatX>::Matrix matrix) {
     
     using MatrixFixed = 
-        Eigen::Matrix<fixed_point_31pt32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+        Eigen::Matrix<floatX, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
     
     MatrixFixed m = MatrixFixed::Zero(matrix.dimension(0), matrix.dimension(1));
     
     // Use minimum fixed point value instead of infinity
     m.triangularView<Eigen::StrictlyUpper>().setConstant(
-        fixed_point_31pt32(-32.0f));  // Minimum value for Q5.10 format
+        floatX(-32.0f));  // Minimum value for Q5.10 format
 
 #ifdef EIGEN_USE_GPU
     g_device.memcpyHostToDevice(matrix.data(), m.data(),
-                               sizeof(fixed_point_31pt32) * m.size());
+                               sizeof(floatX) * m.size());
 #else
     g_device.memcpy(matrix.data(), m.data(), 
-                    sizeof(fixed_point_31pt32) * m.size());
+                    sizeof(floatX) * m.size());
 #endif
 }
 
 //Performs OneHot encoding of target tensor 
 inline void OneHot(typename TTypes<int>::ConstFlat target,
-                       typename TTypes<fixed_point_31pt32>::Matrix label) {
+                       typename TTypes<floatX>::Matrix label) {
     int batch_size = target.size();
     int num_class = label.dimension(1);
     
@@ -148,7 +153,7 @@ inline void OneHot(typename TTypes<int>::ConstFlat target,
     for (int i = 0; i < batch_size; ++i) {
         int ix = target(i);
         CHECK_LT(ix, num_class);
-        label(i, ix) = fixed_point_31pt32(1.0f);
+        label(i, ix) = floatX(1.0f);
     }
 }
 
@@ -475,33 +480,33 @@ struct Residual {
 // Careful there are a few versions of GeLU, this one is the exact one used by
 // OpenAI
 struct NewGELU {
-  using T = fixed_point_31pt32;
+  using T = floatX;
 
-  static void Forward(typename TTypes<fixed_point_31pt32>::ConstFlat x,
-                      typename TTypes<fixed_point_31pt32>::Flat y) {
+  static void Forward(typename TTypes<T>::ConstFlat x,
+                      typename TTypes<T>::Flat y) {
     CHECK_EQ(x.size(), y.size());
-    const fixed_point_31pt32 sqrt_2_over_pi(std::sqrt(M_2_PI));
+    const T sqrt_2_over_pi(std::sqrt(M_2_PI));
 
     // y = 0.5 * x * (1.0 + tanh[sqrt(2/pi) * (x + 0.044715 * x^3)])
-    const fixed_point_31pt32 half(0.5f);
-    const fixed_point_31pt32 one(1.0f);
-    const fixed_point_31pt32 coeff(0.044715f);
+    const T half(0.5f);
+    const T one(1.0f);
+    const T coeff(0.044715f);
     
     y.device(g_device) =
         half * x * (one + ((sqrt_2_over_pi * (x + coeff * x * x * x)).tanh()));
   }
 
-  static void Backward(typename TTypes<fixed_point_31pt32>::ConstFlat x,
-                       typename TTypes<fixed_point_31pt32>::ConstFlat y_grad,
-                       typename TTypes<fixed_point_31pt32>::Flat x_grad) {
+  static void Backward(typename TTypes<T>::ConstFlat x,
+                       typename TTypes<T>::ConstFlat y_grad,
+                       typename TTypes<T>::Flat x_grad) {
     CHECK_EQ(x.size(), y_grad.size());
     CHECK_EQ(x.size(), x_grad.size());
 
-    const fixed_point_31pt32 sqrt_2_over_pi(sqrt(M_2_PI));
-    const fixed_point_31pt32 half(0.5f);
-    const fixed_point_31pt32 one(1.0f);
-    const fixed_point_31pt32 three(3.0f);
-    const fixed_point_31pt32 coeff(0.044715f);
+    const T sqrt_2_over_pi(sqrt(M_2_PI));
+    const T half(0.5f);
+    const T one(1.0f);
+    const T three(3.0f);
+    const T coeff(0.044715f);
 
     auto cube = coeff * x * x * x;
     auto tanh_arg = sqrt_2_over_pi * (x + cube);

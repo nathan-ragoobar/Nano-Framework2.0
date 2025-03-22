@@ -15,7 +15,7 @@
 namespace gpt {
 
 struct MLP {
-  using T = fixed_point_31pt32;
+  using T = floatX;
 
   //I think this is the structure for the class/structure?
   explicit MLP(int n_embed) : n_embed_(n_embed) {

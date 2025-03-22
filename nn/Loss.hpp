@@ -11,7 +11,7 @@
 namespace nn {
 
 struct CrossEntropy {
-  using T = fixed_point_31pt32;
+  using T = floatX;
   enum Reduction { MEAN, SUM };
 
   CrossEntropy(Reduction reduction = Reduction::MEAN) : reduction_(reduction) {}
@@ -28,7 +28,7 @@ struct CrossEntropy {
     for (int i = 0; i < targets.size(); ++i) {
       int ix = targets[i];
       // Convert probs(i, ix) to float, do log, accumulate
-      float p = probs(i, ix).to_float();
+      float p = probs(i, ix);
       *loss += -std::log(p > 0.0f ? p : 1e-12f); //If prob is negative or zero, set to 1e-12
     }
 
@@ -52,7 +52,7 @@ struct CrossEntropy {
     for (int b = 0; b < B; ++b) {
       int ix = targets[b];
       // Convert probs(b, ix) to float, do the division, convert back
-      float p = probs(b, ix).to_float();
+      float p = probs(b, ix);
       float grad_float = -1.0f / (p > 0.0f ? p : 1e-12f) * factor;
       probs_grad(b, ix) += T(grad_float);
     }

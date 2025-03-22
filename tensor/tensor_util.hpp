@@ -6,7 +6,7 @@
 #include "./../eigen/Eigen/Core"
 #include "fixed_point.hpp"
 
-using floatX = fixed_point_31pt32;
+using floatX = float;
 
 // Raw pointer -> Flat
 template <typename T>

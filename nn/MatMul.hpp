@@ -11,7 +11,7 @@
 namespace nn {
 
 struct MatMul {
-  using T = fixed_point_31pt32;
+  using T = floatX;
 
   static void Forward(typename TTypes<T>::ConstMatrix x1,
                       typename TTypes<T>::ConstMatrix x2,
