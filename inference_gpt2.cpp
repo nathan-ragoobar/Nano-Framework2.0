@@ -10,7 +10,7 @@
 #include <queue>
 
 #include "gpt2.hpp"
-//#include "llmc/dataloader.h"
+#include "llmc/dataloader.h"
 //#include "llmc/tokenizer.h"
 #include "nano.hpp"
 #include "llmc/tokenizer.hpp"
@@ -364,10 +364,10 @@ else{
           tokens_generated, time_elapsed_s, tokens_generated/time_elapsed_s);
 }
 
-return 0;
-}
+//return 0;
+//}
 
-/*
+/**/
 // START OF VALIDATION CODE
 //---------------------------------------------------------------------------------
     const char* tiny_stories_val = "dev/data/tinystories/TinyStories_val.bin";
@@ -389,7 +389,7 @@ return 0;
     int val_num_batches = 5;
     bool USE_FAST_SOFTMAX = true;
 
-    for (int step = 0; step <= 10; step++) {
+    for (int step = 0; step <= 5; step++) {
     
       float val_loss = 0.0f;
       dataloader_reset(&val_loader);
@@ -429,4 +429,3 @@ return 0;
 
 }
 
-*/

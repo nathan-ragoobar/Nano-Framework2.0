@@ -181,13 +181,17 @@ int main(int argc, char** argv) {
 */
   gpt2::GPT2 model;
   //model.InitializeFromScratch(config);
-  model.BuildFromCheckpoint("jfleg_attempt3.bin");
+  model.BuildFromCheckpoint("gpt2_124M.bin");
 
   // build the DataLoaders from tokens files. for now use tiny_stories if
   // available, else tiny_shakespeare
   // Only use edu_fineweb dataset
-  const char* train_tokens = "c4_tokenized/train_tokenized_output_*.bin";
-  const char* val_tokens = "c4_tokenized/val_tokenized_output_*.bin";
+  //const char* train_tokens = "c4_tokenized/train_tokenized_output_*.bin";
+  //const char* val_tokens = "c4_tokenized/val_tokenized_output_*.bin";
+
+  const char* train_tokens = "dev/data/tinyshakespeare/tiny_shakespeare_train.bin";
+  const char* val_tokens = "dev/data/tinyshakespeare/tiny_shakespeare_val.bin";
+
 
   // Check if directory exists and print the paths we're trying to use
   printf("Using training data path: %s\n", train_tokens);
@@ -456,7 +460,7 @@ int main(int argc, char** argv) {
   }
 
   //Save model
-  model.SaveModel("c4_gpt2_124MFinal.bin");
+  model.SaveModel("tinyShakespear_gpt2_124MFinal.bin");
 
   writer.close(); //Close the writer
 
