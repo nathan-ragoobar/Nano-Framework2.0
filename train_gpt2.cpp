@@ -1,6 +1,12 @@
 #include <unistd.h>
 #include <iostream>
 #include <memory>
+#include <vector>
+#include <numeric>
+#include <cstring>
+#include <string>
+#include "NanoDashWriter/writer.hpp" // Add this include
+
 
 #include "gpt2.hpp"
 //#include "llmc/dataloader.h"
@@ -38,9 +44,27 @@ fixed_point_31pt32 random_fixed(unsigned long long* state) {
 
 bool USE_FAST_SOFTMAX = true;
 
+float cosine_learning_rate(int step, int total_steps, float initial_lr) {
+  float pi = 3.14159265358979323846;
+  return initial_lr * 0.5 * (1 + cos(pi * step / total_steps));
+}
+
 using Type = fixed_point_31pt32;
 
 int main(int argc, char** argv) {
+
+  float initial_lr = 1e-3f;
+
+  // Initialize the MetricWriter object
+  std::vector<std::string> metrics = {
+    "train_loss", 
+    "val_loss",
+    "time_ms",
+    "tokens_per_second",  // Add this
+    "learning_rate"       // Add this
+  };
+  MetricWriter writer("gpt2_training", metrics);
+
 
   gpt2::GPT2Config config;
   config.max_seq_len = 1024;
@@ -99,14 +123,20 @@ int main(int argc, char** argv) {
   nn::Softmax softmax;
   std::vector<nn::Parameter*> parameters;
   model.Parameters(&parameters);
+  float lr = 1e-3f;
   optim::AdamW<fixed_point_31pt32> optimizer(parameters, 
-    1e-4f,
+    lr,
     0.9f, 
     0.999f,
     1e-8f,
     0.0f); //defines the AdamW optimizer optimizer to be used
+    int total_steps = 500;
+
   std::vector<double> timings;
-  for (int step = 0; step <= 100; step++) {
+  for (int step = 0; step <= total_steps; step++) {
+    // Calculate the current learning rate using the cosine schedule
+    float current_lr = cosine_learning_rate(step, total_steps, initial_lr);
+
     // once in a while estimate the validation loss
     if (step % 10 == 0) {
       fixed_point_31pt32 val_loss(0.0f);
@@ -137,6 +167,7 @@ int main(int argc, char** argv) {
                num_activations * sizeof(floatX) / 1024 / 1024);
       }
       printf("val loss %f\n", val_loss.to_float());
+      writer.addValidationLoss(val_loss.to_float(), step);
     }
 
     // once in a while do model inference to print generated text
@@ -233,7 +264,7 @@ int main(int argc, char** argv) {
     clock_gettime(CLOCK_MONOTONIC, &Optimizerstart);
 
 
-    optimizer.Step(step + 1);
+    optimizer.Step(step + 1,current_lr);
 
     clock_gettime(CLOCK_MONOTONIC, &Optimizerend);
       double Optimizer_time_elapsed_s =
@@ -244,9 +275,19 @@ int main(int argc, char** argv) {
     clock_gettime(CLOCK_MONOTONIC, &end);
     double time_elapsed_s =
         (end.tv_sec - start.tv_sec) + (end.tv_nsec - start.tv_nsec) / 1e9;
-    printf("step %d:, train loss, %f, (took %f ms)\n", 
-    step, loss, time_elapsed_s * 1000);
+    // Calculate tokens per second
+    float tokens_per_second = (B * T) / time_elapsed_s;
+
+    printf("step %d: train loss %f | tokens/sec %f | lr %f (took %f ms)\n", step, loss, tokens_per_second, current_lr,
+           time_elapsed_s * 1000);
     fflush(stdout);
+
+      // Add metrics to the writer
+      writer.addTrainingLoss(loss, step);
+      writer.addScalar("time_ms", time_elapsed_s * 1000, step);
+      writer.addScalar("tokens_per_second", tokens_per_second, step);  // Add this
+      writer.addScalar("learning_rate", current_lr, step); 
+
     if (step) {
       timings.push_back(time_elapsed_s);
     }
