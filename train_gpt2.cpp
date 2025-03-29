@@ -27,8 +27,8 @@ float random_f32(unsigned long long* state) {  // random float32 in [0,1)
   return (random_u32(state) >> 8) / 16777216.0f;
 }
 
-int sample_mult(fixed_point_31pt32* probabilities, int n, fixed_point_31pt32 coin) {
-    fixed_point_31pt32 cdf(0.0f);
+int sample_mult(fixed_point_15pt16* probabilities, int n, fixed_point_15pt16 coin) {
+    fixed_point_15pt16 cdf(0.0f);
     for (int i = 0; i < n; i++) {
         cdf += probabilities[i];
         if (coin < cdf) {
@@ -38,8 +38,8 @@ int sample_mult(fixed_point_31pt32* probabilities, int n, fixed_point_31pt32 coi
     return n - 1;
 }
 
-fixed_point_31pt32 random_fixed(unsigned long long* state) {
-    return fixed_point_31pt32(random_f32(state));
+fixed_point_15pt16 random_fixed(unsigned long long* state) {
+    return fixed_point_15pt16(random_f32(state));
 }
 
 bool USE_FAST_SOFTMAX = true;
@@ -49,7 +49,7 @@ float cosine_learning_rate(int step, int total_steps, float initial_lr) {
   return initial_lr * 0.5 * (1 + cos(pi * step / total_steps));
 }
 
-using Type = fixed_point_31pt32;
+using Type = fixed_point_15pt16;
 
 int main(int argc, char** argv) {
 
@@ -117,14 +117,14 @@ int main(int argc, char** argv) {
   // train
   struct timespec start, end;
   int V = model.config.vocab_size;
-  std::unique_ptr<fixed_point_31pt32[]> logit = std::make_unique<fixed_point_31pt32[]>(B * T * V);
-  std::unique_ptr<fixed_point_31pt32[]> prob = std::make_unique<fixed_point_31pt32[]>(B * T * V);
+  std::unique_ptr<fixed_point_15pt16[]> logit = std::make_unique<fixed_point_15pt16[]>(B * T * V);
+  std::unique_ptr<fixed_point_15pt16[]> prob = std::make_unique<fixed_point_15pt16[]>(B * T * V);
   nn::Parameter label(nn::DT_FIXED, B * T * V);
   nn::Softmax softmax;
   std::vector<nn::Parameter*> parameters;
   model.Parameters(&parameters);
   float lr = 1e-3f;
-  optim::AdamW<fixed_point_31pt32> optimizer(parameters, 
+  optim::AdamW<fixed_point_15pt16> optimizer(parameters, 
     lr,
     0.9f, 
     0.999f,
@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
 
     // once in a while estimate the validation loss
     if (step % 10 == 0) {
-      fixed_point_31pt32 val_loss(0.0f);
+      fixed_point_15pt16 val_loss(0.0f);
       dataloader_reset(&val_loader);
       for (int i = 0; i < val_num_batches; i++) {
         dataloader_next_batch(&val_loader);
@@ -193,8 +193,8 @@ int main(int argc, char** argv) {
         // rows we're in principle running B "inference streams" in parallel
         // here but only using position 0 get the Vp-dimensional vector probs[0,
         // t-1, :]
-        fixed_point_31pt32* probs = prob.get() + (t - 1) * V;
-        fixed_point_31pt32 coin = random_fixed(&rng_state);
+        fixed_point_15pt16* probs = prob.get() + (t - 1) * V;
+        fixed_point_15pt16 coin = random_fixed(&rng_state);
         // note we're only sampling from the first V elements, ignoring padding
         // (the probabilities in the padded region should be zero anyway)
         int next_token = sample_mult(probs, model.config.vocab_size, coin);
