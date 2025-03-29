@@ -12,7 +12,7 @@
 namespace nn {
 
 struct Linear {
-  using T = fixed_point_15pt16;
+  using T = floatX;
 
   Linear(int in_features, int out_features, bool bias = true)
       : in_features_(in_features),
