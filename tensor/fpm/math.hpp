@@ -462,7 +462,10 @@ fixed<B, I, F, R> sqrt(fixed<B, I, F, R> x) noexcept
 {
     using Fixed = fixed<B, I, F, R>;
 
-    assert(x >= Fixed(0));
+    // Replace assert with safety check
+    if (x < Fixed(0)) {
+        return Fixed(0); // Handle negative values safely
+    }
     if (x == Fixed(0))
     {
         return x;

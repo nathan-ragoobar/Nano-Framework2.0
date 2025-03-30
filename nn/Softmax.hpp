@@ -83,7 +83,7 @@ struct SoftmaxCrossEntropy {
     for (int i = 0; i < B; ++i) {
       int ix = targets[i];
       // Convert probs(i, ix) to float, do log, accumulate
-      float p = probs(i, ix).to_float();
+      float p = float(probs(i, ix));
       *loss += -std::log(p > 0.0f ? p : 1e-12f); 
     }
 
@@ -107,7 +107,7 @@ struct SoftmaxCrossEntropy {
       int ix = targets[b];
       for (int c = 0; c < C; ++c) {
         // Convert everything to float, do the subtract, convert back
-        float p   = probs(b, c).to_float();
+        float p   = float(probs(b, c));
         float ind = (c == ix) ? 1.0f : 0.0f;
         float grad_float = (p - ind) * factor;
         logits_grad(b, c) += T(grad_float);

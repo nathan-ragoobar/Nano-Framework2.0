@@ -7,7 +7,7 @@
 #include "fixed_point.hpp"
 #include "fpm/fpm.hpp"
 
-using floatX = fixed_point_15pt16;
+using floatX = fpm::fixed_16_16;
 
 // Raw pointer -> Flat
 template <typename T>

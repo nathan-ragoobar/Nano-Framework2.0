@@ -246,7 +246,7 @@ void normal_fixed(Type* data, unsigned int numel,
     if (numel >= 16) {
         // Convert to float, use existing fill, convert back
         std::vector<float> temp(numel);
-        normal_fill(temp.data(), numel, mean.to_float(), std.to_float(), state);
+        normal_fill(temp.data(), numel, float(mean), float(std), state);
         for(unsigned int i = 0; i < numel; i++) {
             data[i] = Type(temp[i]);
         }
@@ -270,7 +270,7 @@ void normal_fixed(Type* data, unsigned int numel,
                 log(Type(1.0f) - u2 + EPSILONE)
             );
             
-            Type theta(2.0f * M_PI * u1.to_float());
+            Type theta(2.0f * M_PI * float(u1));
             
             next_normal_sample = radius * sin(theta);
             has_next_normal_sample = 1;

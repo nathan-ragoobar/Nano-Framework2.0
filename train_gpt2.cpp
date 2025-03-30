@@ -158,7 +158,7 @@ int main(int argc, char** argv) {
           auto logit_3d = Make3DTensor(logit.get(), B, T, V);
           model.gpt2_->ForwardGPU(idx, label_3d, logit_3d, &loss);
         }
-        val_loss += loss;
+        val_loss += Type(loss);
       }
       val_loss /= val_num_batches;
 

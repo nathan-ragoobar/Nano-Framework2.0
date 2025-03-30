@@ -58,6 +58,10 @@ public:
         : m_value(from_fixed_point<F>(val.raw_value()).raw_value())
     {}
 
+    float to_float() const {
+        return float(*this);
+    }
+
     // Explicit conversion to a floating-point type
     template <typename T, typename std::enable_if<std::is_floating_point<T>::value>::type* = nullptr>
     constexpr inline explicit operator T() const noexcept
@@ -390,7 +394,12 @@ struct numeric_limits<fpm::fixed<B,I,F,R>>
     static constexpr bool is_signed = std::numeric_limits<B>::is_signed;
     static constexpr bool is_integer = false;
     static constexpr bool is_exact = true;
-    static constexpr bool has_infinity = false;
+    static constexpr bool has_infinity = true;  // Change this to true
+    
+    // Add infinity method
+    static constexpr fpm::fixed<B,I,F,R> infinity() noexcept {
+        return fpm::fixed<B,I,F,R>::from_raw_value(std::numeric_limits<B>::max());
+    }
     static constexpr bool has_quiet_NaN = false;
     static constexpr bool has_signaling_NaN = false;
     static constexpr std::float_denorm_style has_denorm = std::denorm_absent;

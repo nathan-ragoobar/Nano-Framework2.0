@@ -1,7 +1,7 @@
 #ifndef LLM_CPP__NN_HPP_
 #define LLM_CPP__NN_HPP_
 
-#include "./../tensor/fixed_point.hpp"  // Add at top with other includes
+//#include "./../tensor/fixed_point.hpp"  // Add at top with other includes
 
 #include <unistd.h>
 #include <iomanip>
@@ -86,8 +86,8 @@ inline void UniformFill(absl::Span<float> weight, float from = 0.0,     // For t
 //function fills a weight tensor with values sampled from a normal (Gaussian) distribution with specified mean and standard deviation. The function has GPU and CPU implementations.
 // Add template for type flexibility
 template <typename T>
-inline void NormalFill(absl::Span<T> weight, T mean = 0.0,
-                       T std = 1.0) {
+inline void NormalFill(absl::Span<T> weight, T mean = T(0.0f),
+                       T std = T(1.0f)) {
 #ifdef EIGEN_USE_GPU
   std::vector<float> w(weight.size());
   normal_fixed(w.data(), w.size(), mean, std, &g_mt19937_state);
