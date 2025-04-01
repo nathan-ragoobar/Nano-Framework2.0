@@ -38,7 +38,7 @@ namespace nn {
   void signal_handler(int sig) {
       void* array[128];
       size_t size = backtrace(array, 128);
-      fprintf(stderr, "Error: signal %d:\n", sig);
+      //fprintf(stderr, "Error: signal %d:\n", sig);
       backtrace_symbols_fd(array, size, STDERR_FILENO);
       exit(1);
     }
@@ -365,14 +365,14 @@ struct Parameter {
   typename TTypes<T>::Flat flat() const {
     
     // Add debug logging
-    LOG(INFO) << "Attempting to access Parameter as type: " << typeid(T).name();
-    LOG(INFO) << "Parameter's actual dtype: " << dtype_;
-    LOG(INFO) << "Stack trace:";
+    //LOG(INFO) << "Attempting to access Parameter as type: " << typeid(T).name();
+    //LOG(INFO) << "Parameter's actual dtype: " << dtype_;
+    //LOG(INFO) << "Stack trace:";
     void* callstack[128];
     int frames = backtrace(callstack, 128);
     char** symbols = backtrace_symbols(callstack, frames);
     for (int i = 0; i < frames; i++) {
-        LOG(INFO) << symbols[i];
+        //LOG(INFO) << symbols[i];
     }
     free(symbols);
 

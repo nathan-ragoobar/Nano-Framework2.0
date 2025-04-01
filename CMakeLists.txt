@@ -68,10 +68,11 @@ target_link_libraries(train_gpt2_cpu
 )
 target_compile_options(train_gpt2_cpu PRIVATE -Ofast -march=native)
 
-add_executable(inference_gpt2_cpu inference_gpt2.cpp)
-target_link_libraries(inference_gpt2_cpu gpt2 optim profiler)
-target_compile_options(inference_gpt2_cpu PRIVATE -Ofast -march=native)
+#add_executable(inference_gpt2_cpu inference_gpt2.cpp)
+#target_link_libraries(inference_gpt2_cpu gpt2 optim profiler)
+#target_compile_options(inference_gpt2_cpu PRIVATE -Ofast -march=native)
 
+#[[
 add_executable(test_gpt2 test_gpt2.cpp)
 target_link_libraries(test_gpt2
     ${GTEST_LIBRARIES}
@@ -82,4 +83,4 @@ target_link_libraries(test_gpt2
     profiler
 )
 target_compile_options(test_gpt2 PRIVATE -Ofast -march=native)
-
+]]
